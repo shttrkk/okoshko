@@ -5,9 +5,11 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.api.catalog import router as catalog_router
 from backend.api.catalog import runtime_dir
+from backend.api.changes import router as changes_router
 from backend.api.hotelier import router as hotelier_router
 from backend.api.passports import router as passports_router
 from backend.api.runs import router as runs_router
+from backend.api.studio import router as studio_router
 from backend.db.repository import get_repo
 from backend.settings import DATA, STATIC
 
@@ -16,6 +18,8 @@ app.include_router(catalog_router)
 app.include_router(hotelier_router)
 app.include_router(passports_router)
 app.include_router(runs_router)
+app.include_router(studio_router)
+app.include_router(changes_router)
 _REPO = Depends(get_repo)
 
 
@@ -35,7 +39,8 @@ def health(repo=_REPO) -> dict[str, str]:
 for directory in ("seed", "geo", "tiles", "eval", "fixtures"):
     if (DATA / directory).is_dir():
         app.mount("/data/" + directory, StaticFiles(directory=DATA / directory), name="data-" + directory)
-app.mount("/data/runtime", StaticFiles(directory=runtime_dir(), check_dir=False), name="runtime")
+runtime_dir().mkdir(parents=True, exist_ok=True)
+app.mount("/data/runtime", StaticFiles(directory=runtime_dir()), name="runtime")
 if (STATIC / "assets").is_dir():
     app.mount("/assets", StaticFiles(directory=STATIC / "assets"), name="assets")
 
