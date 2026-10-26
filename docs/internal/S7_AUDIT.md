@@ -171,7 +171,7 @@ make audit
 
 ### Новый P1-R1: противоположные claims на пересечении этажей не создают конфликт
 
-**Статус:** передано оркестратору; исправление и retest ожидаются.
+**Статус:** закрыто после независимого retest S5 `730bdd3`, интегрированного в main `6833a7d`. Ниже сохранено исходное воспроизведение; результаты исправления — в конце раздела.
 
 - Место: `backend/agents/resolver.py:18`–19, 47–52 — группировка по точному Scope JSON; value conflict создаётся только внутри этой группы на строках 114–121. `backend/agents/query_match.py:294`–300 затем выбирает fact с большим числом полей scope.
 - Триггер: positive sea_view, W / этажи 1–5, confidence 0.85, source A; negative sea_view, W / с 5-го этажа, confidence 0.85, source B. Оба свежие, с evidence, без supersedes. Независимая проверка явно synthetic.
@@ -195,7 +195,7 @@ Known-answer matrix на текущем коде:
 
 ### P2-R2: старый open Conflict остаётся после supersedes
 
-`backend/agents/resolver.py:159`–167 и 188 только upsert новых conflicts. Изолированно: A=true / B=false на точном W scope → disputed Fact и open Conflict[A,B]; затем C=true supersedes_ids=[A,B] → новый computed Fact[C], conflicting_claim_ids=[], но в repository остаётся прежний open Conflict[A,B]. Текущее состояние facts и список активных конфликтов расходятся. Минимум — reconcile conflicts отеля после materialization, закрывая уже неактивные как resolved и сохраняя историю. Shared DB для этой проверки не использовалась.
+**Статус: закрыто в main `6833a7d`.** В исходном `86eab8b` `backend/agents/resolver.py:159`–167 и 188 только upsert новых conflicts. Изолированно: A=true / B=false на точном W scope → disputed Fact и open Conflict[A,B]; затем C=true supersedes_ids=[A,B] → новый computed Fact[C], conflicting_claim_ids=[], но в repository оставался прежний open Conflict[A,B]. Добавлена reconciliation после materialization: неактивные open/asked переходят в resolved, история и question_id сохранены. Независимый retest подтвердил это без использования shared DB.
 
 ### Реальные примеры и честное покрытие трёх сценариев blueprint
 
@@ -225,7 +225,7 @@ RODINA (`overture-5d220661-b1ca-4461-a03b-c89126a98e02`): website claim `website
 
 Ни один текущий кодовый путь не создаёт Conflict kind=height_quality. Есть ограничения DSM/canopy/неизвестных высот и Monte Carlo, но третьего обработанного независимого конфликта нет. Честный UI — «Пробел / неопределённость высот: нужен независимый roof/ground источник», либо отдельный явно synthetic known-answer тест детектора после его реализации. Не придумывать «5 этажей против 28 м» ради количества.
 
-Итого: реальная обработка website scope qualification есть; равные exact-scope value conflicts проверены на synthetic fixtures; overlapping-range P1 открыт; type2 opposition и независимый type3 height conflict ещё не представлены реальными данными. Полевая точность, height truth и эмпирическая калибровка этим аудитом не измерялись.
+Итого исходного аудита `86eab8b`: реальная обработка website scope qualification есть; равные exact-scope value conflicts проверены на synthetic fixtures; был найден overlapping-range P1; type2 opposition и независимый type3 height conflict ещё не представлены реальными данными. Сам P1 затем закрыт retest ниже. Полевая точность, height truth и эмпирическая калибровка этим аудитом не измерялись.
 
 ### Дополнительный raw Copernicus DSM proxy screening пяти footprints
 
@@ -254,3 +254,25 @@ Read-only метод: реальные центры raw raster pixels внутр
 ```
 
 Измеренное время — 3.42 с; повторный запуск даёт побайтово тот же JSON. По умолчанию скрипт только печатает JSON; optional output ограничен `docs/internal`, попытка записать в `data/geo` отвергается до расчёта. Ruff PASS, roof/core support и исходный terrain hash проверены. Claim / Fact / Conflict и геоданные не создаются и не изменяются. Blueprint height-conflict status в JSON явно `unconfirmed`.
+
+### Независимый retest S5 overlap / reconciliation fix
+
+Проверен S5 `730bdd3d35f25c760291def604743c70004163ee` в read-only worktree, затем интеграция **main `6833a7d408022742ab6d0d9641d5f37c6f8c0270`**. Изменены только отчёты S7; сеть / shared DB не мутировались.
+
+```sh
+.venv/bin/python -m pytest -q tests/test_resolver.py tests/test_registry_invariants.py \
+  tests/test_demo_check.py backend/tests/test_search.py
+```
+
+Результат на main: **178 passed**. Дополнительные независимые in-memory проверки:
+
+- Равновесные .85 claims W / 1–5 true и W / 5+ false теперь дают три области: 1–4 computed true; 5 disputed с confidence 0.425; 6+ computed false. На этажах 1 / 4 поиск yes/all; на 5 unknown/unknown; на 6 / 100 no/almost. На disputed этаже сохранены оба original claim IDs и Conflict value/open. Исходные Claim JSON не изменены.
+- Та же пара confidence 0.65 даёт disputed 0.325 только на пятом этаже. На 1–4 остаётся разрешённая предварительная partial/all; на 5 и выше — unknown, all не появляется. Это отдельно исключает обход через supported partial threshold 0.6.
+- Equal-value overlap, разные фасады и непересекающиеся этажи не создают Conflict. Existential hotel-wide view остаётся scope/auto_resolved qualification. Explicit universal flag теперь участвует в настоящем пересечении и при равных противоположных весах даёт value/open + disputed, вместо прежнего отдельного scope/asked пути; уже активный asked сохраняется при reconciliation.
+- Supersedes A/B → новый Fact C computed; исторический asked Conflict[A,B] становится resolved с теми же claim_ids и question_id. История не удаляется. Derive guards и demo-check tests также PASS.
+
+Отдельный read-only пересчёт **250 отелей / 24 497 claims** из четырёх versioned ledgers плюс 750 локальных POI observations дал **25 884 facts** и **109 auto_resolved scope qualifications**. Проверены **24 496 Fact→Claim связей**: каждый materialized scope — подмножество scope исходного supporting / conflicting claim. Когорта явно не включает дополнительные динамические ответы стенда или отдельные dialogue bundles; это проверка сохранённых четырёх ledger входов, а не аудит всего live DB.
+
+На этой когорте Masha top-20 содержит **3 all**. У трёх dedicated quiet Facts confidence **0.6888917525773195**, synthetic=true; immutable fixture Claims сохраняют 0.85 и simulation evidence, real geo noise сохраняет 0.38. Эффект совместного голосования не выдан за реальное подтверждение отельером или измеренную вероятность тишины. Brevis family route guard остаётся almost / route unknown из-за условий реального маршрута.
+
+**P1-R1 и P2-R2 закрыты. Новых P1 в этом retest не найдено.** Gap независимого height conflict и отсутствие реального hotelier/calculation opposition в текущих трёх согласующихся fixtures не маскируются исправлением Resolver. Интеграционные HTTP / recording проверки после rebuild выполняет оркестратор; S7 в recording window тяжёлых запусков больше не выполняет.
