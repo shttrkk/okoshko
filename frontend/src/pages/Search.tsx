@@ -495,6 +495,12 @@ function CriteriaEditor({
                 key={c.characteristic_id}
               >
                 <span>{c.label}</span>
+                {c.no_stairs && !/лестниц|ступен/i.test(c.label) && (
+                  <span className="chip-flag">Без лестниц</span>
+                )}
+                {c.no_crossings && !/переход/i.test(c.label) && (
+                  <span className="chip-flag">Без переходов</span>
+                )}
                 {typeof c.value === "number" && (
                   <label className="chip-threshold">
                     <span>{c.op === "lte" ? "≤" : "≥"}</span>

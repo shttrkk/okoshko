@@ -82,6 +82,8 @@ export interface Criterion {
   op: "eq" | "lte" | "gte" | "contains";
   value: unknown;
   field?: string | null;
+  no_stairs?: boolean;
+  no_crossings?: boolean;
   weight: number;
   scope?: Scope | null;
 }

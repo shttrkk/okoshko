@@ -413,15 +413,25 @@ async function main() {
     );
     await stage(
       "Пожелания не потеряются в комментарии",
-      "Паспорт фиксирует критичные условия для одного номера. Бронь учебная, без оплаты.",
+      "Пока без дат: предварительно согласуем один номер. Перед поездкой нужно перепроверить условия, даты и реальное наличие.",
       8000,
       async () => {
         await navigate(`/booking/${encodeURIComponent(hero.id)}`);
         await app.getByTestId("passport-submit").waitFor({ timeout: 25000 });
+        await app.getByTestId("passport-clear-dates").click();
+        assert.equal(
+          await app
+            .getByLabel("Заезд в паспорте", { exact: true })
+            .inputValue(),
+          "",
+        );
         passport = await response<Passport>("/api/passports", () =>
           app.getByTestId("passport-submit").click(),
         );
         assert(passport.synthetic_booking);
+        assert.equal(passport.check_in, null);
+        assert.equal(passport.check_out, null);
+        report.passport_mode = "preliminary_without_dates";
         assert.equal(passport.items.filter((item) => item.critical).length, 3);
         report.passport_id = passport.id;
         await app.locator(".passport-view").scrollIntoViewIfNeeded();
@@ -488,7 +498,7 @@ async function main() {
     );
     await stage(
       "Договорились о конкретном номере",
-      "Учебное подтверждение появилось в паспорте гостя вместе с историей ответа.",
+      "Предварительное учебное подтверждение появилось в паспорте. Даты и реальное наличие ещё нужно согласовать.",
       5000,
       async () => {
         await navigate(
