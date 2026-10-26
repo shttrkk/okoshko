@@ -756,8 +756,9 @@ export function TravelMap({
     if (!map || !ready) return;
     markers.current.forEach((m) => m.remove());
     markers.current = hotelList.current.map((hotel, i) => {
-      const el = document.createElement("button");
-      el.type = "button";
+      // Overview dots are decorative; only interactive maps get buttons.
+      const el = document.createElement(hero ? "span" : "button");
+      if (el instanceof HTMLButtonElement) el.type = "button";
       el.className = "map-marker";
       el.dataset.hotelId = hotel.id;
       el.textContent = hero ? "" : String(i + 1);
@@ -765,8 +766,6 @@ export function TravelMap({
       el.setAttribute("aria-label", hotel.name);
       el.dataset.testid = `map-hotel-${hotel.id}`;
       if (hero) {
-        // Decorative overview: markers are not interactive there.
-        el.tabIndex = -1;
         el.setAttribute("aria-hidden", "true");
         el.style.pointerEvents = "none";
       }

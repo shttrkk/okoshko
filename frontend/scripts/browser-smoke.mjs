@@ -50,7 +50,7 @@ try {
   );
   await page.getByTestId("search-submit").click();
   await page.locator(".result-card").first().waitFor({ timeout: 45000 });
-  await page.getByLabel("Порог: До моря пешком").fill("8");
+  await page.getByLabel(/^Порог: До (пляжа|моря)/).fill("8");
   const updated = page.waitForResponse(
     (response) =>
       response.url().endsWith("/api/search") &&
