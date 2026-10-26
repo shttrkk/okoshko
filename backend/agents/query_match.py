@@ -17,6 +17,46 @@ TRUSTED_CONFIDENCE = .7
 ROOM_CHARACTERISTICS = {"sea_view", "sunset_view", "mountain_view", "quiet_night", "soundproofing", "room_orientation"}
 DEFAULT_FIELDS = {"beach_walk": "minutes", "climate": "water_c", "air_quality": "european_aqi", "connectivity": "download_mbps"}
 MONTHLY = {"climate", "sunset_view", "morning_swim"}
+COMPASS_AZIMUTHS = {side: index * 45 for index, side in enumerate(("N", "NE", "E", "SE", "S", "SW", "W", "NW"))}
+
+
+@dataclass(frozen=True)
+class SunsetAspect:
+    angle_deg: float
+    minimum_deg: float
+    maximum_deg: float
+    exact_normal: bool
+    window_half_angle_deg: float = 75
+
+    @property
+    def oblique(self) -> bool:
+        return self.angle_deg > 45
+
+
+def _finite_number(value) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def sunset_aspect(fact: Fact) -> SunsetAspect | None:
+    """Display geometry only; a compass code is a sector, never an exact normal."""
+    if fact.characteristic_id != "sunset_view" or not isinstance(fact.value, dict):
+        return None
+    azimuth = fact.value.get("azimuth_deg")
+    if not _finite_number(azimuth):
+        return None
+    inputs = [e.inputs for e in fact.evidence if e.kind in {"calculation", "simulation"}]
+    normals = {i["facade_azimuth_deg"] % 360 for i in inputs if _finite_number(i.get("facade_azimuth_deg"))}
+    windows = {i["window_half_angle_deg"] for i in inputs if _finite_number(i.get("window_half_angle_deg")) and 0 < i["window_half_angle_deg"] <= 180}
+    window = next(iter(windows)) if len(windows) == 1 else 75
+    if len(normals) == 1:
+        normal = next(iter(normals))
+        angle = abs((azimuth - normal + 180) % 360 - 180)
+        return SunsetAspect(angle, angle, angle, True, window)
+    side = scope_values(fact).get("facade")
+    if side not in COMPASS_AZIMUTHS:
+        return None
+    angle = abs((azimuth - COMPASS_AZIMUTHS[side] + 180) % 360 - 180)
+    return SunsetAspect(angle, max(0, angle - 22.5), min(180, angle + 22.5), False, window)
 
 
 @dataclass(frozen=True)
@@ -46,8 +86,12 @@ class Match:
     @property
     def utility(self) -> float:
         # Reliability of a statement is not P(satisfies). Unknown has a fixed prior.
-        return {"yes": .6 + .4*self.confidence, "partial": .35 + .4*self.confidence,
-                "unknown": .2, "no": .05*(1-self.confidence)}[self.status]
+        utility = {"yes": .6 + .4*self.confidence, "partial": .35 + .4*self.confidence,
+                   "unknown": .2, "no": .05*(1-self.confidence)}[self.status]
+        # Oblique sunset is useful, but is a weaker fit than a view straight ahead.
+        if self.condition_met and any((aspect := sunset_aspect(f)) and aspect.oblique for f in self.facts):
+            utility *= .85
+        return utility
 
 
 @dataclass
@@ -129,6 +173,49 @@ def _compare(actual, criterion: Criterion) -> bool | None:
     return actual == target
 
 
+def route_constraints(fact: Fact, criterion: Criterion) -> bool | None:
+    """Evaluate additional route requirements with three-valued AND semantics.
+
+    Missing OSM flags never mean an accessible route. Freshness, provenance,
+    confidence and the primary numeric condition are checked by the caller.
+    """
+    if criterion.characteristic_id != "beach_walk":
+        return True
+    if fact.characteristic_id != "beach_walk":
+        return None
+    value = fact.value if isinstance(fact.value, dict) else {}
+    checks = []
+    if criterion.no_stairs:
+        steps = value.get("has_steps")
+        checks.append(not steps if isinstance(steps, bool) else None)
+    if criterion.no_crossings:
+        crossings = value.get("crossings")
+        if isinstance(crossings, list):
+            checks.append(not crossings)
+        elif _finite_number(crossings) and crossings >= 0:
+            checks.append(crossings == 0)
+        else:
+            checks.append(None)
+    return False if False in checks else None if None in checks else True
+
+
+def _route_reason(fact: Fact, criterion: Criterion) -> str:
+    value = fact.value if isinstance(fact.value, dict) else {}
+    details = []
+    if criterion.no_stairs:
+        if value.get("has_steps") is True:
+            details.append("на маршруте отмечены лестницы")
+        elif value.get("has_steps") is not False:
+            details.append("нет сведений о лестницах")
+    if criterion.no_crossings:
+        crossings = value.get("crossings")
+        if crossings:
+            details.append("на маршруте отмечены переходы")
+        elif crossings is None or isinstance(crossings, bool):
+            details.append("нет сведений о переходах")
+    return "Маршрут " + ("без лестниц и переходов" if criterion.no_stairs and criterion.no_crossings else "без лестниц" if criterion.no_stairs else "без переходов") + " не подтверждён: " + "; ".join(details)
+
+
 def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_name: str) -> Match:
     if not fresh(fact):
         reason = "Данные оспариваются" if fact.status == "disputed" else "Данные неизвестны" if fact.status == "unknown" else "Данные устарели; нужно перепроверить"
@@ -149,6 +236,13 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
         result = False
     if fact.characteristic_id in MONTHLY and value.get("months") and parsed.month not in value["months"]:
         result = criterion.value is False
+    route_result = route_constraints(fact, criterion)
+    if route_result is not True:
+        if route_result is None and result is not False:
+            return Match(facts=[fact], reason=_route_reason(fact, criterion), value=actual)
+        if route_result is False:
+            return Match("no" if fact.confidence >= TRUSTED_CONFIDENCE else "unknown", [fact],
+                         _route_reason(fact, criterion), actual)
     incomplete = False
     if fact.characteristic_id == "pets" and result and criterion.value is True:
         if parsed.pet_weight_kg is not None:

@@ -52,7 +52,44 @@ queries:
     persona: Анна — семья с коляской
     text: с детьми и коляской, до пляжа не более 7 минут
     expected:
-      must: [{id: family_nearby, value: true}, {id: beach_walk, value: 7, op: lte}]
+      must: [{id: family_nearby, value: true}, {id: beach_walk, field: minutes, value: 7, op: lte, no_stairs: true}]
+  - id: family_review004
+    persona: Ольга — семья с коляской, regression REVIEW004
+    text: с ребёнком и коляской, до пляжа без лестниц, рядом детская площадка
+    expected:
+      must:
+        - {id: beach_walk, field: minutes, op: lte, value: 10, no_stairs: true}
+        - {id: family_nearby, field: playground_distance_m, op: lte, value: 500}
+      must_count: 2
+      unmapped: []
+  - id: family_route_and_constraints
+    persona: Ольга — безопасный путь с коляской
+    text: до пляжа с коляской без лестниц и без перехода через трассу
+    expected:
+      must: [{id: beach_walk, field: minutes, op: lte, value: 10, no_stairs: true, no_crossings: true}, {id: family_nearby}]
+      must_count: 2
+      unmapped: []
+  - id: nearby_parking
+    persona: Сергей и Лена — на машине
+    text: парковка рядом
+    expected:
+      must: [{id: car_access, field: parking_distance_m, op: lte, value: 500}]
+      must_count: 1
+      unmapped: []
+  - id: nearby_pharmacy
+    persona: Ольга — аптека рядом
+    text: ночная аптека рядом
+    expected:
+      must: [{id: night_pharmacy, field: distance_m, op: lte, value: 500}]
+      must_count: 1
+      unmapped: []
+  - id: nearby_unknown_poi
+    persona: Дмитрий — неизвестная каталогу кофейня
+    text: кофейня рядом, до пляжа 8 минут
+    expected:
+      must: [{id: beach_walk, field: minutes, op: lte, value: 8}]
+      must_count: 1
+      unmapped: [кофейня рядом]
   - id: family_pharmacy
     persona: Анна — семья с коляской
     text: нужна круглосуточная аптека, желательно детская площадка
