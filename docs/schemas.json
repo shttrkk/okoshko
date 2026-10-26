@@ -2316,6 +2316,16 @@
           }
         ],
         "default": null
+      },
+      "no_stairs": {
+        "default": false,
+        "title": "No Stairs",
+        "type": "boolean"
+      },
+      "no_crossings": {
+        "default": false,
+        "title": "No Crossings",
+        "type": "boolean"
       }
     },
     "required": [
@@ -2382,6 +2392,16 @@
               }
             ],
             "default": null
+          },
+          "no_stairs": {
+            "default": false,
+            "title": "No Stairs",
+            "type": "boolean"
+          },
+          "no_crossings": {
+            "default": false,
+            "title": "No Crossings",
+            "type": "boolean"
           }
         },
         "required": [
@@ -2690,6 +2710,16 @@
               }
             ],
             "default": null
+          },
+          "no_stairs": {
+            "default": false,
+            "title": "No Stairs",
+            "type": "boolean"
+          },
+          "no_crossings": {
+            "default": false,
+            "title": "No Crossings",
+            "type": "boolean"
           }
         },
         "required": [
@@ -3161,6 +3191,16 @@
               }
             ],
             "default": null
+          },
+          "no_stairs": {
+            "default": false,
+            "title": "No Stairs",
+            "type": "boolean"
+          },
+          "no_crossings": {
+            "default": false,
+            "title": "No Crossings",
+            "type": "boolean"
           }
         },
         "required": [
@@ -4012,6 +4052,16 @@
               }
             ],
             "default": null
+          },
+          "no_stairs": {
+            "default": false,
+            "title": "No Stairs",
+            "type": "boolean"
+          },
+          "no_crossings": {
+            "default": false,
+            "title": "No Crossings",
+            "type": "boolean"
           }
         },
         "required": [
@@ -6868,6 +6918,16 @@
               }
             ],
             "default": null
+          },
+          "no_stairs": {
+            "default": false,
+            "title": "No Stairs",
+            "type": "boolean"
+          },
+          "no_crossings": {
+            "default": false,
+            "title": "No Crossings",
+            "type": "boolean"
           }
         },
         "required": [

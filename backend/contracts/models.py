@@ -246,6 +246,8 @@ class Criterion(Model):
     field: str | None = None
     weight: float = Field(default=1, gt=0, le=10)
     scope: Scope | None = None
+    no_stairs: bool = False
+    no_crossings: bool = False
 
 
 class ParsedQuery(Model):

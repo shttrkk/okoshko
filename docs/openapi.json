@@ -2249,6 +2249,16 @@
                 "type": "null"
               }
             ]
+          },
+          "no_stairs": {
+            "type": "boolean",
+            "title": "No Stairs",
+            "default": false
+          },
+          "no_crossings": {
+            "type": "boolean",
+            "title": "No Crossings",
+            "default": false
           }
         },
         "additionalProperties": false,

@@ -27,3 +27,7 @@
 16. **Компактное хранение:** логический URI GeoJSON и hash несжатых bytes сохраняем, физический файл gzip mtime0. Geo read helper и HTTP Content-Encoding обеспечивают совместимость без нового научного расчёта. Неиспользуемые дубли buildings/osm_features CSV удаляем; источником геометрии остаётся один GeoJSON gzip.
 
 17. **Полный dependency gate:** make audit включает runtime/dev/pipeline Python locks, npm full и prod; scanner error или skipped dependency блокирует PASS. Исправлены 10 dev advisories обновлением pip26.2.2, setuptools84.2.1, pytest9.1.1 и совместимых инструментов; не suppress.
+
+18. **Сдача после уточнения владельца26.10:** оркестратор не делает push. Готовим локальнуюmain, проверенныйcommit иsubmissiontag; владелец отправляетихврепозиторийкомандысам. Старуюинструкциюавтопушасчитатьотменённой. Настройкипубличностивнешнегоokoshkoуправляетвладелец.
+
+19. **REVIEW004 route constraints:** Criterion дополнен no_stairs/no_crossings(defaultfalse). Одна beach_walk описывает distance/time и дополнительные AND-ограничения маршрута; missing flags означаютunknown, не отсутствие лестниц. «Коляска» делает no_stairs=true, это видно пользователю. Боковойзакат подписываем по геометрии, не меняя ранее рассчитанные числа без новой версиигеоданных.
