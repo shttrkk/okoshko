@@ -27,6 +27,23 @@ DEMO_HOTEL = "osm-node-10058556917"
 GEO_CHARACTERISTICS = {"sea_view", "sunset_view", "mountain_view", "quiet_night", "beach_walk"}
 
 
+def unchanged_geo_inputs(claims, data_dir):
+    """Re-running an old snapshot is not a fresh observation of the hotel."""
+    from geo.runtime_cache import input_digest
+    snapshots = []
+    for claim in claims:
+        for evidence in claim.evidence:
+            inputs = evidence.inputs
+            hashes = inputs.get("input_sha256")
+            if hashes:
+                snapshots.append(hashes)
+            elif inputs.get("baseline_artifact") and inputs.get("baseline_sha256"):
+                snapshots.append({inputs["baseline_artifact"]: inputs["baseline_sha256"]})
+    return bool(snapshots) and all(
+        artifact.startswith("/data/") and input_digest(Path(data_dir)/artifact.removeprefix("/data/")) == expected
+        for snapshot in snapshots for artifact, expected in snapshot.items())
+
+
 def durable_geo(result, data_dir: Path = DATA, runtime: Path = RUNTIME_DIR):
     """Copy each produced artifact before DB references escape the container layer."""
     result = json.loads(json.dumps(result))
@@ -173,7 +190,11 @@ def refresh_expired(repo, *, data_dir=DATA, runtime=RUNTIME_DIR):
             if not hotel:
                 continue
             refreshed, warnings = [], []
-            if ids & GEO_CHARACTERISTICS:
+            geo_ids = ids & GEO_CHARACTERISTICS
+            unchanged = geo_ids and unchanged_geo_inputs([claim for claim in claims if claim.hotel_id == hotel_id and claim.characteristic_id in geo_ids and claim.id not in superseded], data_dir)
+            if unchanged:
+                warnings.append("Геоданные не обновились: повторный расчёт того же снимка не продлевает срок наблюдений; факты остаются устаревшими")
+            if geo_ids and not unchanged:
                 from geo.service import compute_hotel
                 events = [event for event in repo.all("change_events") if hotel_id in event.get("affected_hotel_ids", [])]
                 events.sort(key=lambda event: event.get("detected_at", ""), reverse=True)

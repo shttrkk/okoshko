@@ -136,3 +136,21 @@ def test_expiry_recheck_keeps_the_active_synthetic_building(tmp_path):
     document = json.loads((runtime / "geo" / claim["evidence"][0]["artifact"].split("/")[-1]).read_text())
     assert document["claims"][0]["run_id"] == refresh["run_id"]
     assert document["claims"][0]["supersedes_ids"] == ["expired-with-building"]
+
+
+def test_expiry_cannot_be_renewed_by_identical_local_geo_snapshot(tmp_path):
+    import hashlib
+    repo = ApiRepo()
+    seed = tmp_path/"seed"
+    seed.mkdir()
+    source = seed/"buildings.geojson"
+    source.write_text('{"type":"FeatureCollection","features":[]}')
+    claim = observation("old-expired", 1, 5, True, expired=True)
+    claim.evidence[0].inputs = {"input_sha256": {"/data/seed/buildings.geojson": hashlib.sha256(source.read_bytes()).hexdigest()}}
+    repo.add_claim(claim)
+    with patch("geo.service.compute_hotel", side_effect=AssertionError("Unchanged data must not renew observation")):
+        result = refresh_expired(repo, data_dir=tmp_path, runtime=tmp_path/"runtime")
+    assert result["processed"] == 1
+    assert len(repo.all("claims")) == 1
+    [fact] = [row for row in repo.find("facts", hotel_id="test-hotel") if row["characteristic_id"] == "sea_view"]
+    assert fact["status"] == "stale" and fact["valid_until"] == claim.valid_until.isoformat()

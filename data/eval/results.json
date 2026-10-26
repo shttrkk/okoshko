@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-26T15:07:29.331712+00:00",
+  "generated_at": "2026-10-26T15:33:25.476618+00:00",
   "hotel_count": 250,
   "characteristic_count": 16,
   "fact_count": 25884,
@@ -10,7 +10,7 @@
     "total_pairs": 4000,
     "ratio": 0.46325
   },
-  "synthetic_fact_count": 3,
+  "synthetic_fact_count": 10,
   "question_share": 0.0,
   "label_groups": {
     "weak_website": {

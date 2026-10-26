@@ -36,6 +36,11 @@ def main():
                 for line in stream:
                     claim = Claim.model_validate_json(line)
                     claims[claim.hotel_id].append(claim)
+        dialogues = data/"seed/demo_hotelier_dialogues.json"
+        if dialogues.is_file():
+            for row in json.loads(dialogues.read_text())["claims"]:
+                claim = Claim.model_validate(row)
+                claims[claim.hotel_id].append(claim)
         typed_specs = [CharacteristicSpec.model_validate(spec) for spec in specs]
         for hotel in rows("hotels"):
             resolved, _ = resolve_claims(hotel["id"], claims[hotel["id"]], typed_specs, rows("sources"))
