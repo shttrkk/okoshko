@@ -73,7 +73,8 @@ def value_at(fact: Fact, field_name: str):
 
 
 def scope_values(fact: Fact) -> dict:
-    scope = fact.scope.model_dump(exclude_none=True)
+    scope = {key: value for key, value in (("facade", fact.scope.facade), ("floor_min", fact.scope.floor_min),
+             ("floor_max", fact.scope.floor_max), ("room_type", fact.scope.room_type), ("month", fact.scope.month)) if value is not None}
     value = fact.value if isinstance(fact.value, dict) else {}
     if not scope.get("facade") and value.get("facade") in {"N", "NE", "E", "SE", "S", "SW", "W", "NW"}:
         scope["facade"] = value["facade"]
@@ -125,13 +126,20 @@ def _compare(actual, criterion: Criterion) -> bool | None:
 
 def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_name: str) -> Match:
     if not fresh(fact):
-        reason = "Данные устарели; нужно перепроверить" if fact.status == "stale" or fact.valid_until else "Данные неизвестны или оспариваются"
+        reason = "Данные оспариваются" if fact.status == "disputed" else "Данные неизвестны" if fact.status == "unknown" else "Данные устарели; нужно перепроверить"
         return Match(facts=[fact], reason=reason)
     if not fact.evidence or not fact.supporting_claim_ids:
         return Match(facts=[fact], reason="Нет цепочки подтверждающих источников")
     actual = value_at(fact, field_name)
     value = fact.value if isinstance(fact.value, dict) else {}
     result = _compare(actual, criterion)
+    scope = scope_values(fact)
+    if fact.scope.month and value.get("month") and fact.scope.month != value["month"]:
+        return Match(facts=[fact], reason="Месяц значения расходится с областью действия факта", value=actual)
+    if fact.scope.facade and value.get("facade") and fact.scope.facade != value["facade"]:
+        return Match(facts=[fact], reason="Сторона в значении расходится с областью действия факта", value=actual)
+    if fact.characteristic_id == "climate" and not scope.get("month"):
+        return Match(facts=[fact], reason="Не указан месяц климатических данных", value=actual)
     if result is None and value.get("available") is False and criterion.value is not False:
         result = False
     if fact.characteristic_id in MONTHLY and value.get("months") and parsed.month not in value["months"]:
@@ -157,6 +165,10 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
         if fact.characteristic_id == "soundproofing" and field_name == "available" and any(value.get(k) is not None for k in ("windows", "blackout", "air_conditioning")):
             return Match("partial", [fact], "Есть сведения об окнах, но шумоизоляция не подтверждена", actual)
         return Match(facts=[fact], reason="Нужное поле не подтверждено", value=actual)
+    if result and criterion.characteristic_id in {"sea_view", "sunset_view", "mountain_view"} and not any(
+        scope.get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type")
+    ):
+        return Match("partial", [fact], "Общее заявление о виде не подтверждает сторону и этаж конкретного номера", actual)
     if result and (fact.confidence < TRUSTED_CONFIDENCE or incomplete):
         return Match("partial", [fact], "Есть предварительные данные; нужно уточнить ограничения" if incomplete else "Предварительная оценка с низкой уверенностью", actual)
     if not result and fact.confidence < TRUSTED_CONFIDENCE:
@@ -164,26 +176,24 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
     return Match("yes" if result else "no", [fact], "Условие выполнено" if result else "Условие не выполняется", actual)
 
 
-def _best_match(facts: list[Fact], criterion: Criterion, parsed: ParsedQuery, context: RoomContext, field_name: str) -> Match:
-    scoped = [f for f in facts if _includes(scope_values(f), context)]
+def _best_match(facts: list[Fact], criterion: Criterion, context: RoomContext, field_name: str,
+                scopes: dict, evaluations: dict, detailed: bool) -> Match:
+    scoped = [f for f in facts if _includes(scopes[id(f)], context)]
     if criterion.scope and not _includes(criterion.scope.model_dump(exclude_none=True), context):
         return Match(reason="Этот номер не соответствует запрошенной стороне или этажу")
     if not scoped:
         return Match(reason="Для этой стороны, этажа или месяца нет данных")
     # Scoped room calculations outrank hotel-wide marketing, including positive quotes.
-    if criterion.characteristic_id in ROOM_CHARACTERISTICS and any(
-        any(scope_values(f).get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type"))
-        and fresh(f) and f.evidence for f in facts
-    ):
-        scoped = [f for f in scoped if any(scope_values(f).get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type")) or value_at(f, field_name) is not True]
+    if criterion.characteristic_id in ROOM_CHARACTERISTICS and detailed:
+        scoped = [f for f in scoped if any(scopes[id(f)].get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type")) or value_at(f, field_name) is not True]
     if not scoped:
         return Match(reason="Общее заявление отеля не подтверждает конкретный номер")
-    evaluated = [evaluate_fact(f, criterion, parsed, field_name) for f in scoped]
+    evaluated = [evaluations[id(f)] for f in scoped]
     known = [m for m in evaluated if m.status != "unknown"]
     if known:
         # Within overlapping evidence, a more specific resolved fact wins.
         def specificity(m):
-            return sum(scope_values(m.facts[0]).get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type", "month"))
+            return sum(scopes[id(m.facts[0])].get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type", "month"))
         most = max(map(specificity, known))
         known = [m for m in known if specificity(m) == most]
         if any(m.status == "yes" for m in known) and any(m.status == "no" for m in known):
@@ -195,13 +205,22 @@ def _best_match(facts: list[Fact], criterion: Criterion, parsed: ParsedQuery, co
 def assess_hotel(facts: list[Fact], parsed: ParsedQuery, specs: list[CharacteristicSpec] | None = None) -> Assessment:
     criteria = [*parsed.must, *parsed.nice]
     fields = {s.id: s.search.field for s in specs or []}
-    by_id = {c.characteristic_id: [f for f in facts if f.characteristic_id == c.characteristic_id] for c in criteria}
-    relevant = [f for f in facts if f.characteristic_id in by_id]
-    facades = {scope_values(f).get("facade") for f in relevant} - {None}
-    room_types = {scope_values(f).get("room_type") for f in relevant} - {None}
+    by_id = {c.characteristic_id: [] for c in criteria}
+    scopes = {id(f): scope_values(f) for f in facts if f.characteristic_id in by_id}
+    for fact in facts:
+        if fact.characteristic_id in by_id and scopes[id(fact)].get("month", parsed.month) == parsed.month:
+            by_id[fact.characteristic_id].append(fact)
+    relevant = [f for values in by_id.values() for f in values]
+    criterion_fields = [c.field or fields.get(c.characteristic_id) or DEFAULT_FIELDS.get(c.characteristic_id, "available") for c in criteria]
+    evaluations = [{id(f): evaluate_fact(f, c, parsed, name) for f in by_id[c.characteristic_id]}
+                   for c, name in zip(criteria, criterion_fields, strict=True)]
+    detailed = {cid: any(any(scopes[id(f)].get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type"))
+                         and fresh(f) and f.evidence for f in values) for cid, values in by_id.items()}
+    facades = {scopes[id(f)].get("facade") for f in relevant} - {None}
+    room_types = {scopes[id(f)].get("room_type") for f in relevant} - {None}
     floors = {parsed.min_floor or 1}
     for fact in relevant:
-        scope = scope_values(fact)
+        scope = scopes[id(fact)]
         if scope.get("floor_min"):
             floors.add(scope["floor_min"])
         if scope.get("floor_max") and scope["floor_max"] < 100:
@@ -220,8 +239,8 @@ def assess_hotel(facts: list[Fact], parsed: ParsedQuery, specs: list[Characteris
     candidates = []
     alternatives: dict[int, list[Fact]] = {}
     for context in contexts:
-        matches = [_best_match(by_id[c.characteristic_id], c, parsed, context,
-                               c.field or fields.get(c.characteristic_id) or DEFAULT_FIELDS.get(c.characteristic_id, "available")) for c in criteria]
+        matches = [_best_match(by_id[c.characteristic_id], c, context, name, scopes, evaluated, detailed[c.characteristic_id])
+                   for c, name, evaluated in zip(criteria, criterion_fields, evaluations, strict=True)]
         candidates.append(Assessment(context, matches))
         for index, match in enumerate(matches[:len(parsed.must)]):
             if match.status in {"yes", "partial"}:
@@ -234,6 +253,6 @@ def assess_hotel(facts: list[Fact], parsed: ParsedQuery, specs: list[Characteris
         return yes, progress, utility, -item.context.floor
     best = max(candidates, key=key, default=Assessment(RoomContext(month=parsed.month), []))
     best.alternatives = {i: list({f.id: f for f in fs}.values()) for i, fs in alternatives.items()}
-    best.scope_conflict = bool(parsed.must) and len(alternatives) == len(parsed.must) and not any(
-        all(m.status in {"yes", "partial"} for m in c.matches[:len(parsed.must)]) for c in candidates)
+    best.scope_conflict = len(alternatives) >= 2 and not any(
+        all(c.matches[i].status in {"yes", "partial"} for i in alternatives) for c in candidates)
     return best

@@ -13,9 +13,9 @@ from backend.contracts import CharacteristicSpec, Criterion, ParsedQuery, Scope,
 
 MONTHS = ("январ", "феврал", "март", "апрел", "ма[йяе]", "июн", "июл", "август", "сентябр", "октябр", "ноябр", "декабр")
 SIDE_PATTERNS = {
-    "NW": r"северо[ -]?запад", "NE": r"северо[ -]?восточ",
-    "SW": r"юго[ -]?запад", "SE": r"юго[ -]?восточ",
-    "W": r"запад", "E": r"восточ", "N": r"север", "S": r"южн|на юг\b",
+    "NW": r"северо[ -]?запад", "NE": r"северо[ -]?восто(?:ч|к)",
+    "SW": r"юго[ -]?запад", "SE": r"юго[ -]?восто(?:ч|к)",
+    "W": r"запад", "E": r"восто(?:ч|к)", "N": r"север", "S": r"южн|на юг\b",
 }
 RULES = {
     "quiet_night": r"\bтих\w*|\bтишин\w*|выспаться|сплю чутко|чутк\w* сон|без шума|не шумн\w*",
@@ -32,7 +32,7 @@ RULES = {
     "car_access": r"\bпарков\w*|на машине|\bподъезд\w*|\bэлектромобил\w*|\bзарядк\w*",
     "night_pharmacy": r"\bаптек\w*",
 }
-OUTSIDE = r"москв\w*|саратов\w*|санкт[ -]?петербург\w*|петербург\w*|спб|казан[ьиь]\w*|анап\w*|геленджик\w*|краснодар\w*|стамбул\w*|париж\w*|дуба[ий]\w*|калининград\w*|екатеринбург\w*|новосибирск\w*|ялт\w*|туапсе|крым\w*|ростов\w*|нижн\w* новгород\w*|самар\w*|твер[ьиь]\w*|минск\w*|батум\w*|красн\w* полян\w*"
+OUTSIDE = r"москв\w*|саратов\w*|санкт[ -]?петербург\w*|петербург\w*|спб|казан[ьиь]\w*|анап\w*|геленджик\w*|краснодар\w*|стамбул\w*|париж\w*|дуба[ий]\w*|калининград\w*|екатеринбург\w*|новосибирск\w*|ялт\w*|туапсе|крым\w*|ростов\w*|нижн\w* новгород\w*|самар\w*|твер[ьиь]\w*|минск\w*|батум\w*|красн\w* полян\w*|воронеж\w*|волгоград\w*|омск\w*|томск\w*|перм[ьиь]\w*|уф[аеуы]\w*|челябинск\w*|красноярск\w*|тюмен[ьиь]\w*|иркутск\w*|хабаровск\w*|владивосток\w*|сургут\w*|сочи-парк|тбилиси|ереван\w*|ташкент\w*|белград\w*|антал[ьи]\w*|бишкек\w*|алмат[ыи]|астан\w*|псков\w*|суздал\w*|ярославл\w*|костром\w*|владимир\w*|иванов\w*|смоленск\w*|брянск\w*|ор[её]л\w*|курск\w*|белгород\w*|рязан\w*|тул[аеуы]\w*|тамбов\w*|липецк\w*|пенза|пензе|ижевск\w*|киров\w*|чебоксар\w*|саранск\w*|йошкар\w*|ульяновск\w*|оренбург\w*|барнаул\w*|кемеров\w*|новокузнецк\w*|абакан\w*|чита|чите|улан-удэ|якутск\w*|магадан\w*|мурманск\w*|архангельск\w*|петрозаводск\w*|вологд\w*|сыктывкар\w*|грозн\w*|махачкал\w*|владикавказ\w*|ставропол\w*|пятигорск\w*|кисловодск\w*|ессентук\w*|нальчик\w*|майкоп\w*"
 SOFT = r"желатель\w*|хорошо бы|по возможности|необязатель\w*|не обязател\w*|можно(?: бы)?|не принципиаль\w*"
 HARD = r"(?<!не )обязатель\w*|только|важн\w*|нуж(?:ен|на|но|ны)|долж\w*|необходим\w*"
 
@@ -55,14 +55,20 @@ def _phrase_pattern(phrase: str) -> str:
 def _dates(text: str, request: SearchRequest) -> tuple[date | None, date | None, int, list[str]]:
     dates = []
     warnings = []
-    for match in re.finditer(r"\b(\d{4})-(\d{2})-(\d{2})\b|\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b", text):
+    for match in re.finditer(r"\b(\d{4})-(\d{2})-(\d{2})\b|\b(\d{1,2})\.(\d{2})(?:\.(\d{4}))?\b", text):
         parts = match.groups()
         try:
-            dates.append(date(int(parts[0] or parts[5]), int(parts[1] or parts[4]), int(parts[2] or parts[3])))
+            dates.append(date(int(parts[0] or parts[5] or date.today().year), int(parts[1] or parts[4]), int(parts[2] or parts[3])))
         except ValueError:
             warnings.append("Проверьте даты поездки: такой даты в календаре нет.")
     month = next((i for i, stem in enumerate(MONTHS, 1) if re.search(r"\b" + stem, text)), 9)
-    natural = re.search(r"\b(\d{1,2})\s*(?:[-–—]\s*(\d{1,2})\s*)?(" + "|".join(MONTHS) + r")\w*(?:\s+(20\d{2}))?", text)
+    compact = re.search(r"\b(\d{1,2})\s*[-–—]\s*(\d{1,2})\.(\d{2})(?:\.(20\d{2}))?\b", text)
+    if compact:
+        try:
+            dates = [date(int(compact[4] or date.today().year), int(compact[3]), int(compact[i])) for i in (1, 2)]
+        except ValueError:
+            warnings.append("Проверьте даты поездки: такой даты в календаре нет.")
+    natural = re.search(r"\b(\d{1,2})\s*(?:(?:[-–—]|по)\s*(\d{1,2})\s*)?(" + "|".join(MONTHS) + r")\w*(?:\s+(20\d{2}))?", text)
     if natural and not dates:
         try:
             dates = [date(int(natural[4] or date.today().year), month, int(natural[1]))]
@@ -99,8 +105,10 @@ def _importance(text: str, start: int, end: int) -> tuple[bool, bool, bool]:
 
 def _numeric(text: str, start: int, end: int, field: str, default_op: str, default_value):
     window = text[max(0, start - 50):min(len(text), end + 70)]
-    units = {"minutes": r"мин(?:ут\w*)?", "water_c": r"(?:°\s*с?|градус\w*)", "download_mbps": r"(?:мбит(?:/с)?|mbps|мб/с)", "european_aqi": r"(?:aqi|единиц\w*)"}
+    units = {"minutes": r"мин(?:ут\w*)?", "water_c": r"(?:°\s*с?|градус\w*)", "download_mbps": r"(?:мбит(?:/с)?|mbps|мб/с)", "european_aqi": r"(?:aqi|единиц\w*)", "night_db_max": r"дб", "parking_distance_m": r"м(?:етр\w*)?\b", "playground_distance_m": r"м(?:етр\w*)?\b"}
     unit = units.get(field)
+    if not unit and field not in {"available", "windows", "blackout", "balcony", "air_conditioning"}:
+        unit = r"(?:час\w*|метр\w*|м\b|%|балл\w*|люкс\w*|км\b)"
     if not unit:
         return default_op, default_value
     found = re.search(r"(?P<op>не менее|не ниже|не холоднее|больше|выше|от|≥|>=|не более|не дальше|не дольше|не выше|не больше|максимум|до|≤|<=)?\s*(?P<num>\d+(?:[.,]\d+)?)\s*" + unit, window)
@@ -118,16 +126,31 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
     parsed = ParsedQuery(text=request.text, check_in=check_in, check_out=check_out, month=month, clarifications=warnings[:2])
     outside = list(re.finditer(r"\b(?:" + OUTSIDE + r")\b", text))
     outside = [m for m in outside if not re.search(r"(?:из|от|вылет из)\s+$", text[max(0, m.start()-15):m.start()])]
+    # Unknown capitalised place names are caught without an online gazetteer.
+    for place in re.finditer(r"\b(?:[Вв](?:о)?|город(?:е)?)\s+([А-ЯЁ][а-яё-]{2,})", request.text):
+        name = normalized(place[1])
+        if not re.fullmatch(r"сочи|адлер\w*|сириус\w*|имеретин\w*|номер\w*|отел\w*|гостиниц\w*|центре|" + "|".join(m + r"\w*" for m in MONTHS), name):
+            outside.append(place)
     if outside:
         parsed.unmapped.append("region_out_of_scope")
         parsed.clarifications = ["Сейчас данные собраны для Сочи (центр, Адлер и Сириус). Укажите этот регион; для другого города нужен отдельный сбор данных."]
     facade_match = next(((side, re.search(pattern, text)) for side, pattern in SIDE_PATTERNS.items() if re.search(pattern, text)), None)
-    if facade_match:
+    if facade_match and not _importance(text, facade_match[1].start(), facade_match[1].end())[0]:
         parsed.facade = facade_match[0]
     floor = re.search(r"(?:с|от|не ниже)\s*(\d{1,2})(?:\s*[-–]?(?:го|ого))?\s*(?:этажа?|эт\b)|\b(\d{1,2})\s*\+\s*этаж", text)
     exact_floor = re.search(r"на\s+(\d{1,2})(?:[- ]?(?:м|ом))?\s*этаже", text)
-    if floor or exact_floor:
-        parsed.min_floor = int((floor[1] or floor[2]) if floor else exact_floor[1]) or None
+    floor_range = re.search(r"(?:с|от)\s*(\d{1,2})\s*(?:по|до|[-–—])\s*(\d{1,2})(?:\s*[-–]?(?:го|ого))?\s*этаж", text)
+    floor_ceiling = re.search(r"(?:не выше|до)\s*(\d{1,2})(?:\s*[-–]?(?:го|ого))?\s*этаж", text)
+    floor_match = floor_range or floor or exact_floor or floor_ceiling
+    requested_floor = int(floor_range[1] if floor_range else (floor[1] or floor[2]) if floor else exact_floor[1]) if floor_range or floor or exact_floor else None
+    requested_max = int(floor_range[2]) if floor_range else int(exact_floor[1]) if exact_floor else int(floor_ceiling[1]) if floor_ceiling else None
+    if requested_floor and requested_max and requested_floor > requested_max:
+        warnings.append("Минимальный этаж не может быть выше максимального.")
+        requested_floor, requested_max = None, None
+    floor_is_soft = bool(floor_match and _importance(text, floor_match.start(), floor_match.end())[0])
+    if not floor_is_soft:
+        parsed.min_floor = requested_floor or None
+    hard_floor_max = None if floor_is_soft else requested_max
     weight = re.search(r"(?:собак\w*|питом\w*|лабрадор\w*|кошк\w*)[^,;.]{0,35}?(\d+(?:[.,]\d+)?)\s*кг", text)
     if weight and float(weight[1].replace(",", ".")) <= 100:
         parsed.pet_weight_kg = float(weight[1].replace(",", "."))
@@ -137,49 +160,77 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         ("чуткий сон", RULES["quiet_night"]), ("романтическая поездка", r"годовщин|романти|двоих|пары")]
         if re.search(pattern, text)), None)
     consumed = []
+    positions = {}
     for spec in catalog:
         if spec.status != "active":
             continue
         matches = [m for phrase in [spec.name_ru, *spec.synonyms] for m in re.finditer(_phrase_pattern(phrase), text)]
         if spec.id in RULES:
             matches += list(re.finditer(RULES[spec.id], text))
-        if spec.id == "room_orientation" and (facade_match or parsed.min_floor):
-            matches += [facade_match[1]] if facade_match else [floor or exact_floor]
+        if spec.id == "room_orientation" and (facade_match or floor_match):
+            matches += [facade_match[1]] if facade_match else [floor_match]
         if not matches:
             continue
         # Longest phrase is most useful for negation ("без вида на море").
         match = min(matches, key=lambda m: (m.start(), -(m.end()-m.start())))
+        positions[spec.id] = match.start()
         consumed.extend((m.start(), m.end()) for m in matches)
         soft, negative, skip = _importance(text, match.start(), match.end())
         if skip:
             continue
         field, op, value = spec.search.field, spec.search.default_op, spec.search.default_value
+        if spec.id == "quiet_night" and re.search(r"\d+\s*дб", text):
+            field, op, value = "night_db_max", "lte", 45
+        elif spec.id == "car_access" and re.search(r"парков\w*[^,;.]{0,30}\d+\s*м(?:етр\w*)?\b", text):
+            field, op, value = "parking_distance_m", "lte", 100
+        elif spec.id == "family_nearby" and re.search(r"площадк\w*[^,;.]{0,30}\d+\s*м(?:етр\w*)?\b", text):
+            field, op, value = "playground_distance_m", "lte", 300
         op, value = _numeric(text, match.start(), match.end(), field, op, value)
         if negative and isinstance(value, bool):
             value = not value
         if spec.id == "soundproofing":
-            if re.search(r"двойн\w* ок", text):
+            matched_text = match[0]
+            if re.search(r"двойн\w* ок", matched_text):
                 field, value = "windows", "double"
-            elif re.search(r"блэкаут|плотн\w* штор", text):
+            elif re.search(r"блэкаут|плотн\w* штор", matched_text):
                 field, value = "blackout", not negative
-            elif re.search(r"кондиционер", text):
+            elif re.search(r"кондиционер", matched_text):
                 field, value = "air_conditioning", not negative
         if spec.id == "room_orientation" and re.search(r"балкон", text):
             field, value = "balcony", not negative
         scope = None
-        if spec.scope != "hotel" and (parsed.facade or parsed.min_floor):
+        if spec.scope != "hotel" and (parsed.facade or parsed.min_floor or hard_floor_max):
             scope = Scope(facade=parsed.facade, floor_min=parsed.min_floor,
-                          floor_max=parsed.min_floor if exact_floor else None)
+                          floor_max=hard_floor_max)
+        if spec.id == "room_orientation" and soft and (facade_match or floor_match):
+            scope = Scope(facade=facade_match[0] if facade_match else parsed.facade,
+                          floor_min=requested_floor, floor_max=requested_max)
         (parsed.nice if soft else parsed.must).append(Criterion(characteristic_id=spec.id, label=spec.name_ru, field=field, op=op, value=value, scope=scope))
+        if spec.id == "soundproofing":
+            for extra_field, pattern, extra_value in [("windows", r"двойн\w* ок\w*", "double"), ("blackout", r"блэкаут\w*|плотн\w* штор\w*", True), ("air_conditioning", r"кондиционер\w*", True)]:
+                extra = re.search(pattern, text)
+                if extra and extra_field != field:
+                    extra_soft, extra_negative, extra_skip = _importance(text, extra.start(), extra.end())
+                    if not extra_skip:
+                        (parsed.nice if extra_soft else parsed.must).append(Criterion(characteristic_id=spec.id, label=spec.name_ru, field=extra_field,
+                            value=not extra_negative if isinstance(extra_value, bool) else extra_value, scope=scope))
+        if spec.id == "beach_walk":
+            for extra_field, label, pattern, extra_value in [("has_steps", "Без лестниц до пляжа", r"без (?:лестниц\w*|ступен\w*)", False), ("crossings", "Без переходов до пляжа", r"без переход\w*", [])]:
+                extra = re.search(pattern, text)
+                if extra:
+                    consumed.append((extra.start(), extra.end()))
+                    extra_soft = _importance(text, extra.start(), extra.end())[0]
+                    (parsed.nice if extra_soft else parsed.must).append(Criterion(characteristic_id=spec.id, label=label, field=extra_field, value=extra_value))
     residual = list(text)
     for start, end in consumed:
         residual[start:end] = " " * (end-start)
     remaining = "".join(residual)
     remaining = re.sub(r"\b(?:" + OUTSIDE + "|" + "|".join(MONTHS) + r")\w*\b", " ", remaining)
     ignored = r"сочи|адлер\w*|сириус\w*|имеретин\w*|центр\w*|номер\w*|отел\w*|гостиниц\w*|вид\w*|сторон\w*|этаж\w*|окн\w*|ноч\w*|днем|летом|утром|пешком|мин\w*|кг|градус\w*|мбит|мб|с|в|во|на|за|к|от|до|и|но|а|не|без|для|из|по|у|со|же|бы|или|нам|мне|мы|я|нас|над|около|это|его|ее|их|чтобы|где|ищу|найти|хочу|хотим|нуж\w*|важ\w*|обязатель\w*|желатель\w*|необязатель\w*|возможности|хорошо|только|более|менее|ниже|выше|дальше|больше|дольше|максимум|сентябр\w*|пожалуйста|спасибо|ехать|едем|еду|отдых\w*|поездк\w*|пару|двоих|пары|романти\w*|годовщин\w*|муж\w*|жена|спит|сплю|чутко|чуткий|требуется|разрешен\w*|принима\w*|допуска\w*|принципиаль\w*|размер\w*|вес\w*|был\w*|будет|есть|быть|метр\w*|море|моря|пляж\w*|вод\w*|тепл\w*"
-    tokens = [word for word in re.findall(r"[а-яa-z][а-яa-z-]*", remaining) if not re.fullmatch(ignored, word)]
+    tokens = [word for word in re.findall(r"[а-яa-z][а-яa-z-]*", remaining) if len(word) > 2 and not re.fullmatch(ignored, word)]
     if tokens:
         parsed.unmapped.append(" ".join(dict.fromkeys(tokens)))
+    parsed.clarifications = list(dict.fromkeys([*parsed.clarifications, *warnings]))[:2]
     if not parsed.must and not parsed.nice and not outside:
         parsed.clarifications.append("Что важнее для поездки: тишина, вид, дорога к морю или другие условия?")
     if re.search(r"высок\w* этаж", text) and not parsed.min_floor:
@@ -187,6 +238,8 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
     if parsed.unmapped and not outside and len(parsed.clarifications) < 2:
         parsed.clarifications.append("Не удалось сопоставить с каталогом: " + parsed.unmapped[-1] + ". Уточните, что здесь обязательно.")
     parsed.clarifications = list(dict.fromkeys(parsed.clarifications))[:2]
+    parsed.must.sort(key=lambda c: positions[c.characteristic_id])
+    parsed.nice.sort(key=lambda c: positions[c.characteristic_id])
     return parsed
 
 
