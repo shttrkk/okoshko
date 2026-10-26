@@ -118,6 +118,8 @@ def simulate_change(repo, hotel_id=None, *, data_dir=DATA, runtime=RUNTIME_DIR):
         trace = Trace(repo, "refresh", hotel_id=hotel_id, trigger="synthetic_new_building")
         try:
             result = durable_geo(compute_hotel(hotel, Path(data_dir), new_building=fixture), data_dir, runtime)
+            if not any(row["characteristic_id"] in {"sea_view", "sunset_view", "mountain_view"} for row in result["claims"]):
+                raise ValueError("Для пересчёта видимости не хватает геовходов; отсутствие вида не утверждается")
             old_claims = repo.find("claims", hotel_id=hotel_id)
             supersedes = {cid: [row["id"] for row in old_claims if row["characteristic_id"] == cid and row["source"] == "geo_engine"]
                           for cid in GEO_CHARACTERISTICS}
@@ -132,7 +134,7 @@ def simulate_change(repo, hotel_id=None, *, data_dir=DATA, runtime=RUNTIME_DIR):
             repo.insert_claims(claims)
             after = resolve_hotel(hotel_id, repo)
             notifications = notify_passports(repo, hotel_id, before, after, change_id)
-            event = ChangeEvent(id=change_id, kind="osm_building_new", title="Демо: новый дом изменил вид из отеля",
+            event = ChangeEvent(id=change_id, kind="osm_building_new", title="Демо: новый дом — видимость пересчитана",
                                 geometry=fixture["geometry"], payload={"hotel_id": hotel_id, "fixture": fixture, "run_id": trace.run.id,
                                 "scenario": "new_building_fixture_v1", "geo_artifact": result["geo"]["artifact"],
                                 "claim_ids": [claim.id for claim in claims]}, affected_hotel_ids=[hotel_id],
@@ -176,10 +178,20 @@ def refresh_expired(repo, *, data_dir=DATA, runtime=RUNTIME_DIR):
                 events.sort(key=lambda event: event.get("detected_at", ""), reverse=True)
                 fixture = events[0].get("payload", {}).get("fixture") if events else None
                 result = durable_geo(compute_hotel(hotel, Path(data_dir), **({"new_building": fixture} if fixture else {})), data_dir, runtime)
+                geo_claims = []
                 for row in result["claims"]:
                     if row["characteristic_id"] in ids:
                         old = [claim.id for claim in claims if claim.hotel_id == hotel_id and claim.characteristic_id == row["characteristic_id"] and claim.source == "geo_engine"]
-                        refreshed.append(Claim.model_validate({**row, "run_id": trace.run.id, "supersedes_ids": old}))
+                        claim = Claim.model_validate({**row, "run_id": trace.run.id, "supersedes_ids": old})
+                        refreshed.append(claim)
+                        geo_claims.append(claim.model_dump(mode="json"))
+                    else:
+                        geo_claims.append(row)
+                document = {**result["geo"], "claims": geo_claims}
+                target = Path(runtime) / "geo" / Path(result["geo"]["artifact"]).name
+                temporary = target.with_suffix(".json.tmp")
+                temporary.write_text(json.dumps(document, ensure_ascii=False) + "\n")
+                temporary.replace(target)
             for cid in ids - GEO_CHARACTERISTICS:
                 row = repo.get("characteristics", cid)
                 if not row:
@@ -187,6 +199,8 @@ def refresh_expired(repo, *, data_dir=DATA, runtime=RUNTIME_DIR):
                 spec = CharacteristicSpec.model_validate(row)
                 for call in spec.methods:
                     result = registry.execute(ToolContext(hotel_id=hotel_id, characteristic_id=cid, run_id=trace.run.id), call)
+                    for claim in result.claims:
+                        claim.spec_version = spec.version
                     refreshed.extend(result.claims)
                     warnings.extend(result.warnings)
             if refreshed:

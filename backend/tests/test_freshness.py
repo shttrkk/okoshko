@@ -110,3 +110,29 @@ def test_durable_geo_rewrites_nested_route_and_evidence(tmp_path):
     result["claims"][0]["value"]["route_ref"] = artifact+"#route"
     persisted = durable_geo(result, tmp_path / "data", tmp_path / "runtime")
     assert persisted["claims"][0]["value"]["route_ref"].startswith("/data/runtime/geo/")
+
+
+def test_missing_visibility_inputs_do_not_publish_a_building_change(tmp_path):
+    import pytest
+    repo = ApiRepo()
+    result = write_result(tmp_path / "data", [])
+    with patch("geo.service.compute_hotel", return_value=result), pytest.raises(ValueError, match="не хватает геовходов"):
+        simulate_change(repo, "test-hotel", data_dir=tmp_path / "data", runtime=tmp_path / "runtime")
+    assert not repo.all("change_events") and not repo.all("claims")
+    assert repo.all("agent_runs")[0]["status"] == "failed"
+
+
+def test_expiry_recheck_keeps_the_active_synthetic_building(tmp_path):
+    repo = ApiRepo()
+    repo.add_claim(observation("expired-with-building", 1, 8, True, expired=True))
+    fixture = {"type": "Feature", "properties": {"synthetic": True}, "geometry": {"type": "Polygon", "coordinates": []}}
+    repo.insert("change_events", {"id": "active-building", "affected_hotel_ids": ["test-hotel"], "payload": {"fixture": fixture}})
+    result = write_result(tmp_path / "data", [observation("refreshed-with-building", 1, 8, False)])
+    runtime = tmp_path / "runtime"
+    with patch("geo.service.compute_hotel", return_value=result) as compute:
+        refresh = refresh_expired(repo, data_dir=tmp_path / "data", runtime=runtime)
+    assert compute.call_args.kwargs["new_building"] == fixture
+    claim = repo.get("claims", "refreshed-with-building")
+    document = json.loads((runtime / "geo" / claim["evidence"][0]["artifact"].split("/")[-1]).read_text())
+    assert document["claims"][0]["run_id"] == refresh["run_id"]
+    assert document["claims"][0]["supersedes_ids"] == ["expired-with-building"]
