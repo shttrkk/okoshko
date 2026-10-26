@@ -196,3 +196,7 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
 ## Контекст вопроса отелю
 
 `AskRequest.scope` — необязательный срез, о котором спрашивает гость. `Question.requested_scopes` содержит до 8 уникальных пожеланий к одному pending-вопросу hotel/characteristic. Это запрос на уточнение, не сведения о существовании окна/номера и не область автоматически подтверждённого факта. Отсутствие scope сохраняет прежнее поведение. AnswerParser извлекает область только из дословного ответа: простое «да» не наследует этаж, сторону или месяц из вопроса.
+
+### Сообщённое наличие интернета
+
+`data/seed/connectivity_observations.json` содержит небольшой OSM-срез с точной идентичностью объектов, исходными тегами, датами и хэшами; `connectivity_claims.jsonl.gz` загружается тем же append-only seed-loader. `wifi_reported` и `internet_access` не устанавливают `available`, скорость или работоспособность сети. Все `download_mbps/upload_mbps/latency_ms` в этом срезе — null. Поисковое поле характеристики остаётся `download_mbps`, поэтому эти 24 наблюдения не закрывают условие скорости. `make connectivity-data` повторяет извлечение без сети.

@@ -108,7 +108,7 @@ class Registry:
             "poi_nearby":"Локальные OSM POI и ограничения покрытия",
             "climate":"Заранее собранный архив Open-Meteo воздуха и моря",
             "air_quality":"Сохранённая модельная оценка CAMS/Open-Meteo",
-            "connectivity":"Локальные реальные tiles Ookla",
+            "connectivity":"Сообщённое наличие интернета в OSM и локальные tiles Ookla; наличие не доказывает скорость",
             "wikidata_lookup":"Проверенная точная связь здания с Wikidata",
             "photos_nearby":"Геофото Commons с автором и лицензией",
             "hotelier_ask":"Создать вопрос по неизвестным внутренним свойствам, не угадывать ответ",

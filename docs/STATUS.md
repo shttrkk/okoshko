@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 03:24 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 03:28 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -161,3 +161,5 @@
 - 27.10.2026 03:19: fix(search): resolve bounded English similarity requests; 865 passed, 1 warning, 125 subtests passed in 55.20s; Ruff и frontend lint PASS.
 
 - 27.10.2026 03:24: feat(map): expose exact fact-linked nearby place points; 919 passed, 1 warning, 125 subtests passed in 55.71s; Ruff и frontend lint PASS.
+
+- 27.10.2026 03:28: feat(data): add offline OSM property internet observations; 932 passed, 1 warning, 125 subtests passed in 53.89s; Ruff и frontend lint PASS.

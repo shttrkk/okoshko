@@ -381,7 +381,11 @@ export function humanFact(fact: Fact): string | null {
     case "connectivity":
       return num(v.download_mbps) !== null
         ? `Интернет ≈ ${fmt(v.download_mbps)} Мбит/с`
-        : null;
+        : v.wifi_reported === true
+          ? "В OSM указан Wi-Fi · скорость и работа сети не проверены"
+          : v.internet_access
+            ? "В OSM указан интернет · тип и скорость не проверены"
+            : null;
     case "nearby_photos": {
       const n = Array.isArray(v.photos) ? v.photos.length : 0;
       return n
@@ -395,6 +399,8 @@ export function humanFact(fact: Fact): string | null {
 
 /** Plain-language names for claim methods and sources (ids stay visible). */
 export const METHOD_NAMES: Record<string, string> = {
+  osm_property_internet_access_v1:
+    "Тег интернета у того же объекта OSM; без измерения скорости",
   two_scale_dsm_los_mc_v1:
     "Линия видимости по рельефу и высотам зданий, 64 симуляции",
   astral_monthly_horizon_mc_v1:

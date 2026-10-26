@@ -1,4 +1,4 @@
-.PHONY: up down seed pipeline eval smoke demo-check test coverage lint audit check demo-video demo-voice contracts snapshots
+.PHONY: up down seed pipeline connectivity-data eval parser-eval ranking-eval smoke demo-check test coverage lint audit check demo-video demo-voice contracts snapshots
 PYTHON ?= .venv/bin/python
 REGION ?= pipeline/regions/sochi.yaml
 PIPELINE_ARGS ?= --compact-geo
@@ -16,6 +16,12 @@ pipeline:
 	docker run --rm --platform linux/amd64 --user "$$(id -u):$$(id -g)" --mount "type=bind,src=$$PWD/data,dst=/app/data" okno-pipeline --region "$(REGION)" $(PIPELINE_ARGS)
 eval:
 	$(PYTHON) -m scripts.evaluate
+connectivity-data:
+	$(PYTHON) -m pipeline.collect_connectivity --data-dir data
+parser-eval:
+	$(PYTHON) -m scripts.parser_eval --output data/eval/parser_results.json
+ranking-eval:
+	$(PYTHON) -m scripts.ranking_eval --output data/eval/ranking_results.json
 smoke:
 	$(PYTHON) scripts/smoke.py
 	$(MAKE) demo-check

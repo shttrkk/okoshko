@@ -123,6 +123,8 @@ curl -N "$BASE/api/runs/<run_id>/stream" -H "Authorization: Bearer $TOKEN"
 
 `make pipeline` отдельно пересобирает открытые данные и георасчёты; для локального запуска он не нужен. Формат seed и реестр доказательств описаны в `docs/CONTRACTS.md` §3.
 
+`make connectivity-data` без сети воспроизводит 24 наблюдения об интернете из небольшого проверяемого среза OSM: 20 объектов сообщают WLAN, у 4 тип подключения неизвестен. Исходный срез, идентичность объекта, даты и SHA-256 находятся в `data/seed/connectivity_observations.json`; реестр — `connectivity_claims.jsonl.gz`. Это сообщения о наличии услуги, а не измерения скорости или доступности сети в номере. Для пересборки среза из локального PBF-экстракта: `python -m pipeline.collect_connectivity --rebuild-extract --raw-hotels data/raw/osm_hotels.json --download-metadata data/raw/south-fed-district-261025.osm.pbf.metadata.json`. Оценка скорости остаётся неизвестной; условие работы от 30 Мбит/с этими тегами не подтверждается.
+
 ## Маршруты/доступ
 
 - `/` — главная; `/search`, `/hotel/:id`, `/compare`, `/booking/:id` — путь гостя.
