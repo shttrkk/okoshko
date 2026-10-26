@@ -1,0 +1,69 @@
+id: morning_sun
+version: 1
+name_ru: Утреннее солнце
+description: 'Геометрическая видимость прямого солнца по фасаду и этажу: не менее
+  20 минут в первые три часа после восхода, 15-е число месяца. Облачность, окна и
+  шторы неизвестны. Соседние этажи объединены только при одинаковом исходе порога;
+  сохранены диапазоны минут и индекса. Поиск по индексу использует верхнюю границу
+  диапазона, по минутам — нижнюю.'
+category: Солнце
+synonyms:
+- утреннее солнце
+- солнце утром
+- солнечное утро
+- солнце на завтрак
+scope: floor_range
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+    visible_minutes:
+      type:
+      - number
+      - 'null'
+    exposure_index:
+      type:
+      - number
+      - 'null'
+    visible_minutes_min:
+      type:
+      - number
+      - 'null'
+    visible_minutes_max:
+      type:
+      - number
+      - 'null'
+    exposure_index_min:
+      type:
+      - number
+      - 'null'
+    exposure_index_max:
+      type:
+      - number
+      - 'null'
+    value_semantics:
+      type: string
+  additionalProperties: true
+methods:
+- tool: geo_trait
+  params:
+    kind: morning_sun
+  rationale: 'Геометрическая видимость прямого солнца по фасаду и этажу: не менее
+    20 минут в первые три часа после восхода, 15-е число месяца. Облачность, окна
+    и шторы неизвестны.'
+ttl_days: 90
+change_triggers:
+- kind: building_change
+  radius_m: 2000
+search:
+  kind: boolean
+  field: available
+  default_op: eq
+  default_value: true
+  explain_ok: Утром есть не менее 20 минут прямого солнца по модели
+  explain_bad: Порог утреннего солнца по модели не достигнут
+hotelier_answerable: true
+status: active
