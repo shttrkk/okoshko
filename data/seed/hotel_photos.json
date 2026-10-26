@@ -1,0 +1,832 @@
+{
+ "generated_at": "2026-10-26T18:54:30+00:00",
+ "method": "Фото собраны разовым офлайн-этапом подготовки данных; во время работы сервис ничего не скачивает. Уровень «building» — свободно лицензированное фото самого здания с Wikimedia Commons: изображение P18 из Wikidata по явной ссылке OSM, теги OSM image/wikimedia_commons или файлы и категории Commons в радиусе 150 м от точки отеля, в названии, описании или категории которых нормализованное имя отеля (с транслитерацией ru↔en, без общих слов «отель», «гостиница», «hotel», «апартаменты», «гостевой дом») совпадает с названием; берутся только CC0, PD, CC BY и CC BY-SA, автор, лицензия и страница файла сохраняются, миниатюра 800 px хранится локально в webp. Уровень «official_site» — og:image/twitter:image или первое крупное изображение первого экрана с собственного сайта отеля (не OTA, не агрегаторы, не соцсети; robots.txt соблюдается); сайт должен называть отель и Сочи/Адлер, общие сайты сетей без страницы конкретного объекта пропускаются; такие изображения не копируются в репозиторий — хранится только ссылка на файл и страницу, права остаются у отеля. Картинки проверены на размер (ширина от 480 px, пропорции 1,0–2,4) и отсутствие признаков логотипа; verified_by_eye=true означает ручной просмотр. Фото не доказывают вид из окна, этаж или состояние номера; отели без фото остаются без записи, интерфейс показывает схему. Счётчики counts — по лучшему уровню.",
+ "counts": {
+  "building": 8,
+  "official_site": 38,
+  "none": 204
+ },
+ "photos": {
+  "osm-node-10118233110": [
+   {
+    "kind": "building",
+    "url": "/data/seed/photos/hotels/osm-node-10118233110.webp",
+    "local": true,
+    "page_url": "https://commons.wikimedia.org/wiki/File:%D0%A1%D0%B2%D0%B8%D1%81%D1%81%D0%BE%D1%82%D0%B5%D0%BB%D1%8C_%D0%A0%D0%B5%D0%B7%D0%BE%D1%80%D1%82_%D0%A1%D0%BE%D1%87%D0%B8_%D0%9A%D0%B0%D0%BC%D0%B5%D0%BB%D0%B8%D1%8F_%D0%B2%D0%B8%D0%B4_%D1%81%D0%BE_%D1%81%D1%82%D0%BE%D1%80%D0%BE%D0%BD%D1%8B_%D0%B3%D0%BE%D1%80%D0%BE%D0%B4%D0%B0.jpg",
+    "title": "Свиссотель Резорт Сочи Камелия вид со стороны города.jpg",
+    "author": "Shmatovadaria",
+    "license": "CC BY-SA 4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "match": "commons_name_match",
+    "distance_m": 78.6,
+    "width": 800,
+    "height": 450,
+    "match_text": "title: Свиссотель Резорт Сочи Камелия вид со стороны города",
+    "sha256": "cf20a4049f3a1f09abd09e9391796743feafcab5cfa071b98aa682ecbfbf8dc6",
+    "bytes": 115932,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-node-10759614195": [
+   {
+    "kind": "official_site",
+    "url": "https://goldentennisclub.ru/img/d3ea9ade9e07a608.webp",
+    "local": false,
+    "page_url": "https://goldentennisclub.ru/",
+    "title": "Golden Tennis Club, г. Сочи, Адлерский район - официальный сайт отеля",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 2560,
+    "height": 1600,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-node-11016638375": [
+   {
+    "kind": "official_site",
+    "url": "https://veryhotel.ru/img/dcb862d30f698a6f.webp",
+    "local": false,
+    "page_url": "https://veryhotel.ru/ru-ru/",
+    "title": "Официальный сайт - Very Hotel",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 1715,
+    "height": 1072,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-node-11331531334": [
+   {
+    "kind": "official_site",
+    "url": "https://adler.cosmosgroup.ru/files/hotels/43_1733489820.webp",
+    "local": false,
+    "page_url": "https://adler.cosmosgroup.ru",
+    "title": "Отель Cosmos Адлер Отель 4* в Адлере | Цены 2026, фото и отзывы, онлайн бронирование отдыха в Сочи",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 1920,
+    "height": 1251,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-node-11637552371": [
+   {
+    "kind": "official_site",
+    "url": "https://rodos-apart.ru/img/3687d72f693e889a.webp",
+    "local": false,
+    "page_url": "https://rodos-apart.ru/",
+    "title": "Апартаменты Родос | Адлер, Сириус | Официальный сайт",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 2560,
+    "height": 1600,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-node-11637558669": [
+   {
+    "kind": "official_site",
+    "url": "https://rodos-lite.ru/img/51c657b65f3cc07b.webp",
+    "local": false,
+    "page_url": "https://rodos-lite.ru/",
+    "title": "Родос Лайт мини-отель Сириус Адлер │ официальный сайт",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 2560,
+    "height": 1600,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-node-11958163713": [
+   {
+    "kind": "official_site",
+    "url": "https://markinn-sochi.ru/thumb/2/GuUtJT8ZZaZVpAiRCGxLGg/2000r2000/d/7.jpg",
+    "local": false,
+    "page_url": "https://markinn-sochi.ru",
+    "title": "Отдыхайте там, где вас любят...",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 1545,
+    "height": 1545,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-node-11958163737": [
+   {
+    "kind": "official_site",
+    "url": "https://static.tildacdn.com/tild6537-3239-4230-b365-363832313032/clipboard-2024050311.png",
+    "local": false,
+    "page_url": "https://villamariaclub.ru",
+    "title": "Villa Maria Club Гостевой дом",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 1600,
+    "height": 1067,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-node-12183637632": [
+   {
+    "kind": "official_site",
+    "url": "https://atmosferahotel.ru/img/8715021640ad336f.webp",
+    "local": false,
+    "page_url": "https://atmosferahotel.ru/",
+    "title": "Отель Атмосфера в Сочи - Официальный сайт отель Атмосфера центре Сочи",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 2560,
+    "height": 1600,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-node-12749552601": [
+   {
+    "kind": "official_site",
+    "url": "https://www.marinayacht.ru/dl_images/udb_photos/udb3-rec13-field2.jpg",
+    "local": false,
+    "page_url": "https://www.marinayacht.ru/",
+    "title": "Отель «Marina Yacht by Stellar Hotels, Sochi», г. Сочи - официальный сайт",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 1920,
+    "height": 1281,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-node-12800893166": [
+   {
+    "kind": "official_site",
+    "url": "https://grey-sochi.ru/img/851fe69b8794808e.webp",
+    "local": false,
+    "page_url": "https://grey-sochi.ru/",
+    "title": "Официальный сайт I Отель \"Грей\", Сочи",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 2560,
+    "height": 1600,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-node-12958832506": [
+   {
+    "kind": "official_site",
+    "url": "https://s3.timeweb.cloud/37651e87-s3-atlas/Volnoobraznyj_fasad_v_sredizemnomorskom_svete_edited_bdb85b1e4d.webp",
+    "local": false,
+    "page_url": "https://benefit-evopart.ru/",
+    "title": "Апартаменты премиум-класса в центре Cочи | BENEFIT Sochi Center",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 1678,
+    "height": 1259,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-node-13825400642": [
+   {
+    "kind": "official_site",
+    "url": "https://siriushotels.ru/upload/resize_cache/iblock/fde/1200_801_190728d62196cae6acd40d0988c857574/hosan208azh1j05ge727fmu38yeyqi8p.jpg",
+    "local": false,
+    "page_url": "https://siriushotels.ru/gamma/",
+    "title": "Отель Gamma Sirius 3* Pet-friendly",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 1200,
+    "height": 801,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-node-8872412718": [
+   {
+    "kind": "official_site",
+    "url": "https://grace-gorizont.ru/assets/components/phpthumbof/cache/345.6c83982d67e57a71fb3544ab691e81e2.jpg",
+    "local": false,
+    "page_url": "https://grace-gorizont.ru/",
+    "title": "Грейс Горизонт",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 1920,
+    "height": 1080,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-node-9908709817": [
+   {
+    "kind": "official_site",
+    "url": "https://sochigallerypark.ru/img/c27083be8eac3b6b.webp",
+    "local": false,
+    "page_url": "https://sochigallerypark.ru/",
+    "title": "Отель “Сочи Галерея Парк”, Сочи — официальный сайт отеля",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 1536,
+    "height": 960,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-113588514": [
+   {
+    "kind": "official_site",
+    "url": "https://seasons-hotel.com/upload/resize_cache/iblock/501/640_480_2/g7v7aei4rwbrcam62ufekq3j9il2s7fi.jpg",
+    "local": false,
+    "page_url": "https://seasons-hotel.com/",
+    "title": "Гостевой дом «Времена года», г. Сочи - официальный сайт",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 640,
+    "height": 480,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-150742817": [
+   {
+    "kind": "official_site",
+    "url": "https://static.tildacdn.com/tild6236-3664-4132-a534-373261323831/_-2.jpg",
+    "local": false,
+    "page_url": "https://papayahotel.ru/",
+    "title": "Papaya Park Hotel",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 1680,
+    "height": 900,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-190714781": [
+   {
+    "kind": "official_site",
+    "url": "https://sochi.cosmosgroup.ru/files/hotels/14_11770025432.webp",
+    "local": false,
+    "page_url": "https://sochi.cosmosgroup.ru/",
+    "title": "Отель в центре Сочи Cosmos Сочи Отель | Забронировать гостиницу Космос",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 1184,
+    "height": 864,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-207579132": [
+   {
+    "kind": "official_site",
+    "url": "https://siriushotels.ru/upload/resize_cache/iblock/dce/1199_798_190728d62196cae6acd40d0988c857574/j4f7o2uaou0frcaq6yjox9n6w9jnhgs0.jpg",
+    "local": false,
+    "page_url": "https://siriushotels.ru/omega/",
+    "title": "Отель Omega Sirius 4* | «Сириус Отели» dumbbell_2 Conference facilities Artboard 7 Pet-friendly",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 1199,
+    "height": 797,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-207637871": [
+   {
+    "kind": "building",
+    "url": "/data/seed/photos/hotels/osm-way-207637871.webp",
+    "local": true,
+    "page_url": "https://commons.wikimedia.org/wiki/File:Radisson_Blu_hotel_in_Sochi,_Russia.jpg",
+    "title": "Radisson Blu hotel in Sochi, Russia.jpg",
+    "author": "Stefan Krasowski",
+    "license": "CC BY 2.0",
+    "license_url": "https://creativecommons.org/licenses/by/2.0",
+    "match": "commons_name_match",
+    "distance_m": 37.7,
+    "width": 800,
+    "height": 600,
+    "match_text": "title: Radisson Blu hotel in Sochi, Russia",
+    "sha256": "c805c13acd305723013a40c91a55a1e78f22f059a5bfbeed40b84ddaafb4eb64",
+    "bytes": 54366,
+    "verified_by_eye": true
+   },
+   {
+    "kind": "official_site",
+    "url": "https://manteracongress.ru/_next/image?url=https%3A%2F%2Fdirectus.manteratravel.ru%2Fassets%2Fd96348a6-34ed-431a-8ae1-7b211049719c%3Ffit%3Dcover%26width%3D2400%26quality%3D80&w=3840&q=75",
+    "local": false,
+    "page_url": "https://manteracongress.ru",
+    "title": "Отель в Сочи | цены 2026, фото и отзывы, онлайн бронирование, отель «Мантера Конгресс»",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 2400,
+    "height": 1731,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-209182328": [
+   {
+    "kind": "official_site",
+    "url": "https://sofia-hotels.ru/img/e703f929b3cba3f2.webp",
+    "local": false,
+    "page_url": "https://sofia-hotels.ru/",
+    "title": "Отель \"София\" г. Адлер, Казачья 24 - официальный сайт отеля",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 2560,
+    "height": 1600,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-250086722": [
+   {
+    "kind": "official_site",
+    "url": "https://adlanna-maria.ru/assets/img/hero4-2400.jpg",
+    "local": false,
+    "page_url": "https://adlanna-maria.ru/",
+    "title": "Гостевой дом у моря в Сириусе, Сочи · «Анна-Мария», первая линия",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 2400,
+    "height": 1600,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-412914458": [
+   {
+    "kind": "official_site",
+    "url": "https://hotel-marianna.ru/img/b63d339cb0318867.webp",
+    "local": false,
+    "page_url": "https://hotel-marianna.ru/",
+    "title": "официальный сайт отель МАРИАННА",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 2560,
+    "height": 1600,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-44573571": [
+   {
+    "kind": "building",
+    "url": "/data/seed/photos/hotels/osm-way-44573571.webp",
+    "local": true,
+    "page_url": "https://commons.wikimedia.org/wiki/File:RIAN_archive_779065_Moskva_hotel,_Sochi.jpg",
+    "title": "RIAN archive 779065 Moskva hotel, Sochi.jpg",
+    "author": "Dmitry Korobeinikov / Дмитрий Коробейников",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "match": "wikidata_p18",
+    "distance_m": null,
+    "width": 800,
+    "height": 537,
+    "match_text": "Q4303717 P18",
+    "sha256": "d7933505d8feb374513d53c0bfa1ba437eb71764bac9f54f680032ea1f5b8734",
+    "bytes": 67374,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-51764141": [
+   {
+    "kind": "official_site",
+    "url": "https://azimuthotels.com/resize/images/upload/residence_sochi_exterior.webp?w=1584&h=980",
+    "local": false,
+    "page_url": "https://azimuthotels.com/ru/sochi/azimut-hotel-vinogradnaya-sochi",
+    "title": "Официальный сайт AZIMUT Парк Отель Виноградная Сочи",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 1301,
+    "height": 805,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-51847429": [
+   {
+    "kind": "building",
+    "url": "/data/seed/photos/hotels/osm-way-51847429.webp",
+    "local": true,
+    "page_url": "https://commons.wikimedia.org/wiki/File:Hotel_%C2%ABZhemchuzhina%C2%BB_(Sochi)_(15).JPG",
+    "title": "Hotel «Zhemchuzhina» (Sochi) (15).JPG",
+    "author": "LxAndrew",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "match": "commons_name_match",
+    "distance_m": 60.3,
+    "width": 800,
+    "height": 600,
+    "match_text": "title: Hotel «Zhemchuzhina» (Sochi) (15)",
+    "sha256": "216b960a82485b36182d2ef8422e31d0a734e590f2036aa12514b2be1c5dd526",
+    "bytes": 95638,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-52283978": [
+   {
+    "kind": "building",
+    "url": "/data/seed/photos/hotels/osm-way-52283978.webp",
+    "local": true,
+    "page_url": "https://commons.wikimedia.org/wiki/File:Metallurg_Sochi.jpg",
+    "title": "Metallurg Sochi.jpg",
+    "author": "Julia Utro",
+    "license": "CC BY-SA 4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "match": "commons_name_match",
+    "distance_m": 17.4,
+    "width": 800,
+    "height": 533,
+    "match_text": "category: Category:Metallurg Sanatorium (category at 20 m)",
+    "sha256": "991109c6fb59f097ecb639bca84445a5139d8b4a457d4f874fdd663108f322f9",
+    "bytes": 136018,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-52501847": [
+   {
+    "kind": "building",
+    "url": "/data/seed/photos/hotels/osm-way-52501847.webp",
+    "local": true,
+    "page_url": "https://commons.wikimedia.org/wiki/File:%D0%9E%D1%82%D0%B5%D0%BB%D1%8C_%D0%A7%D0%B5%D0%B1%D0%BE%D1%82%D0%B0%D1%80%D1%91%D0%B2,_%D0%A1%D0%BE%D1%87%D0%B8,_%D0%BD%D0%B0_%D0%B7%D0%B0%D0%BA%D0%B0%D1%82%D0%B5_%D1%81%D0%BE%D0%BB%D0%BD%D1%86%D0%B0_(25.03.2023).jpg",
+    "title": "Отель Чеботарёв, Сочи, на закате солнца (25.03.2023).jpg",
+    "author": "Brateevsky",
+    "license": "CC BY-SA 4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "match": "commons_name_match",
+    "distance_m": 52.1,
+    "width": 800,
+    "height": 533,
+    "match_text": "title: Отель Чеботарёв, Сочи, на закате солнца (25.03.2023)",
+    "sha256": "5a60d90f06466b370bb9253be53d44fefbdb19ed0561076e772db0c18b4d1184",
+    "bytes": 117810,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-52526314": [
+   {
+    "kind": "official_site",
+    "url": "https://raduga-prestige.ru/img/273004d9a750ab04.webp",
+    "local": false,
+    "page_url": "https://raduga-prestige.ru/",
+    "title": "Отель \"Радуга-Престиж\", г. Сочи I Официальный сайт",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 2560,
+    "height": 1600,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-53579883": [
+   {
+    "kind": "building",
+    "url": "/data/seed/photos/hotels/osm-way-53579883.webp",
+    "local": true,
+    "page_url": "https://commons.wikimedia.org/wiki/File:1-building-7-facade-normal-2.jpg",
+    "title": "1-building-7-facade-normal-2.jpg",
+    "author": "Zapolarye",
+    "license": "CC BY-SA 4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "match": "commons_name_match",
+    "distance_m": 237.1,
+    "width": 800,
+    "height": 612,
+    "match_text": "category: Category:Zapolarye Sanatorium (3 geotagged member(s) within 400 m)",
+    "sha256": "4fe0c497ae94e6d0c570b703b2ec52140287f0e9a236281cb29b5309c84ddbbc",
+    "bytes": 123326,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-700342790": [
+   {
+    "kind": "official_site",
+    "url": "https://talisman-sochi.ru/upload/iblock/61f/1rbvy6peimtlwnbidbn7qytmcxmb0y53.webp",
+    "local": false,
+    "page_url": "https://talisman-sochi.ru/",
+    "title": "Отель «Талисман» — ваш комфорт и уют в сердце Сочи",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 1400,
+    "height": 931,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-80189262": [
+   {
+    "kind": "official_site",
+    "url": "https://anatolhotel.ru/wp-content/uploads/2024/05/2mest.jpg",
+    "local": false,
+    "page_url": "https://anatolhotel.ru/",
+    "title": "Отель \"Анатоль\", г. Сочи - официальный сайт",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 1000,
+    "height": 667,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-80192701": [
+   {
+    "kind": "official_site",
+    "url": "https://static.tildacdn.com/tild3264-3338-4361-b731-343062323139/IMG_1450_2646.JPG",
+    "local": false,
+    "page_url": "http://strana-magnoliy.ru/",
+    "title": "Отель Страна Магнолий",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 1152,
+    "height": 768,
+    "verified_by_eye": true
+   }
+  ],
+  "osm-way-98649266": [
+   {
+    "kind": "official_site",
+    "url": "https://parusa-hotel.ru/d/dsc_0228_00037_panorama_kopirovat.jpg",
+    "local": false,
+    "page_url": "https://parusa-hotel.ru/",
+    "title": "Отель Паруса Сочи",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 1920,
+    "height": 1080,
+    "verified_by_eye": true
+   }
+  ],
+  "overture-037ee676-5776-46bd-a4ac-38c828f2a99d": [
+   {
+    "kind": "building",
+    "url": "/data/seed/photos/hotels/overture-037ee676-5776-46bd-a4ac-38c828f2a99d.webp",
+    "local": true,
+    "page_url": "https://commons.wikimedia.org/wiki/File:%D0%93%D0%BE%D1%81%D1%82%D0%B8%D0%BD%D0%B8%D1%86%D0%B0_%C2%AB%D0%9F%D1%80%D0%B8%D0%BC%D0%BE%D1%80%D1%81%D0%BA%D0%B0%D1%8F%C2%BB.JPG",
+    "title": "Гостиница «Приморская».JPG",
+    "author": "Ivanaivanova",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "match": "commons_name_match",
+    "distance_m": null,
+    "width": 800,
+    "height": 600,
+    "match_text": "category: Category:Primorskaya hotel in Sochi (category at 16 m)",
+    "sha256": "72190f37fced408935816cef654b5525a3b150359f72826f909e7e84813f4880",
+    "bytes": 101908,
+    "verified_by_eye": true
+   }
+  ],
+  "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13": [
+   {
+    "kind": "official_site",
+    "url": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/slider1.jpg",
+    "local": false,
+    "page_url": "http://hotel-sochi-riviera.ru",
+    "title": "Home - Отель ''Сочи Ривьера'' - Ещё один сайт на WordPress",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 940,
+    "height": 441,
+    "verified_by_eye": true
+   }
+  ],
+  "overture-19a359ae-d6b8-4686-8643-36a55ee46219": [
+   {
+    "kind": "official_site",
+    "url": "https://metropol-apart.ru/wp-content/uploads/2025/02/mphoto-1.webp",
+    "local": false,
+    "page_url": "https://metropol-apart.ru/",
+    "title": "Апарт-отель \"Метрополь\" в Сочи — Официальный сайт",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 800,
+    "height": 600,
+    "verified_by_eye": true
+   }
+  ],
+  "overture-1d571ae6-4794-4362-ae8a-d011f52d376c": [
+   {
+    "kind": "official_site",
+    "url": "https://hotelgraphite.ru/img/1d3939f3c66b3e0d.webp",
+    "local": false,
+    "page_url": "https://hotelgraphite.ru/",
+    "title": "Отель Графит Сочи Официальный сайт.",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 2560,
+    "height": 1600,
+    "verified_by_eye": true
+   }
+  ],
+  "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7": [
+   {
+    "kind": "official_site",
+    "url": "http://sochi-sunrise.ru/img/324776304f426da7.webp",
+    "local": false,
+    "page_url": "http://sochi-sunrise.ru/",
+    "title": "Санрайз, Сочи - официальный сайт отеля",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 2560,
+    "height": 1600,
+    "verified_by_eye": true
+   }
+  ],
+  "overture-3b6e73bd-b423-453f-a384-a8d2329acae2": [
+   {
+    "kind": "official_site",
+    "url": "https://static.tildacdn.com/tild6161-6163-4237-b434-616337633539/01.webp",
+    "local": false,
+    "page_url": "http://www.anita-sochi.ru/",
+    "title": "Апартаменты Анита",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 980,
+    "height": 740,
+    "verified_by_eye": true
+   }
+  ],
+  "overture-5d220661-b1ca-4461-a03b-c89126a98e02": [
+   {
+    "kind": "official_site",
+    "url": "https://grandhotelrodina.ru/upload/resize_cache/iblock/cfa/580_400_2/lt78ss4y0hlismrmkxfe6ljrfad2kjgh.jpg",
+    "local": false,
+    "page_url": "https://grandhotelrodina.ru/",
+    "title": "RODINA Grand Hotel & SPA Sochi 5* - официальный сайт",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 580,
+    "height": 400,
+    "verified_by_eye": true
+   }
+  ],
+  "overture-74ff2c5a-4204-42cb-bb2f-f825b7ca1c45": [
+   {
+    "kind": "official_site",
+    "url": "https://rzdz.ru/cache/images/upload/ok-osan-900-9.webp/1584_980.webp",
+    "local": false,
+    "page_url": "https://rzdz.ru/ru/sochi/sanatorium-oktyabrskiy",
+    "title": "Официальный сайт РЖД-Здоровье. Санаторий Октябрьский Сочи",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 1301,
+    "height": 805,
+    "verified_by_eye": true
+   }
+  ],
+  "overture-76383584-f4a0-4333-bb90-3fd6d19a354d": [
+   {
+    "kind": "official_site",
+    "url": "https://simplesochi.ru/img/cc7f6f51f2c8596e.webp",
+    "local": false,
+    "page_url": "https://simplesochi.ru/",
+    "title": "Simple Hotel",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 2560,
+    "height": 1600,
+    "verified_by_eye": true
+   }
+  ],
+  "overture-83a07e61-b742-4ed6-9240-8516e32c482b": [
+   {
+    "kind": "official_site",
+    "url": "https://morisatoreza.ru/dl_images/udb_photos/udb4-rec5-field3.jpg",
+    "local": false,
+    "page_url": "https://morisatoreza.ru/",
+    "title": "Оздоровительный комплекс им. Мориса Тореза",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "hero_img",
+    "distance_m": null,
+    "width": 1920,
+    "height": 1280,
+    "verified_by_eye": true
+   }
+  ],
+  "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39": [
+   {
+    "kind": "official_site",
+    "url": "https://coocooroozasochi.com/img/a79e4eedf4712e70.webp",
+    "local": false,
+    "page_url": "https://coocooroozasochi.com/",
+    "title": "Официальный сайт. Отель COOCOOROOZA на первой береговой линии Сочи",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 2560,
+    "height": 1600,
+    "verified_by_eye": true
+   }
+  ],
+  "overture-8db95563-548a-436f-8920-31ba9b9a3795": [
+   {
+    "kind": "official_site",
+    "url": "https://static.tildacdn.com/tild3030-3830-4636-b933-626538393163/NV_3.jpg",
+    "local": false,
+    "page_url": "https://kanikuly-v-sochi.ru",
+    "title": "Санаторий «Каникулы в Сочи» ФНС России». Сочи. Официальный сайт",
+    "author": null,
+    "license": null,
+    "license_url": null,
+    "match": "og_image",
+    "distance_m": null,
+    "width": 2500,
+    "height": 1667,
+    "verified_by_eye": true
+   }
+  ]
+ }
+}

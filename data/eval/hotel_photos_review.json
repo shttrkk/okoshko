@@ -1,0 +1,361 @@
+{
+ "reviewed_at": "2026-10-26",
+ "reviewer": "manual visual check of every candidate (contact sheets of the cached images) during collection",
+ "semantics": {
+  "accept": "entry was opened and looked at: it shows the named property (building, territory, room or lobby) and, for building photos, the building matches the hotel name/sign and location",
+  "reject.ref": "Commons file title (building), image URL (official_site, the next candidate is then tried) or \"site\" (official_site: the whole website is not property-specific)"
+ },
+ "accept": {
+  "osm-node-10118233110": {
+   "building": "File:Свиссотель Резорт Сочи Камелия вид со стороны города.jpg"
+  },
+  "osm-node-10759614195": {
+   "official_site": "https://goldentennisclub.ru/img/d3ea9ade9e07a608.webp"
+  },
+  "osm-node-11016638375": {
+   "official_site": "https://veryhotel.ru/img/dcb862d30f698a6f.webp"
+  },
+  "osm-node-11331531334": {
+   "official_site": "https://adler.cosmosgroup.ru/files/hotels/43_1733489820.webp"
+  },
+  "osm-node-11637552371": {
+   "official_site": "https://rodos-apart.ru/img/3687d72f693e889a.webp"
+  },
+  "osm-node-11637558669": {
+   "official_site": "https://rodos-lite.ru/img/51c657b65f3cc07b.webp"
+  },
+  "osm-node-11958163713": {
+   "official_site": "https://markinn-sochi.ru/thumb/2/GuUtJT8ZZaZVpAiRCGxLGg/2000r2000/d/7.jpg"
+  },
+  "osm-node-11958163737": {
+   "official_site": "https://static.tildacdn.com/tild6537-3239-4230-b365-363832313032/clipboard-2024050311.png"
+  },
+  "osm-node-12183637632": {
+   "official_site": "https://atmosferahotel.ru/img/8715021640ad336f.webp"
+  },
+  "osm-node-12749552601": {
+   "official_site": "https://www.marinayacht.ru/dl_images/udb_photos/udb3-rec13-field2.jpg"
+  },
+  "osm-node-12800893166": {
+   "official_site": "https://grey-sochi.ru/img/851fe69b8794808e.webp"
+  },
+  "osm-node-12958832506": {
+   "official_site": "https://s3.timeweb.cloud/37651e87-s3-atlas/Volnoobraznyj_fasad_v_sredizemnomorskom_svete_edited_bdb85b1e4d.webp"
+  },
+  "osm-node-13825400642": {
+   "official_site": "https://siriushotels.ru/upload/resize_cache/iblock/fde/1200_801_190728d62196cae6acd40d0988c857574/hosan208azh1j05ge727fmu38yeyqi8p.jpg"
+  },
+  "osm-node-8872412718": {
+   "official_site": "https://grace-gorizont.ru/assets/components/phpthumbof/cache/345.6c83982d67e57a71fb3544ab691e81e2.jpg"
+  },
+  "osm-node-9908709817": {
+   "official_site": "https://sochigallerypark.ru/img/c27083be8eac3b6b.webp"
+  },
+  "osm-way-113588514": {
+   "official_site": "https://seasons-hotel.com/upload/resize_cache/iblock/501/640_480_2/g7v7aei4rwbrcam62ufekq3j9il2s7fi.jpg"
+  },
+  "osm-way-150742817": {
+   "official_site": "https://static.tildacdn.com/tild6236-3664-4132-a534-373261323831/_-2.jpg"
+  },
+  "osm-way-190714781": {
+   "official_site": "https://sochi.cosmosgroup.ru/files/hotels/14_11770025432.webp"
+  },
+  "osm-way-207579132": {
+   "official_site": "https://siriushotels.ru/upload/resize_cache/iblock/dce/1199_798_190728d62196cae6acd40d0988c857574/j4f7o2uaou0frcaq6yjox9n6w9jnhgs0.jpg"
+  },
+  "osm-way-207637871": {
+   "official_site": "https://manteracongress.ru/_next/image?url=https%3A%2F%2Fdirectus.manteratravel.ru%2Fassets%2Fd96348a6-34ed-431a-8ae1-7b211049719c%3Ffit%3Dcover%26width%3D2400%26quality%3D80&w=3840&q=75",
+   "building": "File:Radisson Blu hotel in Sochi, Russia.jpg"
+  },
+  "osm-way-209182328": {
+   "official_site": "https://sofia-hotels.ru/img/e703f929b3cba3f2.webp"
+  },
+  "osm-way-250086722": {
+   "official_site": "https://adlanna-maria.ru/assets/img/hero4-2400.jpg"
+  },
+  "osm-way-412914458": {
+   "official_site": "https://hotel-marianna.ru/img/b63d339cb0318867.webp"
+  },
+  "osm-way-44573571": {
+   "building": "File:RIAN archive 779065 Moskva hotel, Sochi.jpg"
+  },
+  "osm-way-51764141": {
+   "official_site": "https://azimuthotels.com/resize/images/upload/residence_sochi_exterior.webp?w=1584&h=980"
+  },
+  "osm-way-51847429": {
+   "building": "File:Hotel «Zhemchuzhina» (Sochi) (15).JPG"
+  },
+  "osm-way-52283978": {
+   "building": "File:Metallurg Sochi.jpg"
+  },
+  "osm-way-52501847": {
+   "building": "File:Отель Чеботарёв, Сочи, на закате солнца (25.03.2023).jpg"
+  },
+  "osm-way-52526314": {
+   "official_site": "https://raduga-prestige.ru/img/273004d9a750ab04.webp"
+  },
+  "osm-way-53579883": {
+   "building": "File:1-building-7-facade-normal-2.jpg"
+  },
+  "osm-way-700342790": {
+   "official_site": "https://talisman-sochi.ru/upload/iblock/61f/1rbvy6peimtlwnbidbn7qytmcxmb0y53.webp"
+  },
+  "osm-way-80189262": {
+   "official_site": "https://anatolhotel.ru/wp-content/uploads/2024/05/2mest.jpg"
+  },
+  "osm-way-80192701": {
+   "official_site": "https://static.tildacdn.com/tild3264-3338-4361-b731-343062323139/IMG_1450_2646.JPG"
+  },
+  "osm-way-98649266": {
+   "official_site": "https://parusa-hotel.ru/d/dsc_0228_00037_panorama_kopirovat.jpg"
+  },
+  "overture-037ee676-5776-46bd-a4ac-38c828f2a99d": {
+   "building": "File:Гостиница «Приморская».JPG"
+  },
+  "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13": {
+   "official_site": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/slider1.jpg"
+  },
+  "overture-19a359ae-d6b8-4686-8643-36a55ee46219": {
+   "official_site": "https://metropol-apart.ru/wp-content/uploads/2025/02/mphoto-1.webp"
+  },
+  "overture-1d571ae6-4794-4362-ae8a-d011f52d376c": {
+   "official_site": "https://hotelgraphite.ru/img/1d3939f3c66b3e0d.webp"
+  },
+  "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7": {
+   "official_site": "http://sochi-sunrise.ru/img/324776304f426da7.webp"
+  },
+  "overture-3b6e73bd-b423-453f-a384-a8d2329acae2": {
+   "official_site": "https://static.tildacdn.com/tild6161-6163-4237-b434-616337633539/01.webp"
+  },
+  "overture-5d220661-b1ca-4461-a03b-c89126a98e02": {
+   "official_site": "https://grandhotelrodina.ru/upload/resize_cache/iblock/cfa/580_400_2/lt78ss4y0hlismrmkxfe6ljrfad2kjgh.jpg"
+  },
+  "overture-74ff2c5a-4204-42cb-bb2f-f825b7ca1c45": {
+   "official_site": "https://rzdz.ru/cache/images/upload/ok-osan-900-9.webp/1584_980.webp"
+  },
+  "overture-76383584-f4a0-4333-bb90-3fd6d19a354d": {
+   "official_site": "https://simplesochi.ru/img/cc7f6f51f2c8596e.webp"
+  },
+  "overture-83a07e61-b742-4ed6-9240-8516e32c482b": {
+   "official_site": "https://morisatoreza.ru/dl_images/udb_photos/udb4-rec5-field3.jpg"
+  },
+  "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39": {
+   "official_site": "https://coocooroozasochi.com/img/a79e4eedf4712e70.webp"
+  },
+  "overture-8db95563-548a-436f-8920-31ba9b9a3795": {
+   "official_site": "https://static.tildacdn.com/tild3030-3830-4636-b933-626538393163/NV_3.jpg"
+  }
+ },
+ "reject": [
+  {
+   "hotel_id": "osm-node-11016638373",
+   "kind": "official_site",
+   "ref": "https://static.tildacdn.com/tild3239-6639-4162-a363-643735353531/-_5.jpg",
+   "reason": "3D illustration of a building model, not a photo"
+  },
+  {
+   "hotel_id": "osm-node-11016638373",
+   "kind": "official_site",
+   "ref": "https://static.tildacdn.com/tild6234-3764-4139-a162-616437336533/Frame_48095607.png",
+   "reason": "logo card, not a photo"
+  },
+  {
+   "hotel_id": "osm-node-11843553790",
+   "kind": "official_site",
+   "ref": "site",
+   "reason": "page is the NEOLIT chain homepage (blog/ad banner), not this property"
+  },
+  {
+   "hotel_id": "osm-node-11843553791",
+   "kind": "official_site",
+   "ref": "https://static.tildacdn.com/tild3237-3765-4030-a637-653430653332/Frame_21353.jpg",
+   "reason": "text banner over a rendering"
+  },
+  {
+   "hotel_id": "osm-node-11843553791",
+   "kind": "official_site",
+   "ref": "https://static.tildacdn.com/tild6463-3237-4835-a331-336461363936/heroSectionPic.jpg",
+   "reason": "night view looks like an architectural rendering (new building), not a photo"
+  },
+  {
+   "hotel_id": "osm-node-11843553792",
+   "kind": "official_site",
+   "ref": "site",
+   "reason": "subdomain serves the NEOLIT chain homepage; image not specific to Парк Горького"
+  },
+  {
+   "hotel_id": "osm-node-11843553793",
+   "kind": "official_site",
+   "ref": "https://pushkin.neolitapart.ru/wp-content/uploads/2024/04/2-1024x575.jpg",
+   "reason": "stock promo banner (early booking), not the property"
+  },
+  {
+   "hotel_id": "osm-node-11843553793",
+   "kind": "official_site",
+   "ref": "https://pushkin.neolitapart.ru/wp-content/uploads/2024/04/2-2048x1150.jpg",
+   "reason": "same stock promo banner at another size"
+  },
+  {
+   "hotel_id": "osm-node-11843553793",
+   "kind": "official_site",
+   "ref": "https://pushkin.neolitapart.ru/wp-content/uploads/2024/04/6-22-2048x1150.jpg",
+   "reason": "chain promo banner (birthday discount)"
+  },
+  {
+   "hotel_id": "osm-node-11843553793",
+   "kind": "official_site",
+   "ref": "site",
+   "reason": "hero slider carries only NEOLIT chain promo banners; no property photo on the landing page"
+  },
+  {
+   "hotel_id": "osm-node-11958163711",
+   "kind": "official_site",
+   "ref": "site",
+   "reason": "chain homepage (SunCityHotels network); image may show another property"
+  },
+  {
+   "hotel_id": "osm-node-11958163713",
+   "kind": "official_site",
+   "ref": "https://markinn-sochi.ru/thumb/2/naPzXHUGoBbvOR2ObkYWiA/5000r5000/d/1424998-8162.png",
+   "reason": "messenger icons"
+  },
+  {
+   "hotel_id": "osm-node-11958163737",
+   "kind": "official_site",
+   "ref": "https://static.tildacdn.com/tild3537-6333-4835-a264-346165656434/og.png",
+   "reason": "logo card, not a photo"
+  },
+  {
+   "hotel_id": "osm-node-12800893166",
+   "kind": "official_site",
+   "ref": "https://grey-sochi.ru/img/99c78e2b4a2baa1d.webp",
+   "reason": "public beach aerial; property not visible"
+  },
+  {
+   "hotel_id": "osm-node-12958832506",
+   "kind": "official_site",
+   "ref": "https://s3.timeweb.cloud/37651e87-s3-atlas/cover_cdff37d716.jpg",
+   "reason": "lifestyle stock shot; property not visible"
+  },
+  {
+   "hotel_id": "osm-node-1449074195",
+   "kind": "official_site",
+   "ref": "site",
+   "reason": "domain registration expired (registrar parking page)"
+  },
+  {
+   "hotel_id": "osm-node-5743464666",
+   "kind": "official_site",
+   "ref": "site",
+   "reason": "apartment rental operator site inside the residential complex, not the property's own site"
+  },
+  {
+   "hotel_id": "osm-way-250086722",
+   "kind": "official_site",
+   "ref": "https://adlanna-maria.ru/assets/og.png",
+   "reason": "logo card, not a photo"
+  },
+  {
+   "hotel_id": "osm-way-53582196",
+   "kind": "official_site",
+   "ref": "site",
+   "reason": "site of Санаторий «Беларусь»; «Морская звезда» is only mentioned as a related complex"
+  },
+  {
+   "hotel_id": "osm-way-67540441",
+   "kind": "building",
+   "ref": "File:Аэрофотоснимок здания дачи Якобсона 01.jpg",
+   "reason": "main subject is the historic Jacobson dacha; the sanatorium is only in the background"
+  },
+  {
+   "hotel_id": "osm-way-67540441",
+   "kind": "building",
+   "ref": "File:Аэрофотоснимок здания дачи Якобсона 02.jpg",
+   "reason": "main subject is the historic Jacobson dacha; the sanatorium is only in the background"
+  },
+  {
+   "hotel_id": "osm-way-67540441",
+   "kind": "building",
+   "ref": "File:Аэрофотоснимок здания дачи Якобсона 03.jpg",
+   "reason": "main subject is the historic Jacobson dacha; the sanatorium is only in the background"
+  },
+  {
+   "hotel_id": "osm-way-67540441",
+   "kind": "building",
+   "ref": "File:Аэрофотоснимок здания дачи Якобсона 04.jpg",
+   "reason": "main subject is the historic Jacobson dacha; the sanatorium is only in the background"
+  },
+  {
+   "hotel_id": "osm-way-67540441",
+   "kind": "building",
+   "ref": "File:Аэрофотоснимок здания дачи Якобсона 05.jpg",
+   "reason": "main subject is the historic Jacobson dacha; the sanatorium is only in the background"
+  },
+  {
+   "hotel_id": "osm-way-67540441",
+   "kind": "building",
+   "ref": "File:Аэрофотоснимок здания дачи Якобсона 06.jpg",
+   "reason": "main subject is the historic Jacobson dacha; the sanatorium is only in the background"
+  },
+  {
+   "hotel_id": "osm-way-67540441",
+   "kind": "building",
+   "ref": "File:Аэрофотоснимок здания дачи Якобсона 07.jpg",
+   "reason": "main subject is the historic Jacobson dacha; the sanatorium is only in the background"
+  },
+  {
+   "hotel_id": "osm-way-67540441",
+   "kind": "building",
+   "ref": "File:Аэрофотосъемка здания дачи Фронштейна 03.jpg",
+   "reason": "main subject is the historic Jacobson dacha; the sanatorium is only in the background"
+  },
+  {
+   "hotel_id": "osm-way-80189262",
+   "kind": "official_site",
+   "ref": "https://anatolhotel.ru/wp-content/uploads/2020/05/3464572321.png",
+   "reason": "blank graphic"
+  },
+  {
+   "hotel_id": "osm-way-80192701",
+   "kind": "official_site",
+   "ref": "https://thb.tildacdn.com/tild6634-3266-4562-a232-313136316265/-/resize/504x/wV0qipOU5Zc.jpg",
+   "reason": "large text overlay (pool advert)"
+  },
+  {
+   "hotel_id": "overture-1d571ae6-4794-4362-ae8a-d011f52d376c",
+   "kind": "official_site",
+   "ref": "https://hotelgraphite.ru/img/379816daddcbf49d.webp",
+   "reason": "promo text overlay (discount code)"
+  },
+  {
+   "hotel_id": "overture-3b6e73bd-b423-453f-a384-a8d2329acae2",
+   "kind": "official_site",
+   "ref": "https://static.tildacdn.com/tild6338-3737-4938-a564-623965626164/main-photo.webp",
+   "reason": "generic city aerial; property not identifiable"
+  },
+  {
+   "hotel_id": "overture-76383584-f4a0-4333-bb90-3fd6d19a354d",
+   "kind": "official_site",
+   "ref": "https://simplesochi.ru/img/787fe93ba37322ff.webp",
+   "reason": "decor close-up; not representative"
+  },
+  {
+   "hotel_id": "overture-84c775c0-79bf-4f63-9f74-6e6382b6245d",
+   "kind": "official_site",
+   "ref": "https://chaykasochi.ru/wp-content/uploads/18b6ca45-9391-408b-b0b8-939dc7eb6649-krupnyy-razmer.jpeg",
+   "reason": "lifestyle shot (yoga); property not visible"
+  },
+  {
+   "hotel_id": "overture-961dd6a3-1f1c-4922-9ff0-be9a0887b568",
+   "kind": "official_site",
+   "ref": "https://static.tildacdn.com/tild3239-6135-4866-a465-656133623434/Mask_group_14.png",
+   "reason": "logo, not a photo"
+  },
+  {
+   "hotel_id": "overture-961dd6a3-1f1c-4922-9ff0-be9a0887b568",
+   "kind": "official_site",
+   "ref": "https://static.tildacdn.com/tild6336-3831-4730-a562-373665303266/Frame_1.png",
+   "reason": "logo card, not a photo"
+  }
+ ]
+}
