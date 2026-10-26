@@ -5477,3 +5477,55 @@ pre {
     max-height: 65vh;
   }
 }
+.passport-date-editor {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 22px 0;
+  margin: 0 0 30px;
+}
+.passport-date-editor .section-heading {
+  margin-bottom: 16px;
+}
+.passport-date-editor h3 {
+  font-size: 15px;
+  font-weight: 550;
+}
+.passport-date-editor .text-button {
+  font-size: 9px;
+  color: var(--accent);
+}
+.passport-date-editor > div:nth-child(2) {
+  display: flex;
+  gap: 20px;
+}
+.passport-date-editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.passport-date-editor input {
+  font-size: 11px;
+  min-height: 38px;
+}
+.passport-date-editor p {
+  margin-top: 15px;
+}
+.chip-flag {
+  font-size: 8px;
+  border-left: 1px solid currentColor;
+  padding-left: 6px;
+}
+@media (max-width: 680px) {
+  .passport-date-editor .section-heading {
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .passport-date-editor > div:nth-child(2) {
+    gap: 12px;
+  }
+  .passport-date-editor input {
+    width: 125px;
+  }
+}

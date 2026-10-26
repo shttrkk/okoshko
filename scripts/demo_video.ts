@@ -413,15 +413,25 @@ async function main() {
     );
     await stage(
       "Пожелания не потеряются в комментарии",
-      "Паспорт фиксирует критичные условия для одного номера. Бронь учебная, без оплаты.",
+      "Пока без дат: предварительно согласуем один номер. Перед поездкой нужно перепроверить условия, даты и реальное наличие.",
       8000,
       async () => {
         await navigate(`/booking/${encodeURIComponent(hero.id)}`);
         await app.getByTestId("passport-submit").waitFor({ timeout: 25000 });
+        await app.getByTestId("passport-clear-dates").click();
+        assert.equal(
+          await app
+            .getByLabel("Заезд в паспорте", { exact: true })
+            .inputValue(),
+          "",
+        );
         passport = await response<Passport>("/api/passports", () =>
           app.getByTestId("passport-submit").click(),
         );
         assert(passport.synthetic_booking);
+        assert.equal(passport.check_in, null);
+        assert.equal(passport.check_out, null);
+        report.passport_mode = "preliminary_without_dates";
         assert.equal(passport.items.filter((item) => item.critical).length, 3);
         report.passport_id = passport.id;
         await app.locator(".passport-view").scrollIntoViewIfNeeded();
@@ -488,7 +498,7 @@ async function main() {
     );
     await stage(
       "Договорились о конкретном номере",
-      "Учебное подтверждение появилось в паспорте гостя вместе с историей ответа.",
+      "Предварительное учебное подтверждение появилось в паспорте. Даты и реальное наличие ещё нужно согласовать.",
       5000,
       async () => {
         await navigate(
@@ -660,56 +670,98 @@ async function main() {
     report.blocked_external = blockedExternal;
     report.raw_video = rawPath;
   }
+  if (!failure && published) {
+    try {
+      let completed: AgentRun | undefined;
+      for (let attempt = 0; attempt < 30; attempt++) {
+        completed = await api<AgentRun>(`/api/runs/${published.run_id}`);
+        if (completed.status !== "running") break;
+        await sleep(2000);
+      }
+      assert.equal(
+        completed?.status,
+        "completed",
+        "The published characteristic must complete durable backfill.",
+      );
+      const processed = Math.max(
+        0,
+        ...completed!.steps
+          .map((step) => step.output.processed)
+          .filter((value): value is number => typeof value === "number"),
+      );
+      assert.equal(
+        processed,
+        published.total,
+        "Backfill must process the actual complete hotel catalog.",
+      );
+      report.completed_backfill = {
+        run_id: published.run_id,
+        status: completed!.status,
+        processed,
+        total: published.total,
+      };
+    } catch (error) {
+      failure = error;
+      report.status = "failed";
+      report.error = String(error);
+    }
+  }
   if (!failure && !checkOnly && rawPath) {
-    mkdirSync(dirname(output), { recursive: true });
-    execFileSync(
-      "ffmpeg",
-      [
-        "-y",
-        "-i",
-        rawPath,
-        "-an",
-        "-c:v",
-        "libx264",
-        "-preset",
-        "medium",
-        "-crf",
-        "22",
-        "-maxrate",
-        "3M",
-        "-bufsize",
-        "6M",
-        "-pix_fmt",
-        "yuv420p",
-        "-r",
-        "30",
-        "-movflags",
-        "+faststart",
-        output,
-      ],
-      { stdio: "ignore" },
-    );
-    const probe = JSON.parse(
+    try {
+      mkdirSync(dirname(output), { recursive: true });
       execFileSync(
-        "ffprobe",
+        "ffmpeg",
         [
-          "-v",
-          "error",
-          "-show_entries",
-          "format=duration:stream=width,height",
-          "-of",
-          "json",
+          "-y",
+          "-i",
+          rawPath,
+          "-an",
+          "-c:v",
+          "libx264",
+          "-preset",
+          "medium",
+          "-crf",
+          "22",
+          "-maxrate",
+          "2M",
+          "-bufsize",
+          "4M",
+          "-pix_fmt",
+          "yuv420p",
+          "-r",
+          "30",
+          "-movflags",
+          "+faststart",
           output,
         ],
-        { encoding: "utf8" },
-      ),
-    );
-    report.video = probe;
-    report.mp4 = output;
-    assert(
-      Number(probe.format.duration) <= 180,
-      "Video must be no longer than three minutes",
-    );
+        { stdio: "ignore" },
+      );
+      const probe = JSON.parse(
+        execFileSync(
+          "ffprobe",
+          [
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration:stream=width,height",
+            "-of",
+            "json",
+            output,
+          ],
+          { encoding: "utf8" },
+        ),
+      );
+      report.video = probe;
+      report.mp4 = output;
+      assert(
+        Number(probe.format.duration) <= 180,
+        "Video must be no longer than three minutes",
+      );
+    } catch (error) {
+      failure = error;
+      report.status = "failed";
+      report.error = String(error);
+    }
   }
   writeFileSync(
     resolve(recordingDir, "report.json"),

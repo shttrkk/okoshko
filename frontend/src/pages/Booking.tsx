@@ -70,7 +70,9 @@ export function PassportView({
       <div className="passport-meta">
         <span>{passport.guest_name}</span>
         <span>
-          {dateText(passport.check_in)} — {dateText(passport.check_out)}
+          {!passport.check_in && !passport.check_out
+            ? "Предварительный выбор · даты ещё не указаны"
+            : `${dateText(passport.check_in)} — ${dateText(passport.check_out)}`}
         </span>
         {passport.room_number && <strong>Номер {passport.room_number}</strong>}
       </div>
@@ -200,6 +202,10 @@ export function BookingPage() {
   );
   const [passport, setPassport] = useState<Passport | null>(null),
     [guest, setGuest] = useState("Маша"),
+    [tripDates, setTripDates] = useState({
+      check_in: parsed?.check_in || "",
+      check_out: parsed?.check_out || "",
+    }),
     [items, setItems] = useState<PassportItem[]>([]),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<Error | null>(null);
@@ -240,6 +246,11 @@ export function BookingPage() {
       );
     }
   }, [detail.data]);
+  const dateError = !!(
+    tripDates.check_in &&
+    tripDates.check_out &&
+    tripDates.check_out <= tripDates.check_in
+  );
   const create = async () => {
     setBusy(true);
     setError(null);
@@ -247,10 +258,19 @@ export function BookingPage() {
       const p = await api.createPassport({
         hotel_id: id,
         guest_name: guest,
-        check_in: parsed?.check_in,
-        check_out: parsed?.check_out,
+        check_in: tripDates.check_in || null,
+        check_out: tripDates.check_out || null,
         items,
-        parsed,
+        parsed: parsed
+          ? {
+              ...parsed,
+              check_in: tripDates.check_in || null,
+              check_out: tripDates.check_out || null,
+              month: tripDates.check_in
+                ? new Date(tripDates.check_in).getUTCMonth() + 1
+                : parsed.month,
+            }
+          : null,
       });
       setPassport(p);
       setParams({ passport: p.id });
@@ -301,6 +321,72 @@ export function BookingPage() {
                       data-testid="passport-guest"
                     />
                   </label>
+                  <div className="passport-date-editor">
+                    <div className="section-heading">
+                      <h3>Даты · необязательно</h3>
+                      <button
+                        className="text-button"
+                        onClick={() =>
+                          setTripDates({ check_in: "", check_out: "" })
+                        }
+                        data-testid="passport-clear-dates"
+                      >
+                        Предварительный выбор без дат
+                      </button>
+                    </div>
+                    <div>
+                      <label>
+                        Заезд
+                        <input
+                          type="date"
+                          aria-label="Заезд в паспорте"
+                          value={tripDates.check_in}
+                          onChange={(e) =>
+                            setTripDates((old) => ({
+                              ...old,
+                              check_in: e.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                      <label>
+                        Выезд
+                        <input
+                          type="date"
+                          aria-label="Выезд в паспорте"
+                          min={tripDates.check_in || undefined}
+                          value={tripDates.check_out}
+                          onChange={(e) =>
+                            setTripDates((old) => ({
+                              ...old,
+                              check_out: e.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                    </div>
+                    {!tripDates.check_in && !tripDates.check_out ? (
+                      <p
+                        className="fine-print"
+                        data-testid="passport-preliminary"
+                      >
+                        Предварительный выбор без дат. Перед поездкой нужно
+                        согласовать даты, наличие номера и перепроверить
+                        условия.
+                      </p>
+                    ) : (
+                      <p className="fine-print">
+                        Если доказательства устареют до поездки, ожидания
+                        потребуют перепроверки. Подтверждение номера не
+                        продлевает срок данных.
+                      </p>
+                    )}
+                    {dateError && (
+                      <p className="inline-error" role="alert">
+                        Выезд должен быть позже заезда.
+                      </p>
+                    )}
+                  </div>
                   <div className="section-heading">
                     <h2>На чём договоримся</h2>
                     <span className="fine-print">Отметьте критичное</span>
@@ -351,6 +437,7 @@ export function BookingPage() {
                     onClick={create}
                     disabled={
                       busy ||
+                      dateError ||
                       !guest.trim() ||
                       !items.length ||
                       items.some((i) => !i.text.trim())
