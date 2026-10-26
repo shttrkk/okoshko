@@ -1,0 +1,61 @@
+id: sochi
+name: Сочи
+description: Центр + Адлер–Имеретинка; P1 region review 2026-10-26
+zones:
+  A:
+    bbox: [39.690, 43.555, 39.790, 43.635]
+    coverage_bbox: [39.65, 43.55, 39.80, 43.65]
+    hotel_limit: 175
+    meteo: [43.58, 39.72, 39.70] # latitude, land longitude, sea longitude
+    commons: [43.585, 39.72]
+  B:
+    bbox: [39.880, 43.380, 40.020, 43.460]
+    coverage_bbox: [39.880, 43.380, 40.020, 43.460]
+    hotel_limit: 75
+    meteo: [43.42, 39.95, 39.93]
+    commons: [43.42, 39.95]
+osm:
+  url: https://download.geofabrik.de/russia/south-fed-district-261025.osm.pbf
+  snapshot: '2026-10-25T21:21:21Z'
+  lodging: [hotel, guest_house, hostel, apartment, motel, resort]
+overture:
+  release: 2026-10-21.0
+  lodging: [hotel, lodging, resort, hostel, motel]
+dem:
+  tiles: [[43, 39], [43, 40]]
+  dataset: copernicus-dem-30m
+  release: '2021'
+height:
+  floor_height_m: 3
+  tagged_uncertainty_m: 1
+  levels_uncertainty_m: 3
+  missing: unknown
+merge:
+  max_distance_m: 150
+  exact_name_distance_m: 120
+  fuzzy_distance_m: 100
+  name_ratio: 0.79
+  same_full_website_min_name_ratio: 0.45
+identity_merges:
+  - canonical: osm-way-53579883
+    members: [osm-node-6308858786, overture-2f57fe03-7dda-489b-b08e-614f460b7913]
+    reason: 'Sanatorium Zapolyarye: OSM site polygon contains reception node; all three exact names/websites identify https://www.zapolarye.ru/; large-site centroid exceeds generic distance threshold'
+exclude_ids:
+  overture-6951e52b-8de8-465d-bd5e-fc4cde427a15: 'Locality label Сочи, р-н Светлана does not identify an unambiguous named hotel'
+meteo:
+  archive_start: '2016-01-01'
+  archive_end: '2025-12-31'
+  aq_start: '2026-10-21'
+  aq_end: '2026-10-26'
+  timezone: Europe/Moscow
+ookla:
+  year: 2026
+  quarter: 3
+  quarter_start: '2026-07-01'
+tiles:
+  url: https://build.protomaps.com/20261025.pmtiles
+  snapshot: '2026-10-25'
+  maxzoom: 15
+photos:
+  radius_m: 1500
+  offline_thumbnails_per_zone: 12
