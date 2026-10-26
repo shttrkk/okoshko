@@ -179,3 +179,9 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
 - Для parking/family числовое наблюдение можетбытьcomputed при available=null. Это знание конкретного расстояния, не утверждение о въезде/услуге. Сравнение available продолжаетunknown.
 
 - `GET /api/quality` дополнительно возвращает filter_comparison (версионированный модельный отчёт) и provenance актуальной БД: known/non_synthetic/synthetic/mixed/unknown_stale_disputed, unit=materialized_facts. Mixed — подмножество synthetic; это не доля отелей и не полевая точность.
+
+## Компактные профили и ленивые доказательства
+
+`HotelDetail` имеет необязательные флаги `evidence_deferred` и `geometry_deferred` (по умолчанию false). Они отличают компактную проекцию от отсутствующих данных. Компактный профиль сохраняет ID, значения, scope, confidence, статус, supporting/conflicting claim IDs и короткие ссылки evidence; полные inputs/output и claims загружаются отдельно. `FactEvidence` возвращает полный `fact` и его `claims`; hotel_id и принадлежность fact проверяются вместе. Геометрия имеет отдельный маршрут `/api/hotels/{id}/geo`. Полная проекция по умолчанию сохраняет совместимость API.
+
+`SearchHit.why_not_higher` и `similarity_reasons` — списки коротких текстов, подкреплённых verdict/evidence ссылками. Неизвестные поля и неподтверждённые условия не становятся выполненными ради похожести.

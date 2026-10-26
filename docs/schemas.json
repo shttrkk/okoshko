@@ -4104,6 +4104,20 @@
         "default": "",
         "title": "Summary",
         "type": "string"
+      },
+      "why_not_higher": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Why Not Higher",
+        "type": "array"
+      },
+      "similarity_reasons": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Similarity Reasons",
+        "type": "array"
       }
     },
     "required": [
@@ -4791,6 +4805,20 @@
             "default": "",
             "title": "Summary",
             "type": "string"
+          },
+          "why_not_higher": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Why Not Higher",
+            "type": "array"
+          },
+          "similarity_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Similarity Reasons",
+            "type": "array"
           }
         },
         "required": [
@@ -5786,12 +5814,473 @@
         "additionalProperties": true,
         "title": "Geo",
         "type": "object"
+      },
+      "evidence_deferred": {
+        "default": false,
+        "title": "Evidence Deferred",
+        "type": "boolean"
+      },
+      "geometry_deferred": {
+        "default": false,
+        "title": "Geometry Deferred",
+        "type": "boolean"
       }
     },
     "required": [
       "hotel"
     ],
     "title": "HotelDetail",
+    "type": "object"
+  },
+  "FactEvidence": {
+    "$defs": {
+      "Claim": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "hotel_id": {
+            "title": "Hotel Id",
+            "type": "string"
+          },
+          "characteristic_id": {
+            "title": "Characteristic Id",
+            "type": "string"
+          },
+          "spec_version": {
+            "default": 1,
+            "minimum": 1,
+            "title": "Spec Version",
+            "type": "integer"
+          },
+          "scope": {
+            "$ref": "#/$defs/Scope"
+          },
+          "value": {
+            "title": "Value"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Unit"
+          },
+          "source": {
+            "minLength": 1,
+            "title": "Source",
+            "type": "string"
+          },
+          "method": {
+            "minLength": 1,
+            "title": "Method",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/$defs/Evidence"
+            },
+            "minItems": 1,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "confidence": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date-time",
+            "title": "Valid Until",
+            "type": "string"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          },
+          "supersedes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Supersedes"
+          },
+          "supersedes_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Supersedes Ids",
+            "type": "array"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "hotel_id",
+          "characteristic_id",
+          "value",
+          "source",
+          "method",
+          "evidence",
+          "confidence",
+          "observed_at",
+          "valid_until"
+        ],
+        "title": "Claim",
+        "type": "object"
+      },
+      "Evidence": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "calculation",
+              "open_data",
+              "quote",
+              "hotelier",
+              "simulation",
+              "mock"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Source Ids",
+            "type": "array"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Url"
+          },
+          "artifact": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Quote"
+          },
+          "message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Message Id"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "title": "Inputs",
+            "type": "object"
+          },
+          "output": {
+            "additionalProperties": true,
+            "title": "Output",
+            "type": "object"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "label",
+          "source_ids"
+        ],
+        "title": "Evidence",
+        "type": "object"
+      },
+      "Fact": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "hotel_id": {
+            "title": "Hotel Id",
+            "type": "string"
+          },
+          "characteristic_id": {
+            "title": "Characteristic Id",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/$defs/Scope"
+          },
+          "value": {
+            "default": null,
+            "title": "Value"
+          },
+          "confidence": {
+            "default": 0,
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "status": {
+            "default": "unknown",
+            "enum": [
+              "computed",
+              "confirmed",
+              "disputed",
+              "unknown",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "resolution": {
+            "default": "unknown",
+            "enum": [
+              "single",
+              "weighted_vote",
+              "hotelier_override",
+              "scope_split",
+              "unknown"
+            ],
+            "title": "Resolution",
+            "type": "string"
+          },
+          "supporting_claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Supporting Claim Ids",
+            "type": "array"
+          },
+          "conflicting_claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Conflicting Claim Ids",
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/$defs/Evidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Valid Until"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "hotel_id",
+          "characteristic_id"
+        ],
+        "title": "Fact",
+        "type": "object"
+      },
+      "Scope": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "default": "hotel",
+            "enum": [
+              "hotel",
+              "facade",
+              "floor_range",
+              "room_type"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "Scope",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "fact": {
+        "$ref": "#/$defs/Fact"
+      },
+      "claims": {
+        "items": {
+          "$ref": "#/$defs/Claim"
+        },
+        "title": "Claims",
+        "type": "array"
+      }
+    },
+    "required": [
+      "fact"
+    ],
+    "title": "FactEvidence",
     "type": "object"
   },
   "PassportItem": {
