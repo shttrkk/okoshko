@@ -51,8 +51,12 @@ class Repository:
         predicates = []
         params = []
         for key, value in equal.items():
-            predicates.append(sql.SQL("payload->%s = %s"))
-            params.extend([key, Jsonb(value, dumps=dump_json)])
+            if isinstance(value,str):
+                predicates.append(sql.SQL("payload->>{} = %s").format(sql.Literal(key)))
+                params.append(value)
+            else:
+                predicates.append(sql.SQL("payload->%s = %s"))
+                params.extend([key, Jsonb(value, dumps=dump_json)])
         where = sql.SQL(" AND ").join(predicates) if predicates else sql.SQL("true")
         query = sql.SQL("SELECT payload FROM {} WHERE {} ORDER BY created_at, id").format(self.table(table), where)
         with psycopg.connect(self.db_url) as conn:
@@ -111,6 +115,22 @@ class Repository:
     def healthy(self) -> bool:
         with psycopg.connect(self.db_url, connect_timeout=3) as conn:
             return conn.execute("SELECT 1").fetchone()[0] == 1
+
+    def search_facts(self, characteristic_ids: list[str] | None = None, month: int | None = None) -> list[dict]:
+        # Keep evidence references, quotes and limitations; omit repeated raw calculation payloads.
+        predicates, params = [], []
+        if characteristic_ids is not None:
+            predicates.append("payload->>'characteristic_id'=ANY(%s)")
+            params.append(characteristic_ids)
+        if month is not None:
+            predicates.append("(payload#>>'{scope,month}' IS NULL OR (payload#>>'{scope,month}')::int=%s)")
+            params.append(month)
+        where = " AND ".join(predicates) if predicates else "true"
+        query = """SELECT (payload-'evidence') || jsonb_build_object('evidence', COALESCE(
+            (SELECT jsonb_agg(evidence-'inputs'-'output') FROM jsonb_array_elements(payload->'evidence') evidence),
+            '[]'::jsonb)) FROM facts WHERE """+where
+        with psycopg.connect(self.db_url) as conn:
+            return [row[0] for row in conn.execute(query,params)]
 
 
 @lru_cache
