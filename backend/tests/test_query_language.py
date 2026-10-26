@@ -152,6 +152,86 @@ def test_short_unknown_amenity_is_not_converted_into_a_catalogue_suggestion(cata
     assert not any('Возможно' in message for message in parsed.clarifications)
 
 
+@pytest.mark.parametrize(('text', 'cid', 'field', 'value'), [
+    ('без парковки', 'car_access', 'available', False),
+    ('без интернета', 'connectivity', 'available', False),
+    ('без ночной аптеки', 'night_pharmacy', 'available', False),
+    ('без баров рядом', 'nightlife', 'bars_500m', 0),
+    ('электромобиль без зарядки для электромобиля', 'car_access', 'ev_available', False),
+])
+def test_explicit_absence_does_not_become_a_positive_default(catalog, text, cid, field, value):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert [(c.characteristic_id, c.field, c.value) for c in parsed.must] == [(cid, field, value)]
+    assert 'Без' in parsed.must[0].label or '= 0' in parsed.must[0].label
+
+
+@pytest.mark.parametrize('text', ['не двойные окна', 'без двойных окон'])
+def test_categorical_negation_does_not_guess_a_different_window_type(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert not parsed.must and parsed.unmapped
+    assert any('отрицание пока не применяется' in message for message in parsed.clarifications)
+
+
+@pytest.mark.parametrize(('positive', 'negative', 'cid', 'field'), [
+    ('вид на море', 'без вида на море', 'sea_view', 'available'),
+    ('кондиционер', 'без кондиционера', 'soundproofing', 'air_conditioning'),
+    ('балкон', 'без балкона', 'room_orientation', 'balcony'),
+])
+@pytest.mark.parametrize('reverse', [False, True])
+def test_opposing_hard_boolean_mentions_are_preserved_in_either_order(catalog, positive, negative, cid, field, reverse):
+    parts = [positive, negative]
+    parsed = parse_query(SearchRequest(text=', '.join(reversed(parts) if reverse else parts)), catalog)
+    assert {c.value for c in parsed.must if c.characteristic_id == cid and c.field == field} == {True, False}
+    assert any('противоречат' in message for message in parsed.clarifications)
+
+
+@pytest.mark.parametrize('text', ['желательно вид на море, но обязательно вид на море',
+                                 'обязательно вид на море, желательно вид на море'])
+def test_a_later_hard_mention_cannot_remain_only_a_preference(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert len(parsed.must) == 1 and parsed.must[0].characteristic_id == 'sea_view'
+    assert not parsed.nice
+
+
+@pytest.mark.parametrize('text', ['номер на 0 этаже', 'номер на -1 этаже',
+                                 'номер на 101 этаже', 'номер на 1.5 этаже'])
+def test_unsupported_floor_numbers_are_visible_and_never_rounded_or_dropped(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert parsed.min_floor is None and not parsed.must
+    assert any('Этаж:' in fragment for fragment in parsed.unmapped)
+    assert any('целый этаж от 1 до 100' in message for message in parsed.clarifications)
+
+
+@pytest.mark.parametrize('text', ['с собакой 150 кг', 'с собакой -5 кг'])
+def test_unsupported_pet_weight_is_not_replaced_by_a_weight_free_match(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert parsed.pet_weight_kg is None and not parsed.must
+    assert any('Вес питомца:' in fragment for fragment in parsed.unmapped)
+
+
+def test_enormous_numeric_input_is_bounded_and_clarified(catalog):
+    parsed = parse_query(SearchRequest(text='интернет от ' + '9'*400 + ' Mbps'), catalog)
+    assert not parsed.must and parsed.unmapped and parsed.clarifications
+    assert 'слишком велик' in parsed.clarifications[0]
+
+
+def test_invalid_number_does_not_hide_an_out_of_scope_destination(catalog):
+    parsed = parse_query(SearchRequest(text='в Москве интернет от ' + '9'*400 + ' Mbps'), catalog)
+    assert 'region_out_of_scope' in parsed.unmapped and len(parsed.clarifications) <= 2
+
+
+def test_pharmacy_minutes_and_minimum_distance_keep_explicit_values(catalog):
+    parsed = parse_query(SearchRequest(text='до аптеки 6 минут, до моря не ближе 650 метров'), catalog)
+    assert {(c.characteristic_id, c.field, c.op, c.value) for c in parsed.must} == {
+        ('night_pharmacy', 'minutes', 'lte', 6), ('beach_walk', 'distance_m', 'gte', 650)}
+
+
+@pytest.mark.parametrize('text', ['тишина ночью желательна', 'закат над морем будет плюсом'])
+def test_overlapping_short_match_does_not_erase_a_postfix_preference(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert not parsed.must and len(parsed.nice) == 1
+
+
 def test_negative_corpus_false_criteria_rate_is_at_most_one_percent(catalog):
     rows = load_jsonl(ROOT/'data/eval/queries_negative.jsonl')
     false_queries = []
