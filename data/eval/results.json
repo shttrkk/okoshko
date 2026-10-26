@@ -1,33 +1,40 @@
 {
-  "generated_at": "2026-10-26T14:12:46.211438+00:00",
+  "generated_at": "2026-10-26T15:07:29.331712+00:00",
   "hotel_count": 250,
   "characteristic_count": 16,
-  "fact_count": 25877,
-  "label_count": 20,
+  "fact_count": 25884,
+  "label_count": 40,
   "manual_label_count": 0,
   "coverage": {
-    "known_pairs": 1850,
+    "known_pairs": 1853,
     "total_pairs": 4000,
-    "ratio": 0.4625
+    "ratio": 0.46325
   },
   "synthetic_fact_count": 3,
   "question_share": 0.0,
   "label_groups": {
     "weak_website": {
-      "evaluated": 12,
-      "abstentions": 8,
-      "accuracy": 0.9166666666666666,
+      "evaluated": 15,
+      "abstentions": 21,
+      "accuracy": 0.8,
       "precision": 1.0,
-      "recall": 0.9166666666666666,
-      "f1": 0.9565217391304348,
-      "brier": 0.14570662666666667,
-      "ece": 0.27249999999999996,
+      "recall": 0.8,
+      "f1": 0.888888888888889,
+      "brier": 0.20274759466666667,
+      "ece": 0.33127999999999996,
       "calibration": [
         {
           "low": 0,
           "high": 0.2,
-          "n": 2,
-          "mean_probability": 0.1472,
+          "n": 3,
+          "mean_probability": 0.15,
+          "positive_rate": 1.0
+        },
+        {
+          "low": 0.2,
+          "high": 0.4,
+          "n": 1,
+          "mean_probability": 0.24519999999999997,
           "positive_rate": 1.0
         },
         {
@@ -40,28 +47,35 @@
         {
           "low": 0.8,
           "high": 1.0,
-          "n": 6,
-          "mean_probability": 0.8975,
+          "n": 7,
+          "mean_probability": 0.8978571428571429,
           "positive_rate": 1.0
         }
       ],
-      "label_count": 20,
+      "label_count": 40,
       "characteristics": {
         "sea_view": {
-          "evaluated": 12,
+          "evaluated": 15,
           "abstentions": 0,
-          "accuracy": 0.9166666666666666,
+          "accuracy": 0.8,
           "precision": 1.0,
-          "recall": 0.9166666666666666,
-          "f1": 0.9565217391304348,
-          "brier": 0.14570662666666667,
-          "ece": 0.27249999999999996,
+          "recall": 0.8,
+          "f1": 0.888888888888889,
+          "brier": 0.20274759466666667,
+          "ece": 0.33127999999999996,
           "calibration": [
             {
               "low": 0,
               "high": 0.2,
-              "n": 2,
-              "mean_probability": 0.1472,
+              "n": 3,
+              "mean_probability": 0.15,
+              "positive_rate": 1.0
+            },
+            {
+              "low": 0.2,
+              "high": 0.4,
+              "n": 1,
+              "mean_probability": 0.24519999999999997,
               "positive_rate": 1.0
             },
             {
@@ -74,8 +88,8 @@
             {
               "low": 0.8,
               "high": 1.0,
-              "n": 6,
-              "mean_probability": 0.8975,
+              "n": 7,
+              "mean_probability": 0.8978571428571429,
               "positive_rate": 1.0
             }
           ]
@@ -84,33 +98,33 @@
       "risk_coverage": [
         {
           "threshold": 0.5,
-          "coverage": 0.55,
-          "accuracy": 0.9090909090909091,
-          "evaluated": 11
+          "coverage": 0.35,
+          "accuracy": 0.7857142857142857,
+          "evaluated": 14
         },
         {
           "threshold": 0.6,
-          "coverage": 0.55,
-          "accuracy": 0.9090909090909091,
-          "evaluated": 11
+          "coverage": 0.35,
+          "accuracy": 0.7857142857142857,
+          "evaluated": 14
         },
         {
           "threshold": 0.7,
-          "coverage": 0.55,
-          "accuracy": 0.9090909090909091,
-          "evaluated": 11
+          "coverage": 0.35,
+          "accuracy": 0.7857142857142857,
+          "evaluated": 14
         },
         {
           "threshold": 0.8,
-          "coverage": 0.35,
-          "accuracy": 0.8571428571428571,
-          "evaluated": 7
+          "coverage": 0.225,
+          "accuracy": 0.7777777777777778,
+          "evaluated": 9
         },
         {
           "threshold": 0.9,
-          "coverage": 0.2,
-          "accuracy": 0.75,
-          "evaluated": 4
+          "coverage": 0.125,
+          "accuracy": 0.8,
+          "evaluated": 5
         }
       ]
     }

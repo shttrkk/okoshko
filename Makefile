@@ -28,7 +28,9 @@ audit:
 	$(PYTHON) -m scripts.audit
 check: lint test audit smoke
 demo-video:
-	cd frontend && npm run demo-video
+	npm ci --prefix demo
+	npx --prefix demo playwright install chromium
+	npm run --prefix demo record
 contracts:
 	$(PYTHON) -m scripts.export_contracts
 

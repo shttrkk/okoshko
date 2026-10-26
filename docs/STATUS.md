@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 26.10.2026 17:48 МСК. Интегрированы API, поиск, кабинет, SPA и финальные 20 340 гео-claims. Пересборка стенда и demo-check — текущая P0. `[x]` означает проверено, не обещано.
+Обновлено: 26.10.2026 18:17 МСК. Интегрированы API, поиск, кабинет, SPA и финальные 20 340 гео-claims. Пересборка стенда и demo-check — текущая P0. `[x]` означает проверено, не обещано.
 
 ## Контрольные точки
 
@@ -104,3 +104,6 @@
 - NPZ75c91a7:250outputs107.48→70.88MB, битовыемассивы/JSON/claims/inputhashбезизменений,21geotest+strictvalidationPASS. Изолированныйpipelineimage4750f2c45lockedpackages/audit0, readonlyofflinevalidation250/20 340PASS.
 
 - 26.10 17:48 интегрирован S5f3fb782:196tests+115subtestsPASS; однаbeach_walkсANDflags, stroller→no_stairs, реальныйBrevisсоstairsнеall; «рядом» получаетпорог, закатсбокуиscoreпонижен, округление≈мин/м. Liveafterrebuildещёвплане. Freshness/sourceageбезизменений. CascadeLOS84KBсозданизреальныхinputs, cachedsyntheticchange0.33s/59claims, SW3sea142°→116° — реальныйпересчётнадsyntheticдомом.
+
+- 26.10 18:17 интегрированы40weaklabels/40uniqueproperties(86eab8b),7completedpets+2pending(2be9c3d),temporalguard(f00a28b),UIпредварительногопаспортабезвыдуманныхдат(0af73f7). Предыдущийfullpytest261+125subtestsPASS; последующаяпроверкаещёвпроцессе. Source-to-geo pipelineиdemoпакетзакреплены,audit4Python+3npmPASS.
+- НовыйP1S7:пересекающиесяfloor ranges безConflict; исправляется S5, финальнуюготовностьнеобъявляем. ТипOSMheightvsindependentDSMheightпоканеподтверждён,сравнениесмодельюнаосновеOSMнедопустимо.

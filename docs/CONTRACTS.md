@@ -184,3 +184,6 @@ S2 публичный runtime вход: `geo.service.compute_hotel(hotel: dict, 
 - `POST /api/hotels/{id}/evaluate` принимает целый ParsedQuery, `POST /api/compare` принимает `{ids:[2..4 unique],parsed:ParsedQuery|null}`. Условия edited chips не теряются из-за повторного разбора исходного текста.
 - CriterionVerdict имеет `synthetic` и `disputed`; UI показывает их явно. SearchHit.all допускает ✓ либо≈ с выполненным сравнением/confidence≥0.6, unknown ограничения не засчитываются. Точное yes требует≥0.7. Нет обещания реального наличия свободного номера.
 - В поставке есть ровно3 source=hotelier_simulator claims, public `data/seed/demo_hotelier_claims.jsonl`: вымышленные ответы о тишине конкретных facade/floor/month. Обязателен synthetic=true и kind=simulation, это не полевая ground truth.
+
+- `data/seed/demo_hotelier_dialogues.json`: synthetic/version1 envelope содержит typed questions/answers/claims/agent_runs/agent_steps;7 confirmed synthetic answers +2 pending. Loader проверяетrefs/flags/источник/отели иinsert-only, не сбрасывает уже отвеченные вопросы. Fact остаётсяcomputed/synthetic; статусреальногоподтверждениянеприсваивается.
+- Для parking/family числовое наблюдение можетбытьcomputed при available=null. Это знание конкретного расстояния, не утверждение о въезде/услуге. Сравнение available продолжаетunknown.

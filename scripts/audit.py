@@ -67,12 +67,17 @@ def main():
              "python-pipeline": "pipeline/requirements.lock", "python-rebuild": "pipeline/rebuild.lock"}
     inputs = {name: ROOT / path for name, path in locks.items()}
     inputs["npm"] = ROOT / "frontend" / "package-lock.json"
+    demo_lock = ROOT / "demo/package-lock.json"
+    if demo_lock.is_file():
+        inputs["npm-demo"] = demo_lock
     input_hashes = {name: sha256(path.read_bytes()).hexdigest() for name, path in inputs.items()}
     scans = [(name, [sys.executable, "-m", "pip_audit", "--require-hashes", "--disable-pip", "--strict",
                      "-r", path, "--format", "json", "--progress-spinner", "off"], ROOT, "python")
              for name, path in locks.items()]
     scans.extend([("npm", ["npm", "audit", "--omit=dev", "--json"], ROOT / "frontend", "npm"),
                   ("npm-full", ["npm", "audit", "--json"], ROOT / "frontend", "npm")])
+    if demo_lock.is_file():
+        scans.append(("npm-demo", ["npm", "audit", "--json"], ROOT / "demo", "npm"))
     # All scanners are read-only and independent. Run every scan even if another fails.
     with ThreadPoolExecutor(max_workers=len(scans)) as executor:
         results = list(executor.map(lambda args: scan(*args), scans))
@@ -85,12 +90,12 @@ def main():
             errors[name] = "Lock file changed while its audit was running; rerun the audit"
     python_counts = {name: len(by_name[name]["findings"]) if not by_name[name]["error"] else None for name in locks}
     python_vulns = [{"lock": locks[name], **finding} for name in locks for finding in by_name[name]["findings"] or []]
-    npm_counts = {name: by_name[name]["findings"] for name in ("npm", "npm-full")}
+    npm_counts = {name: by_name[name]["findings"] for name in ("npm", "npm-full", *(["npm-demo"] if demo_lock.is_file() else []))}
     npm_blocking = sum((counts or {}).get("high", 0)+(counts or {}).get("critical", 0) for counts in npm_counts.values())
     summary = {"generated_at": datetime.now(UTC).isoformat(), "python_vulnerable_packages": len(python_vulns),
                "python_locks": {name: {"path": path, "sha256": input_hashes[name],
                                         "vulnerable_packages": python_counts[name]} for name, path in locks.items()},
-               "npm_production": npm_counts["npm"], "npm_full": npm_counts["npm-full"],
+               "npm_production": npm_counts["npm"], "npm_full": npm_counts["npm-full"], "npm_demo": npm_counts.get("npm-demo"),
                "npm_lock_sha256": input_hashes["npm"],
                "scanner_errors": bool(errors), "errors": errors,
                "exit_codes": {result["name"]: result["exit_code"] for result in results},

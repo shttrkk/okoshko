@@ -94,7 +94,7 @@ def verify_dem(config):
 
 def cache_ids(args, values):
     ids = {h["id"] for h in values}
-    requested = ids if args.all_runtime_caches else set(args.cache_hotel_id or [HERO])
+    requested = ids if args.all_runtime_caches else set(args.cache_hotel_id or [HERO, "osm-node-11866202895"])
     if requested - ids:
         raise ValueError(f"Unknown runtime cache hotels: {sorted(requested - ids)}")
     return requested

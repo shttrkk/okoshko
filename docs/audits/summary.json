@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-26T14:41:16.132866+00:00",
+  "generated_at": "2026-10-26T15:07:32.415583+00:00",
   "python_vulnerable_packages": 0,
   "python_locks": {
     "python": {
@@ -39,6 +39,14 @@
     "critical": 0,
     "total": 0
   },
+  "npm_demo": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
   "npm_lock_sha256": "e67e5be7aeb6eade25ca6d8b7725f9e56981df560e05faf5a1a8409d9807e199",
   "scanner_errors": false,
   "errors": {},
@@ -48,7 +56,8 @@
     "python-pipeline": 0,
     "python-rebuild": 0,
     "npm": 0,
-    "npm-full": 0
+    "npm-full": 0,
+    "npm-demo": 0
   },
   "passed": true,
   "policy": "Python runtime/dev/pipeline: resolve every reported vulnerability; npm full/production: no High/Critical. Scanner failure or skipped dependency blocks.",
@@ -58,6 +67,7 @@
     "/Users/shttrkk/ostrovok-hack/okno/.venv/bin/python -m pip_audit --require-hashes --disable-pip --strict -r pipeline/requirements.lock --format json --progress-spinner off",
     "/Users/shttrkk/ostrovok-hack/okno/.venv/bin/python -m pip_audit --require-hashes --disable-pip --strict -r pipeline/rebuild.lock --format json --progress-spinner off",
     "npm audit --omit=dev --json",
+    "npm audit --json",
     "npm audit --json"
   ]
 }
