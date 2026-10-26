@@ -3209,6 +3209,16 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Geo"
+          },
+          "evidence_deferred": {
+            "type": "boolean",
+            "title": "Evidence Deferred",
+            "default": false
+          },
+          "geometry_deferred": {
+            "type": "boolean",
+            "title": "Geometry Deferred",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -4114,6 +4124,20 @@
             "type": "string",
             "title": "Summary",
             "default": ""
+          },
+          "why_not_higher": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Why Not Higher"
+          },
+          "similarity_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Similarity Reasons"
           }
         },
         "additionalProperties": false,
