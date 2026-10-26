@@ -15,3 +15,5 @@
 
 
 11. **LLM transport:** Chat Completions для совместимости с произвольным провайдером; native JSON Schema → JSON mode → prompted и один bounded repair, все ответы проходят Pydantic. Общий бюджет запроса 2,4 с, ошибка провайдера возвращает deterministic fallback. Формат проверен по [official Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=chat) и [Chat Completions reference](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create). Live сеть не проверена без пользовательского ключа; transport tested MockTransport.
+
+12. **P1 review001 принят:** региональное исследование дописано после старта. Используем уточнённые зоны A `[39.690,43.555,39.790,43.635]` и B `[39.880,43.380,40.020,43.460]`. Финальный набор сначала250, включая60–80B, затем расширение к318 только при полном сквозном сценарии. 15/15 морских контрольных лучей не подменяют LOS от номера. Мини-расписание не выдумываем при отсутствии подтверждённого источника.

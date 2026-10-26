@@ -77,3 +77,5 @@
 - 26.10 15:20 PostgreSQL: в rollback-транзакции проверены запрет UPDATE claims и отказ INSERT без provenance, тестовые строки не сохранены.
 - 26.10 LLM transport: 7 unit tests суммарно; offline запрещает сеть, mock provider проверяет structured cascade и fallback при HTTP 503. Реальный провайдер пока не настроен.
 - Первая волна: S1 скачал Geofabrik 2026-10-25, Overture 264 исходных lodging records и Copernicus tiles; сбор и проверка ещё идут.
+
+- 26.10 15:22 внешний P1 REVIEW_001_region прочитан и принят; точные bbox A/B переданы всем активным потокам. Исполнение/финальный manifest ещё проверяются.

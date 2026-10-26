@@ -19,6 +19,14 @@ def available(value):
     return None
 
 
+def known_value(value) -> bool:
+    if isinstance(value, dict):
+        if "available" in value:
+            return value["available"] is not None
+        return any(v is not None for key, v in value.items() if key not in {"month", "period", "model", "limitations"})
+    return value is not None
+
+
 def scope_matches(expected: dict, actual: dict) -> bool:
     return all(actual.get(key) == value for key, value in expected.items() if value is not None and key != "type")
 
@@ -70,7 +78,7 @@ def evaluate(hotels: list[dict], facts: list[dict], characteristics: list[dict],
     active = {c["id"] for c in characteristics if c.get("status", "active") == "active"}
     denominator = len(ids)*len(active)
     covered = {(f["hotel_id"], f["characteristic_id"]) for f in facts if f["hotel_id"] in ids and f["characteristic_id"] in active
-               and f.get("status") not in {"unknown", "stale", "disputed"} and available(f.get("value")) is not None}
+               and f.get("status") not in {"unknown", "stale", "disputed"} and known_value(f.get("value"))}
     groups = {}
     for label_type in sorted({label.get("label_type", "manual") for label in labels}):
         selected = [label for label in labels if label.get("label_type", "manual") == label_type]
@@ -102,7 +110,7 @@ def evaluate(hotels: list[dict], facts: list[dict], characteristics: list[dict],
         metrics.update({"label_count": len(selected), "characteristics": {key: classification(value) for key, value in by_characteristic.items()}})
         thresholds = []
         for threshold in [.5, .6, .7, .8, .9]:
-            subset = [row for row in rows if max(row[2], 1-row[2]) >= threshold]
+            subset = [row for row in rows if (row[2] if row[0] else 1-row[2]) >= threshold]
             thresholds.append({"threshold": threshold, "coverage": len(subset)/len(selected) if selected else 0,
                                "accuracy": sum(pred == truth for pred, truth, _ in subset)/len(subset) if subset else None,
                                "evaluated": len(subset)})
