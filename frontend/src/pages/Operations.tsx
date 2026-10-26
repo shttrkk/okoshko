@@ -298,7 +298,11 @@ export function HotelierPage() {
                             {q.characteristic_ids
                               .map((c) => names[c] || c)
                               .join(" · ")}
-                            {q.reason === "guest" ? " · от гостя" : ""}
+                            {q.reason === "guest"
+                              ? " · от гостя"
+                              : q.reason === "conflict"
+                                ? " · источники расходятся"
+                                : ""}
                           </option>
                         ))}
                       </select>
@@ -319,8 +323,8 @@ export function HotelierPage() {
                         <Sparkles size={17} />
                         <span>
                           {question.demand_estimate > 0
-                            ? `Может помочь в ${question.demand_estimate} похожих запросах`
-                            : "Ответ дополнит профиль для будущих запросов"}
+                            ? `Гости уже искали это ${question.demand_estimate} раз`
+                            : "Ответ сразу увидят все гости с таким запросом"}
                         </span>
                         {question.demand_synthetic && (
                           <Synthetic>Спрос · синтетика</Synthetic>
@@ -525,13 +529,15 @@ export function HotelierPage() {
                     </>
                   )}
                 </section>
-                {data.data.conflicts.map((c) => (
-                  <div className="conflict-card" key={c.id}>
-                    <span className="eyebrow">НУЖНО УТОЧНЕНИЕ</span>
-                    {c.synthetic && <Synthetic />}
-                    <p>{c.resolution_note}</p>
-                  </div>
-                ))}
+                {data.data.conflicts
+                  .filter((c) => c.kind === "value")
+                  .map((c) => (
+                    <div className="conflict-card" key={c.id}>
+                      <span className="eyebrow">ИСТОЧНИКИ РАСХОДЯТСЯ</span>
+                      {c.synthetic && <Synthetic />}
+                      <p>{c.resolution_note}</p>
+                    </div>
+                  ))}
               </aside>
               <section className="hotelier-facts">
                 <h2>Что уже известно</h2>
@@ -559,6 +565,12 @@ export function HotelierPage() {
     </div>
   );
 }
+const studioExamples = [
+  "Супермаркет в 5 минутах пешком",
+  "Аптека ближе 300 м",
+  "Остановка рядом",
+  "Можно ли утром дойти до пляжа и искупаться до завтрака",
+];
 export function StudioPage() {
   const { specs, status } = useApp();
   const [text, setText] = useState(
@@ -717,6 +729,23 @@ export function StudioPage() {
               }}
               data-testid="studio-description"
             />
+            <div className="example-queries studio-examples">
+              {studioExamples.map((example) => (
+                <button
+                  key={example}
+                  type="button"
+                  onClick={() => {
+                    setText(example);
+                    setYaml("");
+                    setCompiled(null);
+                    setDry(null);
+                    setPublished(null);
+                  }}
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
             <button
               className="button primary"
               onClick={() => run("compile")}
@@ -731,8 +760,10 @@ export function StudioPage() {
               Собрать спецификацию
             </button>
             <p className="fine-print">
-              Без ключа API используется доступный offline-компилятор и ручной
-              YAML. Неподдерживаемые инструменты не исполняются.
+              Без ключа LLM работает офлайн-компилятор шаблонов «‹место› рядом /
+              в N минутах / ближе N м» для 15 типов мест из OpenStreetMap и
+              ручной YAML. С ключом — свободный текст. Инструменты вне реестра
+              не исполняются.
             </p>
             <details open={!!compiled || !!yaml} className="yaml-editor">
               <summary>YAML · можно редактировать</summary>

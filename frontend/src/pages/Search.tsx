@@ -602,6 +602,24 @@ function CriteriaEditor({
           Применить <ArrowRight size={15} />
         </button>
       </div>
+      {(parsed.similar_to_name || !!parsed.no_data?.length) && (
+        <div className="criteria-extra">
+          {parsed.similar_to_name && (
+            <span className="criterion-chip similar-chip">
+              Похож на «{parsed.similar_to_name}»
+            </span>
+          )}
+          {parsed.no_data?.map((c) => (
+            <span
+              className="criterion-chip no-data-chip"
+              key={c.characteristic_id}
+              title="Условие распознано, но в демо-регионе нет данных — в выдаче не учитывается"
+            >
+              {c.label} · нет данных в регионе
+            </span>
+          ))}
+        </div>
+      )}
       {parsed.unmapped.length > 0 && (
         <p className="fine-print">
           Не удалось превратить в условие: {parsed.unmapped.join(", ")}. Эта
@@ -766,7 +784,8 @@ export function SearchPage() {
   const noCriteria =
     !!resource.data &&
     !resource.data.parsed.must.length &&
-    !resource.data.parsed.nice.length;
+    !resource.data.parsed.nice.length &&
+    !resource.data.parsed.similar_to;
   const groupOf = (hit: SearchHit) =>
     noCriteria && hit.group === "all" ? "browse" : hit.group;
   return (
@@ -877,13 +896,10 @@ export function SearchPage() {
           )}
           {noCriteria && results.length > 0 && (
             <div className="no-criteria" data-testid="no-criteria">
-              <strong>
-                Мы не нашли в запросе условий, которые умеем проверять.
-              </strong>
+              <strong>Пока подбираем без ваших условий</strong>
               <p>
                 {resource.data?.parsed.clarifications[0] ||
-                  "Опишите, что важно в отдыхе, — например, вид, тишину или дорогу до моря."}{" "}
-                Пока показываем отели региона без сортировки по вашим ожиданиям.
+                  "Не нашли в запросе условий из каталога. Опишите, что важно: вид, тишина, дорога к пляжу."}
               </p>
               <div className="example-queries">
                 {exampleQueries.map((text) => (

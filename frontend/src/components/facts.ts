@@ -216,12 +216,31 @@ export function humanFact(fact: Fact): string | null {
             `парковка в ${meters(v.parking_distance_m)}`,
           num(v.ev_distance_m) !== null &&
             `зарядка для электромобиля в ${meters(v.ev_distance_m)}`,
+          num(v.parking_distance_m) === null &&
+            num(v.ev_distance_m) === null &&
+            "парковка рядом не найдена в OSM",
           v.pedestrian_zone === true && "пешеходная зона",
         ]
           .filter(Boolean)
           .join(" · ")
           .replace(/^./, (c) => c.toUpperCase()) || null
       );
+    case "nightlife": {
+      const venues = num(v.venues_500m);
+      if (venues === null) return null;
+      return [
+        `${venues} ${plural(venues, "заведение", "заведения", "заведений")} в ${meters(v.radius_m ?? 500)}`,
+        num(v.bars_500m) !== null &&
+          num(v.bars_500m)! > 0 &&
+          `из них баров ${v.bars_500m}`,
+        num(v.nearest_bar_m) !== null &&
+          `ближайший бар в ${meters(v.nearest_bar_m)}`,
+        num(v.promenade_distance_m) !== null &&
+          `набережная в ${meters(v.promenade_distance_m)}`,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    }
     case "pets": {
       if (v.available === false) return "С питомцами нельзя";
       if (v.requires_confirmation) return "Можно по согласованию с отелем";

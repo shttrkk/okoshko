@@ -100,6 +100,10 @@ export interface ParsedQuery {
   unmapped: string[];
   clarifications: string[];
   mode: Mode;
+  similar_to?: string | null;
+  similar_to_name?: string | null;
+  /** Recognised, but the demo region has no data, so they are not ranked. */
+  no_data?: Criterion[];
 }
 export interface Verdict {
   characteristic_id: string;

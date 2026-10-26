@@ -1,4 +1,6 @@
 """Same-origin API and SPA. Startup never downloads data or invokes an LLM."""
+import mimetypes
+
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -13,6 +15,8 @@ from backend.api.studio import router as studio_router
 from backend.db.repository import get_repo
 from backend.settings import DATA, STATIC
 
+# Slim images may lack a mime.types entry for WebP; hotel photos use it.
+mimetypes.add_type("image/webp", ".webp")
 app = FastAPI(title="О!кно API", version="1.0.0", docs_url="/api/docs")
 app.include_router(catalog_router)
 app.include_router(hotelier_router)

@@ -769,6 +769,7 @@ function FactSnapshot({ facts }: { facts: Fact[] }) {
     </div>
   );
 }
+const DEMO_CHANGE_HOTEL = "osm-way-53284165";
 export function ChangesPage() {
   const changes = useResource(api.changes),
     { hotels, toast } = useApp();
@@ -778,8 +779,14 @@ export function ChangesPage() {
     [error, setError] = useState<Error | null>(null),
     [selected, setSelected] = useState<ChangeEvent | null>(null);
   useEffect(() => {
-    if (!hotelId && hotels.data?.[0]) setHotelId(hotels.data[0].id);
+    if (hotelId || !hotels.data?.length) return;
+    // The shipped synthetic «new building» scenario lives at this hotel.
+    const demo = hotels.data.find((h) => h.id === DEMO_CHANGE_HOTEL);
+    setHotelId((demo || hotels.data[0]).id);
   }, [hotels.data, hotelId]);
+  useEffect(() => {
+    if (!selected && changes.data?.length) setSelected(changes.data[0]);
+  }, [changes.data, selected]);
   const canAdminister = session?.role === "demo_admin";
   useEffect(() => {
     const changed = () => {

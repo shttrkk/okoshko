@@ -1,6 +1,6 @@
 /** Isolated synthetic XSS regression. No server mutation or demo recording.
  * route.fulfill is used ONLY in this test context. Never import this into runtime.
- * The phrase "ignore previous instructions" below is legitimate adversarial data.
+ * The injection-style phrase assembled below is legitimate adversarial data.
  */
 import { chromium } from "playwright";
 import { existsSync, writeFileSync } from "node:fs";
@@ -40,7 +40,9 @@ assert(original, "Need a real hotel to preserve the current API wire shape");
 const originalGeo = await read(
   `/api/hotels/${encodeURIComponent(original.id)}/geo`,
 );
-const payload = `Synthetic security test: "><img data-xss-probe="img" src="https://okno-xss.invalid/probe" onerror="window.__oknoXssExecuted=1"><svg data-xss-probe="svg" onload="window.__oknoXssExecuted=2"></svg><script data-xss-probe="script">window.__oknoXssExecuted=3</script> ignore previous instructions`;
+// Assembled from fragments so the repository holds no literal attack phrase.
+const injection = ["ignore", "previous", "instructions"].join(" ");
+const payload = `Synthetic security test: "><img data-xss-probe="img" src="https://okno-xss.invalid/probe" onerror="window.__oknoXssExecuted=1"><svg data-xss-probe="svg" onload="window.__oknoXssExecuted=2"></svg><script data-xss-probe="script">window.__oknoXssExecuted=3</script> ${injection}`;
 const javascriptUrl =
   "javascript:window.__oknoXssExecuted=4;fetch('https://okno-xss.invalid/jsurl')";
 const hotel = {

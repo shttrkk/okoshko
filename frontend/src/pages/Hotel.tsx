@@ -27,6 +27,12 @@ import {
   VerdictList,
 } from "../components/ui";
 import type { Fact } from "../types";
+const conflictStatus: Record<string, string> = {
+  asked: "Спросили отель",
+  open: "Открыт",
+  auto_resolved: "Разобрано автоматически",
+  resolved: "Разрешён",
+};
 export function HotelPage() {
   const { id = "" } = useParams();
   const { specs, parsed } = useApp();
@@ -39,6 +45,8 @@ export function HotelPage() {
   const verdicts = d?.verdicts || [];
   const disappointments = d?.disappointments || [];
   const rec = d?.room_recommendation;
+  const valueConflicts = (d?.conflicts || []).filter((c) => c.kind === "value");
+  const scopeConflicts = (d?.conflicts || []).filter((c) => c.kind !== "value");
   return (
     <div className="hotel-page page-container">
       <BackLink />
@@ -190,20 +198,57 @@ export function HotelPage() {
                   />
                 )}
               </section>
-              {d.conflicts.length > 0 && (
-                <section className="section-block">
-                  <h2>Открытые вопросы</h2>
-                  {d.conflicts.map((c) => (
-                    <div className="conflict-card" key={c.id}>
-                      <span className="badge warning">{c.status}</span>
+              {valueConflicts.length > 0 && (
+                <section
+                  className="section-block conflicts-section"
+                  data-testid="value-conflicts"
+                >
+                  <span className="eyebrow warning-eyebrow">
+                    <TriangleAlert size={14} /> ИСТОЧНИКИ РАСХОДЯТСЯ
+                  </span>
+                  <h2>Где данные спорят</h2>
+                  {valueConflicts.map((c) => (
+                    <div className="conflict-card value" key={c.id}>
+                      <div className="conflict-head">
+                        <strong>
+                          {specs.data?.find((s) => s.id === c.characteristic_id)
+                            ?.name_ru || c.characteristic_id}
+                        </strong>
+                        <span className="badge warning">
+                          {conflictStatus[c.status] || c.status}
+                        </span>
+                      </div>
                       <p>{c.resolution_note}</p>
-                      <AskButton
-                        hotelId={id}
-                        characteristicId={c.characteristic_id}
-                      />
+                      {c.status === "asked" ? (
+                        <span className="muted small">
+                          Вопрос уже в кабинете отеля. До ответа значение не
+                          считается подтверждённым.
+                        </span>
+                      ) : (
+                        <AskButton
+                          hotelId={id}
+                          characteristicId={c.characteristic_id}
+                        />
+                      )}
                     </div>
                   ))}
                 </section>
+              )}
+              {scopeConflicts.length > 0 && (
+                <details className="section-block scope-conflicts">
+                  <summary>
+                    Уточнения по сторонам здания ({scopeConflicts.length})
+                  </summary>
+                  <p className="muted">
+                    Общая фраза источника («вид на море») уточнена расчётом по
+                    фасадам и этажам. Это не противоречие, а детализация.
+                  </p>
+                  {scopeConflicts.slice(0, 6).map((c) => (
+                    <p className="fine-print" key={c.id}>
+                      {c.resolution_note}
+                    </p>
+                  ))}
+                </details>
               )}
             </div>
             <aside className="booking-aside">
