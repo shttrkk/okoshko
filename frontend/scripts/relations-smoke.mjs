@@ -45,6 +45,443 @@ const watch = (page) => {
       relatedBodies.push(request.postDataJSON());
   });
 };
+async function checkRoomLab(seed) {
+  const hotelId = "osm-way-201474330"; // Brevis has shipped per-floor visibility.
+  const sea = {
+    characteristic_id: "sea_view",
+    label: "Вид на море",
+    field: "available",
+    op: "eq",
+    value: true,
+    weight: 1,
+    scope: null,
+  };
+  const walk = {
+    characteristic_id: "beach_walk",
+    label: "До пляжа до 8 минут без лестниц",
+    field: "minutes",
+    op: "lte",
+    value: 8,
+    weight: 1,
+    no_stairs: true,
+    no_crossings: false,
+    scope: null,
+  };
+  const original = {
+    ...structuredClone(seed),
+    text: "Море из окна и до пляжа 8 минут без лестниц",
+    must: [sea, walk],
+    nice: [],
+    facade: null,
+    min_floor: null,
+    month: 9,
+    check_in: "2027-09-13",
+    check_out: "2027-09-19",
+    no_data: [],
+    no_data_must: [],
+  };
+  const evaluationBodies = [];
+  const open = async (
+    query,
+    suffix = "",
+    viewport = { width: 1440, height: 1000 },
+  ) => {
+    const page = await browser.newPage({ viewport });
+    watch(page);
+    page.on("request", (request) => {
+      if (request.url().includes(`/api/hotels/${hotelId}/evaluate`))
+        evaluationBodies.push(request.postDataJSON());
+    });
+    if (query)
+      await page.addInitScript(
+        (value) => sessionStorage.setItem("okno-parsed", JSON.stringify(value)),
+        query,
+      );
+    await page.goto(`${base}/hotel/${hotelId}${suffix}`);
+    await page.getByTestId("room-lab").waitFor({ timeout: 45000 });
+    if (
+      (await page.getByTestId("room-lab").getAttribute("data-open")) !== "true"
+    )
+      await page.getByTestId("room-lab").locator("summary").first().click();
+    await page.getByTestId("room-lab-facade").waitFor();
+    return page;
+  };
+  const choose = async (page, facade, floor, month = 9) => {
+    const pending = page.waitForResponse((response) => {
+      if (!response.url().includes(`/api/hotels/${hotelId}/evaluate`))
+        return false;
+      const body = response.request().postDataJSON();
+      return (
+        body.facade === facade &&
+        body.month === month &&
+        [...body.must, ...body.nice].every(
+          (criterion) =>
+            criterion.scope?.floor_min === floor &&
+            criterion.scope?.floor_max === floor,
+        )
+      );
+    });
+    await page.getByTestId("room-lab-facade").selectOption(facade);
+    await page.getByTestId("room-lab-floor").selectOption(String(floor));
+    await page.getByTestId("room-lab-month").selectOption(String(month));
+    const response = await pending;
+    assert(
+      response.ok(),
+      "Room slice evaluation must remain a valid compact read",
+    );
+    await page.waitForFunction(
+      ({ facade, floor, month }) => {
+        const result = document.querySelector(
+          '[data-testid="room-lab-verdicts"]',
+        );
+        return (
+          result?.dataset.roomFacade === facade &&
+          result.dataset.roomFloor === String(floor) &&
+          result.dataset.roomMonth === String(month)
+        );
+      },
+      { facade, floor, month },
+    );
+    return {
+      detail: await response.json(),
+      body: response.request().postDataJSON(),
+    };
+  };
+  const room = await open(original);
+  const low = await choose(room, "W", 1);
+  const lowFact = await room
+    .getByTestId("room-lab-fact-sea_view")
+    .getAttribute("data-fact-id");
+  const lowValue = await room
+    .getByTestId("room-lab-fact-sea_view")
+    .getAttribute("data-model-value");
+  const high = await choose(room, "W", 7);
+  const highFact = await room
+    .getByTestId("room-lab-fact-sea_view")
+    .getAttribute("data-fact-id");
+  assert.notEqual(
+    lowFact,
+    highFact,
+    "Changing a real floor selects a different scoped source fact",
+  );
+  assert.notEqual(
+    lowValue,
+    await room
+      .getByTestId("room-lab-fact-sea_view")
+      .getAttribute("data-model-value"),
+    "Real per-floor model values change",
+  );
+  const seaVerdict = (detail) =>
+    detail.verdicts.find((verdict) => verdict.characteristic_id === "sea_view");
+  assert.notEqual(
+    seaVerdict(low.detail).status,
+    seaVerdict(high.detail).status,
+    "The real scoped API verdict changes between W/1 and W/7",
+  );
+  assert.notDeepEqual(
+    seaVerdict(low.detail).fact_ids,
+    seaVerdict(high.detail).fact_ids,
+  );
+  assert(
+    high.body.must.every(
+      (criterion) =>
+        criterion.scope.facade === "W" &&
+        criterion.scope.floor_min === 7 &&
+        criterion.scope.floor_max === 7 &&
+        criterion.scope.month === 9,
+    ),
+  );
+  assert.deepEqual(
+    high.body.must.map((criterion) =>
+      Object.fromEntries(
+        Object.entries(criterion).filter(([key]) => key !== "scope"),
+      ),
+    ),
+    original.must.map((criterion) =>
+      Object.fromEntries(
+        Object.entries(criterion).filter(([key]) => key !== "scope"),
+      ),
+    ),
+    "No original hard criterion, threshold or route flag is lost",
+  );
+  await room
+    .locator('.hotel-hero-map [data-map-status="ready"]')
+    .waitFor({ timeout: 45000 });
+  assert.equal(
+    await room
+      .locator(".hotel-hero-map .travel-map")
+      .getAttribute("data-selected-floor"),
+    "7",
+  );
+  await room.getByTestId("map-facade-focus").waitFor();
+  assert.match(await room.getByTestId("map-facade-focus").innerText(), /запад/);
+  assert.match(
+    await room.getByTestId("room-lab-rays-note").innerText(),
+    /нет лучей обзора/,
+  );
+  await room
+    .locator(".hotel-hero-map")
+    .screenshot({ path: new URL("room-west-floor7.png", artifacts).pathname });
+  const westNoise = await room
+    .getByTestId("room-lab-fact-quiet_night")
+    .getAttribute("data-model-value");
+  assert.equal(
+    typeof JSON.parse(westNoise).value.night_db_max,
+    "number",
+    "Outdoor noise selects the actual dB model, not a simulated quiet answer",
+  );
+  const east = await choose(room, "E", 7);
+  assert.notEqual(
+    seaVerdict(east.detail).status,
+    seaVerdict(high.detail).status,
+    "A different real facade changes the sea verdict",
+  );
+  assert.notEqual(
+    westNoise,
+    await room
+      .getByTestId("room-lab-fact-quiet_night")
+      .getAttribute("data-model-value"),
+    "Actual outdoor noise values differ by facade",
+  );
+  assert.equal(
+    await room
+      .locator(".hotel-hero-map .travel-map")
+      .getAttribute("data-selected-facade"),
+    "E",
+  );
+  await room
+    .locator(".hotel-hero-map")
+    .screenshot({ path: new URL("room-east-floor7.png", artifacts).pathname });
+  const june = await choose(room, "E", 7, 6);
+  assert.equal(june.body.check_in, original.check_in);
+  assert.equal(june.body.check_out, original.check_out);
+  assert.match(
+    await room.getByTestId("room-lab-season-preview").innerText(),
+    /не оценивает условия на исходные даты/,
+  );
+  assert.deepEqual(
+    await room.evaluate(() =>
+      JSON.parse(sessionStorage.getItem("okno-parsed")),
+    ),
+    original,
+    "Room experimentation never changes the global parsed query",
+  );
+  await room.route(`**/api/hotels/${hotelId}/evaluate?*`, async (route) => {
+    const response = await route.fetch();
+    if (route.request().postDataJSON().must[0]?.scope?.floor_min === 1)
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    await route.fulfill({ response });
+  });
+  const oldRequest = room.waitForRequest(
+    (request) =>
+      request.url().includes(`/api/hotels/${hotelId}/evaluate`) &&
+      request.postDataJSON().must[0]?.scope?.floor_min === 1,
+  );
+  const oldResponse = room.waitForResponse(
+    (response) =>
+      response.url().includes(`/api/hotels/${hotelId}/evaluate`) &&
+      response.request().postDataJSON().must[0]?.scope?.floor_min === 1,
+  );
+  await room.getByTestId("room-lab-floor").selectOption("1");
+  await oldRequest;
+  await choose(room, "E", 7, 6);
+  await oldResponse;
+  await room.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+  assert.equal(
+    await room.getByTestId("room-lab-verdicts").getAttribute("data-room-floor"),
+    "7",
+    "A late response for floor 1 cannot replace the selected floor 7",
+  );
+  await room.unrouteAll({ behavior: "wait" });
+  const shared = await room.getByTestId("room-lab-share").getAttribute("href");
+  assert.deepEqual(
+    [...new URL(shared, base).searchParams.keys()].sort(),
+    ["room_floor", "room_month", "room_side"],
+    "Share URL contains only hotel model coordinates",
+  );
+  const sharedPage = await open(null, shared.slice(shared.indexOf("?")), {
+    width: 390,
+    height: 844,
+  });
+  assert.equal(
+    await sharedPage.getByTestId("room-lab-facade").inputValue(),
+    "E",
+  );
+  assert.equal(
+    await sharedPage.getByTestId("room-lab-floor").inputValue(),
+    "7",
+  );
+  assert.equal(
+    await sharedPage.getByTestId("room-lab-month").inputValue(),
+    "6",
+  );
+  assert.equal(
+    await sharedPage.getByTestId("room-lab-verdicts").count(),
+    0,
+    "A shared slice without a query cannot invent a 0/0 match",
+  );
+  assert.match(
+    await sharedPage.getByTestId("room-lab-query").innerText(),
+    /Условия поиска не заданы/,
+  );
+  assert.equal(
+    await sharedPage.evaluate(() => document.documentElement.scrollWidth),
+    390,
+  );
+  await sharedPage
+    .getByTestId("room-lab")
+    .screenshot({ path: new URL("room-lab-mobile.png", artifacts).pathname });
+  await sharedPage.close();
+  await room.close();
+
+  const constrained = {
+    ...original,
+    facade: "W",
+    min_floor: 7,
+    must: [
+      {
+        ...sea,
+        scope: { type: "floor_range", facade: "W", floor_min: 7, floor_max: 9 },
+      },
+      walk,
+    ],
+  };
+  const blocked = await open(constrained);
+  await blocked.getByTestId("room-lab-verdicts").waitFor({ timeout: 30000 });
+  const beforeConflict = evaluationBodies.length;
+  await blocked.getByTestId("room-lab-facade").selectOption("E");
+  await blocked.getByTestId("room-lab-floor").selectOption("3");
+  await blocked.getByTestId("room-lab-scope-conflict").waitFor();
+  assert.match(
+    await blocked.getByTestId("room-lab-scope-conflict").innerText(),
+    /несовместим.*обязательными/s,
+  );
+  assert.equal(await blocked.getByTestId("room-lab-verdicts").count(), 0);
+  assert.equal(
+    evaluationBodies.length,
+    beforeConflict,
+    "An empty hard-scope intersection sends no invalid/relaxed evaluation",
+  );
+  assert.deepEqual(
+    await blocked.evaluate(() =>
+      JSON.parse(sessionStorage.getItem("okno-parsed")),
+    ),
+    constrained,
+  );
+  await blocked.close();
+
+  for (const [name, query] of [
+    ["hotel-only-must", { ...original, must: [walk] }],
+    ["only-nice", { ...original, must: [], nice: [sea] }],
+  ]) {
+    const page = await open(query);
+    const result = await choose(page, "W", 7);
+    assert(
+      result.detail.verdicts.some((verdict) => verdict.fact_ids.length),
+      `${name} preserves real evidence in the selected context`,
+    );
+    assert.equal(result.body.must.length, query.must.length);
+    assert.equal(result.body.nice.length, query.nice.length);
+    assert(
+      [...result.body.must, ...result.body.nice].every(
+        (criterion) =>
+          criterion.scope.floor_min === 7 && criterion.scope.floor_max === 7,
+      ),
+    );
+    await page.close();
+  }
+  const connection = {
+    characteristic_id: "connectivity",
+    label: "Интернет от 60 Мбит/с",
+    field: "download_mbps",
+    op: "gte",
+    value: 60,
+    weight: 1,
+  };
+  const unavailable = {
+    ...original,
+    must: [walk],
+    no_data: [connection],
+    no_data_must: [connection],
+  };
+  const missing = await open(unavailable);
+  const missingResult = await choose(missing, "W", 7);
+  assert.deepEqual(missingResult.body.no_data, unavailable.no_data);
+  assert.deepEqual(missingResult.body.no_data_must, unavailable.no_data_must);
+  assert.match(
+    await missing.getByTestId("room-lab-unavailable").innerText(),
+    /обязательное условие не подтверждено/,
+  );
+  await missing.close();
+
+  const unknown = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+  });
+  watch(unknown);
+  await unknown.route(`**/api/hotels/${hotelId}?*`, async (route) => {
+    const response = await route.fetch();
+    const detail = await response.json();
+    await route.fulfill({
+      json: { ...detail, hotel: { ...detail.hotel, floors: null } },
+    });
+  });
+  await unknown.route(`**/api/hotels/${hotelId}/geo`, async (route) => {
+    const response = await route.fetch();
+    const geo = await response.json();
+    await route.fulfill({
+      json: { ...geo, floors: { ...geo.floors, count: 16, modeled_count: 16 } },
+    });
+  });
+  await unknown.goto(
+    `${base}/hotel/${hotelId}?room_side=W&room_floor=99&room_month=9`,
+  );
+  await unknown.getByTestId("room-lab-floor").waitFor({ timeout: 45000 });
+  assert.equal(
+    await unknown.getByTestId("room-lab-floor").locator("option").count(),
+    1,
+    "Unknown height cannot create upper hotel floors from a modeled count alone",
+  );
+  assert.equal(await unknown.getByTestId("room-lab-floor").inputValue(), "1");
+  assert.match(
+    await unknown.getByTestId("room-lab-floor-note").innerText(),
+    /Этажность отеля неизвестна/,
+  );
+  await unknown.close();
+  assert(
+    evaluationBodies.every((body) =>
+      [...body.must, ...body.nice].every(
+        (criterion) =>
+          !criterion.scope?.floor_min ||
+          !criterion.scope?.floor_max ||
+          criterion.scope.floor_min <= criterion.scope.floor_max,
+      ),
+    ),
+    "No invalid floor interval is ever sent",
+  );
+  return {
+    realModel: {
+      low: {
+        facade: "W",
+        floor: 1,
+        factId: lowFact,
+        verdict: seaVerdict(low.detail).status,
+      },
+      high: {
+        facade: "W",
+        floor: 7,
+        factId: highFact,
+        verdict: seaVerdict(high.detail).status,
+      },
+      east: { facade: "E", floor: 7, verdict: seaVerdict(east.detail).status },
+    },
+    evaluationRequests: evaluationBodies.length,
+  };
+}
 try {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
@@ -464,6 +901,7 @@ try {
   await fixture
     .getByTestId("fact-card-evening_heat")
     .screenshot({ path: new URL("heat-card.png", artifacts).pathname });
+  const roomLab = await checkRoomLab(parsed);
   assert(
     !requests.some((url) => /\/seed\/(pois|beaches|green)\.geojson/.test(url)),
     "A hotel map must not fetch regional POI layers",
@@ -491,8 +929,14 @@ try {
           "six-trait-semantics",
           "safe-poi-dom",
           "mobile-no-overflow",
+          "room-lab-real-floor-facade-verdicts",
+          "room-lab-hard-scope-date-preservation",
+          "room-lab-stale-response-guard",
+          "room-lab-share-unknown-height",
+          "room-lab-hotel-only-nice-unavailable",
         ],
         relatedCount: ids.length,
+        roomLab,
         requests: requests.length,
         screenshots: artifacts.pathname,
       },

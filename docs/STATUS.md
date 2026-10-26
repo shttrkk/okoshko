@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 01:11 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 01:13 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -117,3 +117,5 @@
 - 27.10.2026 01:06: fix(geo): reject ambiguous solar building associations; 624 passed, 1 warning, 125 subtests passed in 48.13s; Ruff и frontend lint PASS.
 
 - 27.10.2026 01:11: feat(frontend): connect hotel facts maps and related profiles; 624 passed, 1 warning, 125 subtests passed in 48.77s; Ruff и frontend lint PASS.
+
+- 27.10.2026 01:13: feat(frontend): explore scoped room models without changing trip requirements; 624 passed, 1 warning, 125 subtests passed in 31.80s; Ruff и frontend lint PASS.

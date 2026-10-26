@@ -17,6 +17,7 @@ import { GeoModal, TravelMap } from "../components/Map";
 import { FactsPanel } from "../components/FactsPanel";
 import { factCardId, SIDES, TRAIT_NAMES } from "../components/facts";
 import { PanoramaModal } from "../components/Panorama";
+import { RoomLab, type RoomSlice } from "../components/RoomLab";
 import {
   AskButton,
   BackLink,
@@ -172,13 +173,29 @@ export function HotelPage() {
     hotelId: string;
     fact: Fact;
   } | null>(null);
+  const [roomSlice, setRoomSlice] = useState<{
+    hotelId: string;
+    slice: RoomSlice;
+  } | null>(null);
   const d = detail.data,
     geo = geoResource.data || d?.geo || {};
   const verdicts = d?.verdicts || [];
   const disappointments = d?.disappointments || [];
   const rec = d?.room_recommendation;
   const selectedFact = selection?.hotelId === id ? selection.fact : null;
+  const activeRoomSlice = roomSlice?.hotelId === id ? roomSlice.slice : null;
+  const hasRoomRays =
+    activeRoomSlice &&
+    geo.view_cones?.features.some(
+      (feature) =>
+        feature.properties?.facade === activeRoomSlice.facade &&
+        (!feature.properties?.floor ||
+          Number(feature.properties.floor) === activeRoomSlice.floor) &&
+        (!feature.properties?.min_floor ||
+          Number(feature.properties.min_floor) <= activeRoomSlice.floor),
+    );
   const selectedSide =
+    activeRoomSlice?.facade ||
     selectedFact?.scope.facade ||
     (selectedFact?.value &&
     typeof selectedFact.value === "object" &&
@@ -186,6 +203,7 @@ export function HotelPage() {
       ? String(selectedFact.value.facade || "")
       : undefined);
   const focusFact = (fact: Fact, target: "card" | "map" = "card") => {
+    setRoomSlice(null);
     setSelection({ hotelId: id, fact });
     const node = document.getElementById(
       target === "card"
@@ -260,16 +278,28 @@ export function HotelPage() {
               className="hotel-hero-map"
               id={`hotel-map-${id}`}
               tabIndex={-1}
-              data-selected-trait={selectedFact?.characteristic_id}
+              data-selected-trait={
+                activeRoomSlice
+                  ? "room_orientation"
+                  : selectedFact?.characteristic_id
+              }
             >
               <TravelMap
                 hotels={[d.hotel]}
                 activeId={id}
                 geo={geo}
-                month={parsed?.month || 9}
+                month={activeRoomSlice?.month || parsed?.month || 9}
                 facade={selectedSide}
-                floor={selectedFact?.scope.floor_min || undefined}
-                focusTrait={selectedFact?.characteristic_id}
+                floor={
+                  activeRoomSlice?.floor ||
+                  selectedFact?.scope.floor_min ||
+                  undefined
+                }
+                focusTrait={
+                  activeRoomSlice
+                    ? "room_orientation"
+                    : selectedFact?.characteristic_id
+                }
               />
               <button
                 className="button map-calc-button"
@@ -279,6 +309,47 @@ export function HotelPage() {
                 <Compass size={17} />
                 Показать расчёт <ArrowUpRight size={16} />
               </button>
+              {activeRoomSlice && (
+                <div
+                  className="hotel-map-context"
+                  data-testid="room-lab-map-context"
+                >
+                  <p>
+                    <strong>Модельный срез</strong> ·{" "}
+                    {SIDES[activeRoomSlice.facade]} · {activeRoomSlice.floor}-й{" "}
+                    {d.hotel.floors ? "этаж" : "условный уровень"}
+                  </p>
+                  <span className="muted small">
+                    Выбранная геометрия не подтверждает номер, окно и наличие
+                    мест.
+                  </span>
+                  {!hasRoomRays && (
+                    <p className="muted small" data-testid="room-lab-rays-note">
+                      В геометрии нет лучей обзора для выбранного уровня. Карта
+                      выделяет фасад; числовая видимость показана в срезе.
+                    </p>
+                  )}
+                  <div className="hotel-map-context-actions">
+                    <button
+                      className="text-button small"
+                      onClick={() =>
+                        document.getElementById("room-lab")?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        })
+                      }
+                    >
+                      К срезу
+                    </button>
+                    <button
+                      className="text-button small"
+                      onClick={() => setPanorama(activeRoomSlice.facade)}
+                    >
+                      <Eye size={14} /> Панорама стороны
+                    </button>
+                  </div>
+                </div>
+              )}
               {selectedFact && (
                 <div
                   className="hotel-map-context"
@@ -405,6 +476,21 @@ export function HotelPage() {
                   </Link>
                 </div>
               </section>
+              {!geoResource.loading && (
+                <RoomLab
+                  key={id}
+                  detail={d}
+                  geo={geo}
+                  parsed={parsed}
+                  mapActive={!!activeRoomSlice}
+                  onSliceChange={(slice) => {
+                    setRoomSlice(slice ? { hotelId: id, slice } : null);
+                    if (slice) setSelection(null);
+                  }}
+                  onEvidence={setEvidence}
+                  onPanorama={setPanorama}
+                />
+              )}
               <section className="disappointments-section section-block">
                 <span className="eyebrow">
                   <TriangleAlert size={14} /> ЛУЧШЕ ЗНАТЬ СЕЙЧАС

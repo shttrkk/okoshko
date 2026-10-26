@@ -887,6 +887,7 @@ export function TravelMap({
     markers = useRef<maplibregl.Marker[]>([]);
   const poiMarkers = useRef<maplibregl.Marker[]>([]);
   const poiPopup = useRef<maplibregl.Popup | null>(null);
+  const facadeMarker = useRef<maplibregl.Marker | null>(null);
   const [ready, setReady] = useState(false),
     [rendered, setRendered] = useState(false),
     [error, setError] = useState(""),
@@ -993,6 +994,8 @@ export function TravelMap({
       poiMarkers.current.forEach((m) => m.remove());
       poiMarkers.current = [];
       poiPopup.current?.remove();
+      facadeMarker.current?.remove();
+      facadeMarker.current = null;
       map.remove();
       mapRef.current = null;
     };
@@ -1107,6 +1110,41 @@ export function TravelMap({
     };
   }, [geo, ready, hero, focusTrait]);
   useEffect(() => {
+    facadeMarker.current?.remove();
+    const map = mapRef.current;
+    if (!map || !ready || hero || focusTrait !== "room_orientation" || !facade)
+      return;
+    const geometry = geo?.facades?.find(
+      (entry) => entry.code === facade,
+    )?.geometry;
+    const coordinates =
+      geometry?.type === "LineString"
+        ? geometry.coordinates
+        : geometry?.type === "MultiLineString"
+          ? geometry.coordinates[0]
+          : null;
+    if (!coordinates || coordinates.length < 2) return;
+    const i = Math.floor((coordinates.length - 1) / 2);
+    const a = coordinates[i],
+      b = coordinates[i + 1];
+    if (![a[0], a[1], b[0], b[1]].every(Number.isFinite)) return;
+    const label = document.createElement("span");
+    label.className = "map-facade-focus";
+    label.dataset.testid = "map-facade-focus";
+    label.textContent = `Фасад: ${SIDES[facade] || facade}`;
+    // Position comes from the selected facade segment, never a guessed window.
+    facadeMarker.current = new maplibregl.Marker({
+      element: label,
+      offset: [0, -24],
+    })
+      .setLngLat([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2])
+      .addTo(map);
+    return () => {
+      facadeMarker.current?.remove();
+      facadeMarker.current = null;
+    };
+  }, [geo, ready, hero, facade, focusTrait]);
+  useEffect(() => {
     if (!focusTrait) return;
     const layer = ["quiet_night", "railway_noise"].includes(focusTrait)
       ? "noise"
@@ -1206,6 +1244,8 @@ export function TravelMap({
       data-map-source={base}
       data-selected-trait={focusTrait}
       data-selected-facade={facade}
+      data-selected-floor={floor}
+      data-selected-month={month}
     >
       <div className="map-canvas" ref={container} />
       {error && (
