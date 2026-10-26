@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "label_type": "synthetic_persona_acceptance_queries",
+  "mode": "synthetic-demo",
+  "limitations": "Авторские исследовательские персоны, не пользовательские логи и не измерение релевантности реальных отелей. Частичное предложение проверяет известные условия и сохраняет неизвестные.",
+  "masha": {
+    "text": "тихий номер с видом на закат недалеко от моря",
+    "expected_characteristic_ids": ["quiet_night", "sunset_view", "beach_walk"],
+    "month": 9,
+    "minimum_all_results": 3,
+    "minimum_confidence": 0.6,
+    "maximum_latency_ms_exclusive": 2000
+  },
+  "synthetic_hotels": [
+    {"hotel_id": "osm-node-11866202895", "facade": "SW", "floor_min": 3, "floor_max": 3, "month": 9},
+    {"hotel_id": "overture-037ee676-5776-46bd-a4ac-38c828f2a99d", "facade": "W", "floor_min": 5, "floor_max": 5, "month": 9},
+    {"hotel_id": "osm-way-201474330", "facade": "W", "floor_min": 7, "floor_max": 7, "month": 9}
+  ],
+  "hero_hotel_id": "osm-node-10058556917",
+  "hero_characteristic_ids": ["sea_view", "sunset_view", "quiet_night", "beach_walk"],
+  "personas": [
+    {
+      "id": "sleep",
+      "name": "Чуткий сон",
+      "text": "Нужен тихий номер с двойными окнами, до пляжа не больше 15 минут",
+      "expected_characteristic_ids": ["quiet_night", "soundproofing", "beach_walk"],
+      "minimum_meaningful_results": 3
+    },
+    {
+      "id": "family_stroller",
+      "name": "Семья с коляской",
+      "text": "С детьми и коляской, до пляжа не больше 15 минут без лестниц и переходов, рядом детская площадка",
+      "expected_characteristic_ids": ["family_nearby", "beach_walk"],
+      "minimum_meaningful_results": 3
+    },
+    {
+      "id": "work",
+      "name": "Удалённая работа",
+      "text": "Интернет от 30 Мбит/с для работы, желательно тихий номер, до пляжа не больше 15 минут",
+      "expected_characteristic_ids": ["connectivity", "quiet_night", "beach_walk"],
+      "minimum_meaningful_results": 3
+    },
+    {
+      "id": "car_dog",
+      "name": "На машине с собакой 30 кг",
+      "text": "Едем на машине с собакой 30 кг, парковка у отеля, до пляжа не больше 15 минут",
+      "expected_characteristic_ids": ["pets", "car_access", "beach_walk"],
+      "minimum_meaningful_results": 3
+    },
+    {
+      "id": "party",
+      "name": "В гуще событий",
+      "text": "Сочи: бары и ночная жизнь, тихий номер не обязателен, до пляжа не больше 15 минут",
+      "expected_characteristic_ids": ["quiet_night", "beach_walk"],
+      "minimum_meaningful_results": 3,
+      "limitation": "Бары и ночная жизнь не представлены отдельной характеристикой текущего каталога. Проверяется объяснимое частичное предложение по распознанным условиям; наличие клубов не подтверждается."
+    }
+  ]
+}
