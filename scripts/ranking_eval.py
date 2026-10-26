@@ -122,7 +122,7 @@ def load_inputs():
                 by_hotel[claim.hotel_id].append(claim)
                 claims_by_id[claim.id] = claim
     sources = [*seed_rows("sources"), {"id": "hotel_website", "alpha": 5.5, "beta": 4.5}]
-    facts = [fact for hotel in hotels for fact in resolve_claims(hotel.id, by_hotel[hotel.id], specs, sources, at=AS_OF)[0]]
+    facts = [fact for hotel in hotels for fact in resolve_claims(hotel.id, by_hotel[hotel.id], specs, sources, at=AS_OF, known_floors=hotel.floors)[0]]
     normalized = [{key: value for key, value in f.model_dump(mode="json").items() if key != "updated_at"} for f in facts]
     return hotels, specs, facts, claims_by_id, hashes, digest(sorted(normalized, key=lambda row: row["id"]))
 

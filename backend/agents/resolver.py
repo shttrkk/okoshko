@@ -12,8 +12,8 @@ from backend.contracts import CharacteristicSpec, Claim, Conflict, Fact, Scope
 INTERNAL = {"soundproofing", "room_orientation", "pets"}
 VIEWS = {"sea_view", "sunset_view", "mountain_view"}
 CATEGORIES = ("facade", "month", "room_type")
-# A hotel-wide "yes" contradicts the model only when every computed facade says
-# "no" with this confidence, and the model covers enough sides of the building.
+# A hotel-wide "yes" contradicts the model only within a known complete floor
+# domain, with enough explicitly modeled facades and this confidence.
 CONTRADICTION_CONFIDENCE = .6
 CONTRADICTION_MIN_FACADES = 3
 CONTRADICTION_PREFIX = "contradiction-"
@@ -147,13 +147,50 @@ def _number(value: float) -> str:
     return f"{value:.2f}".rstrip("0").rstrip(".").replace(".", ",")
 
 
-def view_contradictions(hotel_id: str, latest: list[Claim], at: datetime) -> list[tuple[str, list[Claim], list[Claim]]]:
+def _covers_floors(claims: list[Claim], known_floors: int) -> bool:
+    """Require explicit continuous observations, not wildcard/room-type scopes."""
+    intervals = sorted((claim.scope.floor_min, claim.scope.floor_max) for claim in claims
+                       if claim.scope.floor_min is not None and claim.scope.floor_max is not None
+                       and claim.scope.room_type is None)
+    next_floor = 1
+    for low, high in intervals:
+        if low > next_floor:
+            break
+        next_floor = max(next_floor, high + 1)
+    return next_floor > known_floors
+
+
+def _view_months(claim: Claim, *, seasonal: bool, general: bool = False) -> set[int]:
+    value = claim.value if isinstance(claim.value, dict) else {}
+    domains = []
+    if claim.scope.month is not None:
+        domains.append({claim.scope.month})
+    for key in ("month", "months"):
+        if value.get(key) is None:
+            continue
+        months = value[key] if key == "months" else [value[key]]
+        if not isinstance(months, list) or not months or any(type(month) is not int or not 1 <= month <= 12 for month in months):
+            return set()
+        domains.append(set(months))
+    if domains:
+        return set.intersection(*domains)
+    # A seasonal model without month metadata cannot refute a year-round claim.
+    return set(range(1, 13)) if general or not seasonal else set()
+
+
+def view_contradictions(hotel_id: str, latest: list[Claim], at: datetime, *,
+                        known_floors: int | None = None) -> list[tuple[str, list[Claim], list[Claim]]]:
     """Hotel-wide website/hotelier 'yes' against an all-'no' facade model.
 
     Returns (characteristic, general claims, computed claims). Once the hotel has
-    answered with its own claims for the view, the vote is no longer two-sided
-    marketing against geometry, and ordinary resolution applies.
+    answered with its own claims for the view, ordinary resolution applies.
+    Coverage is checked on the explicitly modeled facade domain (not an assumed
+    four-sided building); it is still a model/source disagreement, not proof
+    about every possible window. Missing hotel floors never inherit a modeled
+    first level as the building's full height.
     """
+    if type(known_floors) is not int or not 1 <= known_floors <= 100:
+        return []
     found = []
     for characteristic_id in sorted(VIEWS):
         related = [claim for claim in latest if claim.characteristic_id == characteristic_id and claim.valid_until > at]
@@ -161,12 +198,29 @@ def view_contradictions(hotel_id: str, latest: list[Claim], at: datetime) -> lis
                    and (claim.source == "hotel_website" or claim.source.startswith("hotelier"))]
         if not general or any(claim.source.startswith("hotelier") and claim not in general for claim in related):
             continue
-        computed = [claim for claim in related if claim.source == "geo_engine" and claim.scope.type in {"facade", "floor_range"}]
-        if len({claim.scope.facade for claim in computed}) < CONTRADICTION_MIN_FACADES:
+        computed = [claim for claim in related if claim.source == "geo_engine" and claim.scope.type in {"facade", "floor_range"}
+                    and claim.scope.facade is not None]
+        facades = {claim.scope.facade for claim in computed}
+        if len(facades) < CONTRADICTION_MIN_FACADES:
             continue
-        if all(isinstance(claim.value, dict) and claim.value.get("available") is False
-               and claim.confidence >= CONTRADICTION_CONFIDENCE for claim in computed):
-            found.append((characteristic_id, general, computed))
+        seasonal = characteristic_id == "sunset_view"
+        months_by_claim = {claim.id: _view_months(claim, seasonal=seasonal) for claim in computed}
+        if any(not months for months in months_by_claim.values()):
+            continue
+        contradicted, against = [], {}
+        for broad in general:
+            months = _view_months(broad, seasonal=seasonal, general=True)
+            relevant = [claim for claim in computed if months_by_claim[claim.id] & months]
+            if not months or not all(isinstance(claim.value, dict) and claim.value.get("available") is False
+                                     and claim.confidence >= CONTRADICTION_CONFIDENCE for claim in relevant):
+                continue
+            if all(_covers_floors([claim for claim in relevant if claim.scope.facade == facade
+                                   and month in months_by_claim[claim.id]], known_floors)
+                   for facade in facades for month in months):
+                contradicted.append(broad)
+                against.update((claim.id, claim) for claim in relevant)
+        if contradicted:
+            found.append((characteristic_id, contradicted, list(against.values())))
     return found
 
 
@@ -227,7 +281,8 @@ def contradiction_note(characteristic_id: str, general: list[Claim], computed: l
             "отельеру отправлен вопрос, какие номера и с какого этажа его видят.")
 
 
-def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[CharacteristicSpec], sources: list[dict], *, at: datetime | None = None) -> tuple[list[Fact], list[Conflict]]:
+def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[CharacteristicSpec], sources: list[dict], *, at: datetime | None = None,
+                   known_floors: int | None = None) -> tuple[list[Fact], list[Conflict]]:
     at = at or datetime.now(UTC)
     source_priors = {source["id"]: source.get("alpha", 7)/(source.get("alpha", 7)+source.get("beta", 3)) for source in sources}
     spec_by_id = {spec.id: spec for spec in specs}
@@ -323,7 +378,7 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
         if spec.id not in represented:
             facts.append(Fact(id=stable_id("fact",hotel_id,spec.id,"hotel"), hotel_id=hotel_id, characteristic_id=spec.id))
     contradicted = set()
-    for characteristic_id, general, computed in [*view_contradictions(hotel_id, list(latest.values()), at),
+    for characteristic_id, general, computed in [*view_contradictions(hotel_id, list(latest.values()), at, known_floors=known_floors),
                                                  *route_contradictions(list(latest.values()), at)]:
         contradicted.add(characteristic_id)
         general_ids, computed_ids = {claim.id for claim in general}, {claim.id for claim in computed}
@@ -391,7 +446,8 @@ def reconcile_conflicts(repo, conflicts: list[Conflict], hotel_ids: set[str]) ->
 def resolve_hotel(hotel_id: str, repo) -> list[Fact]:
     claims = [Claim.model_validate(value) for value in repo.find("claims", hotel_id=hotel_id)]
     specs = [CharacteristicSpec.model_validate(value) for value in repo.all("characteristics")]
-    facts, conflicts = resolve_claims(hotel_id, claims, specs, repo.all("sources"))
+    hotel = repo.get("hotels", hotel_id) or {}
+    facts, conflicts = resolve_claims(hotel_id, claims, specs, repo.all("sources"), known_floors=hotel.get("floors"))
     if hasattr(repo,"replace_facts"):
         repo.replace_facts(hotel_id,[fact.model_dump(mode="json") for fact in facts])
     else:
@@ -416,7 +472,7 @@ def resolve_all(repo):
     facts, conflicts = [], []
     hotels = repo.all("hotels")
     for hotel in hotels:
-        new_facts, new_conflicts = resolve_claims(hotel["id"], claims_by_hotel[hotel["id"]], specs, sources)
+        new_facts, new_conflicts = resolve_claims(hotel["id"], claims_by_hotel[hotel["id"]], specs, sources, known_floors=hotel.get("floors"))
         facts.extend(fact.model_dump(mode="json") for fact in new_facts)
         conflicts.extend(conflict.model_dump(mode="json") for conflict in new_conflicts)
     if hasattr(repo, "replace_materialized_facts"):

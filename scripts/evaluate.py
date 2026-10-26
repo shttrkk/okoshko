@@ -48,7 +48,7 @@ def main():
                 provenance_claims.append(claim.model_dump(mode="json"))
         typed_specs = [CharacteristicSpec.model_validate(spec) for spec in specs]
         for hotel in rows("hotels"):
-            resolved, _ = resolve_claims(hotel["id"], claims[hotel["id"]], typed_specs, rows("sources"))
+            resolved, _ = resolve_claims(hotel["id"], claims[hotel["id"]], typed_specs, rows("sources"), known_floors=hotel.get("floors"))
             facts.extend(fact.model_dump(mode="json") for fact in resolved)
     report = evaluate(rows("hotels"), facts, specs, read_labels(data/"eval"/"labels.csv"), rows("questions"), provenance_claims)
     report["inputs"] = "Versioned seed ledgers; runtime-only POI and manual actions are evaluated separately by /api/quality"

@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 02:01 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 02:02 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -133,3 +133,5 @@
 - 27.10.2026 01:58: fix(search): retain intervals and reject unsupported measurements; 645 passed, 1 warning, 125 subtests passed in 52.05s; Ruff и frontend lint PASS.
 
 - 27.10.2026 02:01: fix(search): interpret numeric and route paraphrases conservatively; 679 passed, 1 warning, 125 subtests passed in 49.65s; Ruff и frontend lint PASS.
+
+- 27.10.2026 02:02: fix(resolver): require complete floor and month coverage for view disputes; 700 passed, 1 warning, 125 subtests passed in 48.91s; Ruff и frontend lint PASS.

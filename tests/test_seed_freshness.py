@@ -97,10 +97,11 @@ def test_shipped_seed_materializes_real_source_contradictions(shipped_claims, ca
     from backend.agents.resolver import CONTRADICTION_PREFIX
     expected = {"osm-way-53301256": "sea_view", "osm-node-13825400642": "sea_view",
                 "osm-way-98649266": "beach_walk", "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7": "beach_walk"}
+    hotels = {row["id"]: row for row in json.loads((DATA / "seed/hotels.json").read_text())}
     found = {}
     for hotel_id in expected:
         claims = [Claim.model_validate(row) for row in shipped_claims if row["hotel_id"] == hotel_id]
-        facts, conflicts = resolve_claims(hotel_id, claims, catalog, _sources())
+        facts, conflicts = resolve_claims(hotel_id, claims, catalog, _sources(), known_floors=hotels[hotel_id].get("floors"))
         for conflict in conflicts:
             if conflict.id.startswith(CONTRADICTION_PREFIX):
                 found[hotel_id] = conflict.characteristic_id

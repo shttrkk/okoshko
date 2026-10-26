@@ -174,7 +174,7 @@ def compare(data: Path, *, radius: float, month: int, k: int, confidence: float)
         # Explicitly exclude new-building artifacts and any synthetic model envelope.
         if geo.get("synthetic"):
             geo = {}
-        facts, _ = resolve_claims(hotel["id"], by_hotel[hotel["id"]], specs, sources)
+        facts, _ = resolve_claims(hotel["id"], by_hotel[hotel["id"]], specs, sources, known_floors=hotel.get("floors"))
         facts = [fact for fact in facts if not fact.synthetic and fact.characteristic_id in VIEWS]
         views = {cid: summarize_view(hotel, geo, facts, cid, month, k, confidence) for cid in VIEWS}
         assessment = assess_hotel(facts, parsed, specs)
