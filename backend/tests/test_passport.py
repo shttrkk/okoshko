@@ -155,3 +155,126 @@ class PassportTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EditedPassportCriteriaTests(unittest.TestCase):
+    setUp = PassportTests.setUp
+    fact = PassportTests.fact
+    create = PassportTests.create
+
+    def explicit(self, cid, criterion, *, critical=True, text="Моё отредактированное ожидание", parsed_text="Запрос", **parsed_fields):
+        parsed = ParsedQuery(text=parsed_text, must=[criterion], **parsed_fields)
+        item = PassportItem(characteristic_id=cid, text=text, critical=critical)
+        passport = self.create([item], parsed=parsed)
+        return passport, self.repo.get("passport_items", passport.items[0].id)
+
+    def confirm(self, passport):
+        return passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo)
+
+    def test_explicit_item_retains_numeric_criterion_and_guest_edits(self):
+        self.fact("beach_walk", value={"available": True, "minutes": 30})
+        criterion = Criterion(characteristic_id="beach_walk", label="До пляжа 10 минут", field="minutes", op="lte", value=10, weight=3)
+        passport, stored = self.explicit("beach_walk", criterion, critical=False)
+        self.assertFalse(passport.items[0].critical)
+        self.assertEqual(passport.items[0].text, "Моё отредактированное ожидание")
+        self.assertEqual(stored["criteria"][0], criterion.model_dump(mode="json"))
+        self.assertEqual(passport.items[0].fact_ids, [])
+        confirmed = self.confirm(passport)
+        self.assertEqual(confirmed.status, "confirmed")
+        self.assertEqual(confirmed.items[0].status, "declined")
+
+    def test_critical_ten_minute_walk_rejects_thirty_minute_fact(self):
+        self.fact("beach_walk", value={"available": True, "minutes": 30})
+        passport, _stored = self.explicit("beach_walk", Criterion(characteristic_id="beach_walk", label="До 10 минут", field="minutes", op="lte", value=10))
+        confirmed = self.confirm(passport)
+        self.assertEqual(confirmed.status, "at_risk")
+        self.assertEqual(confirmed.items[0].status, "declined")
+        self.assertIsNone(confirmed.room_number)
+        # A rejected confirmation is idempotent too.
+        again = self.confirm(passport)
+        self.assertEqual(again.model_dump(), confirmed.model_dump())
+
+    def test_matching_numeric_fact_confirms_and_default_field_is_catalogue_backed(self):
+        fact = self.fact("beach_walk", value={"available": True, "minutes": 7})
+        passport, stored = self.explicit("beach_walk", Criterion(characteristic_id="beach_walk", label="До 10 минут", op="lte", value=10))
+        self.assertEqual(stored["criteria"][0]["field"], "minutes")
+        self.assertEqual(passport.items[0].fact_ids, [fact.id])
+        self.assertEqual(self.confirm(passport).status, "confirmed")
+
+    def test_numeric_field_missing_does_not_fall_back_to_availability(self):
+        self.fact("beach_walk", value={"available": True})
+        passport, _stored = self.explicit("beach_walk", Criterion(characteristic_id="beach_walk", label="До 10 минут", field="minutes", op="lte", value=10))
+        updated = self.confirm(passport)
+        self.assertEqual(updated.status, "at_risk")
+        self.assertEqual(updated.items[0].status, "at_risk")
+
+    def test_merged_explicit_item_preserves_all_same_characteristic_constraints(self):
+        self.fact("beach_walk", value={"available": True, "minutes": 7, "has_steps": True})
+        parsed = ParsedQuery(text="До пляжа без лестниц за 10 минут", must=[
+            Criterion(characteristic_id="beach_walk", label="До 10 минут", field="minutes", op="lte", value=10),
+            Criterion(characteristic_id="beach_walk", label="Без лестниц", field="has_steps", value=False)])
+        passport = self.create([PassportItem(characteristic_id="beach_walk", text="До пляжа удобно")], parsed=parsed)
+        stored = self.repo.get("passport_items", passport.items[0].id)
+        self.assertEqual(len(stored["criteria"]), 2)
+        self.assertEqual(self.confirm(passport).status, "at_risk")
+
+    def test_separate_rows_keep_per_criterion_critical_toggles(self):
+        self.fact("beach_walk", value={"available": True, "minutes": 30, "has_steps": False})
+        parsed = ParsedQuery(text="До пляжа до 10 минут без лестниц", must=[
+            Criterion(characteristic_id="beach_walk", label="До 10 минут", field="minutes", op="lte", value=10),
+            Criterion(characteristic_id="beach_walk", label="Без лестниц", field="has_steps", value=False)])
+        passport = self.create([PassportItem(characteristic_id="beach_walk", text="Можно идти подольше", critical=False),
+                                PassportItem(characteristic_id="beach_walk", text="Коляска, строго без лестниц", critical=True)], parsed=parsed)
+        updated = self.confirm(passport)
+        self.assertEqual(updated.status, "confirmed")
+        self.assertEqual([item.status for item in updated.items], ["declined", "confirmed"])
+        self.assertEqual([item.critical for item in updated.items], [False, True])
+
+    def test_negative_pets_requirement_is_not_inverted(self):
+        for available, expected_status in ((False, "confirmed"), (True, "at_risk")):
+            with self.subTest(available=available):
+                self.repo.tables["facts"] = {}
+                self.fact("pets", value={"available": available})
+                passport, _stored = self.explicit("pets", Criterion(characteristic_id="pets", label="Без питомцев", field="available", value=False), parsed_text="Без питомцев")
+                self.assertEqual(self.confirm(passport).status, expected_status)
+
+    def test_pet_weight_and_species_are_preserved_with_explicit_items(self):
+        for value, expected_status in (({"available": True, "max_weight_kg": 10, "species": ["dog"]}, "at_risk"),
+                                       ({"available": True, "max_weight_kg": 40, "species": ["cat"]}, "at_risk"),
+                                       ({"available": True, "max_weight_kg": 40, "species": ["dog"]}, "confirmed"),
+                                       ({"available": False, "max_weight_kg": 40, "species": ["dog"]}, "at_risk")):
+            with self.subTest(value=value):
+                self.repo.tables["facts"] = {}
+                self.fact("pets", value=value)
+                passport, stored = self.explicit("pets", Criterion(characteristic_id="pets", label="С питомцем", field="available", value=True),
+                                                parsed_text="С собакой 30 кг", pet_weight_kg=30)
+                self.assertEqual({c["field"] for c in stored["criteria"]}, {"available", "max_weight_kg", "species"})
+                self.assertEqual(self.confirm(passport).status, expected_status)
+
+    def test_explicit_scope_and_parsed_scope_cannot_be_silently_reconciled(self):
+        self.fact("sunset_view", facade="E", floor_min=5)
+        parsed = ParsedQuery(text="Запад, от пятого этажа", facade="W", min_floor=5, must=[
+            Criterion(characteristic_id="sunset_view", label="Закат", field="available", value=True)])
+        item = PassportItem(characteristic_id="sunset_view", text="Отредактированное ожидание", scope=Scope(type="facade", facade="E"))
+        passport = self.create([item], parsed=parsed)
+        self.assertEqual(passport.status, "alternative")
+        self.assertEqual(self.confirm(passport).status, "alternative")
+
+    def test_value_embedded_facade_floor_qualifiers_are_not_lost(self):
+        for value in ({"available": True, "facade": "E", "min_floor": 5},
+                      {"available": True, "facade": "W", "min_floor": 1, "max_floor": 3}):
+            with self.subTest(value=value):
+                self.repo.tables["facts"] = {}
+                self.fact("sunset_view", value=value)
+                passport, _stored = self.explicit("sunset_view", Criterion(characteristic_id="sunset_view", label="Закат", field="available", value=True),
+                                                parsed_text="Запад, от пятого этажа", facade="W", min_floor=5)
+                self.assertEqual(self.confirm(passport).status, "alternative")
+
+    def test_old_stored_single_criterion_remains_enforced(self):
+        self.fact("beach_walk", value={"available": True, "minutes": 30})
+        criterion = Criterion(characteristic_id="beach_walk", label="До 10 минут", field="minutes", op="lte", value=10)
+        passport, stored = self.explicit("beach_walk", criterion)
+        stored.pop("criteria")
+        stored["criterion"] = criterion.model_dump(mode="json")
+        self.repo.upsert("passport_items", stored)
+        self.assertEqual(self.confirm(passport).status, "at_risk")
