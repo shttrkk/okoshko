@@ -1050,12 +1050,31 @@
       "exit_code": 0
     },
     "main_data_manifest_sha256": "3589fc304c83771768c4bed3ec1622871bb6875ee5db40d348bc29ba05df5e57",
-    "main_data_git_status": "clean",
+    "main_data_git_status": "clean at 2026-10-26T17:09:01Z; root eval later modified data/eval/results.json in parallel",
     "ruff": "passed",
     "py_compile": "passed",
     "compact_geo": "not enabled; optional stage excluded by default",
-    "source_formats": "unchanged; Hotel/Source/Claim and numeric NPZ schema validation passed"
+    "source_formats": "unchanged; Hotel/Source/Claim and numeric NPZ schema validation passed",
+    "main_seed_manifest_unchanged": true,
+    "main_pipeline_inputs_seed_geo_tiles_written_by_this_flow": false,
+    "region_id_entrypoint_dry_runs": {
+      "REGION=gelendzhik": {
+        "expected_hotels": 30,
+        "stages": 14,
+        "exit_code": 0
+      },
+      "--region gelendzhik": {
+        "expected_hotels": 30,
+        "stages": 14,
+        "exit_code": 0
+      },
+      "default_sochi": {
+        "expected_hotels": 250,
+        "exit_code": 0
+      },
+      "scope": "read-only/network-none image runs without data mounts; no recomputation"
+    }
   },
-  "workflow_ended_at": "2026-10-26T17:16:21.534268+00:00",
-  "workflow_elapsed_s": 1818.534268
+  "workflow_ended_at": "2026-10-26T17:19:07.088687+00:00",
+  "workflow_elapsed_s": 1984.088687
 }
