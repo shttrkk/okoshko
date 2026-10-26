@@ -1280,6 +1280,16 @@ function grow(geometry: GeoJSON.Geometry | null): GeoJSON.Geometry | null {
     ),
   };
 }
+function snapshotZoom(geometry: GeoJSON.Geometry | null) {
+  if (!geometry || geometry.type !== "Polygon") return 17.2;
+  const ring = geometry.coordinates[0];
+  const span = Math.max(
+    Math.max(...ring.map((p) => p[0])) - Math.min(...ring.map((p) => p[0])),
+    Math.max(...ring.map((p) => p[1])) - Math.min(...ring.map((p) => p[1])),
+  );
+  // ~20 m buildings get a closer camera than ~150 m resort blocks.
+  return span < 0.0003 ? 17.5 : span < 0.0008 ? 17.1 : 16.6;
+}
 export function BuildingSnapshot({ hotel }: { hotel: Hotel }) {
   const container = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState("loading");
@@ -1294,7 +1304,7 @@ export function BuildingSnapshot({ hotel }: { hotel: Hotel }) {
       container: container.current,
       style: baseStyle(false),
       center: [hotel.lon, hotel.lat],
-      zoom: 16.9,
+      zoom: snapshotZoom(hotel.footprint as GeoJSON.Geometry | null),
       pitch: 56,
       bearing: -28,
       interactive: false,
@@ -1339,13 +1349,12 @@ export function BuildingSnapshot({ hotel }: { hotel: Hotel }) {
         geometry: { type: "Point", coordinates: [hotel.lon, hotel.lat] },
         properties: {},
       });
-      if (!footprint) {
-        const el = document.createElement("div");
-        el.className = "map-marker selected snapshot-marker";
-        new maplibregl.Marker({ element: el })
-          .setLngLat([hotel.lon, hotel.lat])
-          .addTo(map);
-      }
+      // A pin keeps the hotel findable when taller neighbours hide it.
+      const el = document.createElement("div");
+      el.className = "snapshot-pin";
+      new maplibregl.Marker({ element: el, anchor: "bottom", offset: [0, -26] })
+        .setLngLat([hotel.lon, hotel.lat])
+        .addTo(map);
       map.once("idle", () => {
         if (!disposed) setStatus("ready");
       });

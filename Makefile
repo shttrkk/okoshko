@@ -1,4 +1,4 @@
-.PHONY: up down seed pipeline eval smoke demo-check test coverage lint audit check demo-video demo-voice contracts
+.PHONY: up down seed pipeline eval smoke demo-check test coverage lint audit check demo-video demo-voice contracts snapshots
 PYTHON ?= .venv/bin/python
 REGION ?= pipeline/regions/sochi.yaml
 PIPELINE_ARGS ?= --compact-geo
@@ -40,4 +40,8 @@ demo-voice:
 	$(PYTHON) -m scripts.mix_voice --voice "$(VOICE)" --video "$(VIDEO)" --output "$(VOICED_VIDEO)"
 contracts:
 	$(PYTHON) -m scripts.export_contracts
-
+# Optional offline step: views of the open-data 3D model for hotels without a
+# photo. Needs a running stand (make up), Node with frontend deps and Pillow.
+snapshots:
+	node scripts/render_building_snapshots.mjs $(or $(BASE),http://localhost:8080)
+	python3 -m scripts.build_snapshot_index

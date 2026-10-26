@@ -6107,3 +6107,13 @@ pre {
 .hotel-hero-map .map-noise-legend {
   top: 74px;
 }
+
+.snapshot-pin {
+  width: 24px;
+  height: 24px;
+  background: #23332a;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 4px 10px #0004;
+}
