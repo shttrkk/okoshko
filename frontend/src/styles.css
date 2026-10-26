@@ -6091,3 +6091,19 @@ pre {
 .scope-conflicts > p {
   margin-top: 10px;
 }
+.snapshot-map {
+  width: 960px;
+  height: 600px;
+}
+/* Hotel hero map: the calculation button replaces the region label so it no
+   longer covers the route/view/sunset legend. */
+.hotel-hero-map .map-label {
+  display: none;
+}
+.hotel-hero-map .map-calc-button {
+  top: 20px;
+  bottom: auto;
+}
+.hotel-hero-map .map-noise-legend {
+  top: 74px;
+}

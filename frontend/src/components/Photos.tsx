@@ -22,6 +22,16 @@ export function hotelPhotos(): Promise<Record<string, HotelPhoto[]>> {
     .catch(() => ({}));
   return hotelPhotoIndex;
 }
+let modelIndex: Promise<Record<string, { url: string }>> | null = null;
+/** Rendered views of the open-data 3D model for hotels without a photo. */
+export function buildingModels(): Promise<Record<string, { url: string }>> {
+  modelIndex ||= fetch("/data/seed/building_snapshots.json")
+    .then(async (response) =>
+      response.ok ? (await response.json()).models || {} : {},
+    )
+    .catch(() => ({}));
+  return modelIndex;
+}
 export function photoLabel(photo: HotelPhoto) {
   return photo.kind === "building"
     ? "Фото здания · Wikimedia Commons"

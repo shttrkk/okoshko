@@ -15,12 +15,14 @@ import {
   StudioPage,
 } from "./pages/Operations";
 import { ChangesPage, LabelPage, QualityPage } from "./pages/Quality";
+import { SnapshotPage } from "./pages/Snapshot";
 import "./styles.css";
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <AppProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="snapshot/:id" element={<SnapshotPage />} />
           <Route element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="search" element={<SearchPage />} />

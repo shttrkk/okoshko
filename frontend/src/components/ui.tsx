@@ -19,6 +19,7 @@ import {
   useResource,
 } from "../api";
 import {
+  buildingModels,
   hotelPhotos,
   photoCredit,
   photoLabel,
@@ -385,6 +386,7 @@ export function HotelVisual({
   credit?: boolean;
 }) {
   const index = useResource(hotelPhotos);
+  const models = useResource(buildingModels);
   const [failed, setFailed] = useState<string[]>([]);
   const own: HotelPhoto[] = hotel.image?.startsWith("/data/")
     ? [{ kind: "building", url: hotel.image, local: true }]
@@ -414,6 +416,25 @@ export function HotelVisual({
                 {photo.license || "источник"} <ExternalLink size={11} />
               </a>
             )}
+          </span>
+        </>
+      ) : models.data?.[hotel.id]?.url?.startsWith("/data/") &&
+        !failed.includes(models.data[hotel.id].url) ? (
+        <>
+          <img
+            src={models.data[hotel.id].url}
+            alt={`${hotel.name}: здание на 3D-модели по открытым данным`}
+            loading="lazy"
+            decoding="async"
+            onError={() =>
+              setFailed((old) => [...old, models.data![hotel.id].url])
+            }
+          />
+          <span
+            className="photo-credit"
+            title="Контур и этажность из OpenStreetMap/Overture на локальной карте. Здание отеля выделено цветом."
+          >
+            3D-модель по OSM · не фото
           </span>
         </>
       ) : (

@@ -1253,3 +1253,114 @@ export function GeoModal({
     </Modal>
   );
 }
+/**
+ * Clean oblique 3D view of one hotel building, used offline by
+ * scripts/render_building_snapshots.mjs as the card image for hotels
+ * without a photo. It is a model of open data, not a photograph.
+ */
+function grow(geometry: GeoJSON.Geometry | null): GeoJSON.Geometry | null {
+  if (!geometry || geometry.type !== "Polygon") return geometry;
+  const ring = geometry.coordinates[0];
+  const xs = ring.map((p) => p[0]),
+    ys = ring.map((p) => p[1]);
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2,
+    cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const metres = Math.max(
+    (Math.max(...xs) - Math.min(...xs)) *
+      111320 *
+      Math.cos((cy * Math.PI) / 180),
+    (Math.max(...ys) - Math.min(...ys)) * 110540,
+    4,
+  );
+  const k = 1 + 2.4 / metres;
+  return {
+    type: "Polygon",
+    coordinates: geometry.coordinates.map((r) =>
+      r.map(([x, y]) => [cx + (x - cx) * k, cy + (y - cy) * k]),
+    ),
+  };
+}
+export function BuildingSnapshot({ hotel }: { hotel: Hotel }) {
+  const container = useRef<HTMLDivElement>(null);
+  const [status, setStatus] = useState("loading");
+  useEffect(() => {
+    if (!container.current) return;
+    if (!registered) {
+      maplibregl.addProtocol("pmtiles", protocol.tile);
+      registered = true;
+    }
+    let disposed = false;
+    const map = new maplibregl.Map({
+      container: container.current,
+      style: baseStyle(false),
+      center: [hotel.lon, hotel.lat],
+      zoom: 16.9,
+      pitch: 56,
+      bearing: -28,
+      interactive: false,
+      attributionControl: false,
+      canvasContextAttributes: { antialias: true, preserveDrawingBuffer: true },
+    });
+    map.on("load", async () => {
+      try {
+        await attachBaseMap(map, false, () => disposed);
+      } catch {
+        if (!disposed) setStatus("error");
+        return;
+      }
+      if (disposed) return;
+      const height = (hotel.floors || 4) * 3.2 + 1.5;
+      // Grow the outline ~1 m so its walls cover the basemap building
+      // instead of z-fighting with it.
+      const footprint = grow(hotel.footprint as GeoJSON.Geometry | null);
+      put(
+        map,
+        "snapshot-building",
+        footprint
+          ? {
+              type: "Feature",
+              geometry: footprint,
+              properties: { height_m: height },
+            }
+          : empty,
+      );
+      safeLayer(map, {
+        id: "snapshot-building",
+        type: "fill-extrusion",
+        source: "snapshot-building",
+        paint: {
+          "fill-extrusion-color": "#e85c3b",
+          "fill-extrusion-height": ["get", "height_m"],
+          "fill-extrusion-opacity": 0.96,
+        },
+      });
+      put(map, "snapshot-point", {
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [hotel.lon, hotel.lat] },
+        properties: {},
+      });
+      if (!footprint) {
+        const el = document.createElement("div");
+        el.className = "map-marker selected snapshot-marker";
+        new maplibregl.Marker({ element: el })
+          .setLngLat([hotel.lon, hotel.lat])
+          .addTo(map);
+      }
+      map.once("idle", () => {
+        if (!disposed) setStatus("ready");
+      });
+    });
+    return () => {
+      disposed = true;
+      map.remove();
+    };
+  }, [hotel.id, hotel.lon, hotel.lat, hotel.floors, hotel.footprint]);
+  return (
+    <div
+      className="snapshot-map"
+      ref={container}
+      data-snapshot-status={status}
+      data-testid="building-snapshot"
+    />
+  );
+}
