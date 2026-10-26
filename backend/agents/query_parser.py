@@ -29,18 +29,23 @@ SIDE_PATTERNS = {
     "SW": r"юго[ -]?запад", "SE": r"юго[ -]?восто(?:ч|к)",
     "W": r"запад", "E": r"восто(?:ч|к)", "N": r"север", "S": r"южн|на юг\b",
 }
+VENUE_NOUN = (r'(?:кафе\b|ресторан(?:а|у|ом|е|ы|ов|ам|ами|ах)?\b|'
+              r'бар(?:а|у|ом|е|ы|ов|ам|ами|ах)?\b|паб(?:а|у|ом|е|ы|ов|ам|ами|ах)?\b|'
+              r'клуб(?:а|у|ом|е|ы|ов|ам|ами|ах)?\b)')
 RULES = {
     "quiet_night": r"\bтих\w*|\bтишин\w*|выспаться|сплю чутко|чутк\w* сон|без (?:посторонн\w* )?шума|не (?:было |будет )?шумн\w*",
-    "sunset_view": r"\bзакат\w*",
-    "sea_view": r"(?:вид\w* (?:на |из окна на )?море|море (?:из окна|за окном|долж\w* быть видн\w* из номер\w*)|морск\w* вид|морем за окном|(?:вид\w*|горы)\s+и\s+на море|море\s+по возможности)",
+    "sunset_view": r"\bзакат\w*|\bзаходящ\w*\s+солнц\w*",
+    "sea_view": r"(?:вид\w* (?:на |из окна на )?море|море (?:из окна|за окном|в окне|долж\w* быть видн\w* из номер\w*)|морск\w* вид|морем за окном|(?:вид\w*|горы)\s+и\s+на море|море\s+по возможности)",
     "mountain_view": r"\bгор(?:ы|ный|ного|ным|ам|ами)\b|вид\w* на гор(?!од)\w*",
-    "beach_walk": r"(?:недалеко|близко|рядом) (?:с |от |до )?(?:моря|морем|пляжа)|до (?:моря|пляжа)|пешком (?:к морю|до моря)|(?:дорог\w*|путь) к морю|у (?:моря|пляжа)|близк\w* пляж|пляж\w* (?:за|в|не дальше|\d)",
+    "beach_walk": r"(?:недалеко|близко|рядом) (?:с |от |до )?(?:моря|морем|пляжа)|(?:идти |дойти |ходить |добраться )?до (?:моря|пляжа)|пешком (?:к морю|до моря)|(?:дорог\w*|маршрут\w*|путь) (?:к морю|к пляжу|до пляжа)|к (?:морю|пляжу)(?:\s+\w+){0,8}\s+пешком|у (?:моря|пляжа)|близк\w* пляж|пляж\w* (?:за|в|не дальше|\d)",
     "pets": r"\bсобак\w*|\bкошк\w*|\bкот(?:ом|енк\w*)\b|\bпитом\w*|\bлабрадор\w*|\bживотн\w*",
     "family_nearby": r"\bдет(?:и|ьми|ей)\b|\bребен(?:ок|ка|ку|ком|ке|очек|очком)\b|\bмалыш\w*|\bколяск\w*|\bплощадк\w*",
     "connectivity": r"(?:хорош\w*|быстр\w*|стабильн\w*|нормальн\w*)\s+(?:интернет\w*|связ\w*|wi[ -]?fi)|\bинтернет\w*|\bwi[ -]?fi\b|\bудаленк\w*|\bудаленн?\w*\s+работ\w*|\bработ(?:а|ы|у|ать|аю|аем)\b|для работы|\bсвязь\b|\bвидеозвон\w*|\bвидеоконференц\w*|\bзум\b|\bсозвон\w*",
-    "soundproofing": r"\b(?:шумо|звуко)изоляц\w*|двойн\w* (?:ок\w*|стеклопакет\w*)|\bблэкаут\w*|плотн\w* штор\w*|штор\w*[^,;.]{0,30}затемня\w*|\bкондиционер\w*",
+    "soundproofing": r"\b(?:шумо|звуко)изоляц\w*|двойн\w* (?:ок\w*|стеклопакет\w*)|\bблэкаут\w*|(?:плотн\w*|светонепроницаем\w*) штор\w*|штор\w*[^,;.]{0,30}затемня\w*|\bкондиционер\w*",
     "room_orientation": r"высок\w* этаж\w*|\bбалкон\w*|(?:запад|восточ|север|южн)\w* сторон\w*",
-    "climate": r"тепл\w* (?:вода|воды|море)|\bкупаться\b|\bпогод\w*|\bвода\b[^,;.!?]*?(?:градус|°|\d\s*[cс]\b)|вод\w* (?:от|минимум|не ниже|не холоднее|выше)",
+    "climate": r"тепл\w* (?:вода|воды|море)|\bкупаться\b|\bпогод\w*|\bвода\b[^,;.!?]*?(?:градус|°|\d\s*[cс]\b)|(?:вод\w*|море) (?:от|минимум|не ниже|не холоднее|выше)",
+    'air_quality': r'\baqi\b|европейск\w* индекс качеств\w* воздух\w*',
+    'nearby_photos': r'\bфото(?:графи\w*)?\s+окрестност\w*|\bснимк\w*\s+окрестност\w*',
     "car_access": r"\bпарковк\w*|на машин\w*|на автомобил\w*|на авто\b|\bподъезд\w*|\bэлектромобил\w*|\bэлектрокар\w*|\bзарядк\w*|\bзарядн\w* станц\w*",
     "night_pharmacy": r"\bаптек\w*",
     "nightlife": r"в гуще событий|ночн\w* жизн\w*|\bбар(?:ы|ов|ам|ами|ах)?\b|\bпаб(?:ы|ов)?\b|ночн\w* клуб\w*|\bклуб(?:ы|ов)\b|\bтусов\w*|\bдвиж\b|\bдвижух\w*|оживл[её]нн\w*\b(?!\s+(?:дорог|трасс|шоссе|магистрал|перекр[её]ст|проезж|улиц|движени))|\bкафе и ресторан\w*",
@@ -51,11 +56,12 @@ RULES = {
     'accessible_route': r'доступн\w* (?:путь|маршрут) (?:к морю|до пляжа)|(?:к пляжу|к морю|до пляжа) на инвалидн\w* коляск\w*',
     'green_nearby': r'(?:\bпарк(?:а|у|ом|е|и|ов|ам|ами|ах)?\b|\bсквер\w*|\bзелен\w* зон\w*) (?:рядом|поблизости)|рядом (?:с )?(?:\bпарк(?:а|у|ом|е|и|ов|ам|ами|ах)?\b|\bсквер\w*)',
 }
+RULES['nightlife'] += r'|\b' + VENUE_NOUN + r'(?:\s*(?:,\s*(?:и\s*)?|и\s+)' + VENUE_NOUN + r')+'
 # "подальше от баров" asks for a calm area: the same measurement, opposite threshold.
 AWAY = r"(?:подальше|вдали|далеко|подальш\w*)\s+от\s+$"
 CALM_VENUES_MAX = 10
 OUTSIDE = r"москв\w*|саратов\w*|санкт[ -]?петербург\w*|петербург\w*|спб|казан[ьиь]\w*|анап\w*|геленджик\w*|краснодар\w*|стамбул\w*|париж\w*|дуба[ий]\w*|калининград\w*|екатеринбург\w*|новосибирск\w*|ялт\w*|туапсе|крым\w*|ростов\w*|нижн\w* новгород\w*|самар\w*|твер[ьиь]\w*|минск\w*|батум\w*|красн\w* полян\w*|воронеж\w*|волгоград\w*|омск\w*|томск\w*|перм[ьиь]\w*|уф[аеуы]\w*|челябинск\w*|красноярск\w*|тюмен[ьиь]\w*|иркутск\w*|хабаровск\w*|владивосток\w*|сургут\w*|сочи-парк|тбилиси|ереван\w*|ташкент\w*|белград\w*|антал[ьи]\w*|бишкек\w*|алмат[ыи]|астан\w*|псков\w*|суздал\w*|ярославл\w*|костром\w*|владимир\w*|иванов\w*|смоленск\w*|брянск\w*|ор[её]л\w*|курск\w*|белгород\w*|рязан\w*|тул[аеуы]\w*|тамбов\w*|липецк\w*|пенза|пензе|ижевск\w*|киров\w*|чебоксар\w*|саранск\w*|йошкар\w*|ульяновск\w*|оренбург\w*|барнаул\w*|кемеров\w*|новокузнецк\w*|абакан\w*|чита|чите|улан-удэ|якутск\w*|магадан\w*|мурманск\w*|архангельск\w*|петрозаводск\w*|вологд\w*|сыктывкар\w*|грозн\w*|махачкал\w*|владикавказ\w*|ставропол\w*|пятигорск\w*|кисловодск\w*|ессентук\w*|нальчик\w*|майкоп\w*"
-SOFT = r"желатель\w*|хорошо бы|по возможности|необязатель\w*|не обязател\w*|не принципиал\w*|будет плюсом"
+SOFT = r"желатель\w*|хорошо бы|по возможности|необязатель\w*|не обязател\w*|не\s*принципиал\w*|(?:будет\s+)?(?:приятн\w*\s+)?(?:плюсом|бонусом)"
 HARD = r"(?<!не )обязатель\w*|только|важн\w*|нуж(?:ен|на|но|ны)|долж\w*|необходим\w*"
 NEARBY = {
     "beach_walk": (r"\b(?:пляж\w*|мор[еяю]|морем)\b", "minutes", 10, "До пляжа", "мин пешком"),
@@ -135,11 +141,13 @@ def _dates(text: str, request: SearchRequest) -> tuple[date | None, date | None,
 def _importance(text: str, start: int, end: int) -> tuple[bool, bool, bool]:
     left, right = clause_bounds(text, start, end)
     before, after = text[left:start], text[end:right]
-    if re.search(r"\bне\s*(?:нуж\w*|важ\w*|интерес\w*|треб\w*|ищ\w*)\s*(?:мне\s*)?(?:вид\w*\s*(?:на\s*)?)?$", before) or re.match(r"\s*(?:мне )?не\s*(?:важ\w*|нуж\w*|интерес\w*|треб\w*|ищ\w*)", after):
+    if re.search(r"\bне\s*(?:нуж\w*|важ\w*|интерес\w*|треб\w*|ищ\w*)\s*(?:мне\s*)?(?:вид\w*\s*(?:на\s*)?)?$", before) or re.match(r"\s*(?:(?:мне|меня|нам|нас)\s+)?не\s*(?:важ\w*|нуж\w*|интерес\w*|треб\w*|ищ\w*)", after):
         return False, False, True
     markers = [(m.start(), True) for m in re.finditer(SOFT, before)] + [(m.start(), False) for m in re.finditer(HARD, before)]
     soft = max(markers, default=(-1, False))[1]
-    if re.match(r"\s*(?:необязатель\w*|не обязател\w*|желатель\w*|по возможности|не принципиал\w*|(?:будет )?плюсом)", after):
+    if re.match(r"\s*(?:можно\s+)?(?:необязатель\w*|не обязател\w*|желатель\w*|по возможности|не\s*принципиал\w*|(?:будет\s+)?(?:приятн\w*\s+)?(?:плюсом|бонусом))", after):
+        soft = True
+    if re.match(r'\s*хотелось бы\s*[,;]?\s*(?:но\s+)?не обязател\w*', text[end:min(len(text), end+70)]):
         soft = True
     numeric_postfix = (r'\s*(?:(?:не менее|не ниже|не выше|не более|не дальше|не ближе|хотя бы|минимум|максимум|от|до|в|за)\s*)?'
                        r'\d+(?:[.,]\d+)?\s*(?:мбит(?:/с)?|mbps|мб/с|гбит(?:/с)?|gbps|минут\w*|час\w*|км|метр\w*|м\b|дб|градус\w*|°\s*[cс]?)'
@@ -151,7 +159,7 @@ def _importance(text: str, start: int, end: int) -> tuple[bool, bool, bool]:
                         r'\s*(?:желатель\w*|необязатель\w*|не обязател\w*|по возможности|не принципиал\w*)')
     if re.match(interval_postfix, after):
         soft = True
-    if re.search(r'по возможности|желатель\w*|будет плюсом', text[start:end]):
+    if re.search(SOFT, text[start:end]):
         soft = True
     if re.search(r"(?:^|[,;])\s*можно(?: бы)?\s*$", before) and not re.search(r"\b(?:собак|кошк|котом|питом)\w*", text[start:end]):
         soft = True
@@ -174,6 +182,8 @@ def _measurement_unit(field: str) -> str | None:
         'european_aqi': r'(?:aqi|единиц\w*)', 'night_db_max': r'дб',
         'parking_distance_m': distance, 'playground_distance_m': distance,
         'distance_m': distance, 'ev_distance_m': distance,
+        'venues_500m': r'(?:заведени\w*|' + VENUE_NOUN + ')',
+        'bars_500m': r'(?:бар|паб|клуб)(?:а|у|ом|е|ы|ов|ам|ами|ах)?\b',
     }
     unit = units.get(field)
     if not unit and field not in {'available', 'windows', 'blackout', 'balcony', 'air_conditioning'}:
@@ -295,6 +305,31 @@ def _unsupported_measurement(text: str, match, cid: str) -> tuple[str, str] | No
             message = 'Сейчас принимаем температуру воды в °C. Условие в другой температурной шкале не применяется.'
         return fragment, message
     return None
+
+
+def _measurement_clauses(text: str, matches: list, cid: str) -> list:
+    """Attach a directly following, noun-free measurement clarification."""
+    if cid not in {'beach_walk', 'car_access', 'night_pharmacy', 'family_nearby', 'connectivity', 'climate', 'air_quality'}:
+        return matches
+    result = list(matches)
+    operator = r'(?:не\s+(?:больше|дальше|дольше|более|менее|ниже|выше)|максимум|минимум)'
+    prefix = r'\s*(?:расстояни\w*\s+(?:' + operator + r'\s*)?|' + operator + r'\s*)'
+    units = r'(?:мин(?:ут\w*)?\b|час\w*|метр\w*|м\b|километр\w*|км\b|мбит(?:/с)?|mbps|градус\w*|°\s*[cс]?)'
+    for match in matches:
+        _, boundary = clause_bounds(text, match.start(), match.end())
+        if boundary >= len(text) or text[boundary] not in ',;':
+            continue
+        continuation = re.match(prefix + r'\d+(?:[.,]\d+)?\s*' + units, text[boundary+1:])
+        if not continuation:
+            continue
+        end = boundary + 1 + continuation.end()
+        next_boundary = clause_bounds(text, end, end)[1]
+        if re.search(r'\b(?:аптек\w*|пляж\w*|мор[еяю]|морем|парковк\w*|площадк\w*|зарядк\w*|интернет\w*|связь|вода)\b', text[boundary+1:next_boundary]):
+            continue
+        extended = re.compile(r'[\s\S]{' + str(end-match.start()) + '}').match(text, match.start())
+        if extended:
+            result.append(extended)
+    return result
 
 
 def _nearby_intents(text: str) -> dict:
@@ -460,6 +495,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
                 or (floor_importance[1] or invalid_floor) and floor_match and m.start() <= floor_match.start() < m.end())]
         if spec.id == 'pets' and invalid_pet_weight:
             continue
+        matches = _measurement_clauses(text, matches, spec.id)
         matches = [m for m in matches if valid_intent_match(spec.id, text, m)]
         supported_matches = []
         for candidate in matches:
@@ -563,7 +599,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             matched_text = match[0]
             if re.search(r"двойн\w* (?:ок|стеклопакет)", matched_text):
                 field, value = "windows", "double"
-            elif re.search(r"блэкаут|плотн\w* штор|штор\w*.*затемня", matched_text):
+            elif re.search(r"блэкаут|(?:плотн\w*|светонепроницаем\w*) штор|штор\w*.*затемня", matched_text):
                 field, value = "blackout", not negative
             elif re.search(r"кондиционер", matched_text):
                 field, value = "air_conditioning", not negative
@@ -594,7 +630,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             nearby_criterion.label = _criterion_label(nearby_criterion, spec.name_ru)
             (parsed.nice if nearby_soft else parsed.must).append(nearby_criterion)
         if spec.id == "soundproofing":
-            for extra_field, pattern, extra_value in [("windows", r"двойн\w* (?:ок\w*|стеклопакет\w*)", "double"), ("blackout", r"блэкаут\w*|плотн\w* штор\w*|штор\w*[^,;.]{0,30}затемня\w*", True), ("air_conditioning", r"кондиционер\w*", True)]:
+            for extra_field, pattern, extra_value in [("windows", r"двойн\w* (?:ок\w*|стеклопакет\w*)", "double"), ("blackout", r"блэкаут\w*|(?:плотн\w*|светонепроницаем\w*) штор\w*|штор\w*[^,;.]{0,30}затемня\w*", True), ("air_conditioning", r"кондиционер\w*", True)]:
                 for extra in re.finditer(pattern, text):
                     extra_soft, extra_negative, extra_skip = _importance(text, extra.start(), extra.end())
                     if not extra_skip:
@@ -629,8 +665,8 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
                     (parsed.nice if charging_soft else parsed.must).append(extra)
         if spec.id == "beach_walk":
             for flag, extra_field, label, pattern, extra_value in [
-                ("no_stairs", "has_steps", "Без лестниц до пляжа", r"без (?:лестниц\w*|ступен\w*)|\bколяск\w*", False),
-                ("no_crossings", "crossings", "Без переходов до пляжа", r"(?:без (?:переход\w*|пересечени\w*)(?:\s+(?:и\s+)?переход\w*)?|без лестниц\w*\s+и\s+переход\w*)(?:\s+(?:через\s+)?(?:трасс\w*|дорог\w*|шоссе|железн\w*\s+дорог\w*))?|переход\w*\s+через\s+дорог\w*\s+исключен\w*", []),
+                ("no_stairs", "has_steps", "Без лестниц до пляжа", r"без (?:лестниц\w*|ступен\w*)|\bколяск\w*|лестниц\w*[^,;.!?]{0,70}(?:не должно|не будет|нет)|не (?:поднима\w*|спуска\w*)(?:\s+\w+){0,3}\s+(?:лестниц\w*|ступен\w*)", False),
+                ("no_crossings", "crossings", "Без переходов до пляжа", r"(?:без (?:переход\w*|пересечени\w*)(?:\s+(?:и\s+)?переход\w*)?|без лестниц\w*\s+и\s+переход\w*)(?:\s+(?:через\s+)?(?:трасс\w*|дорог\w*|шоссе|железн\w*\s+дорог\w*))?|переход\w*\s+через\s+дорог\w*\s+исключен\w*|не (?:переход\w*|пересек\w*)(?:\s+\w+){0,3}\s+(?:дорог\w*|трасс\w*|шоссе|улиц\w*)|переход\w*[^,;.!?]{0,60}(?:не должно|не будет|нет)", []),
             ]:
                 for extra in re.finditer(pattern, text):
                     consumed.append((extra.start(), extra.end()))
@@ -672,8 +708,21 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
                 extra = Criterion(characteristic_id=spec.id, label=spec.name_ru, field=atom_field, op=atom_op, value=atom_value)
                 extra.label = _criterion_label(extra, spec.name_ru, spec.search.unit)
                 (parsed.nice if atom_soft else parsed.must).append(extra)
-        for atom_soft, extra in _numeric_mentions(text, spec, matches, criterion, warnings):
+        measurements = _numeric_mentions(text, spec, matches, criterion, warnings)
+        for atom_soft, extra in measurements:
             (parsed.nice if atom_soft else parsed.must).append(extra)
+        own_measurement = _numeric(text, match.start(), match.end(), criterion.field, criterion.op, None)[1] if criterion.field else None
+        same_priority = [extra for atom_soft, extra in measurements if atom_soft == soft]
+        replaces_default = any(extra.field == criterion.field or
+                               spec.id in {'beach_walk', 'night_pharmacy'} and {extra.field, criterion.field} <= {'minutes', 'distance_m'} or
+                               criterion.field == 'available' and spec.id in {'quiet_night', 'family_nearby', 'night_pharmacy'}
+                               for extra in same_priority)
+        if own_measurement is None and replaces_default:
+            group = parsed.nice if soft else parsed.must
+            group[:] = [c for c in group if not (c.characteristic_id == criterion.characteristic_id and c.field == criterion.field
+                        and c.op == criterion.op and c.value == criterion.value and c.scope == criterion.scope)]
+            # A numeric mention can equal the default; retain that explicit bound.
+            group.extend(same_priority)
         hard = [c for c in parsed.must if c.characteristic_id == spec.id]
         for boolean_field in {c.field for c in hard if isinstance(c.value, bool)}:
             if len({c.value for c in hard if c.field == boolean_field and isinstance(c.value, bool)}) > 1:
@@ -686,6 +735,8 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
     residual = list(text)
     for start, end in consumed:
         residual[start:end] = " " * (end-start)
+    for marker in re.finditer(SOFT, text):
+        residual[marker.start():marker.end()] = ' ' * (marker.end()-marker.start())
     remaining = "".join(residual)
     remaining = re.sub(r'оставить\s+(?:ее|его|машин\w*|автомобил\w*)?\s*рядом', ' ', remaining)
     # These clauses describe who is staying home, not hotel restrictions.

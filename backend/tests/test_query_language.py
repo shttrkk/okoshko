@@ -26,7 +26,7 @@ def catalog():
     ('до пляжа не дольше 0,2 часа', 'beach_walk', 'minutes', 12),
     ('парковка в семи метрах', 'car_access', 'parking_distance_m', 7),
     ('аптека в пределах 1,25 км', 'night_pharmacy', 'distance_m', 1250),
-    ('площадка для детей в пятистах метрах', 'family_nearby', 'available', True),
+    ('площадка для детей в нескольких метрах', 'family_nearby', 'available', True),
     ('интернет от 5 МБ/с', 'connectivity', 'download_mbps', 40),
     ('интернет от 0,1 Гбит/с', 'connectivity', 'download_mbps', 100),
 ])
@@ -34,8 +34,8 @@ def test_unit_conversion_and_conservative_unrecognized_number_words(catalog, tex
     parsed = parse_query(SearchRequest(text=text), catalog)
     conditions = [c for c in parsed.must if c.characteristic_id == cid]
     assert len(conditions) == 1 and conditions[0].field == field and conditions[0].value == value
-    if 'пятистах' in text:
-        assert any('пятистах' in fragment for fragment in parsed.unmapped)
+    if 'нескольких' in text:
+        assert any('нескольких' in fragment for fragment in parsed.unmapped)
 
 
 @pytest.mark.parametrize('text', [
@@ -322,6 +322,100 @@ def test_unsupported_measurement_does_not_turn_into_a_positive_default(catalog, 
 def test_a_beach_time_does_not_become_an_unsupported_family_distance(catalog):
     parsed = parse_query(SearchRequest(text='с ребенком рядом с морем 7 минут'), catalog)
     assert {c.characteristic_id for c in parsed.must} == {'family_nearby', 'beach_walk'}
+
+
+@pytest.mark.parametrize(('text', 'field', 'value'), [
+    ('до пляжа не больше девяноста двух метров', 'distance_m', 92),
+    ('парковка не дальше трехсот м', 'parking_distance_m', 300),
+    ('интернет от семидесяти пяти мбит/с', 'download_mbps', 75),
+    ('К пляжу собираюсь ходить пешком, максимум шесть минут', 'minutes', 6),
+    ('парковка поблизости, расстояние максимум 230 м', 'parking_distance_m', 230),
+])
+def test_bounded_number_words_and_following_measurement_clauses(catalog, text, field, value):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert [(c.field, c.value) for c in parsed.must] == [(field, value)]
+
+
+def test_explicit_water_temperature_replaces_the_implicit_default(catalog):
+    parsed = parse_query(SearchRequest(text='будем купаться, море от 18 градусов устроит'), catalog)
+    assert [(c.field, c.op, c.value) for c in parsed.must] == [('water_c', 'gte', 18)]
+
+
+def test_same_unit_clause_for_another_poi_is_not_attached_to_parking(catalog):
+    parsed = parse_query(SearchRequest(text='парковка рядом, до аптеки 200 метров'), catalog)
+    assert {(c.field, c.value) for c in parsed.must} == {('parking_distance_m', 500), ('distance_m', 200)}
+
+
+def test_spelled_ordinal_keeps_a_floor_ceiling(catalog):
+    parsed = parse_query(SearchRequest(text='не выше тринадцатого этажа'), catalog)
+    assert parsed.min_floor is None and parsed.must[0].scope.floor_max == 13
+
+
+@pytest.mark.parametrize(('text', 'cid', 'field'), [
+    ('Нужен номер, чтобы видеть заходящее солнце', 'sunset_view', 'available'),
+    ('Море в окне обязательно', 'sea_view', 'available'),
+    ('Светонепроницаемые шторы в номере', 'soundproofing', 'blackout'),
+    ('Снимки окрестностей отеля', 'nearby_photos', 'available'),
+    ('Европейский AQI не более 28', 'air_quality', 'european_aqi'),
+])
+def test_explicit_catalogue_paraphrases_keep_their_declared_fields(catalog, text, cid, field):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert [(c.characteristic_id, c.field) for c in parsed.must] == [(cid, field)]
+
+
+def test_venue_count_is_not_replaced_by_the_radius(catalog):
+    parsed = parse_query(SearchRequest(text='нужно хотя бы 35 кафе, ресторанов и баров в полукилометре'), catalog)
+    assert [(c.field, c.op, c.value) for c in parsed.must] == [('venues_500m', 'gte', 35)]
+
+
+@pytest.mark.parametrize('text', ['не пересекая шоссе', 'не переходя автомобильные дороги'])
+def test_route_prohibition_is_an_explicit_crossing_constraint(catalog, text):
+    parsed = parse_query(SearchRequest(text='маршрут к морю до 8 минут, ' + text), catalog)
+    assert len(parsed.must) == 1 and parsed.must[0].value == 8 and parsed.must[0].no_crossings
+
+
+def test_stairs_prohibition_is_preserved_in_a_separate_clause(catalog):
+    parsed = parse_query(SearchRequest(text='лестниц на дороге к пляжу быть не должно, идти до моря 7 минут'), catalog)
+    assert len(parsed.must) == 1 and parsed.must[0].value == 7 and parsed.must[0].no_stairs
+
+
+@pytest.mark.parametrize('text', ['закат будет приятным бонусом', 'вид на горы можно по возможности',
+                                 'балкон хотелось бы, но не обязательно'])
+def test_explicit_postfix_preferences_do_not_become_hard(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert not parsed.must and len(parsed.nice) == 1
+
+
+def test_not_interested_with_a_pronoun_does_not_add_sunset(catalog):
+    parsed = parse_query(SearchRequest(text='закат меня не интересует, нужен тихий номер'), catalog)
+    assert [c.characteristic_id for c in parsed.must] == ['quiet_night']
+
+
+@pytest.mark.parametrize('text', ['Объясните, что означает термин «парковка»',
+                                 'В учебнике цитируется песня «У моря»',
+                                 'Рассчитайте площадь общественной парковки',
+                                 'Интернет-сервис бронирования обновился',
+                                 'Слово «площадка» обозначает портал в договоре'])
+def test_metalinguistic_and_artifact_mentions_do_not_create_search_conditions(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert not parsed.must and not parsed.nice
+
+
+def test_meta_quote_does_not_erase_a_real_requirement_outside_the_quote(catalog):
+    parsed = parse_query(SearchRequest(text='Термин «тихий» обсуждали в договоре; нужен тихий номер'), catalog)
+    assert [c.characteristic_id for c in parsed.must] == ['quiet_night']
+
+
+@pytest.mark.parametrize('text', ['Рядом скверный сервис', 'Скверно рядом с отелем'])
+def test_green_space_noun_is_not_the_adjective_for_poor_quality(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert 'green_nearby' not in {c.characteristic_id for c in parsed.must+parsed.nice}
+
+
+@pytest.mark.parametrize('text', ['парк рядом', 'сквер рядом', 'сад рядом', 'зелень рядом'])
+def test_declared_green_space_phrases_keep_the_catalogue_default(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert [(c.characteristic_id, c.field, c.value) for c in parsed.must] == [('green_nearby', 'distance_m', 500)]
 
 
 def test_negative_corpus_false_criteria_rate_is_at_most_one_percent(catalog):
