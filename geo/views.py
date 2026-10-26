@@ -50,6 +50,10 @@ def scan_profiles(ground, building_ids, sea, distances, heights, bases, eyes, de
     building_horizon = np.full(nr, -90.0)
     valid_fraction = np.zeros(nr)
     full_horizon = np.full((nf, nr), -90.0)
+    sea_nearest = np.full((nf, nr), np.inf)
+    sea_slope = np.full((nf, nr), -1e30)
+    mountain_nearest = np.full((nf, nr), np.inf)
+    mountain_slope = np.full((nf, nr), -1e30)
     for ray in range(nr):
         valid_count = 0
         for floor in range(nf):
@@ -72,10 +76,14 @@ def scan_profiles(ground, building_ids, sea, distances, heights, bases, eyes, de
                 if sea[ray, j]:
                     if slope >= horizon - 1e-7:
                         visible[floor, ray] = True
+                        sea_nearest[floor, ray] = min(sea_nearest[floor, ray], distance)
+                        sea_slope[floor, ray] = max(sea_slope[floor, ray], slope)
                     elif blocking_id >= 0:
                         blockers[floor, ray] = blocking_id
                 if not sea[ray, j] and bid < 0 and z >= 200 and distance >= 1500 and slope >= horizon - 1e-7:
                     mountain[floor, ray] = True
+                    mountain_nearest[floor, ray] = min(mountain_nearest[floor, ray], distance)
+                    mountain_slope[floor, ray] = max(mountain_slope[floor, ray], slope)
                 if slope > horizon:
                     horizon = slope
                     if bid >= 0:
@@ -88,7 +96,7 @@ def scan_profiles(ground, building_ids, sea, distances, heights, bases, eyes, de
                 blockers[floor, ray] = -1
             full_horizon[floor, ray] = np.degrees(np.arctan(horizon))
         valid_fraction[ray] = valid_count / nd
-    return visible, mountain, blockers, terrain_horizon, building_horizon, valid_fraction, full_horizon
+    return visible, mountain, blockers, terrain_horizon, building_horizon, valid_fraction, full_horizon, sea_nearest, sea_slope, mountain_nearest, mountain_slope
 
 
 def los_to_point(observer, eye_z, target, target_z, terrain, buildings, *, step_m=10):

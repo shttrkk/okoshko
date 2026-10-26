@@ -178,3 +178,32 @@ def test_runtime_change_recasts_geometry_and_provenance(synthetic_region, monkey
     # Independent runs with the fixed seed produce identical probability matrices.
     repeated = compute_with_region(hotel, region, output, computed_at="2026-10-26T00:00:00Z")
     assert west(baseline)["sea_probability_by_floor"] == west(repeated)["sea_probability_by_floor"]
+
+
+def test_compact_cache_recalculates_polygon_los_without_region_load(synthetic_region, monkeypatch):
+    import geo.service as service
+    from pipeline.compute_runtime_cache import build_cache
+    hotel, region, output = synthetic_region
+    monkeypatch.setattr(service, "MC_ITERATIONS", 8)
+    # The pipeline module has an explicit offline iteration setting.
+    monkeypatch.setattr("pipeline.compute_runtime_cache.MC_ITERATIONS", 8)
+    baseline = compute_with_region(hotel, region, output, computed_at="2026-10-26T00:00:00Z")
+    assert build_cache(hotel, region, output).exists()
+    fixture = new_building_fixture(hotel, baseline["geo"])
+    def forbidden_region_load(*args, **kwargs):
+        raise AssertionError("cached runtime must not load regional layers/graph")
+    monkeypatch.setattr(service, "get_region", forbidden_region_load)
+    result = service.compute_hotel(hotel, output.parent, new_building=fixture)
+    assert result["geo"]["scenario_method"] == "cached_ray_envelope_exact_polygon_los_v1"
+    before = next(facade for facade in baseline["geo"]["facades"] if facade["code"] == "W")
+    after = next(facade for facade in result["geo"]["facades"] if facade["code"] == "W")
+    assert after["sea_width_by_floor"][0] < before["sea_width_by_floor"][0]
+    full = compute_with_region(hotel, region, output, new_building=fixture)
+    full_west = next(facade for facade in full["geo"]["facades"] if facade["code"] == "W")
+    # Exact-polygon cache and 2m raster have bounded edge discretization error.
+    assert np.allclose(after["sea_width_by_floor"], full_west["sea_width_by_floor"], atol=6)
+    assert result["claims"]
+    for claim in result["claims"]:
+        Claim.model_validate(claim)
+        assert claim["synthetic"]
+    assert {claim["characteristic_id"] for claim in result["claims"]} <= {"sea_view", "mountain_view", "sunset_view"}

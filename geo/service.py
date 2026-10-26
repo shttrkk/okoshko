@@ -70,6 +70,13 @@ def _sample_heights(buildings, prior, rng):
 def compute_hotel(hotel: dict, data_dir: Path, *, new_building: dict | None = None) -> dict:
     """Runtime-safe calculation; data_dir contains seed/ and geo/terrain_30m.npz."""
     data_dir = Path(data_dir)
+    if "/" in hotel["id"] or "\\" in hotel["id"] or hotel["id"] in {".", ".."}:
+        raise ValueError("unsafe hotel ID")
+    if new_building:
+        from geo.runtime_cache import compute_cached_change
+        cached = compute_cached_change(hotel, data_dir, new_building)
+        if cached is not None:
+            return cached
     return compute_with_region(hotel, get_region(data_dir), data_dir/"geo", new_building=new_building)
 
 
@@ -274,8 +281,8 @@ def compute_with_region(hotel, region, output_dir, *, new_building=None, compute
         if min_floor:
             min_floors.append(min_floor)
         probabilities.append(float(p_sea[-1]))
-        outward = angle_difference(azimuths, float(np.mean(facade["normals"]))) <= 75
-        blocked_ids = sorted({buildings[int(index)]["id"] for blocker in blockers_all for index in np.unique(blocker[:, outward])
+        blocked_ids = sorted({buildings[int(index)]["id"] for blocker, profile in zip(blockers_all, profiles, strict=True)
+                              for index in np.unique(blocker[:, profile[3]])
                               if index >= 0 and buildings[int(index)]["id"] != own["id"]})
         influencing_ids = set(blocked_ids)
         if not influencing_ids:
