@@ -350,3 +350,82 @@ class SyntheticDialogueFixtureTests(unittest.TestCase):
         self.assertTrue(all(c["source"] == "hotelier_simulator" and c["synthetic"] for c in repo.all("claims")))
         pets_facts = repo.find("facts", characteristic_id="pets")
         self.assertTrue(all(f["status"] == "computed" and f["synthetic"] for f in pets_facts))
+
+
+class PassportRouteConstraintTests(unittest.TestCase):
+    setUp = PassportTests.setUp
+    fact = PassportTests.fact
+    create = PassportTests.create
+
+    def constrained(self, value, *, no_stairs=True, no_crossings=False, field="minutes"):
+        fact = self.fact("beach_walk", value=value)
+        criterion = Criterion(characteristic_id="beach_walk", label="Маршрут с коляской",
+                              field=field, op="lte" if field == "minutes" else "eq",
+                              value=10 if field == "minutes" else True, no_stairs=no_stairs, no_crossings=no_crossings)
+        parsed = ParsedQuery(text="До пляжа 10 минут без лестниц", must=[criterion])
+        passport = self.create([PassportItem(characteristic_id="beach_walk", text="С коляской, без лестниц")], parsed=parsed)
+        return fact, passport
+
+    def confirm(self, passport):
+        return passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo)
+
+    def test_stairs_true_or_missing_cannot_be_confirmed(self):
+        cases = [({"available": True, "minutes": 7, "has_steps": True}, "declined"),
+                 ({"available": True, "minutes": 7}, "at_risk"),
+                 ({"available": True, "minutes": 7, "has_steps": None}, "at_risk")]
+        for value, item_status in cases:
+            with self.subTest(value=value):
+                self.repo.tables["facts"] = {}
+                _fact, passport = self.constrained(value)
+                stored = self.repo.get("passport_items", passport.items[0].id)
+                self.assertTrue(stored["criteria"][0]["no_stairs"])
+                result = self.confirm(passport)
+                self.assertEqual(result.status, "at_risk")
+                self.assertEqual(result.items[0].status, item_status)
+                self.assertIsNone(result.room_number)
+
+    def test_known_clear_route_confirms_but_not_if_crossings_are_unknown(self):
+        for crossings, expected in (([], "confirmed"), ([{"id": "road-crossing"}], "at_risk"), (None, "at_risk")):
+            with self.subTest(crossings=crossings):
+                self.repo.tables["facts"] = {}
+                value = {"available": True, "minutes": 7, "has_steps": False}
+                if crossings is not None:
+                    value["crossings"] = crossings
+                _fact, passport = self.constrained(value, no_crossings=True)
+                self.assertEqual(self.confirm(passport).status, expected)
+
+    def test_route_flags_also_apply_when_primary_field_is_available(self):
+        _fact, passport = self.constrained({"available": True}, field="available")
+        result = self.confirm(passport)
+        self.assertEqual(result.status, "at_risk")
+        self.assertEqual(result.items[0].status, "at_risk")
+
+    def test_clear_accessibility_does_not_override_failed_numeric_limit(self):
+        _fact, passport = self.constrained({"available": True, "minutes": 30, "has_steps": False, "crossings": []}, no_crossings=True)
+        result = self.confirm(passport)
+        self.assertEqual(result.status, "at_risk")
+        self.assertEqual(result.items[0].status, "declined")
+
+    def test_known_violation_wins_over_a_missing_route_tag(self):
+        from backend.api.passports import _comparison
+
+        fact = self.fact("beach_walk", value={"available": True, "minutes": 30})
+        criterion = Criterion(characteristic_id="beach_walk", label="До 10 минут без лестниц", field="minutes", op="lte", value=10, no_stairs=True)
+        self.assertIs(_comparison(fact, criterion), False)
+
+    def test_route_change_notifications_use_the_same_stored_constraints(self):
+        from backend.agents.freshness import notify_passports
+
+        for after_value in ({"available": True, "minutes": 7, "has_steps": True},
+                            {"available": True, "minutes": 7}):
+            with self.subTest(after_value=after_value):
+                self.repo.tables["facts"] = {}
+                before, passport = self.constrained({"available": True, "minutes": 7, "has_steps": False})
+                self.assertEqual(self.confirm(passport).status, "confirmed")
+                after = before.model_copy(update={"value": after_value})
+                self.repo.upsert("facts", after.model_dump(mode="json"))
+                notifications = notify_passports(self.repo, "test-hotel", [before], [after], "synthetic-route-change-" + passport.id)
+                result = self.repo.get("expectation_passports", passport.id)
+                self.assertEqual(result["status"], "at_risk")
+                self.assertEqual(result["items"][0]["status"], "at_risk")
+                self.assertTrue(any(n["passport_id"] == passport.id and n["channel"] == "local" for n in notifications))
