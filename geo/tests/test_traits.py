@@ -6,12 +6,12 @@ from datetime import datetime
 import numpy as np
 import pytest
 import yaml
-from shapely.geometry import LineString, Point, box
+from shapely.geometry import LineString, Point, box, mapping, shape
 
 from backend.contracts import CharacteristicSpec, Claim
-from geo.coordinates import TO_UTM
+from geo.coordinates import TO_UTM, metric
 from geo.sun import facade_exposure, monthly_exposure_paths
-from geo.traits import TRAITS, compute_trait, route_accessibility, solar_floor_ranges
+from geo.traits import TRAITS, compute_trait, route_accessibility, solar_building_match, solar_floor_ranges
 
 
 def test_morning_evening_orientation_blocker_and_missing_horizon():
@@ -65,12 +65,49 @@ def test_compact_solar_ranges_preserve_extrema_and_heat_threshold():
     assert "bound" in value["value_semantics"]
 
 
+def test_solar_association_requires_robust_interior_when_hotel_floors_unknown():
+    footprint = box(39.7199, 43.5799, 39.7201, 43.5801)
+    baseline = {"building": {"id": "building", "geometry": mapping(footprint)},
+                "building_id": "building", "building_match": {"method": "contains", "distance_m": 0},
+                "floors": {"count": 2}, "facades": [{"confidence": .75}]}
+    hotel = {"id": "example", "lon": 39.72, "lat": 43.58, "floors": None}
+    assert solar_building_match(hotel, baseline) == (True, "strict_interior")
+    assert solar_building_match({**hotel, "lon": 39.7201}, baseline) == (False, "boundary_or_outside")
+    assert solar_building_match({**hotel, "lon": 39.7202}, baseline) == (False, "boundary_or_outside")
+    # A sub-millimetre projected interior is still a numerical boundary case.
+    assert solar_building_match({**hotel, "lon": 39.7201-1e-10}, baseline) == (False, "boundary_or_outside")
+
+
+def test_explicit_floor_identity_and_conditional_nearest_are_distinct_from_contains():
+    footprint = box(39.7199, 43.5799, 39.7201, 43.5801)
+    baseline = {"building": {"id": "building", "geometry": mapping(footprint)},
+                "building_id": "building", "building_match": {"method": "id", "distance_m": 0},
+                "floors": {"count": 2}, "facades": [{"confidence": .75}]}
+    hotel = {"id": "example", "lon": 39.7201, "lat": 43.58, "floors": 2,
+             "tags": {"building_id": "building"}}
+    assert solar_building_match(hotel, baseline) == (True, "existing_floor_count_and_building_id")
+    assert not solar_building_match({**hotel, "floors": None}, baseline)[0]
+    hotel = {**hotel, "lon": 39.7202, "floors": None}
+    projected_point = Point(TO_UTM.transform(hotel["lon"], hotel["lat"]))
+    distance = metric(footprint).distance(projected_point)
+    baseline["building_match"] = {"method": "nearest_30m", "distance_m": distance}
+    assert solar_building_match(hotel, baseline) == (True, "conditional_nearest_30m")
+    baseline["building_match"].pop("distance_m")
+    assert solar_building_match(hotel, baseline) == (False, "unverified_nearest_match")
+    baseline["building_match"]["distance_m"] = distance
+    baseline["facades"][0]["confidence"] = 1
+    assert solar_building_match(hotel, baseline) == (False, "unverified_nearest_match")
+
+
 @pytest.fixture
 def solar_artifacts(tmp_path):
     directory = tmp_path/"geo"
     directory.mkdir()
-    hotel = {"id": "test", "lon": 39.72, "lat": 43.58}
+    hotel = {"id": "test", "lon": 39.72, "lat": 43.58, "floors": 2,
+             "tags": {"building_id": "test-building"}}
     baseline = {"hotel_id": "test", "computed_at": "2026-10-26T00:00:00Z", "synthetic": True,
+                "building_id": "test-building", "building_match": {"method": "id", "distance_m": 0},
+                "building": {"id": "test-building", "geometry": mapping(box(39.7199, 43.5799, 39.7201, 43.5801))},
                 "floors": {"count": 2}, "inputs": {}, "limitations": [],
                 "facades": [{"code": "E", "azimuth_deg": 90, "confidence": .8},
                             {"code": "W", "azimuth_deg": 270, "confidence": .8}],
@@ -92,6 +129,9 @@ def test_adapter_all_months_scopes_provenance_and_no_writes(solar_artifacts):
     assert all(claim.synthetic and claim.evidence[0].kind == "simulation" for claim in claims)
     assert all(claim.confidence <= .54 for claim in claims)
     assert all(claim.evidence[0].inputs["input_sha256"] for claim in claims)
+    associations = [claim.evidence[0].inputs["building_association"] for claim in claims]
+    assert all(a["result"] == "existing_floor_count_and_building_id" for a in associations)
+    assert all(a["hotel_floor_count"] == a["contour_floor_count"] == 2 for a in associations)
     september = compute_trait(hotel, directory, "evening_heat", month=9)["claims"]
     assert len(september) == 2
     assert all(row["scope"]["month"] == 9 and row["value"]["temperature_c"] is None for row in september)
@@ -109,6 +149,36 @@ def test_unknown_floors_and_changed_snapshot_do_not_reuse_horizon(solar_artifact
     (directory/"geo"/"test.json").write_text(json.dumps(baseline))
     result = compute_trait(hotel, directory, "morning_sun")
     assert not result["claims"] and "пересчёта" in result["warnings"][0]
+
+
+def test_solar_adapter_does_not_publish_exact_floors_from_boundary_contains(solar_artifacts):
+    hotel, directory, baseline = solar_artifacts
+    hotel.update(lon=39.7201, floors=None)
+    baseline["building_match"]["method"] = "contains"
+    (directory/"geo"/"test.json").write_text(json.dumps(baseline))
+    for characteristic in ("morning_sun", "evening_heat"):
+        result = compute_trait(hotel, directory, characteristic)
+        assert result["claims"] == []
+        assert "boundary_or_outside" in result["warnings"][0]
+
+
+def test_conditional_solar_evidence_does_not_turn_contour_floors_into_hotel_floors(solar_artifacts):
+    hotel, directory, baseline = solar_artifacts
+    hotel.update(lon=39.7202, floors=None)
+    footprint = shape(baseline["building"]["geometry"])
+    point = Point(TO_UTM.transform(hotel["lon"], hotel["lat"]))
+    baseline["building_match"] = {"method": "nearest_30m", "distance_m": metric(footprint).distance(point)}
+    (directory/"geo"/"test.json").write_text(json.dumps(baseline))
+    result = compute_trait(hotel, directory, "morning_sun", month=9)
+    assert result["claims"]
+    for claim in result["claims"]:
+        evidence = claim["evidence"][0]
+        association = evidence["inputs"]["building_association"]
+        assert association["result"] == "conditional_nearest_30m"
+        assert association["floor_domain"] == "contour_conditional"
+        assert association["contour_floor_count"] == 2
+        assert "hotel_floor_count" not in association
+        assert any("соответствие отелю не подтверждено, этажи условны" in item for item in evidence["limitations"])
 
 
 def test_explicit_changed_artifact_never_falls_back_to_clear_baseline(solar_artifacts):

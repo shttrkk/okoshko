@@ -12,8 +12,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
+from shapely.geometry import Point, shape
 
-from geo.coordinates import TO_UTM, hotel_center
+from geo.coordinates import TO_UTM, hotel_center, metric
 from geo.facades import extract_facades
 from geo.noise import noise_facade, source_samples
 from geo.region import get_region
@@ -22,8 +23,8 @@ from geo.sun import facade_exposure, monthly_exposure_paths
 
 TRAITS = frozenset({"morning_sun", "evening_heat", "railway_noise", "beach_surface",
                     "accessible_route", "green_nearby"})
-METHODS = {"morning_sun": "astral_morning_horizon_proxy_v1",
-           "evening_heat": "astral_evening_exposure_proxy_v1",
+METHODS = {"morning_sun": "astral_morning_horizon_proxy_v2",
+           "evening_heat": "astral_evening_exposure_proxy_v2",
            "railway_noise": "outdoor_rail_noise_proxy_v1",
            "beach_surface": "osm_beach_surface_v2",
            "accessible_route": "osm_route_accessibility_v1",
@@ -35,6 +36,12 @@ SOLAR_LIMITATIONS = [
     "Индекс экспозиции — безразмерный модельный прокси прямого солнца, не температура и не прогноз нагрева комнаты",
     "Использован средний профиль точек фасада; отдельного Monte Carlo для этой характеристики нет",
 ]
+# A numerical boundary tolerance, not a statement about GPS/OSM accuracy.
+# Millimetres exceed projection/rounding artifacts while leaving explicitly
+# conditional nearest-building associations to their separate metadata branch.
+SOLAR_BOUNDARY_EPS_M = .001
+SOLAR_ASSOCIATION_VERSION = "solar_building_match_v1"
+CONDITIONAL_CONTOUR_LIMITATION = "Выбран ближайший контур здания; соответствие отелю не подтверждено, этажи условны для этого контура"
 
 
 def _canonical(value):
@@ -133,6 +140,54 @@ def solar_floor_ranges(outputs, characteristic):
         start = stop
 
 
+def solar_building_match(hotel, baseline):
+    """Check whether a saved footprint can supply the solar floor domain.
+
+    An explicit building ID plus the same existing Hotel.floors preserves that
+    supplied floor domain, without re-deriving ownership from point containment.
+    Otherwise a contains/id
+    match needs strict interior agreement in both CRSs and a numerical margin.
+    Existing nearest_30m matches remain conditional only when distance and
+    non-unit facade confidence are explicitly recorded and reproducible.
+    """
+    match = baseline.get("building_match", {})
+    method = match.get("method")
+    feature = baseline.get("building") or {}
+    if method not in {"id", "contains", "nearest_30m"}:
+        return False, "missing_match_metadata"
+    tagged_floors = hotel.get("floors")
+    building_id = baseline.get("building_id")
+    if (method == "id" and building_id and feature.get("id") == building_id
+            and hotel.get("tags", {}).get("building_id") == building_id
+            and isinstance(tagged_floors, int) and not isinstance(tagged_floors, bool)
+            and tagged_floors == baseline.get("floors", {}).get("count") and 1 <= tagged_floors <= 100):
+        return True, "existing_floor_count_and_building_id"
+    try:
+        footprint = shape(feature["geometry"])
+        if footprint.geom_type not in {"Polygon", "MultiPolygon"} or not footprint.is_valid:
+            return False, "unsupported_footprint"
+        lon, lat = hotel_center(hotel)
+        point = Point(lon, lat)
+        projected = metric(footprint)
+        projected_point = Point(TO_UTM.transform(lon, lat))
+    except (KeyError, TypeError, ValueError):
+        return False, "missing_footprint"
+    if method == "nearest_30m":
+        distance = match.get("distance_m")
+        confidences = [facade.get("confidence") for facade in baseline.get("facades", [])]
+        if (not isinstance(distance, int | float) or isinstance(distance, bool)
+                or not np.isfinite(distance) or not 0 <= distance <= 30
+                or abs(projected.distance(projected_point)-distance) > SOLAR_BOUNDARY_EPS_M
+                or not confidences or any(not isinstance(c, int | float) or isinstance(c, bool)
+                                          or not np.isfinite(c) or not 0 <= c < 1 for c in confidences)):
+            return False, "unverified_nearest_match"
+        return True, "conditional_nearest_30m"
+    if (not footprint.contains(point) or not projected.contains(projected_point)
+            or projected.boundary.distance(projected_point) <= SOLAR_BOUNDARY_EPS_M):
+        return False, "boundary_or_outside"
+    return True, "strict_interior"
+
+
 def _solar(hotel, data_dir, characteristic, month, geo_artifact=None):
     path = _geo_path(hotel, data_dir, geo_artifact)
     baseline = _baseline(hotel, data_dir, geo_artifact)
@@ -148,6 +203,10 @@ def _solar(hotel, data_dir, characteristic, month, geo_artifact=None):
         return [], ["Нет известной этажности связанного здания; условный уровень глаза не считаем этажами отеля"]
     if not isinstance(baseline["floors"]["count"], int) or not 1 <= baseline["floors"]["count"] <= 100:
         return [], ["Некорректная этажность выбранного профиля горизонта; солнце неизвестно"]
+    usable, match_reason = solar_building_match(hotel, baseline)
+    if not usable:
+        return [], ["Принадлежность точки отеля зданию не подтверждена ("+match_reason+
+                    "); пограничную привязку не используем для точных этажей"]
     # A changed regional snapshot invalidates a saved horizon, even if the file
     # name stayed the same. Do not silently combine incompatible generations.
     for artifact, digest in baseline.get("inputs", {}).items():
@@ -171,6 +230,22 @@ def _solar(hotel, data_dir, characteristic, month, geo_artifact=None):
     if not sources:
         return [], ["В профиле горизонта отсутствует provenance источников"]
     limitations = list(baseline.get("limitations", []))+SOLAR_LIMITATIONS
+    conditional = match_reason == "conditional_nearest_30m"
+    association = {"predicate": SOLAR_ASSOCIATION_VERSION, "result": match_reason,
+                   "building_id": baseline.get("building_id"),
+                   "match_method": baseline.get("building_match", {}).get("method"),
+                   "match_distance_m": baseline.get("building_match", {}).get("distance_m"),
+                   "boundary_epsilon_m": SOLAR_BOUNDARY_EPS_M,
+                   "contour_floor_count": baseline["floors"]["count"],
+                   "floor_domain": "contour_conditional" if conditional else "contour_model"}
+    hotel_floors = hotel.get("floors")
+    if isinstance(hotel_floors, int) and not isinstance(hotel_floors, bool) and 1 <= hotel_floors <= 100:
+        association.update(hotel_floor_count=hotel_floors,
+                           matches_hotel_floor_count=hotel_floors == baseline["floors"]["count"])
+        if match_reason == "existing_floor_count_and_building_id":
+            association["floor_domain"] = "existing_hotel_floor_domain"
+    if conditional:
+        limitations.append(CONDITIONAL_CONTOUR_LIMITATION)
     with np.load(npz, allow_pickle=False) as arrays:
         for index, facade in enumerate(baseline["facades"]):
             key = f"facade_{index}_horizon"
@@ -192,7 +267,8 @@ def _solar(hotel, data_dir, characteristic, month, geo_artifact=None):
                     inputs = {"input_sha256": hashes, "horizon_array": key, "representative_date": path["date"],
                               "start": path["start"], "end": path["end"], "sample_minutes": path["sample_minutes"],
                               "facade_azimuth_deg": facade["azimuth_deg"], "window_half_angle_deg": 75,
-                              "minimum_visible_minutes": 20, "baseline_inputs": baseline.get("inputs", {})}
+                              "minimum_visible_minutes": 20, "baseline_inputs": baseline.get("inputs", {}),
+                              "building_association": association}
                     claims.append(_claim(hotel["id"], characteristic, value,
                                          {"type": "floor_range", "facade": facade["code"],
                                           "floor_min": low, "floor_max": high, "month": path["month"]},
@@ -238,7 +314,6 @@ def _route_edges(graph, node_ids):
 def _regional(hotel, data_dir, characteristic):
     region = get_region(data_dir)
     xy = TO_UTM.transform(*hotel_center(hotel))
-    from shapely.geometry import Point
     point = Point(xy)
     if characteristic == "railway_noise":
         buildings = region.buildings(xy, 1600)
