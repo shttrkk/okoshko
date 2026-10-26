@@ -74,6 +74,8 @@ def compute_cached_change(hotel, data_dir, new_building):
     if not new_building.get("properties", {}).get("synthetic"):
         raise ValueError("new_building fixture must explicitly carry properties.synthetic=true")
     baseline = json.loads(baseline_path.read_text())
+    if baseline.get("landmarks"):
+        return None  # Named target LOS needs the full engine, not this sea/ridge cache.
     for input_artifact, expected in baseline["inputs"].items():
         input_path = data_dir/input_artifact.removeprefix("/data/")
         if not input_path.exists() or hashlib.sha256(input_path.read_bytes()).hexdigest() != expected:

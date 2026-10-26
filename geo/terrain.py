@@ -34,76 +34,93 @@ class Grid:
 
 
 class SeaClassifier:
-    """OSM coastline orientation: land on the left, sea on the right.
+    """Directed mainland coastline plus closed land polygons (islands/breakwaters).
 
-    Nearest oriented segment classification is used only inside the supplied
-    coastline's coverage. It cannot infer inland lakes or unmapped islands.
+    Closed land must not replace the mainland's initial side classification: a
+    nearby pier's seaward edge does not make the land behind that pier an ocean.
     """
     def __init__(self, coastline):
-        segments = []
+        segments, mainland_segments, islands = [], [], []
         for geometry in coastline:
             lines = list(geometry.geoms) if geometry.geom_type == "MultiLineString" else [geometry]
             for line in lines:
                 if line.geom_type != "LineString":
                     continue
+                if line.is_ring:
+                    polygon = shapely.Polygon(line)
+                    if polygon.is_valid:
+                        islands.append(polygon)
                 coords = np.asarray(line.coords)
-                segments.extend(LineString([a, b]) for a, b in zip(coords[:-1], coords[1:], strict=True) if np.linalg.norm(b-a) > .1)
+                pieces = [LineString([a, b]) for a, b in zip(coords[:-1], coords[1:], strict=True) if np.linalg.norm(b-a) > .1]
+                segments.extend(pieces)
+                if not line.is_ring:
+                    mainland_segments.extend(pieces)
         self.segments = segments
         self.tree = STRtree(segments) if segments else None
-        self.starts = np.asarray([list(line.coords)[0] for line in segments])
-        self.ends = np.asarray([list(line.coords)[1] for line in segments])
+        self.mainland_segments = mainland_segments
+        self.mainland_tree = STRtree(mainland_segments) if mainland_segments else None
+        self.starts = np.asarray([list(line.coords)[0] for line in mainland_segments])
+        self.ends = np.asarray([list(line.coords)[1] for line in mainland_segments])
+        self.islands = shapely.union_all(islands)
+        shapely.prepare(self.islands)
 
     def has_coverage(self, point):
         if self.tree is None:
             return False
         point = shapely.Point(point)
-        nearest = int(self.tree.nearest(point))
-        return self.segments[nearest].distance(point) <= 2000
+        tree = self.mainland_tree if self.mainland_tree is not None else self.tree
+        segments = self.mainland_segments if self.mainland_tree is not None else self.segments
+        nearest = int(tree.nearest(point))
+        return segments[nearest].distance(point) <= 2000
+
+    def _mainland(self, x, y):
+        x, y = np.broadcast_arrays(x, y)
+        if self.mainland_tree is None:
+            return np.full(x.shape, self.tree is not None, dtype=bool)
+        nearest = self.mainland_tree.nearest(shapely.points(x.ravel(), y.ravel()))
+        a, b = self.starts[nearest], self.ends[nearest]
+        v = b-a
+        cross = v[:, 0]*(y.ravel()-a[:, 1])-v[:, 1]*(x.ravel()-a[:, 0])
+        return (cross < 0).reshape(x.shape)
 
     def sample(self, x, y):
         x, y = np.broadcast_arrays(x, y)
-        result = np.zeros(x.size, dtype=bool)
-        if self.tree is None:
-            return result.reshape(x.shape)
-        points = shapely.points(x.ravel(), y.ravel())
-        nearest = self.tree.nearest(points)
-        a, b = self.starts[nearest], self.ends[nearest]
-        v = b - a
-        cross = v[:, 0] * (y.ravel() - a[:, 1]) - v[:, 1] * (x.ravel() - a[:, 0])
-        result[:] = cross < 0
-        return result.reshape(x.shape)
+        return self._mainland(x, y) & ~shapely.contains_xy(self.islands, x, y)
 
     def rays(self, point, azimuths, distances):
-        """Trace actual shoreline crossings; never extend its nearest tangent.
+        """Trace actual mainland crossings, then subtract closed land footprints.
 
-        The initial state is accepted only within 2km of a mapped shore.
-        Once a ray exits land across a mapped coastline, it remains water until
-        another mapped crossing. Missing islands remain a declared limitation.
+        No tangent is extended from a distant island or pier. The initial
+        mainland side is accepted only within 2km of mapped mainland coverage.
         """
         output = np.zeros((len(azimuths), len(distances)), dtype=bool)
-        if self.tree is None:
+        if not self.has_coverage(point):
             return output
         start = np.asarray(point)
-        if not self.has_coverage(start):
-            return output
-        initial_sea = bool(self.sample(np.asarray([start[0]]), np.asarray([start[1]]))[0])
+        initial_sea = bool(self._mainland(np.asarray([start[0]]), np.asarray([start[1]]))[0])
         directions = np.column_stack((np.sin(np.radians(azimuths)), np.cos(np.radians(azimuths))))
         lines = shapely.linestrings(np.stack((np.broadcast_to(start, directions.shape), start+directions*distances[-1]), axis=1))
-        pairs = self.tree.query(lines, predicate="intersects")
+        pairs = self.mainland_tree.query(lines, predicate="intersects") if self.mainland_tree is not None else np.empty((2, 0), int)
         for ray in range(len(azimuths)):
-            crossings = []
+            events = []
             for segment_index in pairs[1, pairs[0] == ray]:
-                intersection = lines[ray].intersection(self.segments[int(segment_index)])
+                index = int(segment_index)
+                intersection = lines[ray].intersection(self.mainland_segments[index])
                 points = list(intersection.geoms) if hasattr(intersection, "geoms") else [intersection]
-                for point_geometry in points:
-                    if point_geometry.geom_type == "Point":
-                        crossings.append(lines[ray].project(point_geometry))
-            if crossings:
-                unique = np.unique(np.round(crossings, 2))
-                count = np.searchsorted(unique, distances, side="right")
-                output[ray] = (count % 2 == 0) if initial_sea else (count % 2 == 1)
-            elif initial_sea:
-                output[ray] = True
+                vector = self.ends[index]-self.starts[index]
+                sea_after = vector[0]*directions[ray, 1]-vector[1]*directions[ray, 0] < 0
+                for target in points:
+                    if target.geom_type == "Point":
+                        events.append((lines[ray].project(target), sea_after))
+            state = initial_sea
+            previous = 0.0
+            for distance, state_after in sorted(events):
+                output[ray, (distances >= previous) & (distances < distance)] = state
+                state, previous = state_after, distance
+            output[ray, distances >= previous] = state
+        x = start[0]+directions[:, 0, None]*distances
+        y = start[1]+directions[:, 1, None]*distances
+        output &= ~shapely.contains_xy(self.islands, x, y)
         return output
 
 

@@ -51,6 +51,22 @@ def test_coastline_land_left_sea_right():
     assert not sea.rays((3000, 0), np.array([270]), np.array([100, 4000])).any()
 
 
+def test_closed_breakwater_does_not_make_mainland_behind_it_sea():
+    coast = LineString([(0, 1000), (0, -1000)])
+    breakwater = LineString(box(-10, -10, 10, 10).exterior.coords)
+    sea = SeaClassifier([coast, breakwater])
+    assert sea.sample(np.asarray([12., -12.]), np.asarray([0., 0.])).tolist() == [False, True]
+    assert sea.rays((12, 0), np.asarray([270]), np.asarray([1., 5., 15., 25.])).tolist() == [[False, False, False, True]]
+
+
+def test_roof_on_sea_mask_is_never_counted_as_a_sea_target():
+    ground = np.zeros((1, 3), np.float32)
+    bids = np.zeros((1, 3), np.int32)
+    water = np.ones((1, 3), bool)
+    result = scan_profiles(ground, bids, water, np.asarray([10., 20., 30.]), np.asarray([10.]), np.asarray([0.]), np.asarray([1.5]))
+    assert not result[0].any()
+
+
 def test_roofs_replaced_not_added_to_copernicus_dsm():
     dem = np.zeros((100, 100), np.float32)
     dem[45:55, 45:55] = 12  # blurred Copernicus roof
@@ -120,6 +136,27 @@ def test_curvature_blocks_beyond_sea_horizon():
     result = los_to_point((0, 450), 1.5, (50000, 450), 0, terrain, [], step_m=100)
     assert result["terrain_blocked"]
     assert not result["visible"]
+
+
+def test_named_target_los_retains_actual_blocking_building_id():
+    terrain = Grid(np.zeros((100, 200), np.float32), -10, 50, 1)
+    barrier = {"id": "known-barrier", "shape": box(40, -20, 50, 20), "base_m": 0, "height_m": 10}
+    blocked = los_to_point((0, 0), 1.5, (100, 0), 1.5, terrain, [barrier])
+    clear = los_to_point((0, 0), 30, (100, 0), 30, terrain, [barrier])
+    assert blocked["blocking_building_ids"] == ["known-barrier"]
+    assert not blocked["visible"]
+    assert clear["visible"]
+
+
+def test_mountain_ridge_is_occluded_below_known_height():
+    distances = np.arange(10., 3010., 10.)
+    ground = np.zeros((1, len(distances)), np.float32)
+    ground[0, distances == 2000] = 300
+    bids = np.full_like(ground, -1, dtype=np.int32)
+    bids[0, (distances >= 50) & (distances <= 60)] = 0
+    result = scan_profiles(ground, bids, np.zeros_like(ground, bool), distances,
+                           np.asarray([100.]), np.asarray([0.]), np.asarray([1.5, 150.]))
+    assert result[1][:, 0].tolist() == [False, True]
 
 
 def test_real_route_geometry_retains_rail_tunnel_transition():

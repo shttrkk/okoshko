@@ -73,7 +73,7 @@ def scan_profiles(ground, building_ids, sea, distances, heights, bases, eyes, de
                 if bid >= 0:
                     surface = bases[bid] + heights[bid] + dem_shift - curvature
                 slope = (surface - eyes[floor]) / distance
-                if sea[ray, j]:
+                if sea[ray, j] and bid < 0:
                     if slope >= horizon - 1e-7:
                         visible[floor, ray] = True
                         sea_nearest[floor, ray] = min(sea_nearest[floor, ray], distance)
