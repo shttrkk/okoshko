@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-10-26T12:20:15.056876+00:00",
+  "hotel_count": 0,
+  "characteristic_count": 0,
+  "fact_count": 0,
+  "label_count": 0,
+  "manual_label_count": 0,
+  "coverage": {
+    "known_pairs": 0,
+    "total_pairs": 0,
+    "ratio": 0
+  },
+  "question_share": 0,
+  "label_groups": {},
+  "parser_accuracy": null,
+  "ndcg_at_5": null,
+  "status": "awaiting_independent_labels",
+  "limitations": [
+    "Слабые метки с сайтов могут описывать только часть номеров; scope проверяется отдельно.",
+    "Monte Carlo характеризует устойчивость модели, а не точность на независимой разметке.",
+    "Отсутствующие метрики показаны как не измеренные, а не как ноль."
+  ],
+  "methodology_url": "/data/eval/README.md"
+}
