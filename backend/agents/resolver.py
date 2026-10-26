@@ -9,6 +9,8 @@ from datetime import UTC, datetime
 from backend.contracts import CharacteristicSpec, Claim, Conflict, Fact, Scope
 
 INTERNAL = {"soundproofing", "room_orientation", "pets"}
+VIEWS = {"sea_view", "sunset_view", "mountain_view"}
+CATEGORIES = ("facade", "month", "room_type")
 
 
 def stable_id(*parts) -> str:
@@ -33,6 +35,107 @@ def value_key(claim: Claim, spec: CharacteristicSpec | None) -> str:
     return json.dumps(claim.value, sort_keys=True, ensure_ascii=False)
 
 
+def existential_view(claim: Claim) -> bool:
+    """'Some rooms have a view' cannot vote on every room in the hotel."""
+    positive = claim.value is True or isinstance(claim.value, dict) and claim.value.get("available") is True
+    qualified = any(getattr(claim.scope, key) is not None for key in ("facade", "floor_min", "floor_max", "room_type"))
+    universal = any(e.inputs.get("universal_scope") is True for e in claim.evidence)
+    return claim.characteristic_id in VIEWS and positive and not qualified and not universal
+
+
+def scopes_overlap(left: Scope, right: Scope) -> bool:
+    if any(getattr(left, key) is not None and getattr(right, key) is not None
+           and getattr(left, key) != getattr(right, key) for key in CATEGORIES):
+        return False
+    return max(left.floor_min or 1, right.floor_min or 1) <= min(left.floor_max or 100, right.floor_max or 100)
+
+
+def scope_contains(outer: Scope, inner: Scope) -> bool:
+    return all(getattr(outer, key) is None or getattr(outer, key) == getattr(inner, key) for key in CATEGORIES) and (
+        (outer.floor_min or 1) <= (inner.floor_min or 1) and (outer.floor_max or 100) >= (inner.floor_max or 100))
+
+
+def _partition_component(groups: list[list[Claim]]) -> list[tuple[Scope, list[Claim]]]:
+    """Partition floors; categorical wildcards remain defaults with narrow overlays.
+
+    Scope cannot express 'all room types except suite'. Keeping the default and
+    its resolved suite overlay preserves that remainder without inventing rooms.
+    Redundant overlays with the same supporting claims are removed below.
+    """
+    claims = [claim for group in groups for claim in group]
+    patterns = {tuple(getattr(claim.scope, key) for key in CATEGORIES) for claim in claims}
+    while True:
+        added = set()
+        for left in patterns:
+            for right in patterns:
+                if all(a is None or b is None or a == b for a, b in zip(left, right, strict=True)):
+                    added.add(tuple(a if a is not None else b for a, b in zip(left, right, strict=True)))
+        if added <= patterns:
+            break
+        patterns.update(added)
+    cells = []
+    for pattern in sorted(patterns, key=lambda row: tuple(str(value) for value in row)):
+        covering = [claim for claim in claims if all(getattr(claim.scope, key) is None or getattr(claim.scope, key) == value
+                                                    for key, value in zip(CATEGORIES, pattern, strict=True))]
+        boundaries = sorted({bound for claim in covering for bound in (claim.scope.floor_min or 1, (claim.scope.floor_max or 100) + 1)})
+        for low, stop in zip(boundaries, boundaries[1:], strict=False):
+            active = [claim for claim in covering if (claim.scope.floor_min or 1) <= low and (claim.scope.floor_max or 100) >= stop - 1]
+            if not active:
+                continue
+            fields = dict(zip(CATEGORIES, pattern, strict=True))
+            fields["floor_min"] = low if low != 1 or any(claim.scope.floor_min is not None for claim in active) else None
+            fields["floor_max"] = stop - 1 if stop != 101 or any(claim.scope.floor_max is not None for claim in active) else None
+            fields["type"] = "room_type" if fields["room_type"] else "floor_range" if fields["facade"] and (
+                fields["floor_min"] is not None or fields["floor_max"] is not None) else "facade" if fields["facade"] else "hotel"
+            scope = Scope(**fields)
+            original = next((claim.scope for claim in active if scope_contains(scope, claim.scope) and scope_contains(claim.scope, scope)), None)
+            scope = original or scope
+            cells.append((scope, active))
+    result = []
+    for index, (scope, active) in enumerate(cells):
+        ids = {claim.id for claim in active}
+        redundant = any(index != other_index and ids == {claim.id for claim in other_active}
+                        and scope_contains(other_scope, scope)
+                        and (not scope_contains(scope, other_scope) or other_index < index)
+                        for other_index, (other_scope, other_active) in enumerate(cells))
+        if not redundant:
+            result.append((scope, active))
+    return result
+
+
+def partition_claims(claims: list[Claim], *, at: datetime) -> dict[tuple[str, str], list[Claim]]:
+    """Resolve real intersections using narrowed copies, never ledger mutations."""
+    grouped = defaultdict(list)
+    candidates = defaultdict(lambda: defaultdict(list))
+    for claim in claims:
+        key = claim.characteristic_id, scope_key(claim.scope)
+        grouped[key].append(claim)
+        if claim.valid_until > at and not existential_view(claim):
+            candidates[claim.characteristic_id][key].append(claim)
+    for characteristic_id, by_scope in candidates.items():
+        groups = list(by_scope.values())
+        remaining = set(range(len(groups)))
+        while remaining:
+            component = {remaining.pop()}
+            pending = list(component)
+            while pending:
+                current = pending.pop()
+                neighbours = {index for index in remaining if scopes_overlap(groups[current][0].scope, groups[index][0].scope)}
+                remaining.difference_update(neighbours)
+                component.update(neighbours)
+                pending.extend(neighbours)
+            if len(component) == 1:
+                continue  # Preserve exact scopes and Fact IDs when nothing overlaps.
+            affected = [groups[index] for index in sorted(component)]
+            for group in affected:
+                key = characteristic_id, scope_key(group[0].scope)
+                ids = {claim.id for claim in group}
+                grouped[key] = [claim for claim in grouped[key] if claim.id not in ids]
+            for scope, active in _partition_component(affected):
+                grouped[(characteristic_id, scope_key(scope))].extend(claim.model_copy(update={"scope": scope}) for claim in active)
+    return {key: group for key, group in grouped.items() if group}
+
+
 def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[CharacteristicSpec], sources: list[dict], *, at: datetime | None = None) -> tuple[list[Fact], list[Conflict]]:
     at = at or datetime.now(UTC)
     source_priors = {source["id"]: source.get("alpha", 7)/(source.get("alpha", 7)+source.get("beta", 3)) for source in sources}
@@ -47,9 +150,7 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
         key = (claim.characteristic_id, scope_key(claim.scope), claim.source, claim.method)
         if key not in latest or (claim.observed_at, claim.id) > (latest[key].observed_at, latest[key].id):
             latest[key] = claim
-    grouped = defaultdict(list)
-    for claim in latest.values():
-        grouped[(claim.characteristic_id, scope_key(claim.scope))].append(claim)
+    grouped = partition_claims(list(latest.values()), at=at)
     facts, conflicts = [], []
     for (characteristic_id, scope_json), group in grouped.items():
         valid = [claim for claim in group if claim.valid_until > at]
@@ -132,11 +233,11 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
             facts.append(Fact(id=stable_id("fact",hotel_id,spec.id,"hotel"), hotel_id=hotel_id, characteristic_id=spec.id))
     # General statements and facade-specific observations coexist; they must not overwrite each other.
     for characteristic_id in represented:
-        general = [claim for claim in latest.values() if claim.characteristic_id == characteristic_id and claim.scope.type == "hotel" and claim.valid_until > at]
+        general = [claim for claim in latest.values() if claim.characteristic_id == characteristic_id and existential_view(claim) and claim.valid_until > at]
         specific = [claim for claim in latest.values() if claim.characteristic_id == characteristic_id and claim.scope.type != "hotel" and claim.valid_until > at]
         for broad in general:
             for narrow in specific:
-                if value_key(broad, spec_by_id.get(characteristic_id)) != value_key(narrow, spec_by_id.get(characteristic_id)):
+                if scopes_overlap(broad.scope, narrow.scope) and value_key(broad, spec_by_id.get(characteristic_id)) != value_key(narrow, spec_by_id.get(characteristic_id)):
                     # A split is a qualification; only an explicit universal assertion is a genuine contradiction.
                     universal = any(e.inputs.get("universal_scope") for e in broad.evidence)
                     conflicts.append(Conflict(id=stable_id("scope",broad.id,narrow.id),hotel_id=hotel_id,characteristic_id=characteristic_id,
@@ -150,21 +251,49 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
     return facts, conflicts
 
 
+def reconcile_conflicts(repo, conflicts: list[Conflict], hotel_ids: set[str]) -> None:
+    """Close obsolete materialized disputes while preserving their claim history."""
+    active_ids = {conflict.id for conflict in conflicts}
+    previous = repo.find("conflicts", hotel_id=next(iter(hotel_ids))) if len(hotel_ids) == 1 else repo.all("conflicts")
+    previous_by_id = {c["id"]: c for c in previous if c.get("hotel_id") in hotel_ids}
+    payloads = []
+    for previous_conflict in previous:
+        if (previous_conflict.get("hotel_id") in hotel_ids and previous_conflict.get("status") in {"open", "asked"}
+                and previous_conflict["id"] not in active_ids):
+            closed = Conflict.model_validate(previous_conflict).model_copy(update={
+                "status": "resolved",
+                "resolution_note": "Спор закрыт при пересчёте: прежние наблюдения заменены, истекли или их пересечение больше не активно. История и ссылки на claims сохранены.",
+            })
+            payloads.append(closed.model_dump(mode="json"))
+    for conflict in conflicts:
+        old = previous_by_id.get(conflict.id)
+        if old:
+            updates = {"question_id": conflict.question_id or old.get("question_id")}
+            if old.get("status") == "asked" and conflict.status == "open":
+                updates["status"] = "asked"
+            conflict = conflict.model_copy(update=updates)
+        payloads.append(conflict.model_dump(mode="json"))
+    if hasattr(repo, "upsert_many"):
+        repo.upsert_many("conflicts", payloads)
+    else:
+        for payload in payloads:
+            repo.upsert("conflicts", payload)
+
+
 def resolve_hotel(hotel_id: str, repo) -> list[Fact]:
     claims = [Claim.model_validate(value) for value in repo.find("claims", hotel_id=hotel_id)]
     specs = [CharacteristicSpec.model_validate(value) for value in repo.all("characteristics")]
     facts, conflicts = resolve_claims(hotel_id, claims, specs, repo.all("sources"))
     if hasattr(repo,"replace_facts"):
         repo.replace_facts(hotel_id,[fact.model_dump(mode="json") for fact in facts])
-    for table, values in (("facts", facts), ("conflicts", conflicts)):
-        if table=="facts" and hasattr(repo,"replace_facts"):
-            continue
-        payloads = [value.model_dump(mode="json") for value in values]
+    else:
+        payloads = [fact.model_dump(mode="json") for fact in facts]
         if hasattr(repo, "upsert_many"):
-            repo.upsert_many(table, payloads)
+            repo.upsert_many("facts", payloads)
         else:
             for payload in payloads:
-                repo.upsert(table, payload)
+                repo.upsert("facts", payload)
+    reconcile_conflicts(repo, conflicts, {hotel_id})
     return facts
 
 
@@ -185,6 +314,6 @@ def resolve_all(repo):
         repo.replace_materialized_facts([hotel["id"] for hotel in hotels], facts)
     else:
         repo.upsert_many("facts", facts)
-    repo.upsert_many("conflicts", conflicts)
+    reconcile_conflicts(repo, [Conflict.model_validate(conflict) for conflict in conflicts], {hotel["id"] for hotel in hotels})
     return {"facts": len(facts), "conflicts": len(conflicts)}
 
