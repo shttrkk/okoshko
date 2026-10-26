@@ -6,9 +6,18 @@ from datetime import timedelta
 
 import pytest
 
-from backend.contracts import Claim, Evidence, Fact
+from backend.contracts import Claim, Evidence, Fact, Hotel
 from backend.quality import ndcg, ranking_report
-from scripts.ranking_eval import AS_OF, GOLD, agreement_at_5, criterion, freeze, weak_judgment
+from scripts.ranking_eval import (
+    AS_OF,
+    GOLD,
+    agreement_at_5,
+    complex_ids,
+    criterion,
+    freeze,
+    normalized_name,
+    weak_judgment,
+)
 
 
 def input_fact(cid, value, *, side=None, status="computed", synthetic=False, confidence=.66):
@@ -85,3 +94,16 @@ def test_quality_hides_metrics_when_frozen_gold_changes(tmp_path):
     assert ranking_report(tmp_path)["ndcg_at_5"] == .8
     gold.write_text("changed")
     assert ranking_report(tmp_path)["ndcg_at_5"] is None
+
+
+def test_diversity_proxy_keeps_distant_namesakes_and_stops_transitive_chains():
+    def hotel(id, name, north_m):
+        return Hotel(id=id, name=name, lat=43.5+north_m/111_195, lon=39.7)
+    hotels = [hotel("a", "Grand Way", 0), hotel("b", "GRAND-WAY", 150), hotel("c", "Grand Way", 300),
+              hotel("d", "Grand Way", 2000), hotel("e", "Other Hotel", 0)]
+    clusters = complex_ids(hotels)
+    assert normalized_name(" Grand-Way ") == normalized_name("GRAND WAY")
+    assert clusters["a"] == clusters["b"]
+    assert clusters["c"] != clusters["a"] and clusters["d"] != clusters["a"]
+    assert clusters["e"] != clusters["a"]
+    assert complex_ids(list(reversed(hotels))) == clusters
