@@ -31,19 +31,23 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
     by_hotel = defaultdict(list)
     for fact in facts:
         by_hotel[fact.hotel_id].append(fact)
-    if not parsed.must and not parsed.nice:
+    if not parsed.must and not parsed.nice and not parsed.no_data_must:
         return browse_hotels(hotels, by_hotel, specs)
     ranked = []
     criteria = [*parsed.must, *parsed.nice]
-    must_total = len(parsed.must)
+    active_must_total = len(parsed.must)
+    must_total = active_must_total + len(parsed.no_data_must)
     for hotel in hotels:
         hotel_facts = by_hotel[hotel.id]
         assessment = assess_hotel(hotel_facts, parsed, specs)
-        required = assessment.matches[:must_total]
+        required = assessment.matches[:active_must_total]
         satisfied = sum(m.supported for m in required)
         some_support = any(m.status in {"yes", "partial"} for m in required)
-        group = "all" if satisfied == must_total else "almost" if some_support or all(m.status == "no" for m in required) else "unknown"
-        weighted = [(criterion_utility(m, c), c.weight*(2 if i < must_total else 1)) for i, (c, m) in enumerate(zip(criteria, assessment.matches, strict=True))]
+        if parsed.no_data_must:
+            group = "almost" if satisfied else "unknown"
+        else:
+            group = "all" if satisfied == must_total else "almost" if some_support or all(m.status == "no" for m in required) else "unknown"
+        weighted = [(criterion_utility(m, c), c.weight*(2 if i < active_must_total else 1)) for i, (c, m) in enumerate(zip(criteria, assessment.matches, strict=True))]
         score = 100 * sum(u*w for u, w in weighted) / sum(w for _, w in weighted) if weighted else 0
         tier = 3 if group == "all" else 2 if some_support else 1 if group == "unknown" else 0
         ranked.append((tier, satisfied, score, hotel.id, hotel, assessment, group))
@@ -57,12 +61,14 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
         # The API never serializes explanations for candidates outside its page.
         if explain_limit is not None and index >= explain_limit:
             continue
-        required = assessment.matches[:must_total]
-        hit.verdicts = [verdict(c, m, i < must_total, parsed,
-                            conflict=assessment.scope_conflict and i < must_total and m.status not in {"yes", "partial"},
+        required = assessment.matches[:active_must_total]
+        hit.verdicts = [verdict(c, m, i < active_must_total, parsed,
+                            conflict=assessment.scope_conflict and i < active_must_total and m.status not in {"yes", "partial"},
                             alternatives=assessment.alternatives.get(i)) for i, (c, m) in enumerate(zip(criteria, assessment.matches, strict=True))]
         if not must_total:
             summary = "Оценка по желательным условиям." if criteria else "Задайте условия, чтобы сравнить отели по подтверждённым фактам."
+        elif parsed.no_data_must and not active_must_total:
+            summary = "Полное совпадение нельзя подтвердить: по обязательным условиям нет данных в регионе."
         elif group == "all":
             summary = f"Все обязательные условия выполнены по имеющимся данным для совместимого номера ({satisfied} из {must_total})."
             if any(m.status == "partial" for m in required):

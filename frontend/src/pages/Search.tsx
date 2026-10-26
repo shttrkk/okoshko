@@ -40,6 +40,15 @@ import type {
   Verdict,
 } from "../types";
 export const mashaQuery = "тихий номер с видом на закат недалеко от моря";
+function criterionKey(c: Criterion) {
+  const scope = c.scope;
+  return JSON.stringify([
+    c.characteristic_id, c.field, c.op, c.value,
+    scope?.facade ?? null, scope?.floor_min ?? null, scope?.floor_max ?? null,
+    scope?.month ?? null, scope?.room_type ?? null,
+    !!c.no_stairs, !!c.no_crossings,
+  ]);
+}
 function tripDates(checkIn: string | null, checkOut: string | null) {
   if (!checkIn || !checkOut) return checkIn || checkOut || "Даты не указаны";
   const a = new Date(checkIn),
@@ -347,7 +356,7 @@ function CriteriaEditor({
 }) {
   const { specs } = useApp();
   const [drag, setDrag] = useState<{
-    id: string;
+    index: number;
     group: "must" | "nice";
   } | null>(null);
   const [showDates, setShowDates] = useState(false);
@@ -360,29 +369,29 @@ function CriteriaEditor({
     parsed.check_out &&
     parsed.check_out <= parsed.check_in
   );
-  const move = (group: "must" | "nice", id: string) => {
+  const move = (group: "must" | "nice", index: number) => {
     const target = group === "must" ? "nice" : "must",
-      criterion = parsed[group].find((c) => c.characteristic_id === id);
+      criterion = parsed[group][index];
     if (criterion)
       onChange({
         ...parsed,
-        [group]: parsed[group].filter((c) => c !== criterion),
+        [group]: parsed[group].filter((_, i) => i !== index),
         [target]: [...parsed[target], criterion],
       });
   };
   const edit = (
     group: "must" | "nice",
-    id: string,
+    index: number,
     change: Partial<Criterion>,
   ) =>
     onChange({
       ...parsed,
-      [group]: parsed[group].map((c) =>
-        c.characteristic_id === id ? { ...c, ...change } : c,
+      [group]: parsed[group].map((c, i) =>
+        i === index ? { ...c, ...change } : c,
       ),
     });
   const drop = (group: "must" | "nice") => {
-    if (drag && drag.group !== group) move(drag.group, drag.id);
+    if (drag && drag.group !== group) move(drag.group, drag.index);
     setDrag(null);
   };
   return (
@@ -504,12 +513,12 @@ function CriteriaEditor({
             <span>{parsed[group].length}</span>
           </div>
           <div className="chips">
-            {parsed[group].map((c) => (
+            {parsed[group].map((c, index) => (
               <div
                 className={`criterion-chip ${group}`}
                 draggable
-                onDragStart={() => setDrag({ id: c.characteristic_id, group })}
-                key={c.characteristic_id}
+                onDragStart={() => setDrag({ index, group })}
+                key={`${c.characteristic_id}:${c.field}:${c.op}:${index}`}
               >
                 <span>{c.label}</span>
                 {c.no_stairs && !/лестниц|ступен/i.test(c.label) && (
@@ -528,7 +537,7 @@ function CriteriaEditor({
                       min="0"
                       max="9999"
                       onChange={(e) =>
-                        edit(group, c.characteristic_id, {
+                        edit(group, index, {
                           value: Number(e.target.value),
                         })
                       }
@@ -542,7 +551,7 @@ function CriteriaEditor({
                       : "Сделать обязательным"
                   }
                   aria-label={`Переместить ${c.label} в ${group === "must" ? "желательные" : "обязательные"}`}
-                  onClick={() => move(group, c.characteristic_id)}
+                  onClick={() => move(group, index)}
                 >
                   {group === "must" ? "↓" : "↑"}
                 </button>
@@ -551,7 +560,7 @@ function CriteriaEditor({
                   onClick={() =>
                     onChange({
                       ...parsed,
-                      [group]: parsed[group].filter((i) => i !== c),
+                      [group]: parsed[group].filter((_, i) => i !== index),
                     })
                   }
                 >
@@ -594,7 +603,7 @@ function CriteriaEditor({
           {specs.data
             ?.filter(
               (s) =>
-                ![...parsed.must, ...parsed.nice].some(
+                ![...parsed.must, ...parsed.nice, ...(parsed.no_data || [])].some(
                   (c) => c.characteristic_id === s.id,
                 ),
             )
@@ -619,15 +628,29 @@ function CriteriaEditor({
               Похож на «{parsed.similar_to_name}»
             </span>
           )}
-          {parsed.no_data?.map((c) => (
-            <span
-              className="criterion-chip no-data-chip"
-              key={c.characteristic_id}
-              title="Условие распознано, но в демо-регионе нет данных — в выдаче не учитывается"
-            >
-              {c.label} · нет данных в регионе
-            </span>
-          ))}
+          {parsed.no_data?.map((c, index) => {
+            const hard = (parsed.no_data_must || []).some((item) => criterionKey(item) === criterionKey(c));
+            return (
+              <span className="criterion-chip no-data-chip" key={`${criterionKey(c)}:${index}`}>
+                <span>{c.label} · {hard ? "обязательно · " : "желательно · "}нет данных в регионе</span>
+                <button
+                  aria-label={`Сделать ${c.label} ${hard ? "желательным" : "обязательным"}`}
+                  title={hard ? "Сделать желательным" : "Сделать обязательным"}
+                  onClick={() => onChange({
+                    ...parsed,
+                    no_data_must: hard
+                      ? (parsed.no_data_must || []).filter((item) => criterionKey(item) !== criterionKey(c))
+                      : [...(parsed.no_data_must || []), c],
+                  })}
+                >{hard ? "↓" : "↑"}</button>
+                <button aria-label={`Убрать ${c.label}`} onClick={() => onChange({
+                  ...parsed,
+                  no_data: parsed.no_data?.filter((_, i) => i !== index),
+                  no_data_must: (parsed.no_data_must || []).filter((item) => criterionKey(item) !== criterionKey(c)),
+                })}><X size={12} /></button>
+              </span>
+            );
+          })}
         </div>
       )}
       {parsed.unmapped.length > 0 && (
@@ -795,6 +818,7 @@ export function SearchPage() {
     !!resource.data &&
     !resource.data.parsed.must.length &&
     !resource.data.parsed.nice.length &&
+    !resource.data.parsed.no_data_must?.length &&
     !resource.data.parsed.similar_to;
   const groupOf = (hit: SearchHit) =>
     noCriteria && hit.group === "all" ? "browse" : hit.group;
@@ -863,6 +887,12 @@ export function SearchPage() {
             <Loading text="Сопоставляем ваши ожидания с фактами…" />
           )}
           <ErrorState error={resource.error} retry={resource.reload} />
+          {!!resource.data?.parsed.no_data_must?.length && (
+            <div className="clarification" role="status" data-testid="missing-required-data">
+              <strong>Полное совпадение нельзя подтвердить</strong>
+              <p>Для обязательных условий пока нет данных: {resource.data.parsed.no_data_must.map((c) => c.label).join(", ")}. Ни один отель не считается совпавшим по всем обязательным условиям. Можно уточнить эти сведения у отеля или сделать условие желательным.</p>
+            </div>
+          )}
           {!noCriteria &&
             (() => {
               // No-data and unmapped notes are already shown as chips and

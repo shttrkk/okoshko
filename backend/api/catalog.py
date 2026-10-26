@@ -28,6 +28,7 @@ from backend.contracts import (
 from backend.coverage import region_coverage
 from backend.db.repository import get_repo
 from backend.llm.client import LLMClient
+from backend.quality import current_value, known_value
 from backend.settings import DATA
 from backend.tools.registry import Registry
 from backend.tracing import Trace
@@ -50,6 +51,40 @@ def required(repo, table, item_id, label="Объект"):
 def catalog(repo):
     return [CharacteristicSpec.model_validate(value) for value in repo.all("characteristics")
             if value.get("status", "active") == "active"]
+
+
+def search_coverage(rows: list[dict], specs: list[CharacteristicSpec], hotel_count: int,
+                    parsed: ParsedQuery) -> dict[str, dict]:
+    """Coverage of the requested fields; a known sibling field is not evidence."""
+    coverage = region_coverage(rows, specs, hotel_count)
+    requested = defaultdict(set)
+    defaults = {spec.id: spec.search.field for spec in specs}
+    for criterion in [*parsed.must, *parsed.nice, *parsed.no_data]:
+        if criterion.characteristic_id in defaults:
+            requested[criterion.characteristic_id].add(criterion.field or defaults[criterion.characteristic_id])
+    known = defaultdict(set)
+    at = now()
+    for row in rows:
+        if row["characteristic_id"] not in requested or not current_value({**row, "value": True}, at):
+            continue
+        for field in requested[row["characteristic_id"]]:
+            value = row.get("value")
+            if isinstance(value, dict):
+                for part in field.split("."):
+                    value = value.get(part) if isinstance(value, dict) else None
+            elif field != "available" and (isinstance(value, bool) or not isinstance(value, int | float)):
+                value = None
+            if known_value(value) or isinstance(value, list):
+                known[row["characteristic_id"], field].add(row["hotel_id"])
+    for spec in specs:
+        coverage[spec.id]["search_field"] = spec.search.field
+        coverage[spec.id]["fields"] = {}
+        for field in requested[spec.id]:
+            count = len(known[spec.id, field])
+            status = ("available" if count == hotel_count else "partial") if count else (
+                "awaiting_hotels" if spec.hotelier_answerable else "no_data")
+            coverage[spec.id]["fields"][field] = {"status": status}
+    return coverage
 
 
 def read_geo(hotel_id: str, repo, *, hotel_row: dict | None = None, events: list[dict] | None = None) -> dict:
@@ -236,13 +271,13 @@ def search(body: SearchRequest, repo=_REPO):
                 if not parsed.unmapped:
                     parsed.clarifications = [message for message in parsed.clarifications if not message.startswith(
                         ("Что важнее для поездки:", "Не удалось сопоставить с каталогом:"))]
-            ids = None if reference else sorted({criterion.characteristic_id for criterion in [*parsed.must, *parsed.nice]} | {"beach_walk"})
+            ids = None if reference else sorted({criterion.characteristic_id for criterion in [*parsed.must, *parsed.nice, *parsed.no_data]} | {"beach_walk"})
             # Similarity uses a September profile; explicit extra conditions
             # still require their requested month, rather than September data.
-            fact_month = None if reference and (parsed.must or parsed.nice) and parsed.month != 9 else 9 if reference else parsed.month
+            fact_month = None if reference and (parsed.must or parsed.nice or parsed.no_data) and parsed.month != 9 else 9 if reference else parsed.month
             rows = repo.search_facts(ids, fact_month) if hasattr(repo, "search_facts") else repo.all("facts")
             from backend.agents.query_rules import apply_region_coverage
-            coverage = region_coverage(rows, [spec for spec in specs if ids is None or spec.id in set(ids)], len(hotel_rows))
+            coverage = search_coverage(rows, [spec for spec in specs if ids is None or spec.id in set(ids)], len(hotel_rows), parsed)
             apply_region_coverage(parsed, coverage)
             cache_key = json.dumps({"parsed": parsed.model_dump(mode="json"), "limit": body.limit}, ensure_ascii=False, sort_keys=True)
             generation, hits = repo.search_cache_get(cache_key) if hasattr(repo, "search_cache_get") else (None, None)
@@ -260,7 +295,7 @@ def search(body: SearchRequest, repo=_REPO):
                     deadlines = [fact.valid_until.timestamp() for fact in facts if fact.valid_until]
                     repo.search_cache_put(cache_key, read_generation, hits, min(deadlines) if deadlines else None)
             if reference is None:
-                if not parsed.must and not parsed.nice:
+                if not parsed.must and not parsed.nice and not parsed.no_data_must:
                     browse = ("Не нашли в запросе условий из каталога, поэтому показываем обзор отелей без подбора. "
                               "Опишите, что важно: тишина, вид на море или закат, дорога к пляжу, парковка, «в гуще событий».")
                     parsed.clarifications = list(dict.fromkeys([browse, *[c for c in parsed.clarifications if not c.startswith("Что важнее")]]))[:2]
