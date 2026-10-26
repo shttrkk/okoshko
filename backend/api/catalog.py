@@ -14,6 +14,7 @@ from backend.contracts import (
     CharacteristicSpec,
     ComparisonRequest,
     Fact,
+    FactEvidence,
     Hotel,
     HotelDetail,
     LabelRequest,
@@ -51,15 +52,18 @@ def catalog(repo):
             if value.get("status", "active") == "active"]
 
 
-def read_geo(hotel_id: str, repo) -> dict:
-    hotel = required(repo, "hotels", hotel_id, "Отель")
+def read_geo(hotel_id: str, repo, *, hotel_row: dict | None = None, events: list[dict] | None = None) -> dict:
+    hotel = hotel_row if hotel_row is not None else required(repo, "hotels", hotel_id, "Отель")
     if "/" in hotel_id or "\\" in hotel_id or hotel_id in {".", ".."}:
         raise HTTPException(422, "Некорректный ID отеля")
     # A change stores the exact durable artifact; do not silently show the old map.
-    changes = sorted(repo.find("change_events", hotel_id=hotel_id), key=lambda row: row.get("detected_at", ""), reverse=True)
-    if not changes:
-        changes = sorted([row for row in repo.all("change_events") if hotel_id in row.get("affected_hotel_ids", [])],
-                         key=lambda row: row.get("detected_at", ""), reverse=True)
+    if events is None:
+        changes = repo.find("change_events", hotel_id=hotel_id)
+        if not changes:
+            changes = [row for row in repo.all("change_events") if hotel_id in row.get("affected_hotel_ids", [])]
+    else:
+        changes = [row for row in events if row.get("hotel_id") == hotel_id or hotel_id in row.get("affected_hotel_ids", [])]
+    changes = sorted(changes, key=lambda row: row.get("detected_at", ""), reverse=True)
     paths = []
     for event in changes[:1]:
         artifact = event.get("payload", {}).get("geo_artifact", "")
@@ -84,24 +88,58 @@ def read_geo(hotel_id: str, repo) -> dict:
             "limitations": ["Георасчёт для этого отеля ещё не подготовлен; отсутствие данных не означает отсутствие вида."]}
 
 
-def detail(hotel_id: str, repo, *, text: str = "", month: int | None = None, parsed: ParsedQuery | None = None) -> HotelDetail:
-    hotel = Hotel.model_validate(required(repo, "hotels", hotel_id, "Отель"))
-    facts = [Fact.model_validate(row) for row in repo.find("facts", hotel_id=hotel_id)]
+def details(hotel_ids: list[str], repo, *, text: str = "", month: int | None = None,
+            parsed: ParsedQuery | None = None, compact: bool = False) -> list[HotelDetail]:
+    if month is not None and month not in range(1, 13):
+        raise HTTPException(422, "Месяц должен быть от 1 до 12")
     from backend.agents.explainer import disappointments, recommend_room
-    verdicts = []
+    specs = catalog(repo) if text or parsed is not None else []
     if text and parsed is None:
         from backend.agents.query_parser import parse_query
-        parsed = parse_query(SearchRequest(text=text), catalog(repo))
+        parsed = parse_query(SearchRequest(text=text), specs)
         if month is not None:
             parsed.month = month
-    if parsed is not None:
-        from backend.agents.ranker import rank_hotels
-        hits = rank_hotels([hotel], facts, parsed, catalog(repo))
-        verdicts = hits[0].verdicts if hits else []
-    return HotelDetail(hotel=hotel, facts=facts, claims=repo.find("claims", hotel_id=hotel_id),
-                       conflicts=repo.find("conflicts", hotel_id=hotel_id), questions=repo.find("questions", hotel_id=hotel_id),
-                       verdicts=verdicts, room_recommendation=recommend_room(facts, parsed),
-                       disappointments=disappointments(facts, parsed), geo=read_geo(hotel_id, repo))
+    if hasattr(repo, "catalog_details"):
+        rows = repo.catalog_details(hotel_ids, compact=compact)
+    else:
+        rows = {table: [row for hotel_id in hotel_ids for row in repo.find(table, hotel_id=hotel_id)]
+                for table in ("facts", "conflicts", "questions")}
+        rows["hotels"] = [required(repo, "hotels", hotel_id, "Отель") for hotel_id in hotel_ids]
+        rows["claims"] = [] if compact else [row for hotel_id in hotel_ids for row in repo.find("claims", hotel_id=hotel_id)]
+        rows["change_events"] = [] if compact else repo.all("change_events")
+    if compact:
+        rows = {**rows, "claims": [], "change_events": []}
+    hotels_by_id = {row["id"]: row for row in rows["hotels"]}
+    if any(hotel_id not in hotels_by_id for hotel_id in hotel_ids):
+        raise HTTPException(404, "Отель не найден")
+    grouped = {}
+    for table in ("facts", "claims", "conflicts", "questions"):
+        grouped[table] = defaultdict(list)
+        for row in rows[table]:
+            if compact and table == "facts":
+                row = {**row, "evidence": [{key: value for key, value in e.items() if key not in {"inputs", "output"}}
+                                          for e in row.get("evidence", [])]}
+            grouped[table][row["hotel_id"]].append(row)
+    result = []
+    for hotel_id in hotel_ids:
+        hotel = Hotel.model_validate(hotels_by_id[hotel_id])
+        facts = [Fact.model_validate(row) for row in grouped["facts"][hotel_id]]
+        verdicts = []
+        if parsed is not None:
+            from backend.agents.ranker import rank_hotels
+            hits = rank_hotels([hotel], facts, parsed, specs)
+            verdicts = hits[0].verdicts if hits else []
+        result.append(HotelDetail(hotel=hotel, facts=facts, claims=grouped["claims"][hotel_id],
+                                  conflicts=grouped["conflicts"][hotel_id], questions=grouped["questions"][hotel_id],
+                                  verdicts=verdicts, room_recommendation=recommend_room(facts, parsed),
+                                  disappointments=disappointments(facts, parsed),
+                                  geo={} if compact else read_geo(hotel_id, repo, hotel_row=hotels_by_id[hotel_id], events=rows["change_events"]),
+                                  evidence_deferred=compact, geometry_deferred=compact))
+    return result
+
+
+def detail(hotel_id: str, repo, **kwargs) -> HotelDetail:
+    return details([hotel_id], repo, **kwargs)[0]
 
 
 @router.get("/status")
@@ -125,10 +163,19 @@ def hotels(repo=_REPO):
 
 
 @router.get("/hotels/{hotel_id}", response_model=HotelDetail)
-def hotel(hotel_id: str, text: str = "", month: int | None = None, repo=_REPO):
-    if month is not None and month not in range(1, 13):
-        raise HTTPException(422, "Месяц должен быть от 1 до 12")
-    return detail(hotel_id, repo, text=text, month=month)
+def hotel(hotel_id: str, text: str = "", month: int | None = None, compact: bool = False, repo=_REPO):
+    return detail(hotel_id, repo, text=text, month=month, compact=compact)
+
+
+@router.get("/hotels/{hotel_id}/facts/{fact_id}/evidence", response_model=FactEvidence)
+def fact_evidence(hotel_id: str, fact_id: str, repo=_REPO):
+    required(repo, "hotels", hotel_id, "Отель")
+    fact = required(repo, "facts", fact_id, "Факт")
+    if fact["hotel_id"] != hotel_id:
+        raise HTTPException(404, "Факт не найден")
+    ids = list(dict.fromkeys([*fact.get("supporting_claim_ids", []), *fact.get("conflicting_claim_ids", [])]))
+    claims = repo.get_many("claims", ids) if hasattr(repo, "get_many") else [row for cid in ids if (row := repo.get("claims", cid))]
+    return FactEvidence(fact=fact, claims=[row for row in claims if row["hotel_id"] == hotel_id])
 
 
 @router.get("/hotels/{hotel_id}/geo")
@@ -137,21 +184,21 @@ def geo(hotel_id: str, repo=_REPO):
 
 
 @router.post("/hotels/{hotel_id}/evaluate", response_model=HotelDetail)
-def evaluate_hotel(hotel_id: str, body: ParsedQuery, repo=_REPO):
-    return detail(hotel_id, repo, parsed=body)
+def evaluate_hotel(hotel_id: str, body: ParsedQuery, compact: bool = False, repo=_REPO):
+    return detail(hotel_id, repo, parsed=body, compact=compact)
 
 
 @router.get("/compare")
-def compare(ids: str, text: str = "", month: int | None = None, repo=_REPO):
+def compare(ids: str, text: str = "", month: int | None = None, compact: bool = False, repo=_REPO):
     selected = list(dict.fromkeys(part.strip() for part in ids.split(",") if part.strip()))
     if not 2 <= len(selected) <= 4:
         raise HTTPException(422, "Для сравнения выберите от 2 до 4 разных отелей")
-    return {"hotels": [detail(item_id, repo, text=text, month=month) for item_id in selected], "characteristics": catalog(repo)}
+    return {"hotels": details(selected, repo, text=text, month=month, compact=compact), "characteristics": catalog(repo)}
 
 
 @router.post("/compare")
-def compare_parsed(body: ComparisonRequest, repo=_REPO):
-    return {"hotels": [detail(item_id, repo, parsed=body.parsed) for item_id in body.ids], "characteristics": catalog(repo)}
+def compare_parsed(body: ComparisonRequest, compact: bool = False, repo=_REPO):
+    return {"hotels": details(body.ids, repo, parsed=body.parsed, compact=compact), "characteristics": catalog(repo)}
 
 
 @router.post("/search", response_model=SearchResult)
@@ -161,6 +208,9 @@ def search(body: SearchRequest, repo=_REPO):
     started = time.monotonic()
     trace = Trace(repo, "search", trigger="user")
     try:
+        # Capture before reading either catalog or facts. A concurrent write at
+        # any point during parsing/ranking must not cache an older snapshot.
+        read_generation = repo.search_generation() if hasattr(repo, "search_generation") else None
         specs = catalog(repo)
         parsed = parse_query(body, specs, llm=LLMClient(repo))
         trace.run.llm_mode = parsed.mode
@@ -180,9 +230,10 @@ def search(body: SearchRequest, repo=_REPO):
             if reference is not None:
                 parsed.similar_to, parsed.similar_to_name = reference.id, reference.name
                 # The reference phrase names a hotel; it is not an unknown condition.
-                parsed.unmapped = []
-                parsed.clarifications = (["Режим «похожий отель»: условия из запроса в сравнении профилей не применяются."]
-                                         if parsed.must or parsed.nice else [])
+                from backend.agents.similarity import only_reference_phrase
+                parsed.unmapped = [fragment for fragment in parsed.unmapped if not only_reference_phrase(fragment, reference.name)]
+                if not parsed.unmapped:
+                    parsed.clarifications = []
             ids = None if reference else sorted({criterion.characteristic_id for criterion in [*parsed.must, *parsed.nice]} | {"beach_walk"})
             rows = repo.search_facts(ids, 9 if reference else parsed.month) if hasattr(repo, "search_facts") else repo.all("facts")
             if reference is None:
@@ -195,13 +246,22 @@ def search(body: SearchRequest, repo=_REPO):
                     labels = ", ".join(dict.fromkeys("«" + c.label + "»" for c in missing))
                     parsed.clarifications = [f"В демо-регионе нет данных: {labels}. Это условие не учитывается в выдаче.",
                                              *parsed.clarifications][:2]
-            facts = [Fact.model_validate(row) for row in rows]
-            if reference is not None:
-                # Buildings of one complex share a name; they are not "similar" discoveries.
-                candidates = [hotel for hotel in hotel_rows if hotel.id == reference.id or hotel.name.casefold() != reference.name.casefold()]
-                hits = similar_hotels(reference.id, candidates, facts, specs)
-            else:
-                hits = rank_hotels(hotel_rows, facts, parsed, specs)
+            cache_key = json.dumps({"parsed": parsed.model_dump(mode="json"), "limit": body.limit}, ensure_ascii=False, sort_keys=True)
+            generation, hits = repo.search_cache_get(cache_key) if hasattr(repo, "search_cache_get") else (None, None)
+            if read_generation != generation:
+                hits = None
+            if hits is None:
+                facts = [Fact.model_validate(row) for row in rows]
+                if reference is not None:
+                    # Buildings of one complex share a name; they are not "similar" discoveries.
+                    candidates = [hotel for hotel in hotel_rows if hotel.id == reference.id or hotel.name.casefold() != reference.name.casefold()]
+                    hits = similar_hotels(reference.id, candidates, facts, specs, parsed=parsed, explain_limit=body.limit)
+                else:
+                    hits = rank_hotels(hotel_rows, facts, parsed, specs, explain_limit=body.limit)
+                if hasattr(repo, "search_cache_put"):
+                    deadlines = [fact.valid_until.timestamp() for fact in facts if fact.valid_until]
+                    repo.search_cache_put(cache_key, read_generation, hits, min(deadlines) if deadlines else None)
+            if reference is None:
                 if not parsed.must and not parsed.nice:
                     browse = ("Не нашли в запросе условий из каталога, поэтому показываем обзор отелей без подбора. "
                               "Опишите, что важно: тишина, вид на море или закат, дорога к пляжу, парковка, «в гуще событий».")
