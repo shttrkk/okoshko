@@ -1,0 +1,940 @@
+{
+  "methodology": "Authored synthetic intent cases, without independent human validation; not hotel accuracy or nDCG. no_data uses explicit authoritative fixture context; similarity uses existing catalogue resolver.",
+  "gold": {
+    "queries": 239,
+    "exact_matches": 212,
+    "exact_match_rate": 0.887029,
+    "criterion_precision": 0.993243,
+    "criterion_recall": 0.967105,
+    "criterion_true_positive": 294,
+    "criterion_expected": 304,
+    "criterion_actual": 296,
+    "criteria_exact_match_rate": 0.949791,
+    "unmapped_expectation_accuracy": 0.92887,
+    "unmapped_evaluated_queries": 239,
+    "queries_with_unmapped": 23
+  },
+  "splits": {
+    "development": {
+      "queries": 189,
+      "exact_matches": 183,
+      "exact_match_rate": 0.968254,
+      "criterion_precision": 0.995745,
+      "criterion_recall": 0.979079,
+      "criterion_true_positive": 234,
+      "criterion_expected": 239,
+      "criterion_actual": 235,
+      "criteria_exact_match_rate": 0.968254,
+      "unmapped_expectation_accuracy": 1.0,
+      "unmapped_evaluated_queries": 189,
+      "queries_with_unmapped": 4
+    },
+    "holdout": {
+      "queries": 50,
+      "exact_matches": 29,
+      "exact_match_rate": 0.58,
+      "criterion_precision": 0.983607,
+      "criterion_recall": 0.923077,
+      "criterion_true_positive": 60,
+      "criterion_expected": 65,
+      "criterion_actual": 61,
+      "criteria_exact_match_rate": 0.88,
+      "unmapped_expectation_accuracy": 0.66,
+      "unmapped_evaluated_queries": 50,
+      "queries_with_unmapped": 19
+    }
+  },
+  "stages": {
+    "coverage_projection": {
+      "queries": 7,
+      "exact_matches": 6,
+      "exact_match_rate": 0.857143,
+      "criterion_precision": 1.0,
+      "criterion_recall": 1.0,
+      "criterion_true_positive": 14,
+      "criterion_expected": 14,
+      "criterion_actual": 14,
+      "criteria_exact_match_rate": 1.0,
+      "unmapped_expectation_accuracy": 0.857143,
+      "unmapped_evaluated_queries": 7,
+      "queries_with_unmapped": 1
+    },
+    "semantic_extraction": {
+      "queries": 229,
+      "exact_matches": 203,
+      "exact_match_rate": 0.886463,
+      "criterion_precision": 0.992883,
+      "criterion_recall": 0.965398,
+      "criterion_true_positive": 279,
+      "criterion_expected": 289,
+      "criterion_actual": 281,
+      "criteria_exact_match_rate": 0.947598,
+      "unmapped_expectation_accuracy": 0.930131,
+      "unmapped_evaluated_queries": 229,
+      "queries_with_unmapped": 22
+    },
+    "similarity_resolution": {
+      "queries": 3,
+      "exact_matches": 3,
+      "exact_match_rate": 1.0,
+      "criterion_precision": 1.0,
+      "criterion_recall": 1.0,
+      "criterion_true_positive": 1,
+      "criterion_expected": 1,
+      "criterion_actual": 1,
+      "criteria_exact_match_rate": 1.0,
+      "unmapped_expectation_accuracy": 1.0,
+      "unmapped_evaluated_queries": 3,
+      "queries_with_unmapped": 0
+    }
+  },
+  "negative": {
+    "queries": 120,
+    "queries_with_false_criteria": 0,
+    "false_criteria_rate": 0.0,
+    "criteria_emitted": 0
+  },
+  "failures": [
+    {
+      "id": "gold-103",
+      "text": "Хочу работать у моря",
+      "split": "development",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": false,
+      "true_positive": 1,
+      "expected_count": 1,
+      "actual_count": 2,
+      "unmapped_ok": true,
+      "unmapped_evaluated": true,
+      "has_unmapped": false,
+      "errors": [
+        {
+          "extra_criteria": [
+            [
+              "must",
+              {
+                "characteristic_id": "beach_walk",
+                "field": "minutes",
+                "no_crossings": false,
+                "no_stairs": false,
+                "op": "lte",
+                "scope": null,
+                "value": 10
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gold-153",
+      "text": "Вид на море на западной стороне",
+      "split": "development",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": false,
+      "true_positive": 1,
+      "expected_count": 2,
+      "actual_count": 1,
+      "unmapped_ok": true,
+      "unmapped_evaluated": true,
+      "has_unmapped": false,
+      "errors": [
+        {
+          "missing_criteria": [
+            [
+              "must",
+              {
+                "characteristic_id": "room_orientation",
+                "field": "available",
+                "no_crossings": false,
+                "no_stairs": false,
+                "op": "eq",
+                "scope": {
+                  "facade": "W"
+                },
+                "value": true
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gold-154",
+      "text": "Закат, окна на юго-запад",
+      "split": "development",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": false,
+      "true_positive": 1,
+      "expected_count": 2,
+      "actual_count": 1,
+      "unmapped_ok": true,
+      "unmapped_evaluated": true,
+      "has_unmapped": false,
+      "errors": [
+        {
+          "missing_criteria": [
+            [
+              "must",
+              {
+                "characteristic_id": "room_orientation",
+                "field": "available",
+                "no_crossings": false,
+                "no_stairs": false,
+                "op": "eq",
+                "scope": {
+                  "facade": "SW"
+                },
+                "value": true
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gold-159",
+      "text": "Вид на море с 5-го этажа",
+      "split": "development",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": false,
+      "true_positive": 1,
+      "expected_count": 2,
+      "actual_count": 1,
+      "unmapped_ok": true,
+      "unmapped_evaluated": true,
+      "has_unmapped": false,
+      "errors": [
+        {
+          "missing_criteria": [
+            [
+              "must",
+              {
+                "characteristic_id": "room_orientation",
+                "field": "available",
+                "no_crossings": false,
+                "no_stairs": false,
+                "op": "eq",
+                "scope": {
+                  "floor_min": 5
+                },
+                "value": true
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gold-161",
+      "text": "Вид на горы с 3 по 7 этаж",
+      "split": "development",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": false,
+      "true_positive": 1,
+      "expected_count": 2,
+      "actual_count": 1,
+      "unmapped_ok": true,
+      "unmapped_evaluated": true,
+      "has_unmapped": false,
+      "errors": [
+        {
+          "missing_criteria": [
+            [
+              "must",
+              {
+                "characteristic_id": "room_orientation",
+                "field": "available",
+                "no_crossings": false,
+                "no_stairs": false,
+                "op": "eq",
+                "scope": {
+                  "floor_max": 7,
+                  "floor_min": 3
+                },
+                "value": true
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gold-162",
+      "text": "Не выше 6 этажа, море из окна",
+      "split": "development",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": false,
+      "true_positive": 1,
+      "expected_count": 2,
+      "actual_count": 1,
+      "unmapped_ok": true,
+      "unmapped_evaluated": true,
+      "has_unmapped": false,
+      "errors": [
+        {
+          "missing_criteria": [
+            [
+              "must",
+              {
+                "characteristic_id": "room_orientation",
+                "field": "available",
+                "no_crossings": false,
+                "no_stairs": false,
+                "op": "eq",
+                "scope": {
+                  "floor_max": 6
+                },
+                "value": true
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gold-180",
+      "text": "Хотим просыпаться с морем за окном",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": true,
+      "true_positive": 1,
+      "expected_count": 1,
+      "actual_count": 1,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "просыпаться"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-182",
+      "text": "Для сна нужна тишина, морской вид будет плюсом",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": true,
+      "true_positive": 2,
+      "expected_count": 2,
+      "actual_count": 2,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "сна"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-191",
+      "text": "Ищу путь к морю без ступеней и лестниц",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": true,
+      "true_positive": 1,
+      "expected_count": 1,
+      "actual_count": 1,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "лестниц"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-194",
+      "text": "Зарядить электромобиль не дальше 1,5 км от отеля",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": true,
+      "true_positive": 1,
+      "expected_count": 1,
+      "actual_count": 1,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "зарядить"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-195",
+      "text": "Свой автомобиль, желательно пляж за 6 минут",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": false,
+      "true_positive": 1,
+      "expected_count": 2,
+      "actual_count": 1,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "missing_criteria": [
+            [
+              "must",
+              {
+                "characteristic_id": "car_access",
+                "field": "parking_distance_m",
+                "no_crossings": false,
+                "no_stairs": false,
+                "op": "lte",
+                "scope": null,
+                "value": 500
+              }
+            ]
+          ]
+        },
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "автомобиль"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-197",
+      "text": "С грудным ребенком и коляской, пляж 9 минут",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": true,
+      "true_positive": 2,
+      "expected_count": 2,
+      "actual_count": 2,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "грудным"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-199",
+      "text": "Размещают с собакой 25 килограммов?",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": true,
+      "true_positive": 1,
+      "expected_count": 1,
+      "actual_count": 1,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "размещают"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-200",
+      "text": "Для дистанционной работы интернет хотя бы 70 мегабит",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": true,
+      "true_positive": 1,
+      "expected_count": 1,
+      "actual_count": 1,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "дистанционной"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-202",
+      "text": "Нормальный вайфай важнее всего",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": true,
+      "true_positive": 1,
+      "expected_count": 1,
+      "actual_count": 1,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "всего"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-204",
+      "text": "Шторы должны полностью затемнять комнату",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": true,
+      "true_positive": 1,
+      "expected_count": 1,
+      "actual_count": 1,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "комнату"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-206",
+      "text": "Пусть будут двойные стеклопакеты",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": true,
+      "true_positive": 1,
+      "expected_count": 1,
+      "actual_count": 1,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "пусть будут"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-208",
+      "text": "Купаться в июле, желательно вода от 22 градусов",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": false,
+      "true_positive": 1,
+      "expected_count": 1,
+      "actual_count": 2,
+      "unmapped_ok": true,
+      "unmapped_evaluated": true,
+      "has_unmapped": false,
+      "errors": [
+        {
+          "extra_criteria": [
+            [
+              "must",
+              {
+                "characteristic_id": "climate",
+                "field": "water_c",
+                "no_crossings": false,
+                "no_stairs": false,
+                "op": "gte",
+                "scope": null,
+                "value": 20
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gold-209",
+      "text": "В начале октября нужны море из окна и тишина",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": true,
+      "true_positive": 2,
+      "expected_count": 2,
+      "actual_count": 2,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "начале"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-210",
+      "text": "Ночная жизнь, рестораны поблизости",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": true,
+      "true_positive": 1,
+      "expected_count": 1,
+      "actual_count": 1,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "рестораны"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-213",
+      "text": "Чистый воздух, желательно фотографии вокруг",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": false,
+      "true_positive": 1,
+      "expected_count": 2,
+      "actual_count": 1,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "missing_criteria": [
+            [
+              "nice",
+              {
+                "characteristic_id": "nearby_photos",
+                "field": "available",
+                "no_crossings": false,
+                "no_stairs": false,
+                "op": "eq",
+                "scope": null,
+                "value": true
+              }
+            ]
+          ]
+        },
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "фотографии вокруг"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-214",
+      "text": "Из окна должен быть виден закат в феврале",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": true,
+      "true_positive": 1,
+      "expected_count": 1,
+      "actual_count": 1,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "должен"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-216",
+      "text": "С 8 по 15 мая 2028 хочется закат",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": true,
+      "true_positive": 1,
+      "expected_count": 1,
+      "actual_count": 1,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "хочется"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold-218",
+      "text": "Море из окна, этаж не ниже 8",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": false,
+      "true_positive": 1,
+      "expected_count": 2,
+      "actual_count": 1,
+      "unmapped_ok": true,
+      "unmapped_evaluated": true,
+      "has_unmapped": false,
+      "errors": [
+        {
+          "missing_criteria": [
+            [
+              "must",
+              {
+                "characteristic_id": "room_orientation",
+                "field": "available",
+                "no_crossings": false,
+                "no_stairs": false,
+                "op": "eq",
+                "scope": {
+                  "floor_min": 8
+                },
+                "value": true
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gold-219",
+      "text": "Тихий номер, окна на северо-запад",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": false,
+      "true_positive": 1,
+      "expected_count": 2,
+      "actual_count": 1,
+      "unmapped_ok": true,
+      "unmapped_evaluated": true,
+      "has_unmapped": false,
+      "errors": [
+        {
+          "missing_criteria": [
+            [
+              "must",
+              {
+                "characteristic_id": "room_orientation",
+                "field": "available",
+                "no_crossings": false,
+                "no_stairs": false,
+                "op": "eq",
+                "scope": {
+                  "facade": "NW"
+                },
+                "value": true
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gold-221",
+      "text": "Нужен девятый этаж и закат из окна",
+      "split": "holdout",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": false,
+      "true_positive": 1,
+      "expected_count": 2,
+      "actual_count": 1,
+      "unmapped_ok": true,
+      "unmapped_evaluated": true,
+      "has_unmapped": false,
+      "errors": [
+        {
+          "missing_criteria": [
+            [
+              "must",
+              {
+                "characteristic_id": "room_orientation",
+                "field": "available",
+                "no_crossings": false,
+                "no_stairs": false,
+                "op": "eq",
+                "scope": {
+                  "floor_max": 9,
+                  "floor_min": 9
+                },
+                "value": true
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gold-222",
+      "text": "Ищем интернет 90 Мбит/с и пляж за 8 минут",
+      "split": "holdout",
+      "exact": false,
+      "stage": "coverage_projection",
+      "criteria_exact": true,
+      "true_positive": 2,
+      "expected_count": 2,
+      "actual_count": 2,
+      "unmapped_ok": false,
+      "unmapped_evaluated": true,
+      "has_unmapped": true,
+      "errors": [
+        {
+          "unmapped": {
+            "expected": [],
+            "actual": [
+              "ищем"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "status": "measured_against_authored_intent_cases",
+  "human_labeled": false,
+  "synthetic": true,
+  "input_fingerprint": {
+    "version": 1,
+    "parser_sha256": {
+      "backend/agents/query_parser.py": "dc43eb26f213b34a2bad5e9cd20cbcc8b47b38d9f1b47e10adabc71179d768c9",
+      "backend/agents/query_text.py": "de7d67fc79f3b05c2d8f38b00ad297d93e2a1a5d3812efe36a4cae19b5a7a33f",
+      "backend/agents/query_rules.py": "c7b103095d636015ac812c841bf722c5ea843b8141133ad96464235b7982636e",
+      "backend/agents/similarity.py": "0de3585c135fb98d3de03abdeb69147135b8467ba537768a4a58c721165c8b7e",
+      "backend/contracts/__init__.py": "c7a5746ac4519ef52c85b62f9346a0537f39db8604ee732237f08cd2055bc8f1",
+      "backend/contracts/models.py": "a45316911dd2c10f59470c4ddb4528b67990a0d406d42329dc8d10d0014e5874",
+      "backend/tools/registry.py": "e43ede0d73bfb05a3d4c276d12869678c1941f4f320bbde74530f5891cde330d",
+      "backend/parser_quality.py": "9c344dd516b14098833c9bf3f44496288566e0651fdd041afbe1a8376fa65eec",
+      "scripts/parser_eval.py": "694851c50ef1509832c6af6cacbdc2b127c17e395a1b415c3f5324802569ad70"
+    },
+    "catalogue_sha256": {
+      "characteristics/accessible_route.yaml": "45b7a1398fe812bc6476c146ef375b78e8362efe2f91ea6e7b51e3e0662a31eb",
+      "characteristics/air_quality.yaml": "8274ca2105d7ddc7b8492345f308edf535fe9f1ac0c1639bd4f72e37b94bb624",
+      "characteristics/beach_surface.yaml": "56a8cf203467382292a9dba9e5ea18a3a7198734c0befd7dbf0f5e691a5f2fe7",
+      "characteristics/beach_walk.yaml": "d48ab3787424d1618850ceb98a1c21914e15c85953ac7fcee1c8edf8e9016e00",
+      "characteristics/building_history.yaml": "b2779cb2d316639e1b7fc0f20a41dde4cd4fcea7c3b5c1314ae30b35d12569d4",
+      "characteristics/car_access.yaml": "2d222f35494c9f9b487d5476d7767f77b60e5dd7731531328c49c6525e30b72a",
+      "characteristics/climate.yaml": "a4a5790abcffbcfce0df8a7f66f64a38edc9679043d23e5cbc3bd7f2b580b86e",
+      "characteristics/connectivity.yaml": "8f8d8670173d545647b0cb9d0dbf6ffd28f08a9af7e80cdd8ed9ad7246576d1b",
+      "characteristics/evening_heat.yaml": "39f8330f813083ccf98294b78c0e4793dd520550590900c94d6b7d63e08b558a",
+      "characteristics/family_nearby.yaml": "0c7d0f251ad8cbd3845d41200bda1107c7b66e5044b0e7e585686500f5f302e5",
+      "characteristics/green_nearby.yaml": "ba2e92d90f516f0c245ef14e6404f45d6ab91a2187b2e6b8cb6d2e6fa2b4d9b6",
+      "characteristics/morning_sun.yaml": "dcdd9077c1644a9385d81b907d1fb35413920ebc0f8275a03a8a9018eb6d30ca",
+      "characteristics/mountain_view.yaml": "901bcddf4b4d51d3ae2c7a10d337852402c575774454958bde33cf632d6f5ffa",
+      "characteristics/nearby_photos.yaml": "51f7d624104511a8cf9bc282e8277470c916b9f08a156903fd28ba3a4dcbbd6a",
+      "characteristics/night_pharmacy.yaml": "a285682ef25dbfc7a39d51fc59166ea9825d2a278cf8cacb16dbd128a722a4a5",
+      "characteristics/nightlife.yaml": "a6e55617a59c8a928c6e5b45c28e2b31c183134aa1692292b03ac6a663a3c94a",
+      "characteristics/pets.yaml": "854e116f1a2b4fb6302f58844bbe4eb32c04717ebc034e079d968d5416cc9ddb",
+      "characteristics/quiet_night.yaml": "6e0464cfdef7d899e0122adb580ac29d9963ccfb4becb97032da97dbd2465a0c",
+      "characteristics/railway_noise.yaml": "145be9a3575b68d3f3fc0676548533bc249348f3df775e9d170a9843bd0b1b1e",
+      "characteristics/room_orientation.yaml": "681a86bb19a8af0dc5d288e58aa8278e29e94458c44267b789029db76649b517",
+      "characteristics/sea_view.yaml": "a9fecf6bca68144ec4ecccb5b264a31e1b413f0912a9af80ac737ec03ae8de51",
+      "characteristics/soundproofing.yaml": "35de37f3b4f0bd390472cdbfaa2eacce58fdb9def55dec514946558717be10ad",
+      "characteristics/sunset_view.yaml": "149b80cc5f55745e05d3d64aa44bc689ed26ab6954bffaaeb593e4653ac8feca"
+    },
+    "corpora": {
+      "gold": {
+        "path": "eval/queries_gold.jsonl",
+        "sha256": "011f9520f296a2ebed352557998d60f79de09d71e667ec36f05b51d24cb6a7c1"
+      },
+      "negative": {
+        "path": "eval/queries_negative.jsonl",
+        "sha256": "878608f627319c53c960848bfcc264abcadfb13ed5d919fbfc2b5dc23fc41f1e"
+      }
+    },
+    "fixture_sha256": {
+      "seed/hotels.json": "45cd3b05b6f5b0129864278b648ea4991e439593d0cd63a8a571388af0a1a6f6"
+    },
+    "selection": {
+      "split": null
+    },
+    "evaluation_year": 2026
+  },
+  "corpus_sha256": {
+    "gold": "011f9520f296a2ebed352557998d60f79de09d71e667ec36f05b51d24cb6a7c1",
+    "negative": "878608f627319c53c960848bfcc264abcadfb13ed5d919fbfc2b5dc23fc41f1e"
+  }
+}

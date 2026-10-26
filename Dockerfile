@@ -19,6 +19,7 @@ WORKDIR /app
 COPY --from=python-build /venv /venv
 COPY backend/ backend/
 COPY geo/ geo/
+COPY scripts/parser_eval.py scripts/ranking_eval.py scripts/
 COPY --chown=10001:10001 data/ data/
 COPY alembic.ini ./
 COPY --from=web /web/dist static/

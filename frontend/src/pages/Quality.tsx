@@ -44,6 +44,269 @@ const percent = (value: unknown) =>
         maximumFractionDigits: value > 0 && value < 0.01 ? 2 : 1,
       }).format(value)
     : "Не измерено";
+const rate = (value: unknown) =>
+  typeof value === "number" &&
+  Number.isFinite(value) &&
+  value >= 0 &&
+  value <= 1
+    ? value
+    : null;
+function metricStatus(status: unknown) {
+  if (status === "not_measured" || !status)
+    return "Измерение ещё не опубликовано.";
+  if (
+    [
+      "gold_changed",
+      "gold_changed_recompute_required",
+      "corpus_changed_recompute_required",
+    ].includes(String(status))
+  )
+    return "Набор меток изменился. Нужен пересчёт; прошлые цифры не показаны как текущие.";
+  if (status === "catalogue_changed_recompute_required")
+    return "Каталог характеристик изменился. Нужен пересчёт; прошлые цифры не показаны как текущие.";
+  if (
+    [
+      "scorer_changed_recompute_required",
+      "parser_changed_recompute_required",
+    ].includes(String(status))
+  )
+    return "Код оценки изменился. Нужен пересчёт; прошлые цифры не показаны как текущие.";
+  return "Актуальность измерения не подтверждена. Числа появятся после пересчёта.";
+}
+function WeakRankingMetrics({ value }: { value: unknown }) {
+  const report = record(value);
+  const measured =
+    report.status === "measured_against_frozen_weak_labels" &&
+    report.human_labeled === false;
+  const splits = record(report.by_split);
+  const bounds = (value: unknown) => {
+    const interval = record(value),
+      low = rate(interval.lower),
+      high = rate(interval.upper);
+    return low !== null && high !== null && low <= high
+      ? `${number(low, 3)}–${number(high, 3)}`
+      : "Не измерено";
+  };
+  return (
+    <section
+      className="quality-group"
+      data-testid="ranking-weak"
+      data-metric-status={
+        typeof report.status === "string" ? report.status : "not_measured"
+      }
+    >
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">
+            РАНЖИРОВАНИЕ · ОТДЕЛЬНЫЙ ПРОВЕРОЧНЫЙ НАБОР
+          </span>
+          <h2>Согласие со слабыми метками</h2>
+        </div>
+      </div>
+      <p className="fine-print">
+        Метки выведены из фактов, не человеческая оценка. Источники меток и
+        модель ранжирования связаны: это согласие с зафиксированными правилами,
+        а не независимая релевантность отелей или вероятность удачной поездки.
+      </p>
+      {measured ? (
+        <>
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Часть</th>
+                  <th scope="col">nDCG@5</th>
+                  <th scope="col">Запросы в расчёте</th>
+                  <th scope="col">Без положительных меток</th>
+                  <th scope="col">Размечено в top-5</th>
+                  <th scope="col">Границы nDCG@5</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["dev", "Development"],
+                  ["holdout", "Holdout"],
+                ].map(([key, title]) => {
+                  const split = record(splits[key]);
+                  return (
+                    <tr key={key} data-testid={`ranking-weak-${key}`}>
+                      <th scope="row">{title}</th>
+                      <td>{number(rate(split.ndcg_at_5), 3)}</td>
+                      <td>
+                        {number(split.queries_with_measured_ndcg)} из{" "}
+                        {number(split.queries)}
+                      </td>
+                      <td>
+                        {number(split.queries_without_positive_judgments)}
+                      </td>
+                      <td>{percent(rate(split.top5_judged_share))}</td>
+                      <td>{bounds(split.ndcg_at_5_bounds)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="fine-print">
+            Development — часть для разработки, holdout — отложенная часть.
+            Основная nDCG учитывает только запросы с положительными метками и
+            полностью размеченным top-5. Запросы без положительных меток
+            исключены. Неразмеченные кандидаты не считаются отрицательными; доля
+            разметки и границы показывают оставшуюся неопределённость. Эти
+            границы не являются доверительным интервалом.
+          </p>
+          <p className="fine-print">
+            В узком окне таблица прокручивается по горизонтали.
+          </p>
+          {report.input_materialization_matches_frozen === false && (
+            <p className="fine-print">
+              Текущие факты отличаются от сохранённых входов. Числа относятся к
+              зафиксированному снимку, а не к текущим профилям.
+            </p>
+          )}
+        </>
+      ) : (
+        <p
+          className="fine-print"
+          role="status"
+          data-testid="ranking-weak-unavailable"
+        >
+          {report.status === "measured_against_frozen_weak_labels"
+            ? "Происхождение меток не подтверждено как слабая разметка. Числа не опубликованы в этом блоке."
+            : metricStatus(report.status)}
+        </p>
+      )}
+      {typeof report.status === "string" &&
+        report.status !== "not_measured" && (
+          <a
+            className="text-button"
+            href="/data/eval/ranking_results.json"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Полный отчёт и происхождение меток <ExternalLink size={14} />
+          </a>
+        )}
+    </section>
+  );
+}
+function ParserIntentMetrics({ value }: { value: unknown }) {
+  const report = record(value);
+  const measured = report.status === "measured_against_authored_intent_cases";
+  const splits = record(report.splits),
+    negative = record(report.negative);
+  return (
+    <section
+      className="quality-group"
+      data-testid="parser-intent"
+      data-metric-status={
+        typeof report.status === "string" ? report.status : "not_measured"
+      }
+    >
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">ПОИСК · АВТОРСКИЕ ЯЗЫКОВЫЕ ПРИМЕРЫ</span>
+          <h2>Разбор поискового запроса</h2>
+        </div>
+      </div>
+      <p className="fine-print">
+        Это авторские языковые примеры с синтетическими ожидаемыми намерениями,
+        не произвольная речь пользователей и не проверка фактов отелей. Исходный
+        holdout показан отдельно; он не заменяет новый независимый
+        пользовательский тест.
+      </p>
+      {measured ? (
+        <>
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Часть исходного набора</th>
+                  <th scope="col">Запросы</th>
+                  <th scope="col">Точное совпадение намерения</th>
+                  <th scope="col">Точность критериев (precision)</th>
+                  <th scope="col">Полнота критериев (recall)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["gold", "Весь набор", record(report.gold)],
+                  ["development", "Development", record(splits.development)],
+                  ["holdout", "Исходный holdout", record(splits.holdout)],
+                ].map(([key, title, value]) => {
+                  const split = record(value);
+                  return (
+                    <tr key={String(key)} data-testid={`parser-intent-${key}`}>
+                      <th scope="row">{String(title)}</th>
+                      <td>{number(split.queries)}</td>
+                      <td>
+                        {percent(rate(split.exact_match_rate))}
+                        {typeof split.exact_matches === "number" && (
+                          <small>
+                            {" "}
+                            · {number(split.exact_matches)} из{" "}
+                            {number(split.queries)}
+                          </small>
+                        )}
+                      </td>
+                      <td>{percent(rate(split.criterion_precision))}</td>
+                      <td>{percent(rate(split.criterion_recall))}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="fine-print">
+            Точное совпадение учитывает ожидаемые критерии и явно проверяемые
+            поля запроса, например месяц, даты и область номера. Общий набор
+            включает обе части; это не три независимые выборки.
+          </p>
+          <p className="fine-print">
+            В узком окне таблица прокручивается по горизонтали.
+          </p>
+          <div className="metric-row" data-testid="parser-intent-negative">
+            <div>
+              <span>Нерелевантные контексты</span>
+              <strong>{number(negative.queries)}</strong>
+            </div>
+            <div>
+              <span>С ложными критериями</span>
+              <strong>{number(negative.queries_with_false_criteria)}</strong>
+            </div>
+            <div>
+              <span>Доля с ложными критериями</span>
+              <strong>{percent(rate(negative.false_criteria_rate))}</strong>
+            </div>
+            <div>
+              <span>Лишних критериев выдано</span>
+              <strong>{number(negative.criteria_emitted)}</strong>
+            </div>
+          </div>
+        </>
+      ) : (
+        <p
+          className="fine-print"
+          role="status"
+          data-testid="parser-intent-unavailable"
+        >
+          {metricStatus(report.status)}
+        </p>
+      )}
+      {typeof report.status === "string" &&
+        report.status !== "not_measured" && (
+          <a
+            className="text-button"
+            href="/data/eval/parser_results.json"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Полный отчёт и хэши корпуса <ExternalLink size={14} />
+          </a>
+        )}
+    </section>
+  );
+}
 export function QualityPage() {
   const quality = useResource(api.quality);
   const q = quality.data,
@@ -455,6 +718,8 @@ export function QualityPage() {
               </Empty>
             )}
           </section>
+          <WeakRankingMetrics value={q.ranking_weak} />
+          {q.parser_intent && <ParserIntentMetrics value={q.parser_intent} />}
           {q.synthetic_parser && (
             <section className="synthetic-parser quality-group">
               <Synthetic>Синтетический набор · проверка парсера</Synthetic>
@@ -487,8 +752,8 @@ export function QualityPage() {
               <span>Точность разбора ответов отельера</span>
               <strong>{percent(q.parser_accuracy)}</strong>
             </div>
-            <div>
-              <span>Поиск · nDCG@5</span>
+            <div data-testid="independent-ndcg">
+              <span>Независимая оценка поиска · nDCG@5</span>
               <strong>{number(q.ndcg_at_5, 3)}</strong>
             </div>
           </div>

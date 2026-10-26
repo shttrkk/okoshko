@@ -662,9 +662,31 @@ function CriteriaEditor({
     </section>
   );
 }
+function distinctRankingReasons(reasons: string[] = []) {
+  const seen = new Set<string>();
+  return reasons
+    .filter((reason) => {
+      const body = reason
+        .trim()
+        .replace(/^«.*?»:\s*/, "")
+        .replace(/\s+/g, " ")
+        .toLocaleLowerCase("ru");
+      // Different reference names must not repeat the same generic explanation.
+      const key = body.startsWith("выше совокупная оценка выполнения условий")
+        ? "score"
+        : body.startsWith("оценки совпадают;")
+          ? "tie"
+          : body.replace(/[.!?]+$/, "");
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 3);
+}
 function SearchCard({
   hit,
   index,
+  firstResultId,
   active,
   hovered,
   onHover,
@@ -673,6 +695,7 @@ function SearchCard({
 }: {
   hit: SearchHit;
   index: number;
+  firstResultId?: string;
   active: boolean;
   hovered: boolean;
   onHover: (id: string | null) => void;
@@ -680,6 +703,10 @@ function SearchCard({
   onEvidence: (hotelId: string, v: Verdict) => void;
 }) {
   const navigate = useNavigate();
+  const reasons =
+    index > 0 && index < 4 && hit.hotel.id !== firstResultId
+      ? distinctRankingReasons(hit.why_not_higher)
+      : [];
   return (
     <article
       className={`result-card ${active ? "is-active" : ""} ${hovered ? "is-hovered" : ""}`}
@@ -726,6 +753,19 @@ function SearchCard({
         )}
         {hit.disappointments.length > 0 && (
           <p className="disappointment">Учтите: {hit.disappointments[0]}</p>
+        )}
+        {reasons.length > 0 && (
+          <details
+            className="verdict-caveats"
+            data-testid={`search-reasons-${hit.hotel.id}`}
+          >
+            <summary aria-label={`Почему не выше: ${hit.hotel.name}`}>
+              Почему не выше
+            </summary>
+            {reasons.map((reason) => (
+              <p key={reason}>{reason}</p>
+            ))}
+          </details>
         )}
         <div className="card-bottom">
           {hit.hotel.price_rub !== null ? (
@@ -822,6 +862,9 @@ export function SearchPage() {
     !resource.data.parsed.similar_to;
   const groupOf = (hit: SearchHit) =>
     noCriteria && hit.group === "all" ? "browse" : hit.group;
+  const firstResultId = (["all", "almost", "unknown", "browse"] as const)
+    .map((group) => results.find((hit) => groupOf(hit) === group)?.hotel.id)
+    .find(Boolean);
   return (
     <div className="search-page">
       <div className="search-heading">
@@ -996,6 +1039,7 @@ export function SearchPage() {
                       key={hit.hotel.id}
                       hit={hit}
                       index={results.indexOf(hit)}
+                      firstResultId={firstResultId}
                       active={activeId === hit.hotel.id}
                       hovered={hoverId === hit.hotel.id}
                       onHover={setHoverId}

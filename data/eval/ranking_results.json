@@ -8,6 +8,9 @@
   "queries_without_positive_judgments": 6,
   "ndcg_at_5": 0.9968760695830395,
   "top5_judged_share": 0.8666666666666667,
+  "top10_unique_normalized_names_mean": 9.966666666666667,
+  "top10_unique_complexes_mean": 10.0,
+  "top10_close_geo_pairs_200m_mean": 2.7333333333333334,
   "ndcg_at_5_bounds": {
     "lower": 0.8034447943364827,
     "upper": 0.997322345356891
@@ -19,6 +22,9 @@
       "queries_without_positive_judgments": 5,
       "ndcg_at_5": 0.9950017113328632,
       "top5_judged_share": 0.85,
+      "top10_unique_normalized_names_mean": 9.95,
+      "top10_unique_complexes_mean": 10.0,
+      "top10_close_geo_pairs_200m_mean": 2.1,
       "ndcg_at_5_bounds": {
         "lower": 0.829168092777386,
         "upper": 0.9958347594440526
@@ -30,6 +36,9 @@
       "queries_without_positive_judgments": 1,
       "ndcg_at_5": 1.0,
       "top5_judged_share": 0.9,
+      "top10_unique_normalized_names_mean": 10.0,
+      "top10_unique_complexes_mean": 10.0,
+      "top10_close_geo_pairs_200m_mean": 4.0,
       "ndcg_at_5_bounds": {
         "lower": 0.7571428571428571,
         "upper": 1.0
@@ -38,8 +47,8 @@
   },
   "input_materialization_matches_frozen": true,
   "scorer_sha256": {
-    "backend/agents/ranker.py": "776efce7c676d9ad074557d257ba65273fd6e146e68a8bac1ccfc6a58a448e03",
-    "backend/agents/query_match.py": "a3b694e964b9741e0745921cab234794f26a35465548de423c19b3532b9598ea"
+    "backend/agents/ranker.py": "34e81f6df50de3f6be6357842767259a154b6f2d1e27cabf95cfc0ba5e24e7d4",
+    "backend/agents/query_match.py": "2fc574db66eea2fbfca23837339eff5f837ef9cd72d276904124d7c25e5720a0"
   },
   "gold_sha256": "06c339b969a2029df51e1c8370e32902773ac116eebc875f345710838f03c6b6",
   "cases": [
@@ -68,7 +77,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "osm-node-4469957897",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4",
+        "osm-node-11029975305",
+        "osm-node-11843545854",
+        "overture-5bea30a8-36c4-4b02-82f8-ea5ba4df0855",
+        "overture-6abadd5b-79f4-40ef-942a-c1602a5e053c",
+        "overture-7717394f-37ea-4c24-8e90-4b45f0d6208c"
+      ],
+      "top10_names": [
+        "Сочи. Пляж Отеля Звездный",
+        "Dolphin resort Hotel",
+        "Фестиваль",
+        "Coocoorooza Пансионат",
+        "Санаторий имени  М.В. Фрунзе",
+        "Эльза",
+        "Ellis",
+        "RussoTuristo",
+        "Dolphin Resort Hotel Sochi",
+        "Sochi Beach Hotel"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 4
     },
     {
       "id": "rank-02",
@@ -95,7 +131,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "osm-node-4469957897",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4",
+        "osm-node-11029975305",
+        "osm-node-11843545854",
+        "overture-5bea30a8-36c4-4b02-82f8-ea5ba4df0855",
+        "overture-6abadd5b-79f4-40ef-942a-c1602a5e053c",
+        "overture-7717394f-37ea-4c24-8e90-4b45f0d6208c"
+      ],
+      "top10_names": [
+        "Сочи. Пляж Отеля Звездный",
+        "Dolphin resort Hotel",
+        "Фестиваль",
+        "Coocoorooza Пансионат",
+        "Санаторий имени  М.В. Фрунзе",
+        "Эльза",
+        "Ellis",
+        "RussoTuristo",
+        "Dolphin Resort Hotel Sochi",
+        "Sochi Beach Hotel"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 4
     },
     {
       "id": "rank-03",
@@ -122,7 +185,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "osm-node-4469957897",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4",
+        "osm-node-11029975305",
+        "osm-node-11843545854",
+        "overture-5bea30a8-36c4-4b02-82f8-ea5ba4df0855",
+        "overture-6abadd5b-79f4-40ef-942a-c1602a5e053c",
+        "overture-7717394f-37ea-4c24-8e90-4b45f0d6208c"
+      ],
+      "top10_names": [
+        "Сочи. Пляж Отеля Звездный",
+        "Dolphin resort Hotel",
+        "Фестиваль",
+        "Coocoorooza Пансионат",
+        "Санаторий имени  М.В. Фрунзе",
+        "Эльза",
+        "Ellis",
+        "RussoTuristo",
+        "Dolphin Resort Hotel Sochi",
+        "Sochi Beach Hotel"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 4
     },
     {
       "id": "rank-04",
@@ -149,7 +239,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4",
+        "osm-node-4469957897",
+        "osm-node-11029975305",
+        "osm-node-11843545854",
+        "osm-way-51874466",
+        "overture-5bea30a8-36c4-4b02-82f8-ea5ba4df0855",
+        "overture-6abadd5b-79f4-40ef-942a-c1602a5e053c"
+      ],
+      "top10_names": [
+        "Сочи. Пляж Отеля Звездный",
+        "Dolphin resort Hotel",
+        "Coocoorooza Пансионат",
+        "Санаторий имени  М.В. Фрунзе",
+        "Фестиваль",
+        "Эльза",
+        "Ellis",
+        "Пансионат \"Эдем\"",
+        "RussoTuristo",
+        "Dolphin Resort Hotel Sochi"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 5
     },
     {
       "id": "rank-05",
@@ -176,7 +293,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-11190910581",
+        "osm-node-11866202895",
+        "osm-node-4393265790",
+        "osm-node-4985022111",
+        "osm-node-5063986547",
+        "osm-node-736761646",
+        "osm-node-8975796817",
+        "osm-way-51416856",
+        "osm-way-51853102",
+        "osm-way-52572781"
+      ],
+      "top10_names": [
+        "Alpha Sirius",
+        "Cascade",
+        "Отель «Империя»",
+        "У Оксаны",
+        "Чемодан",
+        "City Park Hotel",
+        "Терминал Адлер",
+        "Баунти-клуб",
+        "Sea Galaxy",
+        "SPA Отель \"Ostrova\""
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 1
     },
     {
       "id": "rank-06",
@@ -203,7 +347,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-12958832506",
+        "osm-way-201474330",
+        "osm-way-52572781",
+        "osm-way-53301267",
+        "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+        "overture-4ce036e8-1aa9-408d-9913-01788d699b84",
+        "overture-7ec48053-0474-4010-9050-3fa50c0537c4",
+        "osm-node-8975796817",
+        "osm-way-207637871",
+        "osm-node-4986725623"
+      ],
+      "top10_names": [
+        "Evopart by Benefit Sochi Center",
+        "Brevis apartments",
+        "SPA Отель \"Ostrova\"",
+        "Адельфия",
+        "Приморская",
+        "Plus Residence",
+        "Golden House",
+        "Терминал Адлер",
+        "Mantera Resort&Congress",
+        "Апартаменты в Маяке"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 1
     },
     {
       "id": "rank-07",
@@ -230,7 +401,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-8975796817",
+        "osm-way-52572781",
+        "overture-4aad988f-e0d5-4ee3-9e5d-aa2b68d74afc",
+        "overture-4ce036e8-1aa9-408d-9913-01788d699b84",
+        "osm-node-11016638375",
+        "overture-76383584-f4a0-4333-bb90-3fd6d19a354d",
+        "osm-node-4986725623",
+        "osm-node-11843553792",
+        "overture-8e52a3de-d701-4111-a59a-f758996edd7c",
+        "osm-way-190714781"
+      ],
+      "top10_names": [
+        "Терминал Адлер",
+        "SPA Отель \"Ostrova\"",
+        "Garden Hills Hotel",
+        "Plus Residence",
+        "Veryhotel",
+        "Simple Hotel",
+        "Апартаменты в Маяке",
+        "Парк Горького",
+        "Elite house",
+        "Cosmos"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 1
     },
     {
       "id": "rank-08",
@@ -257,7 +455,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-11866202895",
+        "osm-node-4986725623",
+        "osm-node-736761646",
+        "osm-node-8975796817",
+        "osm-way-201474330",
+        "osm-way-207637871",
+        "osm-way-51853102",
+        "overture-3958233d-4e7a-4244-a8d9-3ddd0be0f10f",
+        "overture-3dce0d80-f9f9-4f3b-8f3a-b79c0f6c0d69",
+        "overture-4aad988f-e0d5-4ee3-9e5d-aa2b68d74afc"
+      ],
+      "top10_names": [
+        "Cascade",
+        "Апартаменты в Маяке",
+        "City Park Hotel",
+        "Терминал Адлер",
+        "Brevis apartments",
+        "Mantera Resort&Congress",
+        "Sea Galaxy",
+        "Pullman Bar",
+        "Apartments in the Golden Triangle",
+        "Garden Hills Hotel"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 6
     },
     {
       "id": "rank-09",
@@ -284,7 +509,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-11190910581",
+        "osm-node-11958163786",
+        "osm-node-5743464666",
+        "osm-way-120859827",
+        "osm-way-207637828",
+        "osm-way-51277929",
+        "overture-4ce036e8-1aa9-408d-9913-01788d699b84",
+        "osm-way-201474331",
+        "osm-way-80192670",
+        "osm-way-51847429"
+      ],
+      "top10_names": [
+        "Alpha Sirius",
+        "Альпийская",
+        "Имеретинский - Морской и Заповедный квартал",
+        "Зеленая палуба",
+        "Bridge Family Resort",
+        "Звёздный",
+        "Plus Residence",
+        "Mercure Sochi Centre",
+        "Цитрус",
+        "Жемчужина"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 0
     },
     {
       "id": "rank-10",
@@ -317,7 +569,34 @@
         null,
         null
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-10058556917",
+        "osm-node-10574252909",
+        "osm-node-10759606594",
+        "osm-node-10759614195",
+        "osm-node-11138786325",
+        "osm-node-11190910581",
+        "osm-node-11304222983",
+        "osm-node-11304222985",
+        "osm-node-11637552371",
+        "osm-node-11637558669"
+      ],
+      "top10_names": [
+        "Островок",
+        "Relax club exsclusive",
+        "RP Ranovsky Park",
+        "Golden Tennis Club",
+        "Черномор",
+        "Alpha Sirius",
+        "Grand Way",
+        "Grand Way",
+        "Родос",
+        "Родос Лайт"
+      ],
+      "top10_unique_normalized_names": 9,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 1
     },
     {
       "id": "rank-11",
@@ -344,7 +623,34 @@
         2,
         2
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-10058556917",
+        "osm-node-10574252909",
+        "osm-node-10759614195",
+        "osm-node-11029975305",
+        "osm-node-11138786325",
+        "osm-node-11138788609",
+        "osm-node-11190910581",
+        "osm-node-11304222982",
+        "osm-node-11331531334",
+        "osm-node-11637552371"
+      ],
+      "top10_names": [
+        "Островок",
+        "Relax club exsclusive",
+        "Golden Tennis Club",
+        "Эльза",
+        "Черномор",
+        "Palm resort",
+        "Alpha Sirius",
+        "Grand Way",
+        "Cosmos Adler Hotel",
+        "Родос"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 0
     },
     {
       "id": "rank-12",
@@ -371,7 +677,34 @@
         2,
         2
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-10058556917",
+        "osm-node-10574252909",
+        "osm-node-10759614195",
+        "osm-node-11029975305",
+        "osm-node-11138786325",
+        "osm-node-11138788609",
+        "osm-node-11190910581",
+        "osm-node-11304222982",
+        "osm-node-11331531334",
+        "osm-node-11637552371"
+      ],
+      "top10_names": [
+        "Островок",
+        "Relax club exsclusive",
+        "Golden Tennis Club",
+        "Эльза",
+        "Черномор",
+        "Palm resort",
+        "Alpha Sirius",
+        "Grand Way",
+        "Cosmos Adler Hotel",
+        "Родос"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 0
     },
     {
       "id": "rank-13",
@@ -398,7 +731,34 @@
         2,
         2
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-10058556917",
+        "osm-node-10574252909",
+        "osm-node-10759614195",
+        "osm-node-11029975305",
+        "osm-node-11138786325",
+        "osm-node-11138788609",
+        "osm-node-11190910581",
+        "osm-node-11304222982",
+        "osm-node-11331531334",
+        "osm-node-11637552371"
+      ],
+      "top10_names": [
+        "Островок",
+        "Relax club exsclusive",
+        "Golden Tennis Club",
+        "Эльза",
+        "Черномор",
+        "Palm resort",
+        "Alpha Sirius",
+        "Grand Way",
+        "Cosmos Adler Hotel",
+        "Родос"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 0
     },
     {
       "id": "rank-14",
@@ -425,7 +785,34 @@
         0,
         0
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-10058556917",
+        "osm-node-10118233110",
+        "osm-node-10574252909",
+        "osm-node-10759606594",
+        "osm-node-10759606596",
+        "osm-node-10759614195",
+        "osm-node-11016638373",
+        "osm-node-11016638375",
+        "osm-node-11029975305",
+        "osm-node-11067209459"
+      ],
+      "top10_names": [
+        "Островок",
+        "Swissotel Resort Сочи Камелия",
+        "Relax club exsclusive",
+        "RP Ranovsky Park",
+        "RP Manhattan",
+        "Golden Tennis Club",
+        "Grand Gallery",
+        "Veryhotel",
+        "Эльза",
+        "Rp"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 0
     },
     {
       "id": "rank-15",
@@ -452,7 +839,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-10058556917",
+        "osm-node-10574252909",
+        "osm-node-10759614195",
+        "osm-node-11029975305",
+        "osm-node-11138786325",
+        "osm-node-11138788609",
+        "osm-node-11190910581",
+        "osm-node-11304222982",
+        "osm-node-11331531334",
+        "osm-node-11637552371"
+      ],
+      "top10_names": [
+        "Островок",
+        "Relax club exsclusive",
+        "Golden Tennis Club",
+        "Эльза",
+        "Черномор",
+        "Palm resort",
+        "Alpha Sirius",
+        "Grand Way",
+        "Cosmos Adler Hotel",
+        "Родос"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 0
     },
     {
       "id": "rank-16",
@@ -479,7 +893,34 @@
         0,
         0
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-10058556917",
+        "osm-node-10118233110",
+        "osm-node-10574252909",
+        "osm-node-10759606594",
+        "osm-node-10759606596",
+        "osm-node-10759614195",
+        "osm-node-11016638373",
+        "osm-node-11016638375",
+        "osm-node-11029975305",
+        "osm-node-11067209459"
+      ],
+      "top10_names": [
+        "Островок",
+        "Swissotel Resort Сочи Камелия",
+        "Relax club exsclusive",
+        "RP Ranovsky Park",
+        "RP Manhattan",
+        "Golden Tennis Club",
+        "Grand Gallery",
+        "Veryhotel",
+        "Эльза",
+        "Rp"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 0
     },
     {
       "id": "rank-17",
@@ -506,7 +947,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-11866202895",
+        "osm-node-4393265790",
+        "osm-way-53301267",
+        "osm-way-53284165",
+        "osm-node-8975796817",
+        "osm-node-11331531334",
+        "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+        "osm-way-53292014",
+        "overture-3958233d-4e7a-4244-a8d9-3ddd0be0f10f",
+        "osm-node-736761646"
+      ],
+      "top10_names": [
+        "Cascade",
+        "Отель «Империя»",
+        "Адельфия",
+        "Империя",
+        "Терминал Адлер",
+        "Cosmos Adler Hotel",
+        "Приморская",
+        "Green House Hotel",
+        "Pullman Bar",
+        "City Park Hotel"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 2
     },
     {
       "id": "rank-18",
@@ -533,7 +1001,34 @@
         3,
         2
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-way-53301267",
+        "osm-node-8975796817",
+        "osm-way-53284165",
+        "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+        "osm-way-201474330",
+        "osm-node-11331531334",
+        "overture-52e6f850-ce07-48b5-b364-410d8f37c343",
+        "osm-way-201474333",
+        "osm-way-201474331",
+        "osm-way-53292016"
+      ],
+      "top10_names": [
+        "Адельфия",
+        "Терминал Адлер",
+        "Империя",
+        "Приморская",
+        "Brevis apartments",
+        "Cosmos Adler Hotel",
+        "Hyatt Regency",
+        "Pullman Sochi Centre",
+        "Mercure Sochi Centre",
+        "Парадиз"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 5
     },
     {
       "id": "rank-19",
@@ -546,8 +1041,8 @@
         "osm-way-120859827",
         "overture-17ea7c28-fde3-4fb3-891e-549c8f4b2885",
         "osm-way-80189244",
-        "osm-way-502703777",
-        "osm-node-10058556917"
+        "osm-node-10058556917",
+        "osm-way-80189214"
       ],
       "lower_bound": 0.0,
       "upper_bound": 1,
@@ -556,8 +1051,8 @@
         "osm-way-120859827",
         "overture-17ea7c28-fde3-4fb3-891e-549c8f4b2885",
         "osm-way-80189244",
-        "osm-way-502703777",
-        "osm-node-10058556917"
+        "osm-node-10058556917",
+        "osm-way-80189214"
       ],
       "top5_grades": [
         null,
@@ -566,7 +1061,34 @@
         null,
         null
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-way-120859827",
+        "overture-17ea7c28-fde3-4fb3-891e-549c8f4b2885",
+        "osm-way-80189244",
+        "osm-node-10058556917",
+        "osm-way-80189214",
+        "osm-node-7115085741",
+        "osm-way-80186747",
+        "osm-way-207637871",
+        "osm-node-11190910581",
+        "osm-node-11958163786"
+      ],
+      "top10_names": [
+        "Зеленая палуба",
+        "Wind Rose Hotel & SPA",
+        "Авалон",
+        "Островок",
+        "Морской бриз",
+        "El Paraiso",
+        "Грейс Дубай",
+        "Mantera Resort&Congress",
+        "Alpha Sirius",
+        "Альпийская"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 4
     },
     {
       "id": "rank-20",
@@ -599,7 +1121,34 @@
         null,
         null
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-11866202895",
+        "osm-way-80189244",
+        "osm-node-10759614195",
+        "osm-node-4393265790",
+        "osm-way-53284165",
+        "osm-way-53301267",
+        "osm-node-8975796817",
+        "osm-way-53292014",
+        "osm-node-11331531334",
+        "overture-7717394f-37ea-4c24-8e90-4b45f0d6208c"
+      ],
+      "top10_names": [
+        "Cascade",
+        "Авалон",
+        "Golden Tennis Club",
+        "Отель «Империя»",
+        "Империя",
+        "Адельфия",
+        "Терминал Адлер",
+        "Green House Hotel",
+        "Cosmos Adler Hotel",
+        "Sochi Beach Hotel"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 4
     },
     {
       "id": "rank-21",
@@ -626,7 +1175,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "osm-node-4469957897",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4",
+        "osm-node-11029975305",
+        "osm-node-11843545854",
+        "overture-5bea30a8-36c4-4b02-82f8-ea5ba4df0855",
+        "overture-6abadd5b-79f4-40ef-942a-c1602a5e053c",
+        "overture-7717394f-37ea-4c24-8e90-4b45f0d6208c"
+      ],
+      "top10_names": [
+        "Сочи. Пляж Отеля Звездный",
+        "Dolphin resort Hotel",
+        "Фестиваль",
+        "Coocoorooza Пансионат",
+        "Санаторий имени  М.В. Фрунзе",
+        "Эльза",
+        "Ellis",
+        "RussoTuristo",
+        "Dolphin Resort Hotel Sochi",
+        "Sochi Beach Hotel"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 4
     },
     {
       "id": "rank-22",
@@ -653,7 +1229,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "osm-node-4469957897",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4",
+        "osm-node-11029975305",
+        "osm-node-11843545854",
+        "overture-5bea30a8-36c4-4b02-82f8-ea5ba4df0855",
+        "overture-6abadd5b-79f4-40ef-942a-c1602a5e053c",
+        "overture-7717394f-37ea-4c24-8e90-4b45f0d6208c"
+      ],
+      "top10_names": [
+        "Сочи. Пляж Отеля Звездный",
+        "Dolphin resort Hotel",
+        "Фестиваль",
+        "Coocoorooza Пансионат",
+        "Санаторий имени  М.В. Фрунзе",
+        "Эльза",
+        "Ellis",
+        "RussoTuristo",
+        "Dolphin Resort Hotel Sochi",
+        "Sochi Beach Hotel"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 4
     },
     {
       "id": "rank-23",
@@ -680,7 +1283,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-8975796817",
+        "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+        "osm-node-11016638375",
+        "osm-way-207637871",
+        "overture-76383584-f4a0-4333-bb90-3fd6d19a354d",
+        "overture-52e6f850-ce07-48b5-b364-410d8f37c343",
+        "osm-node-4986725623",
+        "osm-way-201474333",
+        "osm-way-201474331",
+        "osm-way-201474330"
+      ],
+      "top10_names": [
+        "Терминал Адлер",
+        "Приморская",
+        "Veryhotel",
+        "Mantera Resort&Congress",
+        "Simple Hotel",
+        "Hyatt Regency",
+        "Апартаменты в Маяке",
+        "Pullman Sochi Centre",
+        "Mercure Sochi Centre",
+        "Brevis apartments"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 8
     },
     {
       "id": "rank-24",
@@ -707,7 +1337,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-11190910581",
+        "osm-way-207637828",
+        "osm-node-11331531334",
+        "overture-52e6f850-ce07-48b5-b364-410d8f37c343",
+        "osm-way-80189244",
+        "overture-76383584-f4a0-4333-bb90-3fd6d19a354d",
+        "osm-way-201474331",
+        "overture-4ce036e8-1aa9-408d-9913-01788d699b84",
+        "osm-node-11016638375",
+        "osm-way-207637871"
+      ],
+      "top10_names": [
+        "Alpha Sirius",
+        "Bridge Family Resort",
+        "Cosmos Adler Hotel",
+        "Hyatt Regency",
+        "Авалон",
+        "Simple Hotel",
+        "Mercure Sochi Centre",
+        "Plus Residence",
+        "Veryhotel",
+        "Mantera Resort&Congress"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 1
     },
     {
       "id": "rank-25",
@@ -734,7 +1391,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-8975796817",
+        "osm-way-52572781",
+        "overture-4ce036e8-1aa9-408d-9913-01788d699b84",
+        "osm-node-4986725623",
+        "overture-76383584-f4a0-4333-bb90-3fd6d19a354d",
+        "osm-node-11016638375",
+        "overture-52e6f850-ce07-48b5-b364-410d8f37c343",
+        "osm-way-190714781",
+        "osm-way-201474333",
+        "osm-node-11331531334"
+      ],
+      "top10_names": [
+        "Терминал Адлер",
+        "SPA Отель \"Ostrova\"",
+        "Plus Residence",
+        "Апартаменты в Маяке",
+        "Simple Hotel",
+        "Veryhotel",
+        "Hyatt Regency",
+        "Cosmos",
+        "Pullman Sochi Centre",
+        "Cosmos Adler Hotel"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 3
     },
     {
       "id": "rank-26",
@@ -761,7 +1445,34 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-way-52572781",
+        "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+        "osm-node-8975796817",
+        "osm-way-53301267",
+        "osm-way-207637871",
+        "osm-node-12958832506",
+        "overture-76383584-f4a0-4333-bb90-3fd6d19a354d",
+        "overture-52e6f850-ce07-48b5-b364-410d8f37c343",
+        "osm-node-5063986547",
+        "overture-84c175f8-330b-47b3-8b67-1c3acaaf3f78"
+      ],
+      "top10_names": [
+        "SPA Отель \"Ostrova\"",
+        "Приморская",
+        "Терминал Адлер",
+        "Адельфия",
+        "Mantera Resort&Congress",
+        "Evopart by Benefit Sochi Center",
+        "Simple Hotel",
+        "Hyatt Regency",
+        "Чемодан",
+        "Джунгли"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 1
     },
     {
       "id": "rank-27",
@@ -794,7 +1505,34 @@
         null,
         null
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-node-11866202895",
+        "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+        "overture-3958233d-4e7a-4244-a8d9-3ddd0be0f10f",
+        "osm-way-201474330",
+        "osm-node-4986725623",
+        "osm-way-80192670",
+        "osm-way-201474333",
+        "osm-node-7115085741",
+        "osm-node-8975796817",
+        "osm-node-736761646"
+      ],
+      "top10_names": [
+        "Cascade",
+        "Приморская",
+        "Pullman Bar",
+        "Brevis apartments",
+        "Апартаменты в Маяке",
+        "Цитрус",
+        "Pullman Sochi Centre",
+        "El Paraiso",
+        "Терминал Адлер",
+        "City Park Hotel"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 10
     },
     {
       "id": "rank-28",
@@ -821,7 +1559,34 @@
         2,
         2
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "osm-node-4469957897",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4",
+        "osm-node-11029975305",
+        "osm-node-11843545854",
+        "overture-5bea30a8-36c4-4b02-82f8-ea5ba4df0855",
+        "overture-6abadd5b-79f4-40ef-942a-c1602a5e053c",
+        "overture-7717394f-37ea-4c24-8e90-4b45f0d6208c"
+      ],
+      "top10_names": [
+        "Сочи. Пляж Отеля Звездный",
+        "Dolphin resort Hotel",
+        "Фестиваль",
+        "Coocoorooza Пансионат",
+        "Санаторий имени  М.В. Фрунзе",
+        "Эльза",
+        "Ellis",
+        "RussoTuristo",
+        "Dolphin Resort Hotel Sochi",
+        "Sochi Beach Hotel"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 4
     },
     {
       "id": "rank-29",
@@ -848,7 +1613,34 @@
         1,
         1
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "osm-node-4469957897",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4",
+        "osm-node-11029975305",
+        "osm-node-11843545854",
+        "overture-5bea30a8-36c4-4b02-82f8-ea5ba4df0855",
+        "overture-6abadd5b-79f4-40ef-942a-c1602a5e053c",
+        "overture-7717394f-37ea-4c24-8e90-4b45f0d6208c"
+      ],
+      "top10_names": [
+        "Сочи. Пляж Отеля Звездный",
+        "Dolphin resort Hotel",
+        "Фестиваль",
+        "Coocoorooza Пансионат",
+        "Санаторий имени  М.В. Фрунзе",
+        "Эльза",
+        "Ellis",
+        "RussoTuristo",
+        "Dolphin Resort Hotel Sochi",
+        "Sochi Beach Hotel"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 4
     },
     {
       "id": "rank-30",
@@ -875,9 +1667,39 @@
         3,
         3
       ],
-      "top5_unique_names": 5
+      "top5_unique_names": 5,
+      "top10_ids": [
+        "osm-way-53292014",
+        "osm-node-5743464666",
+        "osm-way-201474331",
+        "osm-way-53292016",
+        "osm-way-80192670",
+        "osm-way-51847429",
+        "overture-52e6f850-ce07-48b5-b364-410d8f37c343",
+        "osm-way-80189244",
+        "osm-node-11331531334",
+        "osm-node-11190910581"
+      ],
+      "top10_names": [
+        "Green House Hotel",
+        "Имеретинский - Морской и Заповедный квартал",
+        "Mercure Sochi Centre",
+        "Парадиз",
+        "Цитрус",
+        "Жемчужина",
+        "Hyatt Regency",
+        "Авалон",
+        "Cosmos Adler Hotel",
+        "Alpha Sirius"
+      ],
+      "top10_unique_normalized_names": 10,
+      "top10_unique_complexes": 10,
+      "top10_close_geo_pairs_200m": 1
     }
   ],
+  "diversity_definition": "Top10 unique normalized names (casefold, ё→е, punctuation/space removed) and complete-link same-name geographic clusters of diameter <=200m; distant namesakes remain separate. This is a complex proxy, not verified property identity.",
+  "same_name_nearby_pairs_in_corpus": 0,
+  "diversity_limitation": "Differently named adjacent hotels can share a building or complex. Close-geo pair counts are reported separately; proximity alone is not verified common property identity.",
   "limitations": [
     "No human labels; source evidence and predictions share a model, so this measures policy agreement only.",
     "Unknown/stale/disputed/low-confidence pairs are unjudged. Main nDCG excludes queries with any unjudged top5 item; judged share and loose bounds are reported separately.",

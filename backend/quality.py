@@ -254,5 +254,7 @@ def from_repository(repo, data_dir: Path) -> dict:
         claims = repo.all("claims")
     result = evaluate(repo.all("hotels"), facts, repo.all("characteristics"), labels, repo.all("questions"), claims)
     result["ranking_weak"] = ranking_report(data_dir)
+    from backend.parser_quality import parser_intent_report
+    result["parser_intent"] = parser_intent_report(data_dir)
     return result
 
