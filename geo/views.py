@@ -26,7 +26,10 @@ def sample_profiles(point, azimuths, distances, local_ground, building_ids, terr
     from geo.terrain import Grid
     bid = Grid(building_ids, local_ground.x_min, local_ground.y_max, local_ground.cell).sample(x, y)
     bid = np.where(np.isfinite(bid), bid, -1).astype(np.int32)
-    water = sea.sample(x, y)
+    water = sea.rays(point, azimuths, distances)
+    # A coastline extrapolation cannot turn positive-height inland DSM into sea.
+    # Native water elevations may have small noise; 1m is explicitly a tolerance.
+    water &= np.isfinite(ground) & (ground <= 1.0)
     ground[water] = 0
     return ground.astype(np.float32), bid, water
 

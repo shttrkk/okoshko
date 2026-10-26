@@ -86,6 +86,8 @@ class Region:
         for feature in self.nearby("buildings", center, radius):
             properties = feature["properties"]
             height = number(properties.get("height_m") or properties.get("height"))
+            if height is not None and (not np.isfinite(height) or height <= 0):
+                height = None
             levels = number(properties.get("levels") or properties.get("building:levels"))
             source = properties.get("height_source")
             if height is None and levels:

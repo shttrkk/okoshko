@@ -4,20 +4,28 @@ from __future__ import annotations
 import math
 
 import numpy as np
+import shapely
 from pyproj import Transformer
-from shapely.ops import transform
 
 TO_UTM = Transformer.from_crs(4326, 32637, always_xy=True)
 TO_WGS = Transformer.from_crs(32637, 4326, always_xy=True)
 SIDES = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
 
 
+def _projection(transformer, x, y):
+    # pyproj 3.7's point fast path casts length-one numpy arrays to scalars.
+    if len(x) == 1:
+        a, b = transformer.transform(float(x[0]), float(y[0]))
+        return np.asarray([a]), np.asarray([b])
+    return transformer.transform(x, y)
+
+
 def metric(geometry):
-    return transform(TO_UTM.transform, geometry)
+    return shapely.transform(geometry, lambda x, y: _projection(TO_UTM, x, y), interleaved=False)
 
 
 def geographic(geometry):
-    return transform(TO_WGS.transform, geometry)
+    return shapely.transform(geometry, lambda x, y: _projection(TO_WGS, x, y), interleaved=False)
 
 
 def azimuth(dx: float, dy: float) -> float:

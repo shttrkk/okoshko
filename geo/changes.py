@@ -19,7 +19,7 @@ def new_building_fixture(hotel, geo=None):
     angle = candidate["azimuth_deg"] if candidate else 225
     direction = np.array([np.sin(np.radians(angle)), np.cos(np.radians(angle))])
     tangent = np.array([direction[1], -direction[0]])
-    footprint = hotel.get("footprint") or (geo or {}).get("building", {}).get("geometry")
+    footprint = hotel.get("footprint") or ((geo or {}).get("building") or {}).get("geometry")
     extent = 30.0
     if footprint:
         polygon = metric(shape(footprint))

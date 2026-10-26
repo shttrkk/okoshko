@@ -9,15 +9,15 @@ from shapely.geometry import LineString, Point, box, mapping
 
 from backend.contracts.models import Claim
 from geo.changes import new_building_fixture
-from geo.coordinates import TO_UTM, geographic
+from geo.coordinates import TO_UTM, geographic, metric
 from geo.facades import extract_facades
-from geo.noise import energy_sum, noise_facade, source_samples
+from geo.noise import energy_sum, night_hours_possible, noise_facade, source_samples
 from geo.region import Region
 from geo.service import compute_with_region
 from geo.sun import monthly_paths, visible_sunset
 from geo.terrain import Grid, SeaClassifier, build_local_dsm
 from geo.views import los_to_point, scan_profiles
-from geo.walk import WalkGraph, travel_minutes
+from geo.walk import WalkGraph, crossing_details, travel_minutes
 
 
 def test_facade_outward_normals_and_observers():
@@ -45,6 +45,10 @@ def test_known_blocker_floor_threshold_and_ids():
 def test_coastline_land_left_sea_right():
     sea = SeaClassifier([LineString([(0, 1000), (0, -1000)])])
     assert sea.sample(np.array([-20, 20]), np.array([0, 0])).tolist() == [True, False]
+    rays = sea.rays((20, 0), np.array([270, 90]), np.array([10, 30, 100]))
+    assert rays.tolist() == [[False, True, True], [False, False, False]]
+    assert not sea.has_coverage((3000, 0))
+    assert not sea.rays((3000, 0), np.array([270]), np.array([100, 4000])).any()
 
 
 def test_roofs_replaced_not_added_to_copernicus_dsm():
@@ -84,6 +88,15 @@ def test_noise_facing_screen_and_energy_addition():
     assert not source_samples([{"id": "platform", "shape": LineString([(0, 0), (10, 0)]), "properties": {"railway": "platform"}}], kind="rail")
 
 
+def test_known_daytime_bar_does_not_become_night_source():
+    assert night_hours_possible("Mo-Su 09:00-18:00") is False
+    assert night_hours_possible("Mo-Su 19:00-02:00") is True
+    assert night_hours_possible("24/7") is True
+    assert night_hours_possible("sunset-sunrise") is None
+    sources = source_samples([{"id": "bar", "shape": Point(0, 0), "properties": {"amenity": "bar", "opening_hours": "09:00-18:00"}}], kind="bar")
+    assert sources[0]["night"] is None
+
+
 def test_tobler_directed_graph_steps_and_return_asymmetry():
     assert travel_minutes(1000, 100) > travel_minutes(1000, -100)
     assert travel_minutes(1000, 0, steps=True) == 2*travel_minutes(1000, 0)
@@ -107,6 +120,16 @@ def test_curvature_blocks_beyond_sea_horizon():
     result = los_to_point((0, 450), 1.5, (50000, 450), 0, terrain, [], step_m=100)
     assert result["terrain_blocked"]
     assert not result["visible"]
+
+
+def test_real_route_geometry_retains_rail_tunnel_transition():
+    route = {"type": "LineString", "coordinates": [[39.72, 43.58], [39.721, 43.58]]}
+    rail = {"id": "rail", "shape": metric(LineString([(39.7205, 43.579), (39.7205, 43.581)])),
+            "properties": {"railway": "rail"}}
+    result = crossing_details(route, [], [rail], [{"geometry": route, "tunnel": True}])
+    assert len(result) == 1
+    assert result[0]["properties"]["controlled"] is True
+    assert result[0]["properties"]["transition"] == "tunnel"
 
 
 @pytest.fixture

@@ -53,6 +53,13 @@ class SeaClassifier:
         self.starts = np.asarray([list(line.coords)[0] for line in segments])
         self.ends = np.asarray([list(line.coords)[1] for line in segments])
 
+    def has_coverage(self, point):
+        if self.tree is None:
+            return False
+        point = shapely.Point(point)
+        nearest = int(self.tree.nearest(point))
+        return self.segments[nearest].distance(point) <= 2000
+
     def sample(self, x, y):
         x, y = np.broadcast_arrays(x, y)
         result = np.zeros(x.size, dtype=bool)
@@ -65,6 +72,39 @@ class SeaClassifier:
         cross = v[:, 0] * (y.ravel() - a[:, 1]) - v[:, 1] * (x.ravel() - a[:, 0])
         result[:] = cross < 0
         return result.reshape(x.shape)
+
+    def rays(self, point, azimuths, distances):
+        """Trace actual shoreline crossings; never extend its nearest tangent.
+
+        The initial state is accepted only within 2km of a mapped shore.
+        Once a ray exits land across a mapped coastline, it remains water until
+        another mapped crossing. Missing islands remain a declared limitation.
+        """
+        output = np.zeros((len(azimuths), len(distances)), dtype=bool)
+        if self.tree is None:
+            return output
+        start = np.asarray(point)
+        if not self.has_coverage(start):
+            return output
+        initial_sea = bool(self.sample(np.asarray([start[0]]), np.asarray([start[1]]))[0])
+        directions = np.column_stack((np.sin(np.radians(azimuths)), np.cos(np.radians(azimuths))))
+        lines = shapely.linestrings(np.stack((np.broadcast_to(start, directions.shape), start+directions*distances[-1]), axis=1))
+        pairs = self.tree.query(lines, predicate="intersects")
+        for ray in range(len(azimuths)):
+            crossings = []
+            for segment_index in pairs[1, pairs[0] == ray]:
+                intersection = lines[ray].intersection(self.segments[int(segment_index)])
+                points = list(intersection.geoms) if hasattr(intersection, "geoms") else [intersection]
+                for point_geometry in points:
+                    if point_geometry.geom_type == "Point":
+                        crossings.append(lines[ray].project(point_geometry))
+            if crossings:
+                unique = np.unique(np.round(crossings, 2))
+                count = np.searchsorted(unique, distances, side="right")
+                output[ray] = (count % 2 == 0) if initial_sea else (count % 2 == 1)
+            elif initial_sea:
+                output[ray] = True
+        return output
 
 
 def build_local_dsm(terrain: Grid, buildings: list[dict], center, *, radius_m: float = 1000, cell: float = 2):

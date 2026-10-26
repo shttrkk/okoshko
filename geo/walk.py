@@ -121,7 +121,7 @@ def crossing_details(route_geometry, roads, railways, edges):
                         or edge.get("bridge") in {True, "yes"} or edge.get("crossing")]
     for feature in roads+railways:
         props = feature["properties"]
-        rail = bool(props.get("railway"))
+        rail = props.get("railway") in {"rail", "light_rail", "tram", "narrow_gauge"}
         if not rail and props.get("highway") not in {"motorway", "trunk", "primary", "secondary", "trunk_link", "primary_link"}:
             continue
         intersection = line.intersection(feature["shape"])

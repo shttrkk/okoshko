@@ -21,7 +21,7 @@ from geo.noise import noise_facade, source_samples
 from geo.region import get_region, number
 from geo.sun import monthly_paths, visible_sunset
 from geo.terrain import build_local_dsm
-from geo.views import profile_distances, sample_profiles, scan_profiles
+from geo.views import los_to_point, profile_distances, sample_profiles, scan_profiles
 from geo.walk import beach_route
 
 VERSION = "okno-geo-1.0"
@@ -161,6 +161,11 @@ def compute_with_region(hotel, region, output_dir, *, new_building=None, compute
         return _write_result(geo, claims, arrays, output_dir, artifact_name)
     geo["building_id"] = own["id"]
     geo["building"] = own["feature"]
+    sea_covered = region.sea.has_coverage(xy)
+    geo["coastline_coverage"] = sea_covered
+    if not sea_covered:
+        geo["unknown_characteristics"].append("sea_view")
+        geo["limitations"].append("Нет картированной береговой линии в 2 км от наблюдателя: sea_view unknown, морские лучи не экстраполируются")
     floors = own.get("levels") or number(hotel.get("tags", {}).get("building:levels"))
     floor_known = floors is not None
     if floors is None and own["height_source"] in {"height", "overture", "overture_height"}:
@@ -195,6 +200,24 @@ def compute_with_region(hotel, region, output_dir, *, new_building=None, compute
     noise_sources = (source_samples(region.nearby("roads", xy, 650), kind="road")+
                      source_samples(region.nearby("railways", xy, 650), kind="rail")+
                      source_samples(region.nearby("pois", xy, 650), kind="bar"))
+    targets = []
+    for poi in region.nearby("pois", xy, 30000):
+        props = poi["properties"]
+        is_peak = props.get("natural") == "peak"
+        target_height = number(props.get("height_m") or props.get("height"))
+        if not is_peak and not (target_height and (props.get("tourism") == "attraction" or props.get("man_made") in {"tower", "lighthouse"})):
+            continue
+        point = poi["shape"].representative_point()
+        ground_height = region.terrain.sample(np.asarray([point.x]), np.asarray([point.y]))[0]
+        elevation = number(props.get("ele")) if is_peak else None
+        target_z = elevation if elevation is not None else ground_height+(target_height or 0)
+        if not np.isfinite(target_z):
+            continue
+        targets.append((poi, point, float(target_z), "peak" if is_peak else "landmark"))
+    geo["target_coverage"] = {"named_peaks": sum(target[3] == "peak" for target in targets),
+                              "landmarks_with_height": sum(target[3] == "landmark" for target in targets)}
+    if not targets:
+        geo["limitations"].append("В выгрузке нет именованных вершин/достопримечательностей с подходящей высотой: вид гор — геометрия рельефа, названия unknown")
     probabilities = []
     min_floors = []
     horizons = []
@@ -246,10 +269,6 @@ def compute_with_region(hotel, region, output_dir, *, new_building=None, compute
         p_sea, p_mountain = sea_trials.mean(axis=0), mountain_trials.mean(axis=0)
         probability_sun = sunset_trials.mean(axis=0)
         coverage = float(np.mean(coverage_all))
-        height_coverage = np.mean([building["height_source"] in {"height", "levels", "overture", "overture_height", "synthetic_fixture"}
-                                   for building in buildings]) if buildings else 0
-        quality = (.4+.5*height_coverage)*min(1, coverage/.75)*(.85 if matched == "nearest_30m" else 1)
-        # A geometric prediction is always constrained by source coverage.
         min_floor = int(np.flatnonzero(sea_available)[0])+1 if np.any(sea_available) else None
         min_p80 = int(np.flatnonzero(p_sea >= .8)[0])+1 if np.any(p_sea >= .8) else None
         if min_floor:
@@ -258,8 +277,31 @@ def compute_with_region(hotel, region, output_dir, *, new_building=None, compute
         outward = angle_difference(azimuths, float(np.mean(facade["normals"]))) <= 75
         blocked_ids = sorted({buildings[int(index)]["id"] for blocker in blockers_all for index in np.unique(blocker[:, outward])
                               if index >= 0 and buildings[int(index)]["id"] != own["id"]})
+        influencing_ids = set(blocked_ids)
+        if not influencing_ids:
+            for _, bids, _, facing, _ in profiles:
+                influencing_ids.update(buildings[int(index)]["id"] for index in np.unique(bids[facing])
+                                       if index >= 0 and buildings[int(index)]["id"] != own["id"])
+        blockers = [building for building in buildings if building["id"] in influencing_ids]
+        height_coverage = float(np.mean([building["height_source"] in {"height", "levels", "overture", "overture_height", "synthetic_fixture"}
+                                        for building in blockers])) if blockers else 1.0
+        quality = (.4+.5*height_coverage)*min(1, coverage/.75)*(.85 if matched == "nearest_30m" else 1)
+        if not floor_known:
+            quality *= .7
         normal = float(np.degrees(np.arctan2(np.mean(np.sin(np.radians(facade["normals"]))), np.mean(np.cos(np.radians(facade["normals"])))))) % 360
         sunset = visible_sunset(paths, azimuths, horizon, normal)
+        visible_peaks = []
+        for poi, target_point, target_z, target_kind in targets:
+            from geo.coordinates import azimuth
+            if angle_difference(azimuth(target_point.x-xy[0], target_point.y-xy[1]), normal) > 75:
+                continue
+            observer = facade["points"][observer_indices[0]]
+            result = los_to_point(observer, float(eyes[-1]), (target_point.x, target_point.y), target_z,
+                                  region.terrain, buildings)
+            geo["landmarks"].append({"id": poi["id"], "name": poi["properties"].get("name"), "kind": target_kind,
+                                     "facade": facade["code"], "floor": floors, "target_elevation_m": target_z, **result})
+            if target_kind == "peak" and result["visible"]:
+                visible_peaks.append({"osm_id": poi["id"], "name": poi["properties"].get("name")})
         public_facade = {"code": facade["code"], "azimuth_deg": normal,
                          "geometry": mapping(geographic(unary_union(facade["edges"]))),
                          "observer_points": [list(geographic(Point(facade["points"][i])).coords)[0] for i in observer_indices],
@@ -268,7 +310,9 @@ def compute_with_region(hotel, region, output_dir, *, new_building=None, compute
                          "sea_width_by_floor": np.round(sea_width, 1).tolist(), "sea_probability_by_floor": p_sea.tolist(),
                          "mountain_width_by_floor": np.round(mountain_width, 1).tolist(), "sunset_by_month": sunset,
                          "confidence": round(quality, 3), "blocking_building_ids": blocked_ids,
-                         "height_coverage": float(height_coverage), "terrain_coverage": coverage}
+                         "height_coverage": float(height_coverage), "influencing_building_ids": sorted(influencing_ids),
+                         "nearby_height_coverage": float(np.mean([building["height_source"] in {"height", "levels", "overture", "overture_height", "synthetic_fixture"} for building in buildings])) if buildings else 0,
+                         "terrain_coverage": coverage}
         noise = noise_facade(facade, noise_sources, buildings)
         if noise:
             public_facade.update({key: noise[key] for key in ("night_db_min", "night_db_max", "day_db_min", "day_db_max")})
@@ -279,15 +323,17 @@ def compute_with_region(hotel, region, output_dir, *, new_building=None, compute
         else:
             public_facade["noise_unknown"] = True
         for characteristic, available, widths, probs in (("sea_view", sea_available, sea_width, p_sea), ("mountain_view", mountain_available, mountain_width, p_mountain)):
+            if characteristic == "sea_view" and not sea_covered:
+                continue
             threshold = int(np.flatnonzero(available)[0])+1 if np.any(available) else None
             for lo, hi, yes in _ranges(available):
                 value = {"available": yes, "facade": facade["code"], "min_floor": threshold,
                          "probability": round(float(np.mean(probs[lo:hi+1])), 4)}
                 if characteristic == "sea_view":
                     value.update(sea_width_deg=round(float(np.mean(widths[lo:hi+1])), 1),
-                                 sea_fraction=round(float(np.mean(widths[lo:hi+1])/150), 3), blocking_building_ids=blocked_ids)
+                                 sea_fraction=round(float(min(1, np.mean(widths[lo:hi+1])/150)), 3), blocking_building_ids=blocked_ids)
                 else:
-                    value.update(peaks=[], width_deg=round(float(np.mean(widths[lo:hi+1])), 1))
+                    value.update(peaks=visible_peaks if hi == floors-1 else [], width_deg=round(float(np.mean(widths[lo:hi+1])), 1))
                 outcome_probability = float(np.mean(probs[lo:hi+1] if yes else 1-probs[lo:hi+1]))
                 claim(characteristic, value, {"type": "floor_range", "facade": facade["code"], "floor_min": lo+1, "floor_max": hi+1},
                       outcome_probability*quality, "two_scale_dsm_los_mc_v1", inputs={"floor_height_m": 3, "eye_offset_m": 1.5,
@@ -342,6 +388,5 @@ def _write_result(geo, claims, arrays, output_dir, name):
     temporary = path.with_suffix(".json.tmp")
     temporary.write_text(_json(document)+"\n")
     temporary.replace(path)
-    if arrays:
-        np.savez_compressed(output_dir/(name+".npz"), **arrays)
+    np.savez_compressed(output_dir/(name+".npz"), **(arrays or {"calculation_available": np.asarray(False)}))
     return {"claims": claims, "geo": geo}
