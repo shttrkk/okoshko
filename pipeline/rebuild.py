@@ -202,7 +202,8 @@ def execute_stage(name, args, config):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--region", default=os.environ.get("REGION", "pipeline/regions/sochi.yaml"))
+    parser.add_argument("--region", default=os.environ.get("REGION", "pipeline/regions/sochi.yaml"),
+                        help="Region YAML path or a bundled region ID, e.g. gelendzhik (also via REGION)")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--from-cache", action="store_true", help="Reuse existing exported seed/tiles and cached DEM TIFFs; rebuild all geo outputs offline (not a raw-source rebuild)")
     mode.add_argument("--validate-only", action="store_true", help="Validate existing seed, geo claims and saved LOS caches offline without changing outputs")
@@ -220,7 +221,10 @@ def main(argv=None):
         parser.error("--workers must be positive")
     import yaml
     region = Path(args.region)
+    region_id = region.name if len(region.parts) == 1 and not region.suffix else None
     region = region if region.is_absolute() else ROOT / region
+    if region_id and not region.is_file():
+        region = ROOT / "pipeline/regions" / (region_id + ".yaml")
     config = yaml.safe_load(region.read_text())
     if args.terrain_bbox is None:
         if config["id"] != "sochi":
