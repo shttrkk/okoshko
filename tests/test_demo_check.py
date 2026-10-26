@@ -145,13 +145,38 @@ def synthetic_detail():
                    if json.loads(line)["hotel_id"] == expected["hotel_id"])
     return {"hotel": {"id": expected["hotel_id"]}, "facts": [
         {"id": "fixture-fact", "characteristic_id": "quiet_night", "scope": fixture["scope"], "value": fixture["value"], "synthetic": True,
-         "confidence": .85, "supporting_claim_ids": [fixture["id"]]},
+         "confidence": .85, "status": "computed", "supporting_claim_ids": [fixture["id"]]},
         {"id": "native-fact", "characteristic_id": "quiet_night", "scope": {"type": "facade", "facade": expected["facade"]},
          "synthetic": False, "confidence": .38, "supporting_claim_ids": ["geo-original"]}],
         "claims": [fixture, {"id": "geo-original", "source": "geo_engine", "synthetic": False, "confidence": .38}]}
 
 
-@pytest.mark.parametrize("defect", ["synthetic_flag", "kind", "scope", "real_confidence"])
+def test_synthetic_materialized_fact_can_combine_geo_weight_without_changing_fixture():
+    detail = synthetic_detail()
+    expected = CONFIG["synthetic_hotels"][0]
+    merged = detail["facts"][0]
+    merged["confidence"] = .689
+    merged["supporting_claim_ids"].append("geo-original")
+    detail["claims"][1]["scope"] = {"type": "facade", "facade": expected["facade"]}
+    assert validate_synthetic_detail(detail, expected)["synthetic_confidence"] == .689
+    assert detail["claims"][0]["confidence"] == .85
+    merged["confidence"] = .59999
+    with pytest.raises(CheckFailure, match="unsupported synthetic"):
+        validate_synthetic_detail(detail, expected)
+
+
+def test_synthetic_materialized_scope_may_narrow_but_never_extend_claim():
+    detail = synthetic_detail()
+    expected = {**CONFIG["synthetic_hotels"][0], "floor_min": 3, "floor_max": 7}
+    detail["claims"][0]["scope"] = {**detail["claims"][0]["scope"], "floor_min": 3, "floor_max": 7}
+    detail["facts"][0]["scope"] = {**detail["facts"][0]["scope"], "floor_min": 5, "floor_max": 6}
+    assert validate_synthetic_detail(detail, expected)["scope"]["floor_min"] == 5
+    detail["claims"][0]["scope"]["floor_max"] = 5
+    with pytest.raises(CheckFailure, match="scope exceeds"):
+        validate_synthetic_detail(detail, expected)
+
+
+@pytest.mark.parametrize("defect", ["synthetic_flag", "kind", "scope", "real_confidence", "fixture_confidence", "fact_status", "quote"])
 def test_fixture_provenance_and_real_noise_are_not_optional(defect):
     detail = synthetic_detail()
     validate_synthetic_detail(detail, CONFIG["synthetic_hotels"][0])
@@ -161,6 +186,12 @@ def test_fixture_provenance_and_real_noise_are_not_optional(defect):
         detail["claims"][0]["evidence"][0]["kind"] = "hotelier"
     elif defect == "scope":
         detail["claims"][0]["scope"] = {**detail["claims"][0]["scope"], "facade": "E"}
+    elif defect == "fixture_confidence":
+        detail["claims"][0]["confidence"] = .689
+    elif defect == "fact_status":
+        detail["facts"][0]["status"] = "disputed"
+    elif defect == "quote":
+        detail["claims"][0]["evidence"][0]["inputs"]["raw_text"] = "Другой текст"
     else:
         detail["facts"][1]["confidence"] = .85
     with pytest.raises(CheckFailure):

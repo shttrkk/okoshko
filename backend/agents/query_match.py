@@ -103,11 +103,15 @@ class Assessment:
 
 
 def fresh(fact: Fact, at: datetime | None = None) -> bool:
+    return fact.status in {"computed", "confirmed"} and _not_expired(fact, at)
+
+
+def _not_expired(fact: Fact, at: datetime | None = None) -> bool:
     at = at or datetime.now(UTC)
     deadline = fact.valid_until
     if deadline and deadline.tzinfo is None:
         deadline = deadline.replace(tzinfo=UTC)
-    return fact.status in {"computed", "confirmed"} and (deadline is None or deadline > at)
+    return deadline is None or deadline > at
 
 
 def value_at(fact: Fact, field_name: str):
@@ -144,6 +148,12 @@ def _includes(scope: dict, context: RoomContext) -> bool:
         not scope.get("floor_max") or scope["floor_max"] >= context.floor) and (
         not scope.get("room_type") or scope["room_type"] == context.room_type) and (
         not scope.get("month") or scope["month"] == context.month)
+
+
+def _scope_contains(outer: dict, inner: dict) -> bool:
+    return all(outer.get(key) is None or outer[key] == inner.get(key) for key in ("facade", "room_type", "month")) and (
+        (outer.get("floor_min") or 1) <= (inner.get("floor_min") or 1) and
+        (outer.get("floor_max") or 100) >= (inner.get("floor_max") or 100))
 
 
 def _compare(actual, criterion: Criterion) -> bool | None:
@@ -287,14 +297,19 @@ def _best_match(facts: list[Fact], criterion: Criterion, context: RoomContext, f
         scoped = [f for f in scoped if any(scopes[id(f)].get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type")) or value_at(f, field_name) is not True]
     if not scoped:
         return Match(reason="Общее заявление отеля не подтверждает конкретный номер")
+    current = [f for f in scoped if f.status != "stale" and _not_expired(f)]
+    scoped = current or scoped
+    # Compare actual domains before excluding unknown/disputed evaluations.
+    # Counting non-null fields misses a one-floor dispute inside a wide interval.
+    scoped = [f for f in scoped if not any(
+        _scope_contains(scopes[id(f)], scopes[id(other)]) and not _scope_contains(scopes[id(other)], scopes[id(f)])
+        for other in scoped)]
     evaluated = [evaluations[id(f)] for f in scoped]
+    disputed = [m for m in evaluated if any(f.status == "disputed" for f in m.facts)]
+    if disputed:
+        return Match(facts=[f for m in disputed for f in m.facts], reason="Данные оспариваются для этой стороны, этажа или типа номера")
     known = [m for m in evaluated if m.status != "unknown"]
     if known:
-        # Within overlapping evidence, a more specific resolved fact wins.
-        def specificity(m):
-            return sum(scopes[id(m.facts[0])].get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type", "month"))
-        most = max(map(specificity, known))
-        known = [m for m in known if specificity(m) == most]
         if any(m.status == "yes" for m in known) and any(m.status == "no" for m in known):
             return Match("partial", [f for m in known for f in m.facts], "Источники расходятся для одного и того же номера")
         return max(known, key=lambda m: ({"yes": 3, "no": 2, "partial": 1}[m.status], m.confidence))
@@ -335,6 +350,10 @@ def assess_hotel(facts: list[Fact], parsed: ParsedQuery, specs: list[Characteris
     floors = {f for f in floors if (parsed.min_floor or 1) <= f <= 100}
     contexts = [RoomContext(side, floor, room_type, parsed.month) for side, floor, room_type in product(
         [parsed.facade] if parsed.facade else sorted(facades) or [None], sorted(floors), sorted(room_types) or [None])]
+    requested_contexts = [context for context in contexts if all(
+        not c.scope or _includes(c.scope.model_dump(exclude_none=True), context) for c in parsed.must)]
+    if requested_contexts:
+        contexts = requested_contexts
     candidates = []
     alternatives: dict[int, list[Fact]] = {}
     for context in contexts:

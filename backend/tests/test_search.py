@@ -14,9 +14,11 @@ from backend.agents.explainer import disappointments, number, recommend_room
 from backend.agents.query_match import route_constraints, sunset_aspect
 from backend.agents.query_parser import parse_query
 from backend.agents.ranker import rank_hotels
+from backend.agents.resolver import resolve_claims
 from backend.agents.similarity import similar_hotels
 from backend.contracts import (
     CharacteristicSpec,
+    Claim,
     Criterion,
     Evidence,
     Fact,
@@ -491,3 +493,80 @@ def test_all_must_accepts_supported_estimate_but_not_unknown_details(catalog):
     pets = ParsedQuery(text="с собакой", must=[Criterion(characteristic_id="pets", label="Питомцы", field="available")], pet_weight_kg=20)
     [incomplete] = rank_hotels([hotel("a")], [fact("a", "pets", {"available": True}, confidence=.85)], pets, catalog)
     assert incomplete.group != "all"  # High confidence cannot fill missing weight/species.
+
+
+def overlap_query(*, floor=5, month=9, room_type=None):
+    return ParsedQuery(text="Synthetic overlap", facade="W", month=month,
+                       must=[Criterion(characteristic_id="sea_view", label="Вид", field="available",
+                                       scope=Scope(facade="W", floor_min=floor, floor_max=floor, room_type=room_type))])
+
+
+def overlap_observation(id, available, **scope):
+    now = datetime.now(UTC)
+    return Claim(id=id, hotel_id="h", characteristic_id="sea_view", scope=Scope(**scope), value={"available": available},
+                 source=id, method="known_answer@1", confidence=.85, evidence=fact("h", "sea_view", {}).evidence,
+                 observed_at=now, valid_until=now+timedelta(days=1))
+
+
+@pytest.mark.parametrize("status", ["disputed", "unknown"])
+def test_narrow_uncertainty_cannot_be_overridden_by_wide_positive(status, catalog):
+    wide = fact("h", "sea_view", {"available": True}, side="W", low=1, high=20)
+    narrow = fact("h", "sea_view", {"available": None}, side="W", low=5, high=5, status=status)
+    hit = rank_hotels([hotel("h")], [wide, narrow], overlap_query(), catalog)[0]
+    assert hit.group != "all" and hit.verdicts[0].status == "unknown"
+    assert hit.verdicts[0].fact_ids == [narrow.id]
+    assert rank_hotels([hotel("h")], [wide, narrow], overlap_query(floor=4), catalog)[0].group == "all"
+
+
+def test_dispute_on_equal_domain_also_blocks_positive_but_stale_does_not(catalog):
+    positive = fact("h", "sea_view", {"available": True}, side="W", low=5, high=5)
+    dispute = fact("h", "sea_view", {"available": False}, side="W", low=5, high=5, status="disputed")
+    dispute.id += "-dispute"
+    assert rank_hotels([hotel("h")], [positive, dispute], overlap_query(), catalog)[0].group != "all"
+    dispute.status = "stale"
+    assert rank_hotels([hotel("h")], [positive, dispute], overlap_query(), catalog)[0].group == "all"
+
+
+def test_resolved_floor_overlap_selects_only_its_actual_region(catalog):
+    observations = [overlap_observation("a", True, facade="W", floor_min=1, floor_max=5),
+                    overlap_observation("b", False, facade="W", floor_min=5)]
+    facts, _ = resolve_claims("h", observations, catalog, [])
+    for floor, expected in [(4, "yes"), (5, "unknown"), (6, "no")]:
+        hit = rank_hotels([hotel("h")], facts, overlap_query(floor=floor), catalog)[0]
+        assert hit.verdicts[0].status == expected
+        assert (hit.group == "all") is (floor == 4)
+
+
+@pytest.mark.parametrize("category,specific,other", [("month", 9, 8), ("room_type", "suite", "standard")])
+def test_categorical_wildcard_overlay_applies_only_to_requested_region(category, specific, other, catalog):
+    observations = [overlap_observation("a", True, facade="W", floor_min=5),
+                    overlap_observation("b", False, facade="W", floor_min=1, floor_max=5, **{category: specific})]
+    facts, _ = resolve_claims("h", observations, catalog, [])
+    affected = rank_hotels([hotel("h")], facts, overlap_query(**{category: specific}), catalog)[0]
+    unaffected = rank_hotels([hotel("h")], facts, overlap_query(**{category: other}), catalog)[0]
+    assert affected.group != "all" and affected.verdicts[0].status == "unknown"
+    assert unaffected.group == "all"
+
+
+def test_actual_hotelier_year_round_sunset_answer_conflicts_with_september_geometry(catalog):
+    from backend.agents.answer_parser import parse_answer
+    from backend.contracts import Question
+    answer = parse_answer(Question(hotel_id="h", characteristic_ids=["sunset_view"], text="Закат?"),
+                          "С 5-го этажа на запад закат виден круглый год.", synthetic=True)
+    [update] = [u for u in answer.updates if u.characteristic_id == "sunset_view"]
+    now = datetime.now(UTC)
+    partner = Claim(id="synthetic-year-round", hotel_id="h", characteristic_id="sunset_view", scope=update.scope, value=update.value,
+                    source="hotelier_simulator", method="known_synthetic_answer@1", confidence=.85,
+                    evidence=fact("h", "sunset_view", {}).evidence, synthetic=True,
+                    observed_at=now, valid_until=now+timedelta(days=1))
+    geometry = partner.model_copy(update={"id": "geo-september", "source": "geo_engine", "synthetic": False,
+                                        "scope": Scope(facade="W", floor_min=1, floor_max=5, month=9),
+                                        "value": {"available": False}})
+    facts, conflicts = resolve_claims("h", [partner, geometry], catalog, [], at=now)
+    parsed = overlap_query()
+    parsed.must[0].characteristic_id = "sunset_view"
+    hit = rank_hotels([hotel("h")], facts, parsed, catalog)[0]
+    assert conflicts and hit.group != "all" and hit.verdicts[0].status == "unknown"
+    assert hit.verdicts[0].disputed is True
+    parsed.month = 8
+    assert rank_hotels([hotel("h")], facts, parsed, catalog)[0].group == "all"

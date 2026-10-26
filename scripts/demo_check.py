@@ -163,21 +163,32 @@ def validate_hit_scope(hit: dict, detail: dict) -> dict:
     return {"facade": next(iter(facades), None), "floor_min": low, "floor_max": high, "month": next(iter(months), None)}
 
 
+def scope_subset(inner: dict, outer: dict) -> bool:
+    return all(outer.get(key) is None or inner.get(key) == outer[key] for key in ("facade", "month", "room_type")) and (
+        (inner.get("floor_min") or 1) >= (outer.get("floor_min") or 1) and
+        (inner.get("floor_max") or 100) <= (outer.get("floor_max") or 100))
+
+
 def validate_synthetic_detail(detail: dict, expected: dict) -> dict:
     hid = expected["hotel_id"]
     require(detail.get("hotel", {}).get("id") == hid, f"Wrong hotel detail returned for {hid}")
     facts = detail.get("facts", [])
     claims = {c["id"]: c for c in detail.get("claims", [])}
-    synthetic = [f for f in facts if f.get("characteristic_id") == "quiet_night" and f.get("synthetic") is True and all(f.get("scope", {}).get(k) == expected[k] for k in ("facade", "floor_min", "floor_max", "month"))]
+    synthetic = [f for f in facts if f.get("characteristic_id") == "quiet_night" and f.get("synthetic") is True
+                 and scope_subset(f.get("scope", {}), expected)]
     require(synthetic, f"{hid}: missing synthetic quiet fact for the dedicated floor/facade/month scope")
     fact = max(synthetic, key=lambda f: f.get("confidence", 0))
     require(fact.get("scope", {}).get("type") == "floor_range", f"{hid}: synthetic quiet scope is not floor_range")
-    require(fact.get("value", {}).get("available") is True and abs(fact.get("confidence", 0)-.85) < 1e-6, f"{hid}: incorrect synthetic quiet value/confidence")
+    require(fact.get("value", {}).get("available") is True and number(fact.get("confidence")) and fact["confidence"] >= .6
+            and fact.get("status") in {"computed", "confirmed"}, f"{hid}: unsupported synthetic quiet value/confidence/status")
     require(not any("db" in key for key in fact.get("value", {})), f"{hid}: synthetic quiet incorrectly contains measured dB fields")
     supporting = [claims[cid] for cid in fact.get("supporting_claim_ids", []) if cid in claims]
-    require(supporting, f"{hid}: synthetic quiet has no supporting claims")
+    require(supporting and len(supporting) == len(fact.get("supporting_claim_ids", [])), f"{hid}: synthetic quiet has no complete supporting claims")
+    require(all(scope_subset(fact.get("scope", {}), c.get("scope", {})) for c in supporting), f"{hid}: synthetic fact scope exceeds its supporting claim")
+    fixtures = [c for c in supporting if c.get("synthetic") is True]
+    require(fixtures, f"{hid}: synthetic quiet lost its immutable synthetic fixture")
     artifacts = set()
-    for claim in supporting:
+    for claim in fixtures:
         require(claim.get("source") == "hotelier_simulator" and claim.get("synthetic") is True, f"{hid}: synthetic quiet is attributed as a real hotel claim")
         require(all(claim.get("scope", {}).get(k) == expected[k] for k in ("facade", "floor_min", "floor_max", "month")), f"{hid}: supporting synthetic claim scope differs from its fact")
         require(abs(claim.get("confidence", 0)-.85) < 1e-6, f"{hid}: synthetic claim confidence differs from .85")
@@ -188,6 +199,8 @@ def validate_synthetic_detail(detail: dict, expected: dict) -> dict:
             require(ev.get("limitations"), f"{hid}: synthetic quote has no limitations")
             require(ev.get("artifact") == "/data/seed/demo_hotelier_claims.jsonl", f"{hid}: missing public synthetic ledger artifact")
             artifacts.add(ev["artifact"])
+    require(all(c.get("source") == "geo_engine" and c.get("synthetic") is False and abs(c.get("confidence", 0)-.38) < 1e-6
+                for c in supporting if c not in fixtures), f"{hid}: merged real exterior-noise provenance changed")
     require(artifacts, f"{hid}: synthetic claim has no accessible evidence artifact")
     native = [f for f in facts if f.get("characteristic_id") == "quiet_night" and f.get("synthetic") is False and f.get("scope", {}).get("type") == "facade" and f["scope"].get("facade") == expected["facade"]]
     require(native, f"{hid}: original real exterior-noise fact disappeared")
