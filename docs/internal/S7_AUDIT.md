@@ -10,7 +10,7 @@ P0 не найден. Четыре воспроизводимых P1 перед�
 
 ### P1-1. Повторный POI collect конфликтует с immutable ledger
 
-**Статус:** исправление взял оркестратор; независимая повторная проверка ожидается.
+**Статус:** закрыто. Исправлено в main `4479b6e`; независимые unit-проверки и два разрешённых collect на живой БД после startup bootstrap прошли. Подробности ниже.
 
 - Место: `backend/tools/registry.py:152`–155, вызовы `backend/agents/orchestrator.py:33`, `backend/api/studio.py:93`; первоначальные POI создаёт `backend/seed.py:91`–104.
 - Триггер: повторно выполнить `poi_nearby` для одного отеля / kind / radius на неизменном снимке. Даже первый полный ручной collect после seed повторяет уже существующие POI.
@@ -20,7 +20,7 @@ P0 не найден. Четыре воспроизводимых P1 перед�
 
 ### P1-2. Composite derive соединяет несовместимые номера
 
-**Статус:** исправление взял оркестратор; независимая повторная проверка ожидается.
+**Статус:** закрыто после дополнительного исправления main `0de6777`. Разные facade / floor / room_type / month корректно разделены; обнаруженный при retest `4479b6e` обход для двух общих hotel-wide inputs также исправлен и независимо перепроверен. Подробности ниже.
 
 - Место: `backend/tools/registry.py:163`–169, 179–187.
 - Триггер: в студии составить `sea_view.available and quiet_night.available`; sea_view подтверждён только для W, quiet_night — только для E.
@@ -30,7 +30,7 @@ P0 не найден. Четыре воспроизводимых P1 перед�
 
 ### P1-3. Качественное отрицание шумоизоляции превращается в positive
 
-**Статус:** исправлено в S4 commit `57e865616edcee693bdfcd6a706dfa9bbe60a208`; S7 независимо загрузил модуль из git в память без изменения main и проверил обе отрицательные фразы → available=false, «не плохая» → abstain. Прежний synthetic corpus 62/62 PASS. Интеграция в финальный main / образ проверяется оркестратором.
+**Статус:** закрыто. Исправление S4 `57e8656` и последующие fixes интегрированы в main; S7 перепроверил обе отрицательные фразы → available=false, «не плохая» → abstain, сохранение отрицания после предложения о двойных окнах и неоднозначные ночные утверждения. Прежний synthetic corpus 62/62 PASS; targeted main regressions также PASS.
 
 - Место: `backend/agents/answer_parser.py:53`–65, 161–166; подтверждение — `backend/api/hotelier.py:181`–185.
 - Триггер: ответ «Шумоизоляция плохая.» или «У нас слабая шумоизоляция.».
@@ -40,7 +40,7 @@ P0 не найден. Четыре воспроизводимых P1 перед�
 
 ### P1-4. JSON Schema разрешает серверную загрузку произвольного $ref
 
-**Статус:** сообщено оркестратору; исправление и повторная проверка ожидаются.
+**Статус:** закрыто. Исправления `fbf997d` и S4 `31de91d` проверены в main: 9 unsafe schemas на двух границах отвергнуты, попыток сети 0; local reference проходит. Подробности ниже.
 
 - Место: `backend/agents/spec_compiler.py:14`, `backend/api/studio.py:41`, `backend/agents/orchestrator.py:31`, `backend/api/hotelier.py:148`.
 - Триггер: value_schema с `$ref: http://127.0.0.1:12345/...` проходит validate_spec; при проверке значения jsonschema использует стандартный registry с автоматической загрузкой URI.
@@ -81,7 +81,36 @@ P0 не найден. Четыре воспроизводимых P1 перед�
 
 ## Повторная проверка
 
-После сообщений оркестратора об исправлениях обновить статусы P1-1…4 и P2; повторить только затронутые регрессии. Перед видео / clean clone все P1 должны быть закрыты проверяемым кодом и тестом, а не только планом исправления.
+Первый retest на main `2bddbff` поверх `4479b6e`, с SSRF fix `fbf997d` и S4 `31de91d`; финальный targeted retest после дополнительного исправления — на `0de6777c2d44203ce89240dc07d74626db6db9b3`. Код и тесты S7 не менял; по отдельному разрешению выполнены ровно два POST `/api/runs` для `night_pharmacy`, без удаления или подмены claims.
+
+```sh
+.venv/bin/python -m pytest -q tests/test_registry_invariants.py tests/test_contracts.py \
+  tests/test_resolver.py tests/test_derive.py backend/tests/test_hotelier.py \
+  backend/tests/test_api_integration.py backend/tests/test_search.py
+```
+
+Первый targeted run: 56 tests, 104 subtests PASS. Финальный run с поисковыми регрессиями: **128 tests, 104 subtests PASS**. Дополнительные независимые synthetic checks:
+
+- Composite: opposite facade, disjoint floor intervals, разные room_type, разные month и broad-positive view + specific second input → abstain. Совместимые W / этажи 2–5 и W / 3–6 / сентябрь → W / 3–5 / сентябрь, с сохранённым synthetic=true.
+- Parser: «Шумоизоляция плохая» / «У нас слабая шумоизоляция» → false; «не плохая» → unknown; «Шумоизоляция плохая. Окна двойные» сохраняет false и windows=double; «Днём шумно, ночью тихо» → true; «Ночью тихо, но шумно» → unknown.
+- SSRF: http, https, file, protocol-relative URI, relative URI, `$dynamicRef`, `$id`, nested property reference и nested allOf reference проверены и через CharacteristicSpec, и напрямую через `validate_value`. Все 18 unsafe случаев отвергнуты, `urllib.request.urlopen` не вызван ни разу. Корректный `#/$defs/...` reference принят. Hotelier regression дополнительно доказывает отказ до любых claims / sources writes.
+
+**Живая БД, P1-1:** после GET `/health` 200 выбран не demo-hero, `osm-node-10118233110` (Swissotel Resort Сочи Камелия). Startup bootstrap уже содержал `poi-dd76c2418f474c10c9024059`.
+
+| Проверка | Run ID | Новый Claim ID | Результат |
+| --- | --- | --- | --- |
+| Первый повторный collect | e58e9097-a2d9-4134-989d-a137568380de | e24d9ec7-949d-4010-97bc-a579134c1633 | completed, supersedes bootstrap |
+| Второй повторный collect | 31d5218e-a462-4fdb-a44a-2ad2cbbcd5c6 | 56f95718-2491-4a2b-93b8-bea632d819da | completed, supersedes оба старых |
+
+Число POI claims 1 → 2 → 3; final Fact.supporting_claim_ids содержит только последний ID. Все три наблюдения сохраняют `observed_at=2026-10-25T21:21:21Z`, `valid_until=2027-01-23T21:21:21Z`; значение не выдано за новую загрузку. Synthetic=false соответствует повторному расчёту по реальному неизменному OSM snapshot. Удалений не было.
+
+**Дополнение к P1-2, найденное при первом retest:** `backend/tools/scoped_inputs.py:45` в `4479b6e` проверял общий положительный view только когда merged scope уже имел комнатные поля. Два hotel-wide inputs `sea_view.available=true` и `quiet_night.available=true` с confidence 0.85 проходили вместе. Независимая явно synthetic проверка derive → Resolver → ranker дала один `quiet_sea` claim, hotel scope, confidence 0.85, `group=all`, synthetic=true. Это объявляло совместимый номер на основе существования вида где-то в отеле. Сообщено оркестратору сразу. **Исправлено в `0de6777`:** положительный view без room scope теперь отвергается независимо от остальных входов; исходный synthetic случай даёт 0 claims и явное warning об отсутствии совместимых данных.
+
+**P2, найденный при первом retest:** `backend/tools/registry.py:184` падал на `max()` пустого inputs для AST-разрешённого `expr='True'`: names пуст, `compatible_inputs` возвращал пустой tuple в одном сочетании. Публикация такого плана завершала бы backfill ошибкой вместо понятной абстенции. **Исправлено в `0de6777`:** empty names → пустой список сочетаний; независимая проверка `expr='True'` даёт 0 claims + warnings, без исключения.
+
+Дополнительно проверено изменение semantics group=all в `0de6777`: предварительный match может считаться supported только при успешном сравнении, полных ограничениях и confidence ≥ 0.6; порог verdict=yes остаётся 0.7. Независимая проверка quiet_night confidence 0.38: positive → almost / partial, negative → unknown, гарантия сна не появляется. Hotel-wide sea_view confidence 0.85 остаётся partial и не даёт group=all. При наличии supported estimate summary явно предупреждает о предварительном расчёте.
+
+Итого финального retest: **все четыре S7 P1 закрыты**; constant-only P2 также закрыт. Другие отмеченные P2 и неизмеренные риски сохраняют свои отдельные статусы. Эмпирическая точность и калибровка не измерялись, synthetic результаты не выданы за полевую проверку.
 
 ## Дополнительный аудит dev toolchain
 
