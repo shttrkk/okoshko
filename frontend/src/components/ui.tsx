@@ -384,6 +384,14 @@ export function HotelVisual({
     </div>
   );
 }
+export function needsQuestion(fact: Fact) {
+  const value = record(fact.value);
+  return (
+    ["unknown", "disputed", "stale"].includes(fact.status) ||
+    fact.value === null ||
+    ("available" in value && value.available === null)
+  );
+}
 export function FactValue({ fact }: { fact: Fact }) {
   const v = record(fact.value);
   if (fact.status === "disputed" && fact.value === null)

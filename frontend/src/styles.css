@@ -5459,3 +5459,21 @@ pre {
   font-size: 9px;
   color: var(--muted);
 }
+.comparison-scroll {
+  max-height: calc(100vh - 285px);
+  min-height: 320px;
+}
+.comparison-table thead th:first-child {
+  left: 0;
+  z-index: 4;
+}
+.comparison-table tbody th {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+@media (max-width: 680px) {
+  .comparison-scroll {
+    max-height: 65vh;
+  }
+}
