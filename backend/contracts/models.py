@@ -248,6 +248,8 @@ class Criterion(Model):
     scope: Scope | None = None
     no_stairs: bool = False
     no_crossings: bool = False
+    no_stairs: bool = False
+    no_crossings: bool = False
 
 
 class ParsedQuery(Model):
