@@ -83,7 +83,7 @@ class Registry:
         records = self.repo.find("claims",hotel_id=context.hotel_id,characteristic_id=canonical)
         allowed = {"geo_engine"} if call.tool in {"viewshed_facade","sun_window","noise_facade","walk_route"} else None
         selected = []
-        superseded = {record.get("supersedes") for record in records if record.get("supersedes")}
+        superseded = {id for record in records for id in ([record["supersedes"]] if record.get("supersedes") else [])+record.get("supersedes_ids",[])}
         latest = {}
         for record in records:
             claim = Claim.model_validate(record)
@@ -95,7 +95,7 @@ class Registry:
             if key not in latest or claim.observed_at>latest[key].observed_at:
                 latest[key] = claim
         for claim in latest.values():
-            selected.append(claim.model_copy(update={"id":uid(),"characteristic_id":context.characteristic_id,"run_id":context.run_id,"supersedes":claim.id if context.characteristic_id == canonical else None}))
+            selected.append(claim.model_copy(update={"id":uid(),"characteristic_id":context.characteristic_id,"run_id":context.run_id,"supersedes":claim.id if context.characteristic_id == canonical else None,"supersedes_ids":[]}))
         return ToolResult(claims=selected,artifacts={"cache_hit":True},warnings=[] if selected else ["Нет подтверждённых входных данных для инструмента; значение неизвестно"])
 
     def _ask(self, context, call):

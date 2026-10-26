@@ -17,7 +17,7 @@
 - Каждый Claim имеет `source`, `method`, непустой `evidence`, `confidence` [0,1], `observed_at`, `valid_until`.
 - `Evidence` содержит доступный URL или локальный `artifact` (путь `/data/...`), а также `inputs`/`output` и ограничения.
 - Локальные артефакты должны лежать в репозитории. Ссылка на отсутствующий расчёт не evidence.
-- Claims неизменяемы. Обновление — новый claim с `supersedes`, затем Resolver обновляет Fact.
+- Claims неизменяемы. Обновление — новый claim с `supersedes` или `supersedes_ids` (несколько старых диапазонов при изменении геометрии), затем Resolver атомарно заменяет materialized facts отеля. Старые границы этажей не остаются активными.
 - Unknown — `Fact(value=null,status=unknown,confidence=0)` без выдуманного claim.
 - Synthetic — отдельный флаг у claim/fact/conflict/answer/change; источник симулятора `hotelier_simulator`.
 - Расчёт шума — приближённая модель наружного шума, не измерение дБ и не характеристика шумоизоляции.

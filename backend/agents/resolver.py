@@ -37,7 +37,7 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
     at = at or datetime.now(UTC)
     source_priors = {source["id"]: source.get("alpha", 7)/(source.get("alpha", 7)+source.get("beta", 3)) for source in sources}
     spec_by_id = {spec.id: spec for spec in specs}
-    superseded = {claim.supersedes for claim in claims if claim.supersedes}
+    superseded = {id for claim in claims for id in ([claim.supersedes] if claim.supersedes else [])+claim.supersedes_ids}
     latest = {}
     for claim in claims:
         if claim.hotel_id != hotel_id or claim.id in superseded:
@@ -145,7 +145,11 @@ def resolve_hotel(hotel_id: str, repo) -> list[Fact]:
     claims = [Claim.model_validate(value) for value in repo.find("claims", hotel_id=hotel_id)]
     specs = [CharacteristicSpec.model_validate(value) for value in repo.all("characteristics")]
     facts, conflicts = resolve_claims(hotel_id, claims, specs, repo.all("sources"))
+    if hasattr(repo,"replace_facts"):
+        repo.replace_facts(hotel_id,[fact.model_dump(mode="json") for fact in facts])
     for table, values in (("facts", facts), ("conflicts", conflicts)):
+        if table=="facts" and hasattr(repo,"replace_facts"):
+            continue
         payloads = [value.model_dump(mode="json") for value in values]
         if hasattr(repo, "upsert_many"):
             repo.upsert_many(table, payloads)

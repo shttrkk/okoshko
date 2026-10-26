@@ -1,5 +1,4 @@
 """Bounded quarterly performance coverage; absent tests remain unknown."""
-import json
 import calendar
 
 import duckdb
@@ -25,7 +24,7 @@ def run():
                 sql = f"SELECT quadkey,tile,tile_x,tile_y,avg_d_kbps,avg_u_kbps,avg_lat_ms,tests,devices FROM read_parquet('{url}') WHERE " + " OR ".join(filters)
                 result = c.execute(sql)
                 names = [d[0] for d in result.description]
-                rows = [dict(zip(names, r), kind=kind, quarter=quarter_label, source_id="ookla") for r in result.fetchall()]
+                rows = [dict(zip(names, r, strict=False), kind=kind, quarter=quarter_label, source_id="ookla") for r in result.fetchall()]
                 dump(path, rows)
                 meta = dict(url=url, retrieved_at=utcnow(), sha256=sha(path), bytes=path.stat().st_size, sql=sql,
                             coverage_bboxes=COVERAGE_BBOXES, sha_scope="materialized bbox query result")

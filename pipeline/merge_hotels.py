@@ -13,7 +13,7 @@ from backend.contracts.models import Hotel
 from pipeline.common import CONFIG, RAW, SEED, ZONE_A, ZONE_B, dump, read, table
 
 GEOD = Geod(ellps="WGS84")
-CYR = str.maketrans(dict(zip("абвгдеёжзийклмнопрстуфхцчшщъыьэюя", ["a","b","v","g","d","e","e","zh","z","i","i","k","l","m","n","o","p","r","s","t","u","f","kh","ts","ch","sh","shch","","y","","e","yu","ya"])))
+CYR = str.maketrans(dict(zip("абвгдеёжзийклмнопрстуфхцчшщъыьэюя", ["a","b","v","g","d","e","e","zh","z","i","i","k","l","m","n","o","p","r","s","t","u","f","kh","ts","ch","sh","shch","","y","","e","yu","ya"], strict=False)))
 
 
 def norm(name):
@@ -116,7 +116,8 @@ def run():
         category = h["tags"].get("tourism") or h["source_records"][-1].get("category")
         return (0 if category == "hotel" else 1, 0 if len(h["source_ids"]) > 1 else 1, 0 if h["osm_id"] else 1, h["id"])
     ordered = sorted(merged, key=priority)
-    inside = lambda h, b: b[0] <= h["lon"] <= b[2] and b[1] <= h["lat"] <= b[3]
+    def inside(h, b):
+        return b[0] <= h["lon"] <= b[2] and b[1] <= h["lat"] <= b[3]
     central = [h for h in ordered if inside(h, ZONE_A)]
     adler = [h for h in ordered if inside(h, ZONE_B)]
     limit_a, limit_b = CONFIG["zones"]["A"]["hotel_limit"], CONFIG["zones"]["B"]["hotel_limit"]

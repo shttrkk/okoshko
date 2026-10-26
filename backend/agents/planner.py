@@ -1,4 +1,5 @@
 """LLM may order approved tools; deterministic data access remains authoritative."""
+from jsonschema.exceptions import ValidationError as SchemaValidationError
 from pydantic import BaseModel
 
 from backend.contracts import CharacteristicSpec, ToolCall
@@ -27,7 +28,7 @@ def plan_characteristic(spec: CharacteristicSpec, hotel: dict, repo, registry, l
             registry.validate(step)
             if (step.tool,str(sorted(step.params.items()))) not in approved:
                 raise ValueError("Plan changed approved parameters")
-    except ValueError:
+    except (ValueError,SchemaValidationError):
         return fallback.steps,"offline"
     return result.steps,mode
 

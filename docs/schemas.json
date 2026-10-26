@@ -498,6 +498,13 @@
         "default": null,
         "title": "Supersedes"
       },
+      "supersedes_ids": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Supersedes Ids",
+        "type": "array"
+      },
       "synthetic": {
         "default": false,
         "title": "Synthetic",
@@ -1217,6 +1224,13 @@
             ],
             "default": null,
             "title": "Supersedes"
+          },
+          "supersedes_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Supersedes Ids",
+            "type": "array"
           },
           "synthetic": {
             "default": false,
@@ -4369,6 +4383,13 @@
             ],
             "default": null,
             "title": "Supersedes"
+          },
+          "supersedes_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Supersedes Ids",
+            "type": "array"
           },
           "synthetic": {
             "default": false,

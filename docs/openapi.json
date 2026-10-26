@@ -1490,6 +1490,13 @@
             ],
             "title": "Supersedes"
           },
+          "supersedes_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supersedes Ids"
+          },
           "synthetic": {
             "type": "boolean",
             "title": "Synthetic",

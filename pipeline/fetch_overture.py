@@ -7,7 +7,18 @@ import duckdb
 from shapely.geometry import mapping, shape
 from shapely.strtree import STRtree
 
-from pipeline.common import BBOX, CONFIG, COVERAGE_BBOXES, RAW, SEED, collection, dump, read, sha, source, utcnow
+from pipeline.common import (
+    CONFIG,
+    COVERAGE_BBOXES,
+    RAW,
+    SEED,
+    collection,
+    dump,
+    read,
+    sha,
+    source,
+    utcnow,
+)
 
 RELEASE = CONFIG["overture"]["release"]
 SNAPSHOT = RELEASE[:10] + "T00:00:00Z"
@@ -34,7 +45,7 @@ def query(theme, kind):
         queries.append(sql)
         result = c.execute(sql)
         names = [d[0] for d in result.description]
-        rows = [dict(zip(names, row)) for row in result.fetchall()]
+        rows = [dict(zip(names, row, strict=False)) for row in result.fetchall()]
         by_id.update({row["id"]: row for row in rows})
         print(f"Overture {theme} bbox result: {len(rows)}", flush=True)
     records = list(by_id.values())

@@ -8,7 +8,17 @@ from pyproj import Geod
 from shapely.geometry import LineString, Point, Polygon, box, mapping
 from shapely.ops import unary_union
 
-from pipeline.common import BBOX, CONFIG, COVERAGE_BBOXES, RAW, SEED, collection, dump, fetch, gzip_json, source
+from pipeline.common import (
+    CONFIG,
+    COVERAGE_BBOXES,
+    RAW,
+    SEED,
+    collection,
+    dump,
+    fetch,
+    gzip_json,
+    source,
+)
 
 SNAPSHOT = CONFIG["osm"]["snapshot"]
 URL = CONFIG["osm"]["url"]
@@ -117,7 +127,7 @@ def run():
                 return
             # OSM car one-way does not imply foot one-way. Respect explicit foot direction.
             oneway = tags.get("oneway:foot")
-            for a, b, ca, cb in zip(w.nodes, list(w.nodes)[1:], coords, coords[1:]):
+            for a, b, ca, cb in zip(w.nodes, list(w.nodes)[1:], coords, coords[1:], strict=False):
                 if not (bounds.covers(Point(ca)) and bounds.covers(Point(cb))):
                     continue
                 u, v = str(a.ref), str(b.ref)

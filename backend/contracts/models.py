@@ -81,6 +81,7 @@ class Claim(Model):
     valid_until: datetime
     run_id: str | None = None
     supersedes: str | None = None
+    supersedes_ids: list[str] = Field(default_factory=list)
     synthetic: bool = False
 
     @model_validator(mode="after")

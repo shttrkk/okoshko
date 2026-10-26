@@ -2,12 +2,10 @@
 from __future__ import annotations
 
 import html
-import json
 import re
 from collections import defaultdict
-from datetime import datetime
 
-from pipeline.common import CONFIG, RAW, SEED, dump, fetch, read, sha, source
+from pipeline.common import CONFIG, RAW, SEED, dump, fetch, read, source
 
 
 def clean(s):
@@ -47,7 +45,7 @@ def meteo(region="A"):
                   "air_c": None, "water_c": None, "sunshine_hours": None, "precipitation_mm": None}
         for data, field, target, mode in [(archive, "temperature_2m_mean", "air_c", "mean"), (marine, "sea_surface_temperature_mean", "water_c", "mean"),
                                           (archive, "sunshine_duration", "sunshine_hours", "year_sum_hours"), (archive, "precipitation_sum", "precipitation_mm", "year_sum")]:
-            pairs = [(day, v) for day, v in zip(data.get("time", []), data.get(field, [])) if int(day[5:7]) == month and v is not None]
+            pairs = [(day, v) for day, v in zip(data.get("time", []), data.get(field, []), strict=False) if int(day[5:7]) == month and v is not None]
             if not pairs:
                 continue
             record[target + "_period"] = [pairs[0][0], pairs[-1][0]]
@@ -75,7 +73,7 @@ def meteo(region="A"):
     projection = values.get("open_meteo_climate", {}).get("daily", {})
     projection_months = []
     for month in range(1, 13):
-        vals = [v for d, v in zip(projection.get("time", []), projection.get("temperature_2m_mean", [])) if int(d[5:7]) == month and v is not None]
+        vals = [v for d, v in zip(projection.get("time", []), projection.get("temperature_2m_mean", []), strict=False) if int(d[5:7]) == month and v is not None]
         projection_months.append({"month": month, "air_c": round(sum(vals) / len(vals), 2) if vals else None, "sample_days": len(vals)})
     dump(SEED / ("open_meteo_b.json" if region == "B" else "open_meteo.json"), {"region": region, "climate_months": monthly, "air_quality": aq_summary,
         "grids": {k: {field: v.get(field) for field in ["latitude", "longitude", "elevation", "timezone"]} for k, v in values.items()},
@@ -94,7 +92,8 @@ def commons(region="A"):
     for p in read(path).get("query", {}).get("pages", {}).values():
         info = (p.get("imageinfo") or [{}])[0]
         ext = info.get("extmetadata", {})
-        val = lambda k: clean(ext.get(k, {}).get("value", ""))
+        def val(k, metadata=ext):
+            return clean(metadata.get(k, {}).get("value", ""))
         license, author = val("LicenseShortName"), val("Artist")
         if not license or not author or not info.get("thumburl"):
             continue
@@ -136,7 +135,8 @@ def wikidata():
         if not e:
             continue
         claims = e.get("claims", {})
-        values = lambda prop: [c.get("mainsnak", {}).get("datavalue", {}).get("value") for c in claims.get(prop, []) if c.get("mainsnak", {}).get("datavalue")]
+        def values(prop, statements=claims):
+            return [c.get("mainsnak", {}).get("datavalue", {}).get("value") for c in statements.get(prop, []) if c.get("mainsnak", {}).get("datavalue")]
         histories.append({"hotel_id": h["id"], "wikidata_id": qid, "source_id": "wikidata", "url": "https://www.wikidata.org/wiki/" + qid,
                           "identity_method": "explicit_osm_wikidata_tag", "inception": values("P571"), "architecture": values("P149"), "heritage": values("P1435"),
                           "labels": e.get("labels"), "unknown": not bool(values("P571") or values("P149"))})

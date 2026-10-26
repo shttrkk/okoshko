@@ -10,7 +10,22 @@ from shapely import wkt
 from shapely.geometry import Point
 
 from backend.contracts.models import Claim, Source
-from pipeline.common import BBOX, CONFIG, CONFIG_PATH, COVERAGE_BBOXES, RAW, ROOT, SEED, ZONE_A, ZONE_B, dump, read, sha, source, table, utcnow
+from pipeline.common import (
+    CONFIG,
+    CONFIG_PATH,
+    COVERAGE_BBOXES,
+    RAW,
+    ROOT,
+    SEED,
+    ZONE_A,
+    ZONE_B,
+    dump,
+    read,
+    sha,
+    source,
+    table,
+    utcnow,
+)
 
 
 def load_stages():

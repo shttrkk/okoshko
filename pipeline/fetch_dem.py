@@ -30,7 +30,7 @@ def run():
             with rasterio.open(tile["raw_path"]) as dem:
                 b = dem.bounds
                 nodes = [n for n in graph["nodes"] if b.left <= n["lon"] < b.right and b.bottom < n["lat"] <= b.top]
-                for node, value in zip(nodes, dem.sample([(n["lon"], n["lat"]) for n in nodes], masked=True)):
+                for node, value in zip(nodes, dem.sample([(n["lon"], n["lat"]) for n in nodes], masked=True), strict=False):
                     z = value[0]
                     if not getattr(z, "mask", False) and math.isfinite(float(z)):
                         node["elevation_m"] = round(float(z), 2)

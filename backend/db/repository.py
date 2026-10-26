@@ -97,6 +97,13 @@ class Repository:
                                [(value["id"], Jsonb(value)) for value in validated])
         return validated
 
+    def replace_facts(self, hotel_id: str, values: list[dict]) -> None:
+        # Atomic materialized-view replacement removes obsolete floor-range keys.
+        with psycopg.connect(self.db_url) as conn, conn.cursor() as cursor:
+            cursor.execute("DELETE FROM facts WHERE payload->>'hotel_id'=%s",(hotel_id,))
+            cursor.executemany("INSERT INTO facts(id,payload) VALUES(%s,%s)",
+                               [(value["id"],Jsonb(value,dumps=dump_json)) for value in values])
+
     def count(self, table: str) -> int:
         with psycopg.connect(self.db_url) as conn:
             return conn.execute(sql.SQL("SELECT count(*) FROM {}").format(self.table(table))).fetchone()[0]
