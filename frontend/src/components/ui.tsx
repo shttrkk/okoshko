@@ -300,17 +300,19 @@ export function VerdictList({
       {verdicts.map((v, i) => (
         <li key={`${v.characteristic_id}-${i}`}>
           <span
-            className={`verdict-symbol ${v.status}`}
+            className={`verdict-symbol ${v.disputed ? "disputed" : v.status}`}
             aria-label={
-              {
-                yes: "Подходит",
-                partial: "Частично",
-                no: "Не подходит",
-                unknown: "Неизвестно",
-              }[v.status]
+              v.disputed
+                ? "Есть противоречие"
+                : {
+                    yes: "Подходит",
+                    partial: "Частично",
+                    no: "Не подходит",
+                    unknown: "Неизвестно",
+                  }[v.status]
             }
           >
-            {v.symbol}
+            {v.disputed ? "!" : v.symbol}
           </span>
           <div>
             <button
@@ -319,6 +321,12 @@ export function VerdictList({
               disabled={!onEvidence}
             >
               <strong>{v.label}</strong>
+              {v.disputed && (
+                <span className="badge disputed-badge">Есть противоречие</span>
+              )}
+              {v.status === "unknown" && !v.disputed && (
+                <span className="badge unknown-badge">Нет данных</span>
+              )}
               {v.synthetic && <Synthetic>Подтверждение · синтетика</Synthetic>}
               <span>{v.text}</span>
               {v.caveat && <small>{v.caveat}</small>}
@@ -370,6 +378,8 @@ export function HotelVisual({
 }
 export function FactValue({ fact }: { fact: Fact }) {
   const v = record(fact.value);
+  if (fact.status === "disputed" && fact.value === null)
+    return <span className="disputed-text">! Есть противоречие</span>;
   if (fact.status === "unknown" || fact.value === null)
     return <span className="unknown-text">? Нет данных</span>;
   const fields: Record<string, string> = {
@@ -405,6 +415,9 @@ export function FactValue({ fact }: { fact: Fact }) {
     );
   return (
     <span>
+      {fact.status === "disputed" && (
+        <strong className="disputed-text">Спорное значение · </strong>
+      )}
       {v.available === false
         ? "Нет"
         : v.available === null

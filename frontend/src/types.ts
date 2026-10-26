@@ -111,6 +111,7 @@ export interface Verdict {
   evidence_refs: string[];
   caveat?: string | null;
   synthetic?: boolean;
+  disputed?: boolean;
 }
 export interface SearchHit {
   hotel: Hotel;

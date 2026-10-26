@@ -5341,3 +5341,85 @@ pre {
     color: #6b9d9e;
   }
 }
+.date-assumption {
+  margin: 0 0 20px;
+}
+.date-assumption-trigger {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 9px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  text-align: left;
+  line-height: 1.6;
+}
+.date-assumption-trigger strong {
+  font-weight: 650;
+}
+.date-assumption-trigger > svg {
+  flex-shrink: 0;
+  margin-left: 5px;
+}
+.criteria-dates {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px;
+  padding: 18px 0 5px;
+}
+.criteria-dates label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 9px;
+  color: var(--muted);
+}
+.criteria-dates input,
+.criteria-dates select {
+  width: 100%;
+  min-height: 35px;
+  padding: 6px 8px;
+  font-size: 10px;
+}
+.criteria-dates > .text-button,
+.criteria-dates > p {
+  grid-column: 1/-1;
+  font-size: 9px;
+}
+.verdict-symbol.disputed {
+  background: #bc8b3020;
+  color: var(--yellow);
+  border: 1px solid #bc8b3060;
+}
+.verdict-text > .badge.disputed-badge {
+  background: #bc8b3020;
+  color: var(--yellow);
+  font-size: 7px;
+}
+.verdict-text > .badge.unknown-badge {
+  background: #8b9eaa1c;
+  color: #73828a;
+  font-size: 7px;
+}
+.disputed-text {
+  color: var(--yellow);
+  font-size: 10px;
+  font-weight: 500;
+}
+.graph-legend > span:nth-child(4) {
+  color: #6b9d9e;
+}
+@media (max-width: 680px) {
+  .date-assumption-trigger {
+    font-size: 8px;
+    flex-wrap: wrap;
+  }
+  .criteria-dates {
+    grid-template-columns: 1fr 1fr;
+  }
+  .criteria-dates > label:first-child {
+    grid-column: 1/-1;
+  }
+}

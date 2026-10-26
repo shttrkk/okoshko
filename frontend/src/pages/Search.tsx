@@ -330,6 +330,16 @@ function CriteriaEditor({
     id: string;
     group: "must" | "nice";
   } | null>(null);
+  const [showDates, setShowDates] = useState(false);
+  const monthName = new Intl.DateTimeFormat("ru", { month: "long" }).format(
+    new Date(2026, parsed.month - 1, 1),
+  );
+  const noDates = !parsed.check_in && !parsed.check_out;
+  const dateError = !!(
+    parsed.check_in &&
+    parsed.check_out &&
+    parsed.check_out <= parsed.check_in
+  );
   const move = (group: "must" | "nice", id: string) => {
     const target = group === "must" ? "nice" : "must",
       criterion = parsed[group].find((c) => c.characteristic_id === id);
@@ -363,6 +373,107 @@ function CriteriaEditor({
           Ваши ориентиры
         </span>
         <span className="fine-print">Можно менять</span>
+      </div>
+      <div className="date-assumption">
+        <button
+          className="date-assumption-trigger"
+          onClick={() => setShowDates(!showDates)}
+          aria-expanded={showDates}
+          data-testid={noDates ? "default-month-chip" : "trip-dates-chip"}
+        >
+          {noDates ? (
+            <>
+              <strong>
+                {monthName.charAt(0).toUpperCase() + monthName.slice(1)}
+                {parsed.month === 9 ? " (по умолчанию)" : ""}
+              </strong>
+              <span>— укажите даты</span>
+            </>
+          ) : (
+            <>
+              <strong>
+                {parsed.check_in || "Заезд не указан"} —{" "}
+                {parsed.check_out || "Выезд не указан"}
+              </strong>
+              <span>Изменить даты</span>
+            </>
+          )}
+          <SlidersHorizontal size={12} />
+        </button>
+        {showDates && (
+          <div className="criteria-dates">
+            <label>
+              Месяц поездки
+              <select
+                value={parsed.month}
+                disabled={!!parsed.check_in}
+                onChange={(e) =>
+                  onChange({ ...parsed, month: Number(e.target.value) })
+                }
+                aria-label="Месяц поездки"
+              >
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option value={i + 1} key={i}>
+                    {new Intl.DateTimeFormat("ru", { month: "long" }).format(
+                      new Date(2026, i, 1),
+                    )}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Заезд
+              <input
+                aria-label="Уточнить дату заезда"
+                type="date"
+                value={parsed.check_in || ""}
+                onChange={(e) =>
+                  onChange({
+                    ...parsed,
+                    check_in: e.target.value || null,
+                    month: e.target.value
+                      ? new Date(e.target.value).getUTCMonth() + 1
+                      : parsed.month,
+                  })
+                }
+              />
+            </label>
+            <label>
+              Выезд
+              <input
+                aria-label="Уточнить дату выезда"
+                type="date"
+                value={parsed.check_out || ""}
+                min={parsed.check_in || undefined}
+                onChange={(e) =>
+                  onChange({ ...parsed, check_out: e.target.value || null })
+                }
+              />
+            </label>
+            <button
+              className="text-button"
+              onClick={() =>
+                onChange({
+                  ...parsed,
+                  check_in: null,
+                  check_out: null,
+                  month: 9,
+                })
+              }
+            >
+              Сбросить даты
+            </button>
+            <p className="fine-print">
+              От месяца зависит расчёт заката и климат. Нажмите «Применить»,
+              чтобы обновить выдачу.
+            </p>
+            {dateError && (
+              <p role="alert" className="inline-error">
+                Выезд должен быть позже заезда.
+              </p>
+            )}
+          </div>
+        )}
       </div>
       {(["must", "nice"] as const).map((group) => (
         <div
@@ -470,7 +581,11 @@ function CriteriaEditor({
               </option>
             ))}
         </select>
-        <button className="text-button" onClick={onApply} disabled={busy}>
+        <button
+          className="text-button"
+          onClick={onApply}
+          disabled={busy || dateError}
+        >
           Применить <ArrowRight size={15} />
         </button>
       </div>
@@ -664,7 +779,14 @@ export function SearchPage() {
               parsed={edited}
               onChange={setEdited}
               busy={resource.loading}
-              onApply={() => setRequest({ ...request, parsed: edited })}
+              onApply={() =>
+                setRequest({
+                  ...request,
+                  check_in: edited.check_in,
+                  check_out: edited.check_out,
+                  parsed: edited,
+                })
+              }
             />
           )}
           <button
