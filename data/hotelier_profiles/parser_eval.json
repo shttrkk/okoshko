@@ -1,0 +1,683 @@
+{
+  "synthetic": true,
+  "label_type": "synthetic_manually_authored_parser_cases",
+  "limitations": "Regression examples only; not empirical accuracy or verified hotel data.",
+  "cases": [
+    {
+      "id": "syn-001",
+      "text": "С собаками можно.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": true,
+        "species": [
+          "dog"
+        ]
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-002",
+      "text": "Кошек принимаем.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": true,
+        "species": [
+          "cat"
+        ]
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-003",
+      "text": "Принимаем собак и кошек до 30 кг за 1000 рублей за ночь.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": true,
+        "species": [
+          "cat",
+          "dog"
+        ],
+        "max_weight_kg": 30,
+        "fee_rub_night": 1000
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-004",
+      "text": "С собакой до 2.5 кг можно за 500 ₽/сутки.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": true,
+        "max_weight_kg": 2.5,
+        "fee_rub_night": 500
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-005",
+      "text": "С питомцами нельзя.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-006",
+      "text": "Животных не принимаем.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-007",
+      "text": "Собак не принимаем.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-008",
+      "text": "Размещение без животных.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-009",
+      "text": "Кошек принимаем, собак нет.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": true,
+        "species": [
+          "cat"
+        ]
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-010",
+      "text": "С собаками можно бесплатно.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": true,
+        "fee_rub_night": 0
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-011",
+      "text": "С собакой до 30 кг можно, без доплаты.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": true,
+        "fee_rub_night": 0,
+        "max_weight_kg": 30
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-012",
+      "text": "Питомцы разрешены до 10 кг за 1 500 руб за ночь.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": true,
+        "max_weight_kg": 10,
+        "fee_rub_night": 1500
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-013",
+      "text": "Собаки запрещены.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-014",
+      "text": "Кошки разрешены до 15 кг.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": true,
+        "species": [
+          "cat"
+        ],
+        "max_weight_kg": 15
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-015",
+      "text": "С питомцами можно за 700 рублей в сутки.",
+      "question_characteristic_id": "pets",
+      "expected": {
+        "available": true,
+        "fee_rub_night": 700
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-016",
+      "text": "Окна двойные.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": null,
+        "windows": "double"
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-017",
+      "text": "Окна одинарные.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": null,
+        "windows": "single"
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-018",
+      "text": "Двухкамерные стеклопакеты.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": null,
+        "windows": "double"
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-019",
+      "text": "Blackout есть.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": null,
+        "blackout": true
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-020",
+      "text": "Blackout нет.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": null,
+        "blackout": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-021",
+      "text": "Нет blackout.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": null,
+        "blackout": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-022",
+      "text": "Шторы blackout отсутствуют.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": null,
+        "blackout": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-023",
+      "text": "Плотные шторы есть.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": null,
+        "blackout": true
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-024",
+      "text": "Кондиционер есть.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": null,
+        "air_conditioning": true
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-025",
+      "text": "Кондиционера нет.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": null,
+        "air_conditioning": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-026",
+      "text": "Blackout нет и кондиционер есть.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": null,
+        "blackout": false,
+        "air_conditioning": true
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-027",
+      "text": "Blackout есть и кондиционера нет.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": null,
+        "blackout": true,
+        "air_conditioning": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-028",
+      "text": "Шумоизоляция есть.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": true
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-029",
+      "text": "Шумоизоляции нет.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-030",
+      "text": "Окна двойные, про blackout не знаю.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {
+        "available": null,
+        "windows": "double",
+        "blackout": null
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-031",
+      "text": "На запад номера 501–512 с балконом.",
+      "question_characteristic_id": "room_orientation",
+      "expected": {
+        "available": true,
+        "facade": "W",
+        "balcony": true,
+        "rooms": [
+          "501",
+          "502",
+          "503",
+          "504",
+          "505",
+          "506",
+          "507",
+          "508",
+          "509",
+          "510",
+          "511",
+          "512"
+        ]
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-032",
+      "text": "На восток с 5 этажа.",
+      "question_characteristic_id": "room_orientation",
+      "expected": {
+        "available": true,
+        "facade": "E",
+        "min_floor": 5
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-033",
+      "text": "На юг на 3 этаже без балкона.",
+      "question_characteristic_id": "room_orientation",
+      "expected": {
+        "available": true,
+        "facade": "S",
+        "min_floor": 3,
+        "max_floor": 3,
+        "balcony": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-034",
+      "text": "На север с 7-го этажа.",
+      "question_characteristic_id": "room_orientation",
+      "expected": {
+        "available": true,
+        "facade": "N",
+        "min_floor": 7
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-035",
+      "text": "На юго-запад с 4 этажа.",
+      "question_characteristic_id": "room_orientation",
+      "expected": {
+        "available": true,
+        "facade": "SW",
+        "min_floor": 4
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-036",
+      "text": "На северо-восток на 5 этаже.",
+      "question_characteristic_id": "room_orientation",
+      "expected": {
+        "available": true,
+        "facade": "NE",
+        "min_floor": 5,
+        "max_floor": 5
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-037",
+      "text": "На запад на 5–7 этажах.",
+      "question_characteristic_id": "room_orientation",
+      "expected": {
+        "available": true,
+        "facade": "W",
+        "min_floor": 5,
+        "max_floor": 7
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-038",
+      "text": "На запад номеров нет.",
+      "question_characteristic_id": "room_orientation",
+      "expected": {
+        "available": false,
+        "facade": "W"
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-039",
+      "text": "На восток номера не выходят.",
+      "question_characteristic_id": "room_orientation",
+      "expected": {
+        "available": false,
+        "facade": "E"
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-040",
+      "text": "Балкон есть.",
+      "question_characteristic_id": "room_orientation",
+      "expected": {
+        "available": true,
+        "balcony": true
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-041",
+      "text": "Не знаю.",
+      "question_characteristic_id": "pets",
+      "expected": {},
+      "absent": true,
+      "unknown": true
+    },
+    {
+      "id": "syn-042",
+      "text": "Частично.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {},
+      "absent": true,
+      "unknown": true
+    },
+    {
+      "id": "syn-043",
+      "text": "Возможно, можно с собакой.",
+      "question_characteristic_id": "pets",
+      "expected": {},
+      "absent": true,
+      "unknown": true
+    },
+    {
+      "id": "syn-044",
+      "text": "Кажется, есть blackout.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {},
+      "absent": true,
+      "unknown": true
+    },
+    {
+      "id": "syn-045",
+      "text": "Шумоизоляция неизвестна.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {},
+      "absent": true,
+      "unknown": true
+    },
+    {
+      "id": "syn-046",
+      "text": "Шумоизоляция не проверялась.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {},
+      "absent": true,
+      "unknown": true
+    },
+    {
+      "id": "syn-047",
+      "text": "Кондиционер не знаю.",
+      "question_characteristic_id": "soundproofing",
+      "expected": {},
+      "absent": true,
+      "unknown": true
+    },
+    {
+      "id": "syn-048",
+      "text": "Не уверены, на какую сторону номера.",
+      "question_characteristic_id": "room_orientation",
+      "expected": {},
+      "absent": true,
+      "unknown": true
+    },
+    {
+      "id": "syn-049",
+      "text": "На запад и восток номера 501–512.",
+      "question_characteristic_id": "room_orientation",
+      "expected": {},
+      "absent": true,
+      "unknown": true
+    },
+    {
+      "id": "syn-050",
+      "text": "На запад с 150 этажа.",
+      "question_characteristic_id": "room_orientation",
+      "expected": {},
+      "absent": true,
+      "unknown": true
+    },
+    {
+      "id": "syn-051",
+      "text": "Не знаем, из каких номеров виден закат.",
+      "question_characteristic_id": "sunset_view",
+      "expected": {},
+      "absent": true,
+      "unknown": true
+    },
+    {
+      "id": "syn-052",
+      "text": "Может быть, ночью тихо.",
+      "question_characteristic_id": "quiet_night",
+      "expected": {},
+      "absent": true,
+      "unknown": true
+    },
+    {
+      "id": "syn-053",
+      "text": "Закат виден на запад с 5 этажа.",
+      "question_characteristic_id": "sunset_view",
+      "expected": {
+        "available": true,
+        "facade": "W",
+        "min_floor": 5
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-054",
+      "text": "Закат не видно.",
+      "question_characteristic_id": "sunset_view",
+      "expected": {
+        "available": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-055",
+      "text": "Вид на море есть.",
+      "question_characteristic_id": "sea_view",
+      "expected": {
+        "available": true
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-056",
+      "text": "Вида на море нет.",
+      "question_characteristic_id": "sea_view",
+      "expected": {
+        "available": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-057",
+      "text": "Ночью тихо.",
+      "question_characteristic_id": "quiet_night",
+      "expected": {
+        "available": true
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-058",
+      "text": "Ночью не тихо.",
+      "question_characteristic_id": "quiet_night",
+      "expected": {
+        "available": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-059",
+      "text": "Ночью шумно.",
+      "question_characteristic_id": "quiet_night",
+      "expected": {
+        "available": false
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-060",
+      "text": "Ночью не шумно.",
+      "question_characteristic_id": "quiet_night",
+      "expected": {
+        "available": true
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-061",
+      "text": "Вид на горы есть.",
+      "question_characteristic_id": "mountain_view",
+      "expected": {
+        "available": true
+      },
+      "absent": false,
+      "unknown": false
+    },
+    {
+      "id": "syn-062",
+      "text": "Вида на горы нет.",
+      "question_characteristic_id": "mountain_view",
+      "expected": {
+        "available": false
+      },
+      "absent": false,
+      "unknown": false
+    }
+  ]
+}

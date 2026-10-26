@@ -15,8 +15,19 @@ from psycopg.errors import UniqueViolation
 from backend.agents.answer_parser import parse_answer
 from backend.agents.interviewer import create_question, generate_questions, stable_id
 from backend.agents.resolver import resolve_hotel
-from backend.contracts import (AgentRun, AgentStep, Answer, AnswerRequest, AskRequest, Claim,
-                               Evidence, LoginRequest, Question, Source, now)
+from backend.contracts import (
+    AgentRun,
+    AgentStep,
+    Answer,
+    AnswerRequest,
+    AskRequest,
+    Claim,
+    Evidence,
+    LoginRequest,
+    Question,
+    Source,
+    now,
+)
 from backend.db.repository import get_repo
 from backend.llm.client import LLMClient
 from backend.sim.hotelier import simulate_answer
@@ -24,6 +35,7 @@ from backend.sim.hotelier import simulate_answer
 router = APIRouter(prefix="/api", tags=["hotelier"])
 _SESSION_KEY = secrets.token_bytes(32)
 _CONFIRM_LOCK = RLock()
+_REPO = Depends(get_repo)
 
 
 def require_hotelier(authorization: str | None = Header(default=None)) -> str:
@@ -40,6 +52,9 @@ def require_hotelier(authorization: str | None = Header(default=None)) -> str:
     return "hotelier"
 
 
+_AUTH = Depends(require_hotelier)
+
+
 def _get(repo, table: str, item_id: str, label: str):
     value = repo.get(table, item_id)
     if value is None:
@@ -49,7 +64,7 @@ def _get(repo, table: str, item_id: str, label: str):
 
 @router.post("/hotelier/login")
 def login(request: LoginRequest):
-    if not (hmac.compare_digest(request.username, "hotelier") and hmac.compare_digest(request.password, "hotelier123")):
+    if not (hmac.compare_digest(request.username.encode(), b"hotelier") and hmac.compare_digest(request.password.encode(), b"hotelier123")):
         raise HTTPException(401, "Неверный логин или пароль")
     payload = f"hotelier.{int(time.time())+12*3600}.{secrets.token_hex(12)}"
     signature = hmac.new(_SESSION_KEY, payload.encode(), hashlib.sha256).hexdigest()
@@ -57,7 +72,7 @@ def login(request: LoginRequest):
 
 
 @router.get("/hotelier/{hotel_id}")
-def cabinet(hotel_id: str, repo=Depends(get_repo), _user=Depends(require_hotelier)):
+def cabinet(hotel_id: str, repo=_REPO, _user=_AUTH):
     hotel = _get(repo, "hotels", hotel_id, "Отель")
     facts = repo.find("facts", hotel_id=hotel_id)
     questions = generate_questions(hotel_id, repo)
@@ -73,7 +88,7 @@ def cabinet(hotel_id: str, repo=Depends(get_repo), _user=Depends(require_hotelie
 
 
 @router.post("/questions", response_model=Question)
-def ask(request: AskRequest, repo=Depends(get_repo)):
+def ask(request: AskRequest, repo=_REPO):
     _get(repo, "hotels", request.hotel_id, "Отель")
     spec = _get(repo, "characteristics", request.characteristic_id, "Характеристика")
     if not spec.get("hotelier_answerable", True):
@@ -95,7 +110,7 @@ def _save_preview(answer: Answer, question: Question, repo) -> Answer:
 
 
 @router.post("/questions/{question_id}/answer", response_model=Answer)
-def answer_question(question_id: str, request: AnswerRequest, repo=Depends(get_repo), _user=Depends(require_hotelier)):
+def answer_question(question_id: str, request: AnswerRequest, repo=_REPO, _user=_AUTH):
     question = Question.model_validate(_get(repo, "questions", question_id, "Вопрос"))
     if question.status != "pending":
         raise HTTPException(409, "Вопрос уже закрыт; создайте новый вопрос для исправления")
@@ -106,7 +121,7 @@ def answer_question(question_id: str, request: AnswerRequest, repo=Depends(get_r
 
 
 @router.post("/questions/{question_id}/simulate", response_model=Answer)
-def simulate_question(question_id: str, repo=Depends(get_repo), _user=Depends(require_hotelier)):
+def simulate_question(question_id: str, repo=_REPO, _user=_AUTH):
     question = Question.model_validate(_get(repo, "questions", question_id, "Вопрос"))
     if question.status != "pending":
         raise HTTPException(409, "Вопрос уже закрыт")
@@ -119,6 +134,9 @@ def confirm_answer(answer_id: str, repo) -> Answer:
         answer = Answer.model_validate(_get(repo, "answers", answer_id, "Ответ"))
         question = Question.model_validate(_get(repo, "questions", answer.question_id, "Вопрос"))
         if answer.confirmed:
+            if question.status != "answered":
+                question.status = "answered"
+                repo.upsert("questions", question.model_dump(mode="json"))
             return answer
         if not answer.updates:
             raise HTTPException(422, "В ответе нет подтверждаемых значений; требуется уточнение")
@@ -190,5 +208,5 @@ def confirm_answer(answer_id: str, repo) -> Answer:
 
 
 @router.post("/answers/{answer_id}/confirm", response_model=Answer)
-def confirm(answer_id: str, repo=Depends(get_repo), _user=Depends(require_hotelier)):
+def confirm(answer_id: str, repo=_REPO, _user=_AUTH):
     return confirm_answer(answer_id, repo)

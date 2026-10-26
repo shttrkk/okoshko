@@ -14,13 +14,13 @@ SIDES = {
     "SE": r"юго[ -]?вост\w*", "NE": r"северо[ -]?вост\w*",
     "W": r"запад\w*", "E": r"вост\w*", "N": r"север\w*", "S": r"юг\w*|южн\w*",
 }
-UNCERTAIN = r"(?:не\s+зна\w*|не\s+уверен\w*|возможно|наверно\w*|кажется|может\s+быть|не\s+помню|уточн\w*|неизвест\w*)"
-NEGATIVE = r"(?:\bне\b|\bнет\b|\bбез\b|нельзя|запрещ\w*)"
+UNCERTAIN = r"(?:не\s+зна\w*|не\s+уверен\w*|возможно|наверно\w*|кажется|может\s+быть|не\s+помню|уточн\w*|неизвест\w*|не\s+провер\w*|не\s+измер\w*|нет\s+измер\w*)"
+NEGATIVE = r"(?:\bне\b|\bнет\b|\bбез\b|нельзя|запрещ\w*|отсутств\w*)"
 INTERNAL = {"soundproofing", "room_orientation", "pets", "quiet_night", "sea_view", "sunset_view", "mountain_view"}
 
 
 def _sentences(text: str) -> list[str]:
-    return [part.strip() for part in re.split(r"[;.!?\n]+", text) if part.strip()]
+    return [part.strip() for part in re.split(r"[;!?\n]+|(?<!\d)\.|\.(?!\d)", text) if part.strip()]
 
 
 def _side(text: str) -> str | None:
@@ -52,9 +52,11 @@ def _floor(text: str) -> tuple[int | None, int | None, bool]:
 
 def _bool_feature(sentence: str, pattern: str) -> bool | None:
     """Read local negation, refusing uncertainty and contradictory mentions."""
+    if re.match(r"\s*" + UNCERTAIN, sentence):
+        return None
     values = []
     # Commas separate independent amenities: "blackout нет, кондиционер есть".
-    for clause in re.split(r"[,;]|\bно\b|\bа\b", sentence):
+    for clause in re.split(r"[,;]|\bно\b|\bа\b|\bи\b", sentence):
         if not re.search(pattern, clause):
             continue
         if re.search(UNCERTAIN, clause):
@@ -115,7 +117,8 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
         room_match = re.search(r"(?<!\d)(\d{3,4})\s*[–—-]\s*(\d{3,4})(?!\d)", low)
         orientation = {}
         if side:
-            orientation.update(available=True, facade=side)
+            denied_orientation = bool(re.search(r"(?:номеров|комнат)\s+нет|не\s+выход\w*|нет\s+номер|не\s+на\s+", low))
+            orientation.update(available=not denied_orientation, facade=side)
         if low_floor and not invalid_floor:
             orientation.update(min_floor=low_floor)
             if high_floor:
@@ -139,10 +142,16 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
             unknown.add("room_orientation")
 
         sound = {}
-        if re.search(r"окн|стеклопакет", low):
-            if re.search(r"(?:двойн\w*|двухкамер\w*|двухслойн\w*)", low):
-                sound["windows"] = "double" if not re.search(r"не\s+(?:двойн|двухкамер|двухслойн)", low) else None
-            elif re.search(r"одинар\w*|однокамер\w*", low):
+        window_clauses = [clause for clause in low.split(",") if re.search(r"окн|стеклопакет", clause)]
+        for clause in window_clauses:
+            if re.search(UNCERTAIN, clause):
+                unknown.add("soundproofing.windows")
+                continue
+            if re.search(r"(?:двойн\w*|двухкамер\w*|двухслойн\w*)", clause):
+                sound["windows"] = "double" if not re.search(r"не\s+(?:двойн|двухкамер|двухслойн)", clause) else None
+                if sound["windows"] is None:
+                    unknown.add("soundproofing.windows")
+            elif re.search(r"одинар\w*|однокамер\w*", clause):
                 sound["windows"] = "single"
         for key, pattern in (("blackout", r"blackout|бл[эе]каут|плотн\w*\s+штор"), ("air_conditioning", r"кондиционер|\bac\b")):
             if re.search(pattern, low):
@@ -151,7 +160,7 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
                     unknown.add("soundproofing."+key)
         if re.search(r"шумоизоляц|звукоизоляц", low):
             sound["available"] = _bool_feature(low, r"шумоизоляц|звукоизоляц")
-        if sound and not re.search(UNCERTAIN, low):
+        if sound and any(value is not None for value in sound.values()):
             # Double glazing is a window description, never proof of measured insulation.
             sound.setdefault("available", None)
             add("soundproofing", sound, sentence, scope)
@@ -207,7 +216,10 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
                 if re.search(UNCERTAIN, low):
                     unknown.add(cid)
                     continue
-                available = not bool(re.search(NEGATIVE, low))
+                available = _bool_feature(low, pattern)
+                if available is None:
+                    unknown.add(cid)
+                    continue
                 if cid == "quiet_night" and re.search(r"шумн", low):
                     available = not available
                 value = {"available": available}
