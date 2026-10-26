@@ -576,14 +576,30 @@ export function EvidenceButton({
   );
 }
 export function EvidenceModal({
-  fact,
-  claims = [],
+  fact: initialFact,
+  claims: initialClaims = [],
   onClose,
 }: {
   fact: Fact;
   claims?: Claim[];
   onClose: () => void;
 }) {
+  const expectedIds = [
+    ...initialFact.supporting_claim_ids,
+    ...initialFact.conflicting_claim_ids,
+  ];
+  const deferred = expectedIds.some(
+    (id) => !initialClaims.some((claim) => claim.id === id),
+  );
+  const full = useResource(
+    () =>
+      deferred
+        ? api.factEvidence(initialFact.hotel_id, initialFact.id)
+        : Promise.resolve(null),
+    [initialFact.hotel_id, initialFact.id, initialFact.updated_at, deferred],
+  );
+  const fact = full.data?.fact || initialFact;
+  const claims = full.data?.claims || initialClaims;
   const supporting = claims.filter((c) =>
     fact.supporting_claim_ids.includes(c.id),
   );
@@ -602,6 +618,10 @@ export function EvidenceModal({
         <span className="muted">{scopeText(fact.scope)}</span>
       </div>
       {fact.synthetic && <Synthetic />}
+      {deferred && full.loading && (
+        <p className="muted" role="status">Загружаем полное доказательство и даты источников…</p>
+      )}
+      <ErrorState error={full.error} retry={full.reload} />
       <dl className="metadata">
         <div>
           <dt>Уверенность</dt>

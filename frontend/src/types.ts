@@ -129,6 +129,8 @@ export interface SearchHit {
   room_recommendation: string | null;
   disappointments: string[];
   summary: string;
+  why_not_higher?: string[];
+  similarity_reasons?: string[];
 }
 export interface SearchResult {
   parsed: ParsedQuery;
@@ -178,6 +180,12 @@ export interface HotelDetail {
   room_recommendation: string;
   disappointments: string[];
   geo: Geo;
+  evidence_deferred?: boolean;
+  geometry_deferred?: boolean;
+}
+export interface FactEvidence {
+  fact: Fact;
+  claims: Claim[];
 }
 export interface FieldUpdate {
   characteristic_id: string;

@@ -115,17 +115,15 @@ export function SearchForm({
   const navigate = useNavigate(),
     { hotels } = useApp();
   const [text, setText] = useState(initial),
-    [checkIn, setCheckIn] = useState("2027-09-14"),
-    [checkOut, setCheckOut] = useState("2027-09-21"),
+    [checkIn, setCheckIn] = useState(""),
+    [checkOut, setCheckOut] = useState(""),
     [similarId, setSimilarId] = useState(""),
     [isSimilar, setIsSimilar] = useState(similar);
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const params = new URLSearchParams({
-      q: text,
-      check_in: checkIn,
-      check_out: checkOut,
-    });
+    const params = new URLSearchParams({ q: text });
+    if (checkIn) params.set("check_in", checkIn);
+    if (checkOut) params.set("check_out", checkOut);
     if (isSimilar && similarId) params.set("similar_to", similarId);
     navigate(`/search?${params}`);
   };
@@ -156,7 +154,6 @@ export function SearchForm({
               type="date"
               value={checkIn}
               onChange={(e) => setCheckIn(e.target.value)}
-              required
               data-testid="check-in"
             />
           </label>
@@ -169,7 +166,6 @@ export function SearchForm({
               value={checkOut}
               min={checkIn}
               onChange={(e) => setCheckOut(e.target.value)}
-              required
               data-testid="check-out"
             />
           </label>
@@ -293,7 +289,7 @@ export function Home() {
               className={`scenario-card scenario-${i}`}
               onClick={() =>
                 navigate(
-                  `/search?q=${encodeURIComponent(p.query)}&check_in=2027-09-14&check_out=2027-09-21`,
+                  `/search?q=${encodeURIComponent(p.query)}`,
                 )
               }
             >
