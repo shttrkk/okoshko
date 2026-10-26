@@ -11,6 +11,12 @@ const base = (process.env.OKNO_BASE_URL || "http://localhost:8080").replace(
   "",
 );
 const origin = new URL(base).origin;
+if (process.env.OKNO_SECURITY_REPORT) {
+  writeFileSync(
+    process.env.OKNO_SECURITY_REPORT,
+    JSON.stringify({ status: "running", base }) + "\n",
+  );
+}
 const executablePath =
   process.env.OKNO_BROWSER_EXECUTABLE ||
   (existsSync("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
@@ -191,6 +197,7 @@ const browser = await chromium.launch({ headless: true, executablePath });
 const context = await browser.newContext({
   viewport: { width: 1440, height: 1000 },
 });
+let xssReport;
 const external = [],
   errors = [],
   unhandledApi = [],
@@ -375,6 +382,7 @@ try {
     limitation:
       "Isolated browser XSS regression, not a penetration test. Native marker titles and React evidence dialogs are tested; the app creates no HTML-string MapLibre popups.",
   };
+  xssReport = report;
   if (process.env.OKNO_SECURITY_REPORT)
     writeFileSync(
       process.env.OKNO_SECURITY_REPORT,
@@ -398,4 +406,427 @@ try {
 } finally {
   await context.close();
   await browser.close();
+}
+
+/** Real same-origin auth smoke. Only login/logout POSTs and cabinet GETs.
+ * The cabinet's existing idempotent pending-question generation is explicitly
+ * permitted for this run. No answers, claims, passports/actions, collect,
+ * Studio, simulate or refresh operations are requested.
+ */
+async function liveAuthSmoke() {
+  const browser = await chromium.launch({ headless: true, executablePath });
+  const contexts = [];
+  const blockedMutations = [],
+    liveExternal = [],
+    liveErrors = [],
+    cabinets = [];
+  const evidence = {
+    roles: {},
+    status_checks: [],
+    streams: [],
+    quality: {},
+    changes: {},
+  };
+  async function context() {
+    const value = await browser.newContext({
+      viewport: { width: 1440, height: 1000 },
+    });
+    contexts.push(value);
+    await value.route("**/*", (route) => {
+      const req = route.request(),
+        url = new URL(req.url());
+      if (["http:", "https:"].includes(url.protocol) && url.origin !== origin) {
+        liveExternal.push(url.href);
+        return route.abort();
+      }
+      if (
+        !["GET", "HEAD", "OPTIONS"].includes(req.method()) &&
+        !["/api/hotelier/login", "/api/hotelier/logout"].includes(url.pathname)
+      ) {
+        blockedMutations.push(`${req.method()} ${url.pathname}`);
+        return route.abort();
+      }
+      return route.continue();
+    });
+    value.on("page", (opened) => {
+      opened.on("pageerror", (error) => liveErrors.push(error.message));
+      opened.on("response", (response) => {
+        if (
+          new URL(response.url()).pathname.startsWith("/api/hotelier/") &&
+          response.request().method() === "GET"
+        )
+          cabinets.push(response.status());
+      });
+    });
+    return value;
+  }
+  async function statusCode(client, path, expected, token) {
+    const result = await client.request.get(base + path, {
+      headers: token ? { Authorization: "Bearer " + token } : {},
+      timeout: 30000,
+    });
+    assert.equal(result.status(), expected, `${path} expected ${expected}`);
+    evidence.status_checks.push({
+      route: path.replace(/\/api\/runs\/[^/]+/, "/api/runs/<private-id>"),
+      expected,
+      actual: result.status(),
+    });
+    return result;
+  }
+  async function login(client, username, password, role, hotelId) {
+    const opened = await client.newPage();
+    await opened.goto(base + "/hotelier");
+    await opened.getByTestId("hotelier-username").fill(username);
+    await opened.getByTestId("hotelier-password").fill(password);
+    const pending = opened.waitForResponse(
+      (r) =>
+        new URL(r.url()).pathname === "/api/hotelier/login" &&
+        r.request().method() === "POST",
+    );
+    await opened.getByTestId("hotelier-login").click();
+    const response = await pending;
+    assert.equal(response.status(), 200);
+    const auth = await response.json();
+    assert.equal(auth.role, role);
+    assert.equal(auth.synthetic, true);
+    assert.deepEqual(auth.hotel_ids, hotelId ? [hotelId] : []);
+    const selector = opened.getByTestId("hotelier-hotel");
+    await selector.waitFor({ timeout: 45000 });
+    await opened.locator(".hotelier-summary h3").waitFor({ timeout: 45000 });
+    assert.equal(
+      await selector.locator("option").count(),
+      hotelId ? 1 : status.hotel_count,
+    );
+    if (hotelId) assert.equal(await selector.inputValue(), hotelId);
+    const cookie = (await client.cookies(base + "/api/runs")).find(
+      (c) => c.name === "okno_run_session",
+    );
+    assert(
+      cookie?.httpOnly &&
+        cookie.sameSite === "Strict" &&
+        cookie.path === "/api/runs",
+    );
+    assert(
+      !(await opened.evaluate(() => document.cookie)).includes(
+        "okno_run_session=",
+      ),
+    );
+    evidence.roles[username] = {
+      role,
+      selector_options: await selector.locator("option").count(),
+      own_hotel_selected: hotelId
+        ? (await selector.inputValue()) === hotelId
+        : null,
+      cookie: {
+        httpOnly: cookie.httpOnly,
+        sameSite: cookie.sameSite,
+        path: cookie.path,
+      },
+    };
+    return { page: opened, token: auth.token };
+  }
+  async function stream(opened, runId, who) {
+    const result = await opened.evaluate(
+      (path) =>
+        new Promise((resolve, reject) => {
+          const source = new EventSource(path);
+          let steps = 0;
+          const timer = setTimeout(() => {
+            source.close();
+            reject(new Error("Private SSE timed out"));
+          }, 20000);
+          source.addEventListener("step", () => {
+            steps++;
+          });
+          source.addEventListener("done", (event) => {
+            clearTimeout(timer);
+            source.close();
+            resolve({ steps, status: JSON.parse(event.data).status });
+          });
+          source.onerror = () => {
+            clearTimeout(timer);
+            source.close();
+            reject(new Error("Private SSE rejected its owner cookie"));
+          };
+        }),
+      `/api/runs/${encodeURIComponent(runId)}/stream`,
+    );
+    assert(result.steps > 0);
+    evidence.streams.push({
+      principal: who,
+      native_EventSource: true,
+      steps: result.steps,
+      status: result.status,
+    });
+  }
+  async function logout(client, opened) {
+    await opened.goto(base + "/hotelier");
+    await opened.getByTestId("hotelier-hotel").waitFor({ timeout: 45000 });
+    const result = opened.waitForResponse(
+      (r) => new URL(r.url()).pathname === "/api/hotelier/logout",
+    );
+    await opened.getByRole("button", { name: "Выйти", exact: true }).click();
+    assert.equal((await result).status(), 200);
+    await opened.getByTestId("hotelier-login").waitFor();
+    assert.equal(
+      await opened.evaluate(() => sessionStorage.getItem("okno-token")),
+      null,
+    );
+    assert.equal(
+      await opened.evaluate(() =>
+        sessionStorage.getItem("okno-hotelier-session"),
+      ),
+      null,
+    );
+    assert(
+      !(await client.cookies(base + "/api/runs")).some(
+        (c) => c.name === "okno_run_session",
+      ),
+    );
+  }
+  try {
+    const publicClient = await context();
+    const publicPage = await publicClient.newPage();
+    await publicPage.goto(base + "/changes");
+    await publicPage.getByTestId("changes-auth-prompt").waitFor();
+    assert(await publicPage.getByTestId("simulate-change").isDisabled());
+    assert(
+      await publicPage
+        .getByRole("button", { name: /Перепроверить истёкшие TTL/ })
+        .isDisabled(),
+    );
+    assert.equal(await publicPage.locator('a[href*="?passport="]').count(), 0);
+    const publicChanges = await (
+      await statusCode(publicClient, "/api/changes", 200)
+    ).json();
+    assert(
+      publicChanges.every(
+        (event) =>
+          event.notifications.length === 0 &&
+          Number.isInteger(event.payload.notification_count),
+      ),
+    );
+    const publicText = JSON.stringify(publicChanges);
+    assert(
+      !publicText.includes('"passport_id"') &&
+        !publicText.includes('"item_ids"'),
+    );
+    await statusCode(publicClient, "/api/passports", 401);
+    const a = await context(),
+      b = await context(),
+      admin = await context();
+    const A = "osm-node-11866202895",
+      B = "osm-way-201474330";
+    const loginA = await login(
+      a,
+      "cascade",
+      "cascade-demo-2026",
+      "hotelier",
+      A,
+    );
+    const loginB = await login(b, "brevis", "brevis-demo-2026", "hotelier", B);
+    const loginAdmin = await login(
+      admin,
+      "hotelier",
+      "hotelier123",
+      "demo_admin",
+    );
+    await statusCode(a, `/api/hotelier/${B}`, 403, loginA.token);
+    await statusCode(b, `/api/hotelier/${A}`, 403, loginB.token);
+    for (const [client, auth, own, foreign] of [
+      [a, loginA, A, B],
+      [b, loginB, B, A],
+    ]) {
+      const passports = await (
+        await statusCode(client, "/api/passports", 200, auth.token)
+      ).json();
+      assert(passports.every((passport) => passport.hotel_id === own));
+      await statusCode(
+        client,
+        `/api/passports?hotel_id=${foreign}`,
+        403,
+        auth.token,
+      );
+    }
+    const privateRuns = await (
+      await statusCode(admin, "/api/runs", 200, loginAdmin.token)
+    ).json();
+    const privateA = privateRuns.find(
+      (run) => run.kind === "interview" && run.hotel_id === A,
+    );
+    const privateB = privateRuns.find(
+      (run) => run.kind === "interview" && run.hotel_id === B,
+    );
+    assert(
+      privateA && privateB,
+      "Existing versioned tenant interview runs must be available; never create test traces in the main DB",
+    );
+    const publicRuns = await (
+      await statusCode(publicClient, "/api/runs", 200)
+    ).json();
+    assert(publicRuns.every((run) => run.kind !== "interview"));
+    for (const run of [privateA, privateB]) {
+      await statusCode(publicClient, `/api/runs/${run.id}`, 401);
+      await statusCode(publicClient, `/api/runs/${run.id}/stream`, 401);
+    }
+    await stream(loginA.page, privateA.id, "cascade");
+    await stream(loginB.page, privateB.id, "brevis");
+    await statusCode(a, `/api/runs/${privateB.id}/stream`, 403, loginA.token);
+    await statusCode(b, `/api/runs/${privateA.id}/stream`, 403, loginB.token);
+    await statusCode(admin, `/api/runs/${privateB.id}`, 403, loginA.token);
+    await statusCode(admin, `/api/runs/${privateB.id}`, 401, "invalid");
+    const adminChanges = await (
+      await statusCode(admin, "/api/changes", 200, loginAdmin.token)
+    ).json();
+    const passports = await (
+      await statusCode(admin, "/api/passports", 200, loginAdmin.token)
+    ).json();
+    for (const passport of passports)
+      assert(
+        !publicText.includes(passport.id),
+        "Public Changes must not distribute guest passport capabilities",
+      );
+    for (const event of publicChanges)
+      assert.equal(
+        event.payload.notification_count,
+        adminChanges.find((value) => value.id === event.id)?.notifications
+          .length,
+      );
+    evidence.changes = {
+      public_events: publicChanges.length,
+      public_individual_notifications: 0,
+      aggregate_notification_count: publicChanges.reduce(
+        (n, event) => n + event.payload.notification_count,
+        0,
+      ),
+      admin_visible_notifications: adminChanges.reduce(
+        (n, event) => n + event.notifications.length,
+        0,
+      ),
+      passports_checked_for_public_uuid_leak: passports.length,
+      guest_mutations_disabled: true,
+    };
+    await logout(a, loginA.page);
+    await statusCode(a, `/api/runs/${privateA.id}/stream`, 401);
+    await logout(b, loginB.page);
+    await statusCode(b, `/api/runs/${privateB.id}/stream`, 401);
+    await logout(admin, loginAdmin.page);
+    await statusCode(admin, `/api/runs/${privateB.id}/stream`, 401);
+    const qualityPage = await publicClient.newPage();
+    const qualityResponse = qualityPage.waitForResponse(
+      (r) => new URL(r.url()).pathname === "/api/quality" && r.ok(),
+      { timeout: 60000 },
+    );
+    const start = Date.now();
+    await qualityPage.goto(base + "/quality");
+    await qualityPage
+      .getByTestId("filter-comparison")
+      .waitFor({ timeout: 60000 });
+    await qualityPage.getByTestId("fact-provenance").waitFor();
+    const quality = await (await qualityResponse).json();
+    const comparison = quality.filter_comparison,
+      provenance = quality.provenance;
+    assert.equal(comparison.schema_version, 1);
+    assert.equal(comparison.settings.search_min_floor, 1);
+    assert.equal(
+      provenance.known,
+      provenance.non_synthetic + provenance.synthetic,
+    );
+    assert(provenance.mixed <= provenance.synthetic);
+    assert(
+      Math.abs(
+        provenance.synthetic_share - provenance.synthetic / provenance.known,
+      ) < 1e-12,
+    );
+    assert(
+      (await qualityPage.getByTestId("filter-comparison").innerText()).includes(
+        "не реальные окна",
+      ),
+    );
+    await qualityPage
+      .getByTestId("filter-comparison")
+      .locator("summary")
+      .click();
+    const baselineResponse = await publicClient.request.get(
+      base + "/data/eval/filter_baseline.json",
+    );
+    assert.equal(baselineResponse.status(), 200);
+    assert.deepEqual(await baselineResponse.json(), comparison);
+    await qualityPage.screenshot({
+      path: "/tmp/okno-live-quality-desktop.png",
+    });
+    await qualityPage.setViewportSize({ width: 390, height: 844 });
+    assert.equal(
+      await qualityPage.evaluate(() => document.documentElement.scrollWidth),
+      390,
+      "Quality mobile layout must not overflow",
+    );
+    await qualityPage.screenshot({ path: "/tmp/okno-live-quality-mobile.png" });
+    evidence.quality = {
+      ui_check_ms: Date.now() - start,
+      hotel_count: quality.hotel_count,
+      baseline_within_radius: comparison.baseline.within_radius,
+      compatible_supported: comparison.search.compatible_supported,
+      outside_radius_supported: comparison.search.outside_radius_supported,
+      outside_radius_partial: comparison.search.outside_radius_partial,
+      provenance,
+      mobile_width: 390,
+      baseline_artifact_matches_API: true,
+    };
+    assert.deepEqual(blockedMutations, []);
+    assert.deepEqual(liveExternal, []);
+    assert.deepEqual(liveErrors, []);
+    return {
+      status: "passed",
+      base,
+      generated_at: new Date().toISOString(),
+      ...evidence,
+      browser_errors: liveErrors,
+      unexpected_external_requests: liveExternal,
+      blocked_forbidden_mutations: blockedMutations,
+      cabinet_get_responses: cabinets,
+      permitted_exception:
+        "Real GET cabinet may idempotently materialize pending questions. Login/logout and this existing behavior were explicitly authorized; no other mutations requested.",
+      limitations: [
+        "Public demo identities verify access boundaries; this is not production IAM.",
+        "Logout removes local cookie/token; copied stateless Bearer remains valid until expiry/restart.",
+        "Quality comparison is a model on saved seed, not conversion or measured real-window accuracy.",
+      ],
+    };
+  } finally {
+    for (const client of contexts) await client.close();
+    await browser.close();
+  }
+}
+if (process.argv.includes("--live-auth")) {
+  try {
+    const live = await liveAuthSmoke();
+    const combined = {
+      status: "passed",
+      command: "node frontend/scripts/security-smoke.mjs --live-auth",
+      xss: xssReport,
+      live_auth: live,
+    };
+    if (process.env.OKNO_SECURITY_REPORT)
+      writeFileSync(
+        process.env.OKNO_SECURITY_REPORT,
+        JSON.stringify(combined, null, 2) + "\n",
+      );
+    console.log(JSON.stringify(combined, null, 2));
+  } catch (error) {
+    if (process.env.OKNO_SECURITY_REPORT)
+      writeFileSync(
+        process.env.OKNO_SECURITY_REPORT,
+        JSON.stringify(
+          {
+            status: "failed",
+            xss: xssReport,
+            live_auth: { status: "failed", error: String(error) },
+          },
+          null,
+          2,
+        ) + "\n",
+      );
+    throw error;
+  }
 }

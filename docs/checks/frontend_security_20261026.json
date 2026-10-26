@@ -1,0 +1,254 @@
+{
+  "status": "passed",
+  "command": "node frontend/scripts/security-smoke.mjs --live-auth",
+  "xss": {
+    "status": "passed",
+    "synthetic": true,
+    "base": "http://localhost:8080",
+    "server_mutations": 0,
+    "checks": [
+      "React hotel name",
+      "DOM map marker title and aria-label",
+      "hover",
+      "evidence quote dialog",
+      "raw answer textarea",
+      "parsed quote and JSON preview",
+      "javascript hotel website click",
+      "javascript evidence URL click"
+    ],
+    "blocked_javascript_url_clicks": 2,
+    "framework_guard_errors": [],
+    "browser_errors": [],
+    "unexpected_external_requests": [],
+    "dialogs": 0,
+    "intercepted_test_only_writes": [
+      "POST /api/search",
+      "POST /api/hotels/osm-node-11866202895/evaluate",
+      "POST /api/questions/security-question/answer"
+    ],
+    "limitation": "Isolated browser XSS regression, not a penetration test. Native marker titles and React evidence dialogs are tested; the app creates no HTML-string MapLibre popups."
+  },
+  "live_auth": {
+    "status": "passed",
+    "base": "http://localhost:8080",
+    "generated_at": "2026-10-26T17:16:23.188Z",
+    "roles": {
+      "cascade": {
+        "role": "hotelier",
+        "selector_options": 1,
+        "own_hotel_selected": true,
+        "cookie": {
+          "httpOnly": true,
+          "sameSite": "Strict",
+          "path": "/api/runs"
+        }
+      },
+      "brevis": {
+        "role": "hotelier",
+        "selector_options": 1,
+        "own_hotel_selected": true,
+        "cookie": {
+          "httpOnly": true,
+          "sameSite": "Strict",
+          "path": "/api/runs"
+        }
+      },
+      "hotelier": {
+        "role": "demo_admin",
+        "selector_options": 250,
+        "own_hotel_selected": null,
+        "cookie": {
+          "httpOnly": true,
+          "sameSite": "Strict",
+          "path": "/api/runs"
+        }
+      }
+    },
+    "status_checks": [
+      {
+        "route": "/api/changes",
+        "expected": 200,
+        "actual": 200
+      },
+      {
+        "route": "/api/passports",
+        "expected": 401,
+        "actual": 401
+      },
+      {
+        "route": "/api/hotelier/osm-way-201474330",
+        "expected": 403,
+        "actual": 403
+      },
+      {
+        "route": "/api/hotelier/osm-node-11866202895",
+        "expected": 403,
+        "actual": 403
+      },
+      {
+        "route": "/api/passports",
+        "expected": 200,
+        "actual": 200
+      },
+      {
+        "route": "/api/passports?hotel_id=osm-way-201474330",
+        "expected": 403,
+        "actual": 403
+      },
+      {
+        "route": "/api/passports",
+        "expected": 200,
+        "actual": 200
+      },
+      {
+        "route": "/api/passports?hotel_id=osm-node-11866202895",
+        "expected": 403,
+        "actual": 403
+      },
+      {
+        "route": "/api/runs",
+        "expected": 200,
+        "actual": 200
+      },
+      {
+        "route": "/api/runs",
+        "expected": 200,
+        "actual": 200
+      },
+      {
+        "route": "/api/runs/<private-id>",
+        "expected": 401,
+        "actual": 401
+      },
+      {
+        "route": "/api/runs/<private-id>/stream",
+        "expected": 401,
+        "actual": 401
+      },
+      {
+        "route": "/api/runs/<private-id>",
+        "expected": 401,
+        "actual": 401
+      },
+      {
+        "route": "/api/runs/<private-id>/stream",
+        "expected": 401,
+        "actual": 401
+      },
+      {
+        "route": "/api/runs/<private-id>/stream",
+        "expected": 403,
+        "actual": 403
+      },
+      {
+        "route": "/api/runs/<private-id>/stream",
+        "expected": 403,
+        "actual": 403
+      },
+      {
+        "route": "/api/runs/<private-id>",
+        "expected": 403,
+        "actual": 403
+      },
+      {
+        "route": "/api/runs/<private-id>",
+        "expected": 401,
+        "actual": 401
+      },
+      {
+        "route": "/api/changes",
+        "expected": 200,
+        "actual": 200
+      },
+      {
+        "route": "/api/passports",
+        "expected": 200,
+        "actual": 200
+      },
+      {
+        "route": "/api/runs/<private-id>/stream",
+        "expected": 401,
+        "actual": 401
+      },
+      {
+        "route": "/api/runs/<private-id>/stream",
+        "expected": 401,
+        "actual": 401
+      },
+      {
+        "route": "/api/runs/<private-id>/stream",
+        "expected": 401,
+        "actual": 401
+      }
+    ],
+    "streams": [
+      {
+        "principal": "cascade",
+        "native_EventSource": true,
+        "steps": 2,
+        "status": "completed"
+      },
+      {
+        "principal": "brevis",
+        "native_EventSource": true,
+        "steps": 4,
+        "status": "completed"
+      }
+    ],
+    "quality": {
+      "hotel_count": 250,
+      "baseline_within_radius": 132,
+      "compatible_supported": 60,
+      "outside_radius_supported": 20,
+      "outside_radius_partial": 4,
+      "provenance": {
+        "unit": "materialized_facts",
+        "known": 24413,
+        "non_synthetic": 24329,
+        "synthetic": 84,
+        "mixed": 20,
+        "unknown_stale_disputed": 1721,
+        "synthetic_share": 0.0034407897431696227
+      },
+      "mobile_width": 390,
+      "baseline_artifact_matches_API": true,
+      "ui_check_ms": 5673,
+      "timing_note": "Elapsed whole Quality UI check, including artifact equality, screenshots and mobile width verification; not pure API latency."
+    },
+    "changes": {
+      "public_events": 1,
+      "public_individual_notifications": 0,
+      "aggregate_notification_count": 5,
+      "admin_visible_notifications": 5,
+      "passports_checked_for_public_uuid_leak": 6,
+      "guest_mutations_disabled": true
+    },
+    "browser_errors": [],
+    "unexpected_external_requests": [],
+    "blocked_forbidden_mutations": [],
+    "cabinet_get_responses": [
+      200,
+      200,
+      200,
+      200,
+      200
+    ],
+    "permitted_exception": "Real GET cabinet may idempotently materialize pending questions. Login/logout and this existing behavior were explicitly authorized; no other mutations requested.",
+    "limitations": [
+      "Public demo identities verify access boundaries; this is not production IAM.",
+      "Logout removes local cookie/token; copied stateless Bearer remains valid until expiry/restart.",
+      "Quality comparison is a model on saved seed, not conversion or measured real-window accuracy."
+    ],
+    "status_histogram": {
+      "200": 7,
+      "401": 9,
+      "403": 7
+    }
+  },
+  "tested_main": "3293368",
+  "visual_review": {
+    "desktop": "pass",
+    "mobile_390": "pass",
+    "screenshots_kept_in_tmp": true
+  }
+}
