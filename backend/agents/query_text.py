@@ -169,8 +169,27 @@ _DOCUMENT_TASK = (r'\b(?:редактир\w*|перепиш\w*|сократ\w*|�
                   r'урок\w*|реферат\w*|чертеж\w*|нарисова\w*|стенгазет\w*)\b')
 _OTHER_OBJECT = (r'\b(?:наушник\w*|микрофон\w*|роутер\w*|прошивк\w*|терминал\w*|'
                  r'хостинг\w*|домен\w*|шина\w*|steam|робот\w*|игрушечн\w*)\b')
-_CURRENT_REQUIREMENT = r'\b(?:хочу|хотим|нуж\w*|ищу|ищем|требу\w*|необходим\w*|долж\w*|хотелось|предпоч\w*)\b'
+_CURRENT_REQUIREMENT = r'\b(?:хочу|хотим|нуж\w*|ищу|ищем|требу\w*|необходим\w*|долж\w*|хотелось|предпоч\w*|важн\w*|желатель\w*|обязатель\w*)\b'
 _REPORTED_CONTEXT = r'\b(?:раньше|вспомина\w*|рассказ\w*|в прошлом|обсужда\w*|упомина\w*|работал[аи]?|прочита\w*)\b'
+_THIRD_PERSON = r'(?:сосед(?:ка)?|сестра|брат|мама|папа|друг|подруга|коллега|знаком(?:ый|ая)|он|она|они)'
+_PRESENT_STATE = r'(?:любит|любят|работает|работают|держит|держат|живет|живут|рассказывает|пишет|говорит|обсуждает)'
+_THIRD_PERSON_REPORT = (r'\b' + _THIRD_PERSON + r'\s+(?:(?:часто|сейчас|обычно|давно)\s+)?' + _PRESENT_STATE + r'\b|'
+                        r'\b(?:работает|работают|живет|живут)\s+(?:(?:моя|мой|наша|наш)\s+)?' + _THIRD_PERSON + r'\b')
+_TRIP_ACTION = r'\b(?:еду|едем|едет|едут|поеду|поедем|поедет|поедут|приеду|приедем|заселимся|путешествуем)\b'
+_ADOPTED_ACTION = _CURRENT_REQUIREMENT + '|' + _TRIP_ACTION
+
+
+def _reported_context_match(text: str) -> re.Match | None:
+    matches = [m for pattern in (_REPORTED_CONTEXT, _THIRD_PERSON_REPORT) if (m := re.search(pattern, text))]
+    return min(matches, key=lambda m: m.start(), default=None)
+
+
+def _adopted_action_match(text: str) -> re.Match | None:
+    for match in re.finditer(_ADOPTED_ACTION, text):
+        # Past importance/need is still a report, not a new request.
+        if not re.search(r'\bбыл[аои]?\s+(?:\w+\s+)?$', text[max(0, match.start()-30):match.start()]):
+            return match
+    return None
 
 
 def search_context_text(text: str) -> str:
@@ -194,8 +213,8 @@ def search_context_text(text: str) -> str:
         document_task |= bool(quotes and re.search(r'\b(?:упаковк\w*|корм\w*|этикет\w*)\b', unquoted))
         other_object = bool(re.search(_OTHER_OBJECT, unquoted))
         reported = bool(re.search(r'\b(?:написал\w*|сказал\w*|обсужда\w*|цитир\w*|называ\w*)\b', unquoted))
-        narrative = bool(re.search(_REPORTED_CONTEXT, unquoted))
-        current_requirement = bool(re.search(_CURRENT_REQUIREMENT, unquoted))
+        narrative = bool(_reported_context_match(unquoted))
+        current_requirement = bool(_adopted_action_match(unquoted))
         if not hotel_request and (language_task or document_task or other_object or narrative and not current_requirement):
             result[left:right] = ' ' * (right-left)
         elif quotes and (language_task or document_task or reported):
@@ -207,8 +226,8 @@ def search_context_text(text: str) -> str:
     boundaries = [0, *[m.end() for m in re.finditer(r'(?<!\d)[,.]|[,.](?!\d)|[;!?]', masked)], len(masked)]
     for left, right in zip(boundaries, boundaries[1:], strict=False):
         clause = masked[left:right]
-        reported = re.search(_REPORTED_CONTEXT, clause)
-        adopted = re.search(_CURRENT_REQUIREMENT, re.sub(_QUOTED, lambda m: ' ' * len(m[0]), clause))
+        reported = _reported_context_match(clause)
+        adopted = _adopted_action_match(re.sub(_QUOTED, lambda m: ' ' * len(m[0]), clause))
         if reported and adopted and reported.start() < adopted.start():
             result[left:left+adopted.start()] = ' ' * adopted.start()
             continue
@@ -216,6 +235,31 @@ def search_context_text(text: str) -> str:
                 reported and not adopted):
             result[left:right] = ' ' * (right-left)
     return ''.join(result)
+
+
+def _depicted_property(text: str, match: re.Match) -> bool:
+    """The request's head object governs a depicted property, not its purpose.
+
+    'Картина с видом' requests an image; 'вид для фотографии' requests a view.
+    A later explicit request can start a new object in the same clause.
+    """
+    left, right = clause_bounds(text, match.start(), match.end())
+    artifacts = re.finditer(r'\b(?:картин\w*|рисун(?:ок|к\w*)|открытк\w*|фотограф\w*|изображени\w*)\b', text[left:right])
+    for artifact in artifacts:
+        start, end = left+artifact.start(), left+artifact.end()
+        if start < match.start():
+            between = text[end:match.start()]
+            if not re.search(_CURRENT_REQUIREMENT, between):
+                return True
+        elif start >= match.end():
+            before_artifact = text[match.end():start]
+            if re.search(r'\b(?:на|в)\s+(?:[а-я]+(?:ой|ом|ых)\s+)?$', before_artifact):
+                return True
+            purpose = bool(re.search(r'\bдля\s*$', before_artifact))
+            adopted_property = _adopted_action_match(text[left:match.start()]) is not None
+            if not purpose and not adopted_property:
+                return True
+    return False
 
 
 def facade_is_explicit(text: str, match: re.Match) -> bool:
@@ -251,8 +295,7 @@ def valid_intent_match(cid: str, text: str, match: re.Match) -> bool:
             return False
     if cid == 'green_nearby' and re.search(r'\bскверн\w*', match[0]):
         return False
-    if cid in {'sea_view', 'sunset_view', 'mountain_view', 'room_orientation', 'family_nearby', 'pets'} and re.search(
-            r'\b(?:картин\w*|рисун(?:ок|к\w*)|открытк\w*|фотограф\w*)\b', clause):
+    if _depicted_property(text, match):
         return False
     if cid == 'quiet_night' and re.search(r'тих\w*\s+океан|тишин\w*\s+в\s+чат\w*', clause):
         return False
