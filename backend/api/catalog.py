@@ -235,17 +235,13 @@ def search(body: SearchRequest, repo=_REPO):
                 if not parsed.unmapped:
                     parsed.clarifications = []
             ids = None if reference else sorted({criterion.characteristic_id for criterion in [*parsed.must, *parsed.nice]} | {"beach_walk"})
-            rows = repo.search_facts(ids, 9 if reference else parsed.month) if hasattr(repo, "search_facts") else repo.all("facts")
-            if reference is None:
-                coverage = region_coverage(rows, [spec for spec in specs if spec.id in set(ids)], len(hotel_rows))
-                missing = [c for c in [*parsed.must, *parsed.nice] if coverage.get(c.characteristic_id, {}).get("status") == "no_data"]
-                if missing:
-                    parsed.no_data = missing
-                    parsed.must = [c for c in parsed.must if c not in missing]
-                    parsed.nice = [c for c in parsed.nice if c not in missing]
-                    labels = ", ".join(dict.fromkeys("«" + c.label + "»" for c in missing))
-                    parsed.clarifications = [f"В демо-регионе нет данных: {labels}. Это условие не учитывается в выдаче.",
-                                             *parsed.clarifications][:2]
+            # Similarity uses a September profile; explicit extra conditions
+            # still require their requested month, rather than September data.
+            fact_month = None if reference and (parsed.must or parsed.nice) and parsed.month != 9 else 9 if reference else parsed.month
+            rows = repo.search_facts(ids, fact_month) if hasattr(repo, "search_facts") else repo.all("facts")
+            from backend.agents.query_rules import apply_region_coverage
+            coverage = region_coverage(rows, [spec for spec in specs if ids is None or spec.id in set(ids)], len(hotel_rows))
+            apply_region_coverage(parsed, coverage)
             cache_key = json.dumps({"parsed": parsed.model_dump(mode="json"), "limit": body.limit}, ensure_ascii=False, sort_keys=True)
             generation, hits = repo.search_cache_get(cache_key) if hasattr(repo, "search_cache_get") else (None, None)
             if read_generation != generation:

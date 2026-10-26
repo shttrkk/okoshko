@@ -63,3 +63,23 @@ def test_compare_uses_one_bulk_read_and_edited_criteria_survive(client, repo, ca
     # The public compact contract still excludes the full claims.
     assert all(h["claims"] == [] for h in response.json()["hotels"])
     assert client.get("/api/compare?ids=test-hotel,test-2&month=13").status_code == 422
+
+
+def test_similarity_keeps_requested_month_for_additional_must(client, repo):  # noqa: F811
+    from backend.tests.test_search import fact
+    for hotel_id, may in [("test-hotel", True), ("test-2", True), ("test-3", False)]:
+        for month, available in [(5, may), (9, True)]:
+            row = fact(hotel_id, "sunset_view", {"available": available}, side="W", low=1, high=5, month=month)
+            repo.upsert("facts", row.model_dump(mode="json"))
+    calls = []
+
+    def projection(ids=None, month=None):
+        calls.append((ids, month))
+        return [row for row in repo.all("facts") if month is None or row["scope"].get("month") in {None, month}]
+
+    repo.search_facts = projection
+    response = client.post("/api/search", json={"similar_to": "test-2", "parsed": {"text": "похожий, но закат в мае", "month": 5,
+                            "must": [{"characteristic_id": "sunset_view", "label": "Закат", "field": "available", "value": True}]}})
+    assert response.status_code == 200, response.text
+    assert calls == [(None, None)]
+    assert [hit["hotel"]["id"] for hit in response.json()["results"]] == ["test-hotel"]
