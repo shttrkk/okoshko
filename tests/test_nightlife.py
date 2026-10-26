@@ -83,3 +83,10 @@ def test_nightlife_is_declared_in_yaml_and_backfilled_like_other_poi_characteris
     spec = next(spec for spec in catalog if spec.id == "nightlife")
     assert spec.search.unit == "заведений в 500 м" and spec.methods[0].params == {"kind": "nightlife"}
     assert ("nightlife", "nightlife") in {(spec.id, params.get("kind")) for spec, params in poi_plans(catalog)}
+
+
+@pytest.mark.parametrize("text", ["до пляжа 5 минут пешком без перехода через оживлённую дорогу",
+                                  "без перехода через оживлённую трассу", "тихо, далеко от оживлённой улицы"])
+def test_busy_road_is_not_nightlife(text, catalog):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert "nightlife" not in {c.characteristic_id for c in [*parsed.must, *parsed.nice]}
