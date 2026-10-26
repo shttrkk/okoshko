@@ -42,10 +42,10 @@ REGION=pipeline/regions/sochi.yaml .venv/bin/python -m pipeline.run
 |---|---|
 | `hotels.json`, `hotels.csv.gz` | 250 реальных записей: 175 центр A + 75 Адлер–Имеретинка B |
 | `hotels_b.json` | Те же 75 записей B для независимой передачи гео-потоку |
-| `buildings.geojson`, `buildings.csv.gz` | 73 641 здание: 58 305 OSM + 15 336 дополнительных Overture |
-| `pois.geojson` | 15 505 реальных POI, оригинальные `opening_hours`, `access` и остальные теги |
-| `roads.geojson` / `railways.geojson` | 24 742 / 520 объектов |
-| `beaches.geojson` / `coastline.geojson` | 47 / 16 объектов; исходное направление coastline сохранено |
+| `buildings.geojson.gz` | 73 641 здание: 58 305 OSM + 15 336 дополнительных Overture |
+| `pois.geojson.gz` | 15 505 реальных POI, оригинальные `opening_hours`, `access` и остальные теги |
+| `roads.geojson.gz` / `railways.geojson.gz` | 24 742 / 520 объектов |
+| `beaches.geojson.gz` / `coastline.geojson.gz` | 47 / 16 объектов; исходное направление coastline сохранено |
 | `walk_graph.json.gz` | 122 640 узлов, 263 346 направленных рёбер; все узлы с DEM-высотой |
 | `open_claims.jsonl.gz` | 3 364 Claim-valid записи: 3 000 climate, 250 AQ, 114 nearby_photos |
 | `nearby_photos.json` | 100 файлов Commons с индивидуальными автором, лицензией и source URL; 23 локальные миниатюры |
@@ -53,6 +53,18 @@ REGION=pipeline/regions/sochi.yaml .venv/bin/python -m pipeline.run
 | `city.pmtiles` | 7 536 245 байт, обе зоны, zoom 0–15, Protomaps schema |
 
 Главные пути для S2: `data/seed/{hotels,buildings,pois,roads,railways,beaches,coastline}.json/geojson`, `walk_graph.json.gz`. Источники и точные пути перечислены в `manifest.json`; схемы файлов — в общих контрактах. Для runtime карта доступна по `/data/tiles/city.pmtiles`; glyphs — `/data/tiles/fonts/{fontstack}/{range}.pbf`, sprites — `/data/tiles/sprites/light` и `dark`. Включены Noto Sans Regular/Medium/Italic, диапазоны Latin 0–255 и Cyrillic 1024–1279, sprite 1x/2x и тексты лицензий.
+
+Seed GeoJSON физически хранятся только в `.geojson.gz`, `mtime=0`, без имени файла в gzip header. Логические пути `/data/seed/*.geojson` сохранены для существующих claims и geo snapshot. `geo.io.read_bytes`, `exists` и `read_json` сначала используют plain файл, а при его отсутствии читают `.gz` с распаковкой исходных байтов. Явный путь с окончанием `.gz` в `read_bytes` возвращает **сжатые байты**: SHA-256 `walk_graph.json.gz` и бинарных `.npz` не меняется. Для `read_json` передают логический путь без `.gz`. `pipeline.common.read` использует тот же интерфейс, а `dump` записывает seed GeoJSON сразу в gzip. Маленький `data/tiles/coverage.geojson` остаётся plain для CLI PMTiles.
+
+Для lossless упаковки уже подготовленного seed без загрузки источников и пересчёта геометрии:
+
+```sh
+.venv/bin/python -m pipeline.compact_seed
+```
+
+Команда проверяет прежние SHA-256 по manifest, сжимает исходные байты без JSON-пересериализации, проверяет обратную распаковку и обновляет только физическое представление. Повторный запуск сохраняет те же байты gzip и manifest. Шесть слоёв занимают 7 272 848 байт вместо 58 264 156; удалены дубли `buildings.csv.gz` и `osm_features.csv.gz` общим размером 7 815 034 байта. Runtime читает слои напрямую из GeoJSON, соответствующие DB таблицы не нужны для загрузки seed. `export_seed` также больше не создаёт эти дубли.
+
+В `manifest.outputs` ключ указывает на физический `.geojson.gz`; `bytes` и `sha256` относятся к нему. Поля `encoding=gzip`, `logical_path`, `uncompressed_bytes` и `uncompressed_sha256` описывают исходный GeoJSON. Хеши в существующих geo claims и snapshot относятся к исходным байтам и сохраняются. Runtime LOS cache проверяет именно эти хеши; повторные обращения используют digest, привязанный к physical path, mtime, ctime, размеру и inode файла. Изменение исходного seed по-прежнему инвалидирует cache.
 
 Финальная выборка строится из 499 именованных OSM-объектов размещения и 500 Overture hotel/lodging/resort/hostel/motel. Консервативное объединение использует имя и расстояние; общий домен гостиничной сети сам по себе не объединяет разные отели. Для совпадения сайта требуется полный URL и сходство имени. Идентификаторы источников не переписываются; все объединения и исключения сохранены в `hotel_merge_audit.json`. Первый переход на зоны A/B сохранил 175 центральных ID и заменил 75 объектов на зону B. Последующая явная проверка объединила два дубля санатория Заполярье с его основным OSM ID и исключила один неоднозначный locality label; три места A заполнены реальными Overture гостиницами. Причины, старые и новые ID записаны в audit и региональном конфиге. Оригинальные имена и координаты каждого входного источника остаются в `Hotel.tags.source_records`.
 
@@ -93,6 +105,6 @@ REGION=pipeline/regions/sochi.yaml .venv/bin/python -m pipeline.run
 .venv/bin/pip-audit --disable-pip --no-deps -r pipeline/requirements.lock --format json --output pipeline/dependency_audit.json
 ```
 
-`validation.json` подтверждает Hotel/Source/Claim модели, уникальность ID, ровно две CSV-колонки, `gzip mtime=0`, геометрии, непустую provenance, ссылки всех рёбер и DEM coverage, существование evidence artifacts, SHA256 manifest и предел **<50 MB на файл**. Наибольший файл — `buildings.geojson`, 41 636 238 байт. Проверка не является измерением точности гостиничных характеристик.
+`validation.json` подтверждает Hotel/Source/Claim модели, уникальность ID, ровно две CSV-колонки, `gzip mtime=0`, геометрии, непустую provenance, ссылки всех рёбер и DEM coverage, существование evidence artifacts, физические и исходные SHA256 manifest и предел **<50 MB на файл**. Наибольший включённый seed/tiles файл — `city.pmtiles`, 7 536 245 байт; `buildings.geojson.gz` занимает 4 686 376 байт. `pipeline.compute_validate` дополнительно проверяет исходные GeoJSON-хеши в каждом из 250 geo snapshot и 20 340 claims. Проверка не является измерением точности гостиничных характеристик.
 
 `requirements.in` содержит прямые зависимости; `requirements.lock` получен `pip-compile --generate-hashes` и фиксирует все транзитивные версии и hashes. **pip-audit 2.10.1 от 26.10.2026: 22 пакета, известных уязвимостей не найдено**; машинный отчёт — `pipeline/dependency_audit.json`. Утилита go-pmtiles 1.31.2 загружается только с официального GitHub release и проверяется по заранее записанному SHA256 издателя **до распаковки и запуска**. SHA для Darwin/Linux arm64/x86_64 находятся в `fetch_tiles.py`; URL и проверенный digest сохранены в manifest. Shell installers и `curl | sh` отсутствуют.

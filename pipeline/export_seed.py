@@ -20,6 +20,7 @@ from pipeline.common import (
     ZONE_A,
     ZONE_B,
     dump,
+    output_metadata,
     read,
     sha,
     source,
@@ -106,7 +107,6 @@ def run():
         if p["height_m"] is not None and p["height_m"] <= 0:
             p.update(height_m=None, height_source="unknown", height_uncertainty_m=None, height_invalid_reason="Nonpositive upstream height tag retained in original properties")
     dump(SEED / "buildings.geojson", {"type": "FeatureCollection", "features": buildings})
-    table("buildings", buildings)
     features = {}
     for layer in ["pois", "roads", "railways", "beaches", "coastline"]:
         for f in read(SEED / (layer + ".geojson"))["features"]:
@@ -114,7 +114,9 @@ def run():
                 features[f["id"]] = {**f, "layers": [layer]}
             else:
                 features[f["id"]]["layers"].append(layer)
-    table("osm_features", sorted(features.values(), key=lambda f: f["id"]))
+    # Runtime reads these layers from GeoJSON; duplicate DB exports add no data.
+    for name in ("buildings", "osm_features"):
+        (SEED / (name + ".csv.gz")).unlink(missing_ok=True)
     open_claims = claims(hotels, sources)
     with (SEED / "open_claims.jsonl.gz").open("wb") as f:
         with gzip.GzipFile(fileobj=f, mode="wb", filename="", mtime=0) as gz:
@@ -124,7 +126,7 @@ def run():
     for directory in [SEED, ROOT / "data/tiles"]:
         for path in sorted(directory.rglob("*")):
             if path.is_file() and path.name not in {"manifest.json", "validation.json"}:
-                outputs[str(path.relative_to(ROOT))] = {"sha256": sha(path), "bytes": path.stat().st_size}
+                outputs[str(path.relative_to(ROOT))] = output_metadata(path)
     dump(SEED / "manifest.json", {"schema_version": 1, "seed_version": CONFIG["id"] + "-2026-10-26-ab-v2", "generated_at": utcnow(),
         "region_config": {"path": str(CONFIG_PATH.relative_to(ROOT)) if CONFIG_PATH.is_relative_to(ROOT) else str(CONFIG_PATH), "sha256": sha(CONFIG_PATH), "parameters": CONFIG},
         "bbox": [min(b[0] for b in COVERAGE_BBOXES), min(b[1] for b in COVERAGE_BBOXES), max(b[2] for b in COVERAGE_BBOXES), max(b[3] for b in COVERAGE_BBOXES)], "coverage_bboxes": COVERAGE_BBOXES, "hotel_selection_zones": {"A": ZONE_A, "B": ZONE_B},
