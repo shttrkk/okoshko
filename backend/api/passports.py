@@ -5,6 +5,7 @@ import itertools
 import math
 import re
 from collections import Counter, defaultdict
+from datetime import UTC
 from threading import RLock
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -167,6 +168,37 @@ def _notify(passport: ExpectationPassport, text: str, *, kind="status"):
                                    "at": now().isoformat(), "synthetic": True})
 
 
+def _trip_reviews(passport: ExpectationPassport, facts: list[Fact]) -> list[str]:
+    """Current evidence is not a promise beyond its next review deadline."""
+    trip_end = passport.check_out or passport.check_in
+    if trip_end is None:
+        return []
+    by_id = {fact.id: fact for fact in facts}
+    critical = []
+    trip_text = (f"{passport.check_in.isoformat()}–{passport.check_out.isoformat()}"
+                 if passport.check_in and passport.check_out else trip_end.isoformat())
+    for item in passport.items:
+        deadlines = [by_id[fid].valid_until.astimezone(UTC).date() for fid in item.fact_ids
+                     if fid in by_id and by_id[fid].valid_until is not None]
+        expired_for_trip = [deadline for deadline in deadlines if deadline < trip_end]
+        if not expired_for_trip:
+            continue
+        review_by = min(expired_for_trip)
+        text = (f"Нужна перепроверка до {review_by.isoformat()}: срок действия текущих данных заканчивается раньше окончания поездки "
+                f"{trip_text}. Текущие сведения не гарантируют условия на будущие даты.")
+        if item.status in {"pending", "confirmed", "at_risk"}:
+            item.status = "at_risk"
+        item.response = (item.response + " " + text) if item.response and text not in item.response else item.response or text
+        if item.critical:
+            critical.append(item.id)
+        review_key = stable_id("trip_evidence_review", passport.id, item.id, review_by.isoformat(), trip_end.isoformat())
+        if not any(event.get("review_key") == review_key for event in passport.timeline):
+            _event(passport, "evidence_review", text, item_id=item.id, review_by=review_by.isoformat(),
+                   trip_until=trip_end.isoformat(), review_key=review_key)
+            _notify(passport, text, kind="evidence_review")
+    return critical
+
+
 def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
     _get(repo, "hotels", request.hotel_id, "Отель")
     if request.check_in and request.check_out and request.check_out <= request.check_in:
@@ -284,6 +316,8 @@ def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
             if item.critical:
                 item.status, item.response = "alternative", "Критичные условия относятся к несовместимым сторонам или этажам; требуется альтернатива."
     _event(passport, "sent", "Паспорт ожиданий передан в локальный демо-кабинет. Бронирование синтетическое.")
+    if _trip_reviews(passport, facts) and not incompatible:
+        passport.status = "at_risk"
     if incompatible:
         _event(passport, "scope_conflict", "Все критичные условия нельзя подтвердить для одного номера; предложите альтернативу.")
     _notify(passport, "Паспорт создан. Ответ отеля появится здесь; внешние сообщения не отправляются.")
@@ -316,6 +350,16 @@ def passport_action(passport_id: str, request: PassportAction, repo) -> Expectat
     with _LOCK:
         passport = ExpectationPassport.model_validate(_get(repo, "expectation_passports", passport_id, "Паспорт"))
         key = stable_id("passport_action", passport.id, request.model_dump_json())
+        facts = []
+        if request.action == "confirm":
+            facts = [Fact.model_validate(value) for value in repo.find("facts", hotel_id=passport.hotel_id)]
+            if passport.check_out or passport.check_in:
+                # Renewed evidence can be checked with the same confirm action;
+                # an unchanged deadline snapshot still returns the saved result.
+                characteristics = {item.characteristic_id for item in passport.items}
+                deadlines = [(fact.id, fact.valid_until.isoformat() if fact.valid_until else None)
+                             for fact in sorted(facts, key=lambda fact: fact.id) if fact.characteristic_id in characteristics]
+                key = stable_id(key, deadlines)
         if any(event.get("action_key") == key for event in passport.timeline):
             return passport
         if len(request.text) > 4000:
@@ -323,7 +367,6 @@ def passport_action(passport_id: str, request: PassportAction, repo) -> Expectat
         if request.action == "confirm":
             if not request.room_number or not request.room_number.strip() or len(request.room_number) > 20:
                 raise HTTPException(422, "Для локального демо-подтверждения укажите номер комнаты")
-            facts = [Fact.model_validate(value) for value in repo.find("facts", hotel_id=passport.hotel_id)]
             critical = [item for item in passport.items if item.critical]
             incompatible = not scopes_compatible([item.scope for item in critical])
             declined = []
@@ -335,6 +378,12 @@ def passport_action(passport_id: str, request: PassportAction, repo) -> Expectat
                 stored = repo.get("passport_items", item.id) or {}
                 item_criteria = _stored_criteria(stored)
                 eligible = [fact for fact in related if _all_hold(fact, item_criteria)]
+                trip_end = passport.check_out or passport.check_in
+                if eligible and trip_end:
+                    # Prefer an equally suitable fact reviewed through the stay.
+                    chosen = max(eligible, key=lambda fact: (
+                        fact.valid_until is None or fact.valid_until.astimezone(UTC).date() >= trip_end, fact.confidence))
+                    item.fact_ids = [chosen.id]
                 known_negative = not eligible and any(
                     any(_comparison(fact, criterion) is False for criterion in item_criteria)
                     if item_criteria else _comparison(fact) is False for fact in related)
@@ -364,9 +413,13 @@ def passport_action(passport_id: str, request: PassportAction, repo) -> Expectat
                         declined.append(item.id)
                 else:
                     item.status, item.response = "confirmed", "Явно подтверждено отельером в локальном демо; это не реальная бронь."
-            passport.status = "alternative" if incompatible or alternatives else "at_risk" if declined else "confirmed"
+            needs_review = _trip_reviews(passport, facts)
+            passport.status = "alternative" if incompatible or alternatives else "at_risk" if declined or needs_review else "confirmed"
             passport.room_number = request.room_number.strip() if passport.status == "confirmed" else None
             message = (f"Локальное демо-подтверждение: номер {passport.room_number}. " + (request.text or "Критичные ожидания приняты отельером.")) if passport.status == "confirmed" else "Требуется альтернатива: критичные условия несовместимы или не выполняются."
+            if passport.status == "at_risk" and needs_review:
+                message = (f"Для номера {request.room_number.strip()} в демо нужна перепроверка критичных ожиданий до поездки. "
+                           "Назначение номера не гарантирует условия на будущие даты.")
         elif request.action == "alternative":
             if not request.text.strip():
                 raise HTTPException(422, "Опишите предлагаемую альтернативу")
