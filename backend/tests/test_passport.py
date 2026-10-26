@@ -429,3 +429,110 @@ class PassportRouteConstraintTests(unittest.TestCase):
                 self.assertEqual(result["status"], "at_risk")
                 self.assertEqual(result["items"][0]["status"], "at_risk")
                 self.assertTrue(any(n["passport_id"] == passport.id and n["channel"] == "local" for n in notifications))
+
+
+class PassportEvidenceDatesTests(unittest.TestCase):
+    def setUp(self):
+        from datetime import UTC, datetime
+        from unittest.mock import patch
+
+        self.repo = MemoryRepo()
+        clock = patch("backend.api.passports.now", return_value=datetime(2026, 10, 26, tzinfo=UTC))
+        clock.start()
+        self.addCleanup(clock.stop)
+        self.fact = Fact(id="date-test-route", hotel_id="test-hotel", characteristic_id="beach_walk",
+                         value={"available": True, "minutes": 7, "has_steps": False}, confidence=.85, status="computed",
+                         valid_until="2027-01-24T14:00:24+00:00", synthetic=True)
+        self.repo.insert("facts", self.fact.model_dump(mode="json"))
+
+    def create(self, check_in=None, check_out=None, *, critical=True):
+        scope = Scope(type="floor_range", facade="W", floor_min=5, floor_max=5)
+        parsed = ParsedQuery(text="До пляжа 10 минут без лестниц", check_in=check_in, check_out=check_out,
+                             must=[Criterion(characteristic_id="beach_walk", label="Пляж", field="minutes", op="lte", value=10, no_stairs=True, scope=scope)])
+        return create_passport(PassportCreate(hotel_id="test-hotel", guest_name="Маша", parsed=parsed,
+            items=[PassportItem(characteristic_id="beach_walk", text="До 10 минут без лестниц", scope=scope, critical=critical)]), self.repo)
+
+    def confirm(self, passport):
+        return passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo)
+
+    def assert_review(self, passport):
+        self.assertEqual(passport.status, "at_risk")
+        self.assertEqual(passport.items[0].status, "at_risk")
+        self.assertIn("перепроверка до 2027-01-24", passport.items[0].response)
+        self.assertIn("не гарантируют", passport.items[0].response)
+        reviews = [event for event in passport.timeline if event.get("type") == "evidence_review"]
+        self.assertEqual(len(reviews), 1)
+        self.assertEqual(reviews[0]["review_by"], "2027-01-24")
+        stored = self.repo.get("passport_items", passport.items[0].id)
+        self.assertTrue(stored["criteria"][0]["no_stairs"])
+        self.assertEqual(passport.items[0].scope.facade, "W")
+        self.assertEqual(passport.items[0].scope.floor_min, 5)
+
+    def test_trip_after_evidence_deadline_stays_at_risk_after_room_confirmation(self):
+        before = self.repo.get("facts", self.fact.id)
+        passport = self.create("2027-09-14", "2027-09-21")
+        self.assert_review(passport)
+        self.assertIn("2027-09-14–2027-09-21", passport.items[0].response)
+        confirmed = self.confirm(passport)
+        self.assert_review(confirmed)
+        self.assertIsNone(confirmed.room_number)
+        self.assertIn("Назначение номера не гарантирует", confirmed.timeline[-1]["text"])
+        self.assertEqual(self.repo.get("facts", self.fact.id), before)
+        self.assertEqual(self.repo.all("claims"), [])
+        self.assertEqual(self.confirm(passport).model_dump(), confirmed.model_dump())
+
+    def test_trip_crossing_deadline_requires_review_through_checkout(self):
+        passport = self.create("2027-01-23", "2027-01-26")
+        self.assert_review(passport)
+        self.assert_review(self.confirm(passport))
+
+    def test_trip_within_evidence_period_keeps_normal_confirmation(self):
+        passport = self.create("2026-11-14", "2026-11-21")
+        self.assertEqual(passport.status, "sent")
+        self.assertFalse(any(event["type"] == "evidence_review" for event in passport.timeline))
+        confirmed = self.confirm(passport)
+        self.assertEqual(confirmed.status, "confirmed")
+        self.assertEqual(confirmed.room_number, "512")
+
+    def test_deadline_on_checkout_date_is_not_earlier_than_the_stay_end(self):
+        passport = self.create("2027-01-23", "2027-01-24")
+        self.assertEqual(passport.status, "sent")
+        self.assertEqual(self.confirm(passport).status, "confirmed")
+
+    def test_only_check_in_is_used_without_inventing_a_checkout(self):
+        passport = self.create("2027-09-14")
+        self.assert_review(passport)
+        self.assertIsNone(passport.check_out)
+        self.assertIn("2027-09-14", passport.items[0].response)
+
+    def test_no_dates_preserves_behavior_without_assuming_a_year(self):
+        passport = self.create()
+        confirmed = self.confirm(passport)
+        self.assertIsNone(confirmed.check_in)
+        self.assertIsNone(confirmed.check_out)
+        self.assertEqual(confirmed.status, "confirmed")
+        self.assertFalse(any(event["type"] == "evidence_review" for event in confirmed.timeline))
+        self.assertNotIn("2027", confirmed.items[0].response)
+
+    def test_optional_expiring_property_is_transparent_without_blocking_room(self):
+        passport = self.create("2027-09-14", "2027-09-21", critical=False)
+        self.assertEqual(passport.status, "sent")
+        self.assertEqual(passport.items[0].status, "at_risk")
+        confirmed = self.confirm(passport)
+        self.assertEqual(confirmed.status, "confirmed")
+        self.assertEqual(confirmed.room_number, "512")
+        self.assertEqual(confirmed.items[0].status, "at_risk")
+        self.assertIn("перепроверка до 2027-01-24", confirmed.items[0].response)
+
+    def test_extended_deadline_can_be_checked_by_same_confirm_without_new_flow(self):
+        passport = self.create("2027-09-14", "2027-09-21")
+        self.assertEqual(self.confirm(passport).status, "at_risk")
+        from datetime import UTC, datetime
+
+        renewed = self.fact.model_copy(update={"valid_until": datetime(2028, 1, 24, tzinfo=UTC)})
+        self.repo.upsert("facts", renewed.model_dump(mode="json"))
+        confirmed = self.confirm(passport)
+        self.assertEqual(confirmed.status, "confirmed")
+        self.assertEqual(confirmed.room_number, "512")
+        self.assertNotIn("перепроверка", confirmed.items[0].response)
+        self.assertEqual(self.confirm(passport).model_dump(), confirmed.model_dump())
