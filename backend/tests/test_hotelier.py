@@ -271,6 +271,12 @@ class QualitativeAndNightParserTests(unittest.TestCase):
                 self.assertTrue(updates)
                 self.assertTrue(all(u.value["available"] is False for u in updates))
 
+    def test_later_window_description_preserves_explicit_poor_insulation(self):
+        answer = self.answer("Шумоизоляция плохая. Окна двойные.", "soundproofing")
+        update = next(u for u in answer.updates if u.characteristic_id == "soundproofing")
+        self.assertIs(update.value["available"], False)
+        self.assertEqual(update.value["windows"], "double")
+
     def test_negated_quality_and_uncertainty_abstain(self):
         for text in ("Шумоизоляция не плохая.", "Кажется, шумоизоляция слабая.", "Шумоизоляция, наверное, плохая."):
             with self.subTest(text=text):

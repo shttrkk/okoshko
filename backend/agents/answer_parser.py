@@ -131,7 +131,9 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
                 unknown.add(cid)
                 clarifications.append(f"Уточните противоречивые значения: {cid} ({', '.join(contradictory)}).")
                 return
-            prior.value.update(value)
+            # A later partial amenity sentence must not erase an explicit
+            # insulation statement with its default available=null.
+            prior.value.update({key: item for key, item in value.items() if item is not None or key not in prior.value})
             prior.quote = raw
         elif cid not in unknown:
             updates.append(FieldUpdate(characteristic_id=cid, scope=scope, value=value, quote=quote))
