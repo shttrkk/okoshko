@@ -1,6 +1,12 @@
 /** Real-browser, same-API recording. No application/API response mocking or result substitution. */
 import { createRequire } from "node:module";
-import { existsSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  renameSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { resolve, dirname } from "node:path";
 import { execFileSync } from "node:child_process";
 import assert from "node:assert/strict";
@@ -130,7 +136,25 @@ async function main() {
     throw new Error(
       `A building scenario already exists for ${hero.id}. Record against a fresh local demo database; this script never deletes state.`,
     );
-  if (!checkOnly) execFileSync("ffmpeg", ["-version"], { stdio: "ignore" });
+  if (!checkOnly) {
+    // Playwright 1.56.1 records with an ffmpeg executable in its own cache.
+    // Reuse the installed system binary; never download recording binaries.
+    const installedFfmpeg = execFileSync(
+      process.platform === "win32" ? "where" : "which",
+      ["ffmpeg"],
+      { encoding: "utf8" },
+    )
+      .trim()
+      .split(/\r?\n/)[0];
+    execFileSync(installedFfmpeg, ["-version"], { stdio: "ignore" });
+    const core = dirname(requireDemo.resolve("playwright-core/package.json"));
+    const { registry } = requireDemo(resolve(core, "lib/server/registry/index.js"));
+    const recordingFfmpeg = registry.findExecutable("ffmpeg").executablePath();
+    if (!existsSync(recordingFfmpeg)) {
+      mkdirSync(dirname(recordingFfmpeg), { recursive: true });
+      symlinkSync(installedFfmpeg, recordingFfmpeg);
+    }
+  }
 
   const candidates = [
     process.env.OKNO_BROWSER_EXECUTABLE,
@@ -183,6 +207,17 @@ async function main() {
     return route.continue();
   });
   const page = await context.newPage();
+  if (process.platform === "darwin" && process.env.OKNO_HEADLESS !== "false") {
+    // Installed Chrome's macOS headless window retains an 87px browser inset.
+    // Device metrics alone fix screenshots but leave screencast frames cropped.
+    const cdp = await context.newCDPSession(page);
+    const { windowId } = await cdp.send("Browser.getWindowForTarget");
+    await cdp.send("Browser.setWindowBounds", {
+      windowId,
+      bounds: { width: 1920, height: 1167 },
+    });
+    await cdp.detach();
+  }
   page.setDefaultTimeout(18000);
   page.setDefaultNavigationTimeout(30000);
   const errors: string[] = [],
@@ -227,6 +262,7 @@ async function main() {
     base,
     check_only: checkOnly,
     viewport: { width: 1920, height: 1080 },
+    browser_version: browser.version(),
     hero: {
       id: hero.id,
       name: hero.name,
@@ -297,10 +333,10 @@ async function main() {
       path: resolve(recordingDir, `${String(scene).padStart(2, "0")}.png`),
     });
     console.log(`${scene}. ${title}: ${(duration / 1000).toFixed(1)}s`);
+    // Preserve every real action even when the API is slow. The complete source
+    // is retained; the final encoding may use a disclosed modest speed increase.
     if (!checkOnly && Date.now() - started > 176000)
-      throw new Error(
-        "Recording exceeded its 176-second scene budget; source WebM retained.",
-      );
+      report.timing_warning = "Live UI exceeded the target scene budget";
   }
   try {
     await stage(
@@ -622,15 +658,21 @@ async function main() {
           );
         },
       );
-    const quality = await api<Json>("/api/quality");
     const finalStatus = await api<typeof status>("/api/status");
     await stage(
       `${finalStatus.hotel_count} отелей. Проверяемые основания.`,
       "Покрытие, слабые метки и синтетические тесты показаны раздельно. Неизмеренная точность остаётся неизмеренной.",
       8000,
       async () => {
+        const qualityResponse = page.waitForResponse(
+          (result) =>
+            new URL(result.url()).pathname === "/api/quality" && result.ok(),
+          { timeout: 60000 },
+        );
         await navigate("/quality");
-        await app.locator(".quality-stats").waitFor({ timeout: 25000 });
+        await app.locator(".quality-stats").waitFor({ timeout: 60000 });
+        const quality = (await (await qualityResponse).json()) as Json;
+        if (!fast) await sleep(6000);
         report.final_status = finalStatus;
         report.quality = {
           coverage: quality.coverage,
@@ -673,10 +715,10 @@ async function main() {
   if (!failure && published) {
     try {
       let completed: AgentRun | undefined;
-      for (let attempt = 0; attempt < 30; attempt++) {
+      for (let attempt = 0; attempt < 60; attempt++) {
         completed = await api<AgentRun>(`/api/runs/${published.run_id}`);
         if (completed.status !== "running") break;
-        await sleep(2000);
+        await sleep(10000);
       }
       assert.equal(
         completed?.status,
@@ -709,12 +751,34 @@ async function main() {
   if (!failure && !checkOnly && rawPath) {
     try {
       mkdirSync(dirname(output), { recursive: true });
+      const sourceProbe = JSON.parse(
+        execFileSync(
+          "ffprobe",
+          ["-v", "error", "-show_entries", "format=duration", "-of", "json", rawPath],
+          { encoding: "utf8" },
+        ),
+      );
+      const sourceDuration = Number(sourceProbe.format.duration);
+      const playbackSpeed = Math.max(1, sourceDuration / 174);
+      assert(
+        playbackSpeed <= 1.35,
+        "Source too long for readable automatic encoding; retain it for editing",
+      );
+      report.encoding = {
+        source_duration_seconds: sourceDuration,
+        playback_speed: playbackSpeed,
+        final_hold_seconds: 4,
+        cuts: [],
+        note: "The complete source is retained. A modest speed increase preserves every action and loading state.",
+      };
       execFileSync(
         "ffmpeg",
         [
           "-y",
           "-i",
           rawPath,
+          "-vf",
+          `setpts=PTS/${playbackSpeed},tpad=stop_mode=clone:stop_duration=4`,
           "-an",
           "-c:v",
           "libx264",
@@ -751,6 +815,8 @@ async function main() {
           { encoding: "utf8" },
         ),
       );
+      assert.equal(probe.streams[0]?.width, 1920);
+      assert.equal(probe.streams[0]?.height, 1080);
       report.video = probe;
       report.mp4 = output;
       assert(
