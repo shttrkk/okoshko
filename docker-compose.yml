@@ -26,6 +26,8 @@ services:
       LLM_MODE: ${LLM_MODE:-offline}
     ports:
       - "8080:8080"
+    volumes:
+      - runtime:/app/runtime
     depends_on:
       db:
         condition: service_healthy
@@ -38,4 +40,5 @@ services:
     restart: unless-stopped
 volumes:
   pgdata:
+  runtime:
 
