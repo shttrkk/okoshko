@@ -317,3 +317,35 @@ class ContradictoryNightClausesTests(unittest.TestCase):
                 answer = parse_answer(question, text, synthetic=True)
                 self.assertFalse(any(u.characteristic_id == "quiet_night" for u in answer.updates))
                 self.assertIn("quiet_night", answer.unknown_fields)
+
+
+class SafeConfirmationSchemaTests(unittest.TestCase):
+    def test_persisted_unsafe_or_invalid_schemas_are_rejected_before_writes_without_network(self):
+        from unittest.mock import patch
+
+        from fastapi import HTTPException
+
+        schemas = [
+            {"$ref": "http://127.0.0.1:12345/forbidden-schema"},
+            {"type": "object", "properties": {"available": {"$ref": "file:///forbidden-schema"}}},
+            {"$dynamicRef": "http://127.0.0.1:12345/forbidden-schema"},
+            {"$ref": "#/missing"},
+            {"type": "invalid-schema-type"},
+        ]
+        for schema in schemas:
+            with self.subTest(schema=schema):
+                repo = MemoryRepo()
+                question = create_question("test-hotel", "pets", repo)
+                answer = parse_answer(question, "С собакой можно.")
+                repo.insert("answers", answer.model_dump(mode="json"))
+                spec = repo.get("characteristics", "pets")
+                spec["value_schema"] = schema
+                repo.upsert("characteristics", spec)
+                with patch("urllib.request.urlopen", side_effect=AssertionError("Network retrieval is forbidden")) as retrieve:
+                    with self.assertRaises(HTTPException) as error:
+                        confirm_answer(answer.id, repo)
+                    self.assertEqual(error.exception.status_code, 422)
+                    retrieve.assert_not_called()
+                self.assertEqual(repo.all("claims"), [])
+                self.assertEqual(repo.all("sources"), [])
+                self.assertFalse(repo.get("answers", answer.id)["confirmed"])
