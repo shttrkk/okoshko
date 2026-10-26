@@ -46,6 +46,13 @@ export const names: Record<string, string> = {
   building_history: "История здания",
   nearby_photos: "Фото вокруг",
   morning_swim: "Купание до завтрака",
+  nightlife: "В гуще событий",
+  morning_sun: "Утреннее солнце",
+  evening_heat: "Вечернее солнце и нагрев",
+  railway_noise: "Железнодорожный шум",
+  beach_surface: "Покрытие пляжа",
+  accessible_route: "Доступность маршрута",
+  green_nearby: "Зелень рядом",
 };
 const sides: Record<string, string> = {
   N: "север",
@@ -309,11 +316,13 @@ export function VerdictList({
   verdicts,
   hotelId,
   onEvidence,
+  onFocusFact,
   compact = false,
 }: {
   verdicts: Verdict[];
   hotelId: string;
   onEvidence?: (v: Verdict) => void;
+  onFocusFact?: (v: Verdict) => void;
   /** Search cards: the gist only; caveats live on the hotel page. */
   compact?: boolean;
 }) {
@@ -355,6 +364,16 @@ export function VerdictList({
                 <small>{v.caveat.split(";")[0].slice(0, 220)}</small>
               )}
             </button>
+            {!compact && onFocusFact && (
+              <button
+                className="text-button"
+                data-testid={`verdict-fact-${v.characteristic_id}`}
+                aria-controls={`fact-card-${v.characteristic_id}`}
+                onClick={() => onFocusFact(v)}
+              >
+                К факту <ArrowRight size={12} />
+              </button>
+            )}
             {!compact &&
               v.caveat &&
               (v.caveat.includes(";") || v.caveat.length > 220) && (
@@ -576,14 +595,30 @@ export function EvidenceButton({
   );
 }
 export function EvidenceModal({
-  fact,
-  claims = [],
+  fact: initialFact,
+  claims: initialClaims = [],
   onClose,
 }: {
   fact: Fact;
   claims?: Claim[];
   onClose: () => void;
 }) {
+  const expectedIds = [
+    ...initialFact.supporting_claim_ids,
+    ...initialFact.conflicting_claim_ids,
+  ];
+  const deferred = expectedIds.some(
+    (id) => !initialClaims.some((claim) => claim.id === id),
+  );
+  const full = useResource(
+    () =>
+      deferred
+        ? api.factEvidence(initialFact.hotel_id, initialFact.id)
+        : Promise.resolve(null),
+    [initialFact.hotel_id, initialFact.id, initialFact.updated_at, deferred],
+  );
+  const fact = full.data?.fact || initialFact;
+  const claims = full.data?.claims || initialClaims;
   const supporting = claims.filter((c) =>
     fact.supporting_claim_ids.includes(c.id),
   );
@@ -602,6 +637,10 @@ export function EvidenceModal({
         <span className="muted">{scopeText(fact.scope)}</span>
       </div>
       {fact.synthetic && <Synthetic />}
+      {deferred && full.loading && (
+        <p className="muted" role="status">Загружаем полное доказательство и даты источников…</p>
+      )}
+      <ErrorState error={full.error} retry={full.reload} />
       <dl className="metadata">
         <div>
           <dt>Уверенность</dt>

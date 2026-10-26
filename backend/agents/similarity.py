@@ -6,11 +6,22 @@ from collections import defaultdict
 from difflib import SequenceMatcher
 
 from backend.agents.query_match import fresh, scope_values, value_at
-from backend.contracts import CharacteristicSpec, Criterion, Fact, Hotel, ParsedQuery, SearchHit
+from backend.contracts import CharacteristicSpec, CriterionVerdict, Fact, Hotel, ParsedQuery, SearchHit
 
 WEIGHTS = {"sea_view": 2, "sunset_view": 2, "quiet_night": 2, "beach_walk": 2,
            "soundproofing": 1.5, "pets": 1.5, "connectivity": 1.5, "nightlife": 1.5}
 SCALES = {"minutes": 20, "download_mbps": 100, "water_c": 15, "european_aqi": 80, "venues_500m": 60}
+UNITS = {"minutes": "мин", "return_minutes": "мин", "download_mbps": "Мбит/с", "upload_mbps": "Мбит/с",
+         "water_c": "°C", "air_c": "°C", "european_aqi": "AQI", "venues_500m": "заведений"}
+
+
+def _profile_value(value, field: str, unit: str | None) -> str:
+    if isinstance(value, bool):
+        return "да" if value else "нет"
+    if isinstance(value, int | float):
+        suffix = unit or UNITS.get(field)
+        return f"{value:g}".replace(".", ",") + (" " + suffix if suffix else "")
+    return str(value)
 
 
 def _fingerprint(facts: list[Fact], specs: list[CharacteristicSpec]) -> dict:
@@ -30,7 +41,8 @@ def _fingerprint(facts: list[Fact], specs: list[CharacteristicSpec]) -> dict:
 
 
 def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
-                   specs: list[CharacteristicSpec]) -> list[SearchHit]:
+                   specs: list[CharacteristicSpec], *, parsed: ParsedQuery | None = None,
+                   explain_limit: int | None = None) -> list[SearchHit]:
     """Return evidence-backed profile similarity for September, excluding self."""
     if not any(h.id == reference_id for h in hotels):
         return []
@@ -40,15 +52,22 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
     reference = _fingerprint(by_hotel[reference_id], specs)
     if not reference:
         return []
-    criteria = [Criterion(characteristic_id=s.id, label=s.name_ru, field=s.search.field,
-                          op="eq", value=reference[s.id][0], weight=WEIGHTS.get(s.id, 1)) for s in specs if s.id in reference]
-    from backend.agents.ranker import rank_hotels
-    hits = rank_hotels([h for h in hotels if h.id != reference_id], facts, ParsedQuery(text="Похожий профиль", nice=criteria), specs)
+    candidates = [h for h in hotels if h.id != reference_id]
+    constrained = {}
+    if parsed is not None and (parsed.must or parsed.nice or parsed.no_data_must):
+        from backend.agents.ranker import rank_hotels
+        # Explicit musts remain hard eligibility gates in similarity mode.
+        # Nice conditions can move a candidate, without rescuing a failed must.
+        constrained = {hit.hotel.id: hit for hit in rank_hotels(candidates, facts, parsed, specs)}
+        candidates = [hotel for hotel in candidates if not parsed.must or constrained[hotel.id].must_satisfied == len(parsed.must)]
     fields = {s.id: s.search.field for s in specs}
+    labels = {s.id: s.name_ru for s in specs}
+    units = {s.id: s.search.unit for s in specs}
     scored = []
-    for hit in hits:
-        fingerprint = _fingerprint(by_hotel[hit.hotel.id], specs)
+    for hotel in candidates:
+        fingerprint = _fingerprint(by_hotel[hotel.id], specs)
         numerator, denominator, shared = 0, 0, 0
+        comparisons = []
         for cid, (left, left_conf, _) in reference.items():
             weight = WEIGHTS.get(cid, 1)*left_conf
             denominator += weight
@@ -61,11 +80,58 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
                 closeness = float(left == right)
             numerator += weight*closeness*right_conf
             shared += 1
-        hit.score = round(100*numerator/denominator, 2) if denominator else 0
-        hit.group = "almost" if shared else "unknown"
+            comparisons.append((weight*closeness*right_conf, cid, closeness, left, right, fingerprint[cid][2]))
+        score = 100*numerator/denominator if denominator else 0
+        constraint = constrained.get(hotel.id)
+        if parsed is not None and parsed.nice and constraint:
+            score = .8*score + .2*constraint.score
+        hit = SearchHit(hotel=hotel, score=round(score, 2),
+                        group=constraint.group if constraint and (parsed.must or parsed.no_data_must) else "almost" if shared else "unknown",
+                        must_satisfied=constraint.must_satisfied if constraint else 0,
+                        must_total=constraint.must_total if constraint else 0)
         hit.summary = f"Сходство профиля {hit.score:g}/100: сопоставлены {shared} из {len(reference)} характеристик за сентябрь; учитывается уверенность. Это не гарантия выполнения одного набора условий в одном номере."
-        scored.append(hit)
-    return sorted(scored, key=lambda hit: (-hit.score, hit.hotel.id))
+        if constraint and (parsed.must or parsed.no_data_must):
+            hit.summary += f" Дополнительные обязательные условия: {hit.must_satisfied} из {hit.must_total}."
+        if any(item[2].synthetic for item in reference.values()) or any(row[5].synthetic for row in comparisons):
+            hit.summary += " В сравнении есть синтетические факты."
+            hit.disappointments.append("Часть сравнения профилей основана на синтетических фактах симулятора, а не на подтверждении реального отеля.")
+        scored.append((hit, comparisons, constraint))
+    scored.sort(key=lambda item: (-item[0].score, item[0].hotel.id))
+    for index, (hit, comparisons, constraint) in enumerate(scored):
+        if explain_limit is not None and index >= explain_limit:
+            continue
+        if constraint:
+            hit.verdicts = constraint.verdicts
+            hit.room_recommendation = constraint.room_recommendation
+            hit.disappointments = list(dict.fromkeys([*hit.disappointments, *constraint.disappointments]))
+        else:
+            hit.room_recommendation = "Сходство относится к профилю отеля; сторону, этаж и доступность номера уточните отдельно."
+        # Profile comparisons are independent characteristics, not an invented
+        # conjunction of views, noise and routes in one room.
+        matches = sorted((row for row in comparisons if row[3] == row[4]), key=lambda row: (-row[0], row[1]))[:3]
+        differences = sorted((row for row in comparisons if row[3] != row[4]
+                              and _profile_value(row[3], fields[row[1]], units[row[1]]) != _profile_value(row[4], fields[row[1]], units[row[1]])),
+                             key=lambda row: (-WEIGHTS.get(row[1], 1)*min(reference[row[1]][1], row[5].confidence)*(1-row[2]), row[1]))[:2]
+        for _, cid, closeness, left, right, fact in [*matches, *differences]:
+            left_text = _profile_value(left, fields[cid], units[cid])
+            right_text = _profile_value(right, fields[cid], units[cid])
+            if left == right:
+                text = f"Совпадает «{labels[cid]}»: {right_text} у обоих"
+            else:
+                text = f"Отличается «{labels[cid]}»: здесь {right_text}, у выбранного отеля {left_text}"
+            text += f"; уверенность фактов {fact.confidence:.0%} / {reference[cid][1]:.0%}."
+            synthetic = fact.synthetic or reference[cid][2].synthetic
+            if synthetic:
+                text += " В сравнении есть синтетический факт."
+            hit.similarity_reasons.append(text)
+            if not any(v.characteristic_id == cid for v in hit.verdicts):
+                hit.verdicts.append(CriterionVerdict(characteristic_id=cid, label=labels[cid],
+                                                    status="yes" if closeness == 1 else "partial", symbol="✓" if closeness == 1 else "≈",
+                                                    text=text, confidence=fact.confidence, fact_ids=[fact.id],
+                                                    evidence_refs=[e.id for e in fact.evidence], synthetic=synthetic))
+        from backend.agents.ranker import relative_reason
+        hit.why_not_higher = [relative_reason(hit, other[0]) for other in scored[max(0, index-3):index]]
+    return [item[0] for item in scored]
 
 
 # «похожий на <отель>»: deterministic name matching, no LLM and no network.
@@ -134,3 +200,14 @@ def reference_hotel(text: str, hotels: list[Hotel]) -> tuple[Hotel | None, list[
     if len(names) > 1:
         return None, names[:5]
     return top[0], []
+
+
+def only_reference_phrase(text: str, name: str) -> bool:
+    """Remove a recognized name fragment, never unrelated unknown conditions."""
+    normalized = _norm(text)
+    match = SIMILAR_PATTERN.fullmatch(normalized) or LIKE_PATTERN.fullmatch(normalized)
+    if match is None:
+        return False
+    tokens = _tokens(match["rest"])
+    names = _tokens(_norm(name)) + _tokens(_translit(_norm(name)))
+    return bool(tokens) and all(_token_present(token, names) or _token_present(_translit(token), names) for token in tokens)

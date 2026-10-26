@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
 from collections import defaultdict
@@ -97,8 +98,26 @@ def ndcg(retrieved: list[str], relevance: dict[str, int], k: int = 5) -> float |
     denominator = sum((2**grade - 1) / math.log2(index+2) for index, grade in enumerate(ideal))
     if denominator == 0:
         return None
-    numerator = sum((2**relevance.get(id, 0)-1)/math.log2(index+2) for index, id in enumerate(retrieved[:k]))
+    # A repeated ID cannot earn the same relevance gain more than once.
+    unique = list(dict.fromkeys(retrieved))[:k]
+    numerator = sum((2**relevance.get(id, 0)-1)/math.log2(index+2) for index, id in enumerate(unique))
     return numerator / denominator
+
+
+def ranking_report(data_dir: Path) -> dict:
+    """Expose frozen weak-policy agreement separately from independent accuracy."""
+    path = data_dir / "eval" / "ranking_results.json"
+    gold = data_dir / "eval" / "ranking_gold.jsonl"
+    if not path.is_file() or not gold.is_file():
+        return {"status": "not_measured", "ndcg_at_5": None, "human_labeled": False}
+    report = json.loads(path.read_text())
+    if report.get("gold_sha256") != hashlib.sha256(gold.read_bytes()).hexdigest():
+        return {"status": "gold_changed_recompute_required", "ndcg_at_5": None, "human_labeled": False}
+    for relative, expected in report.get("scorer_sha256", {}).items():
+        scorer = data_dir.parent / relative
+        if not scorer.is_file() or hashlib.sha256(scorer.read_bytes()).hexdigest() != expected:
+            return {"status": "scorer_changed_recompute_required", "ndcg_at_5": None, "human_labeled": False}
+    return {"status": "measured_against_frozen_weak_labels", **report}
 
 
 def classification(rows: list[tuple[bool, bool, float]], abstentions: int = 0):
@@ -233,5 +252,7 @@ def from_repository(repo, data_dir: Path) -> dict:
                 "SELECT id, COALESCE((payload->>'synthetic')::boolean, false) FROM claims")]
     else:
         claims = repo.all("claims")
-    return evaluate(repo.all("hotels"), facts, repo.all("characteristics"), labels, repo.all("questions"), claims)
+    result = evaluate(repo.all("hotels"), facts, repo.all("characteristics"), labels, repo.all("questions"), claims)
+    result["ranking_weak"] = ranking_report(data_dir)
+    return result
 

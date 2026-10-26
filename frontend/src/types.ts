@@ -104,6 +104,7 @@ export interface ParsedQuery {
   similar_to_name?: string | null;
   /** Recognised, but the demo region has no data, so they are not ranked. */
   no_data?: Criterion[];
+  no_data_must?: Criterion[];
 }
 export interface Verdict {
   characteristic_id: string;
@@ -129,6 +130,8 @@ export interface SearchHit {
   room_recommendation: string | null;
   disappointments: string[];
   summary: string;
+  why_not_higher?: string[];
+  similarity_reasons?: string[];
 }
 export interface SearchResult {
   parsed: ParsedQuery;
@@ -178,6 +181,12 @@ export interface HotelDetail {
   room_recommendation: string;
   disappointments: string[];
   geo: Geo;
+  evidence_deferred?: boolean;
+  geometry_deferred?: boolean;
+}
+export interface FactEvidence {
+  fact: Fact;
+  claims: Claim[];
 }
 export interface FieldUpdate {
   characteristic_id: string;
@@ -359,6 +368,14 @@ export interface Geo {
   hotel_id?: string;
   center?: [number, number];
   building?: GeoJSON.Feature;
+  nearby?: GeoJSON.FeatureCollection<GeoJSON.Point, {
+    kind: string;
+    name: string;
+    osm_id: string;
+    characteristic_id: string;
+    distance_m?: number | null;
+    source_ids?: string[];
+  }>;
   computed_at?: string;
   artifact?: string;
   floors?: { count?: number | null; modeled_count?: number };

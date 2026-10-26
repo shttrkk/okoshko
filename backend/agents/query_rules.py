@@ -127,16 +127,44 @@ def validate_query_plan(plan: ParsedQuery, baseline: ParsedQuery,
 
 
 def apply_region_coverage(parsed: ParsedQuery, coverage: dict[str, dict]) -> ParsedQuery:
-    """Move unsupported regional conditions out of ranking using authoritative data."""
-    missing = [c for c in [*parsed.must, *parsed.nice]
-               if coverage.get(c.characteristic_id, {}).get('status') == 'no_data']
-    if missing:
-        parsed.must = [c for c in parsed.must if c not in missing]
-        parsed.nice = [c for c in parsed.nice if c not in missing]
-        for criterion in missing:
-            if criterion not in parsed.no_data:
-                parsed.no_data.append(criterion)
-        labels = ', '.join(dict.fromkeys('«' + criterion.label + '»' for criterion in missing))
-        message = f'В демо-регионе нет данных: {labels}. Это условие не учитывается в выдаче.'
+    """Project coverage without forgetting hard conditions or edited chip priority."""
+    import json
+
+    def meaning(criterion):
+        data = criterion.model_dump(exclude={'label', 'weight'}, mode='json')
+        data['field'] = data['field'] or coverage.get(criterion.characteristic_id, {}).get('search_field')
+        return json.dumps(data, sort_keys=True, ensure_ascii=False)
+
+    previous = {meaning(c) for c in parsed.no_data}
+    hard = {meaning(c) for c in parsed.no_data_must} & previous
+    # Explicit chip groups take precedence over an old no_data marker. A marker
+    # whose chip was removed from no_data cannot resurrect the deleted condition.
+    groups = [(c, True) for c in parsed.must] + [(c, False) for c in parsed.nice]
+    explicit = {meaning(c) for c, _ in groups}
+    groups.extend((c, meaning(c) in hard) for c in parsed.no_data if meaning(c) not in explicit)
+    parsed.must, parsed.nice, parsed.no_data, parsed.no_data_must = [], [], [], []
+    seen = set()
+    for criterion, required in groups:
+        key = meaning(criterion)
+        if key in seen:
+            continue
+        seen.add(key)
+        row = coverage.get(criterion.characteristic_id, {})
+        field = criterion.field or row.get('search_field')
+        status = row.get('fields', {}).get(field, row).get('status')
+        if status == 'no_data' or status is None and key in previous:
+            parsed.no_data.append(criterion)
+            if required:
+                parsed.no_data_must.append(criterion)
+        else:
+            (parsed.must if required else parsed.nice).append(criterion)
+    parsed.clarifications = [c for c in parsed.clarifications if not c.startswith('В демо-регионе нет данных:')]
+    if parsed.must or parsed.nice or parsed.no_data_must:
+        parsed.clarifications = [c for c in parsed.clarifications if not c.startswith('Не нашли в запросе условий из каталога')]
+    if parsed.no_data:
+        labels = ', '.join(dict.fromkeys('«' + criterion.label + '»' for criterion in parsed.no_data))
+        conclusion = ('Полное совпадение нельзя подтвердить: нет данных по обязательным условиям.'
+                      if parsed.no_data_must else 'Эти желательные условия не учитываются в оценке.')
+        message = f'В демо-регионе нет данных: {labels}. {conclusion}'
         parsed.clarifications = list(dict.fromkeys([message, *parsed.clarifications]))[:2]
     return parsed

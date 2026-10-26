@@ -269,6 +269,7 @@ class ParsedQuery(Model):
     similar_to_name: str | None = None
     # Recognized conditions without any data in the demo region; not used for ranking.
     no_data: list[Criterion] = Field(default_factory=list)
+    no_data_must: list[Criterion] = Field(default_factory=list)
 
 
 class SearchRequest(Model):
@@ -343,6 +344,8 @@ class SearchHit(Model):
     room_recommendation: str | None = None
     disappointments: list[str] = Field(default_factory=list)
     summary: str = ""
+    why_not_higher: list[str] = Field(default_factory=list)
+    similarity_reasons: list[str] = Field(default_factory=list)
 
 
 class SearchResult(Model):
@@ -364,6 +367,13 @@ class HotelDetail(Model):
     room_recommendation: str = "Уточните сторону и этаж номера у отеля"
     disappointments: list[str] = Field(default_factory=list)
     geo: Json = Field(default_factory=dict)
+    evidence_deferred: bool = False
+    geometry_deferred: bool = False
+
+
+class FactEvidence(Model):
+    fact: Fact
+    claims: list[Claim] = Field(default_factory=list)
 
 
 class PassportItem(Model):

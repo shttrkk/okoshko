@@ -1,0 +1,51 @@
+id: accessible_route
+version: 1
+name_ru: Доступность маршрута до пляжа для коляски
+description: Явные OSM wheelchair-теги на сохранённом маршруте до пляжа и обратно.
+  Лестницы показаны отдельно. Неизвестные теги и непроверенные соединители входов
+  сохраняют unknown; отсутствие лестниц не доказывает доступность.
+category: Доступность
+synonyms:
+- маршрут для инвалидной коляски
+- доступный маршрут до пляжа
+- пляж на инвалидной коляске
+- доступность пути для коляски
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+    distance_m:
+      type:
+      - number
+      - 'null'
+    has_steps:
+      type:
+      - boolean
+      - 'null'
+    wheelchair_suitable:
+      type:
+      - boolean
+      - 'null'
+  additionalProperties: true
+methods:
+- tool: geo_trait
+  params:
+    kind: accessible_route
+  rationale: Явные OSM wheelchair-теги на сохранённом маршруте до пляжа и обратно.
+    Лестницы показаны отдельно. Неизвестные теги и непроверенные соединители входов
+    сохраняют unknown; отсутствие лестниц не доказывает доступность.
+ttl_days: 90
+change_triggers: []
+search:
+  kind: boolean
+  field: available
+  default_op: eq
+  default_value: true
+  explain_ok: Доступность всего маршрута для коляски подтверждена входными данными
+  explain_bad: На маршруте явно отмечено wheelchair=no
+hotelier_answerable: true
+status: active
