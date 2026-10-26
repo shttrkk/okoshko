@@ -22,6 +22,7 @@ import hashlib
 import itertools
 import json
 import math
+import re
 from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
@@ -274,8 +275,42 @@ def aggregate_cases(cases):
             "queries_without_positive_judgments": sum(not row["query_has_positive_judgments"] for row in cases),
             "ndcg_at_5": sum(measured)/len(measured) if measured else None,
             "top5_judged_share": sum(row["judged_top5"] for row in cases)/sum(row["top5_count"] for row in cases) if cases else None,
+            "top10_unique_normalized_names_mean": sum(row["top10_unique_normalized_names"] for row in cases)/len(cases) if cases else None,
+            "top10_unique_complexes_mean": sum(row["top10_unique_complexes"] for row in cases)/len(cases) if cases else None,
+            "top10_close_geo_pairs_200m_mean": sum(row["top10_close_geo_pairs_200m"] for row in cases)/len(cases) if cases else None,
             "ndcg_at_5_bounds": {"lower": sum(row["lower_bound"] for row in bounds)/len(bounds) if bounds else None,
                                   "upper": sum(row["upper_bound"] for row in bounds)/len(bounds) if bounds else None}}
+
+
+def normalized_name(name: str) -> str:
+    return re.sub(r"[\W_]+", "", name.casefold().replace("ё", "е"))
+
+
+def distance_m(left, right):
+    lat1, lat2 = math.radians(left.lat), math.radians(right.lat)
+    dlat, dlon = lat2-lat1, math.radians(right.lon-left.lon)
+    angle = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
+    return 6_371_000 * 2*math.asin(math.sqrt(min(1, angle)))
+
+
+def complex_ids(hotels):
+    """A conservative name+200m proxy, not verified real property boundaries.
+
+    Complete-link membership prevents a chain of adjacent same-name hotels
+    from merging geographically distant properties. Clusters are built once
+    in stable ID order, independently of retrieved rankings and relevance.
+    """
+    groups = defaultdict(list)
+    result = {}
+    for hotel in sorted(hotels, key=lambda row: row.id):
+        name = normalized_name(hotel.name)
+        cluster = next((items for items in groups[name] if all(distance_m(hotel, other) <= 200 for other in items)), None)
+        if cluster is None:
+            cluster = []
+            groups[name].append(cluster)
+        cluster.append(hotel)
+        result[hotel.id] = cluster[0].id
+    return result
 
 
 def evaluate_gold(path, split="all"):
@@ -291,6 +326,7 @@ def evaluate_gold(path, split="all"):
             return AS_OF if tz else AS_OF.replace(tzinfo=None)
 
     cases = []
+    complexes = complex_ids(hotels)
     with patch("backend.agents.query_match.datetime", Frozen):
         for row in rows:
             if split != "all" and row["split"] != split:
@@ -300,7 +336,13 @@ def evaluate_gold(path, split="all"):
             measurement = agreement_at_5(retrieved, row["judgments"])
             cases.append({"id": row["id"], "split": row["split"], "text": row["parsed"]["text"], **measurement,
                           "top5_ids": retrieved, "top5_grades": [row["judgments"][key]["grade"] for key in retrieved],
-                          "top5_unique_names": len({hit.hotel.name.casefold() for hit in hits[:5]})})
+                          "top5_unique_names": len({hit.hotel.name.casefold() for hit in hits[:5]}),
+                          "top10_ids": [hit.hotel.id for hit in hits[:10]],
+                          "top10_names": [hit.hotel.name for hit in hits[:10]],
+                          "top10_unique_normalized_names": len({normalized_name(hit.hotel.name) for hit in hits[:10]}),
+                          "top10_unique_complexes": len({complexes[hit.hotel.id] for hit in hits[:10]}),
+                          "top10_close_geo_pairs_200m": sum(distance_m(a.hotel, b.hotel) <= 200
+                                                           for a, b in itertools.combinations(hits[:10], 2))})
     return {"label_type": "evidence_derived_expert_rule_weak", "human_labeled": False,
             "metric_meaning": "nDCG@5 agreement with frozen expert-rule evidence labels, NOT human relevance or independent hotel accuracy",
             "split": split, **aggregate_cases(cases),
@@ -309,6 +351,10 @@ def evaluate_gold(path, split="all"):
             "scorer_sha256": {path: hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
                               for path in ["backend/agents/ranker.py", "backend/agents/query_match.py"]},
             "gold_sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "cases": cases,
+            "diversity_definition": "Top10 unique normalized names (casefold, ё→е, punctuation/space removed) and complete-link same-name geographic clusters of diameter <=200m; distant namesakes remain separate. This is a complex proxy, not verified property identity.",
+            "same_name_nearby_pairs_in_corpus": sum(normalized_name(a.name) == normalized_name(b.name) and distance_m(a, b) <= 200
+                                                     for a, b in itertools.combinations(hotels, 2)),
+            "diversity_limitation": "Differently named adjacent hotels can share a building or complex. Close-geo pair counts are reported separately; proximity alone is not verified common property identity.",
             "limitations": ["No human labels; source evidence and predictions share a model, so this measures policy agreement only.",
                             "Unknown/stale/disputed/low-confidence pairs are unjudged. Main nDCG excludes queries with any unjudged top5 item; judged share and loose bounds are reported separately.",
                             "The graded ideal is over judged candidates; unknown candidates could change the ideal. Bounds allow their grades to vary from 0 to 3.",
