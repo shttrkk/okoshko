@@ -153,4 +153,5 @@ def test_expiry_cannot_be_renewed_by_identical_local_geo_snapshot(tmp_path):
     assert result["processed"] == 1
     assert len(repo.all("claims")) == 1
     [fact] = [row for row in repo.find("facts", hotel_id="test-hotel") if row["characteristic_id"] == "sea_view"]
-    assert fact["status"] == "stale" and fact["valid_until"] == claim.valid_until.isoformat()
+    from backend.contracts import Fact
+    assert fact["status"] == "stale" and Fact.model_validate(fact).valid_until == claim.valid_until
