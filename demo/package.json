@@ -1,0 +1,21 @@
+{
+  "name": "okno-demo-recording",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "record": "tsx ../scripts/demo_video.ts",
+    "audit": "npm audit",
+    "check": "tsc -p tsconfig.json",
+    "preview": "tsx ../scripts/demo_video.ts --check"
+  },
+  "dependencies": {
+    "playwright": "1.56.1",
+    "tsx": "4.23.15"
+  },
+  "devDependencies": {
+    "@types/geojson": "7946.0.16",
+    "@types/node": "24.9.1",
+    "typescript": "5.8.3"
+  }
+}
