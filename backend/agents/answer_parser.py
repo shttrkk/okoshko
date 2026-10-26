@@ -27,6 +27,7 @@ HOTELIER_VALUE_FIELDS = {
     "sea_view": {"available", "facade", "min_floor"},
     "sunset_view": {"available", "facade", "min_floor"},
     "mountain_view": {"available", "facade", "min_floor"},
+    "beach_walk": {"available", "minutes", "distance_m", "has_steps"},
 }
 
 
@@ -333,6 +334,24 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
                 if low_floor and cid != "quiet_night":
                     value["min_floor"] = low_floor
                 add(cid, value, sentence, scope)
+
+        if "beach_walk" in question.characteristic_ids and re.search(r"пляж|мор[еяю]", low):
+            route = {}
+            minutes = re.search(r"(\d{1,3})\s*мин", low)
+            metres = re.search(r"(\d{2,5})\s*(?:м\b|метр)", low)
+            if minutes:
+                route["minutes"] = float(minutes[1])
+            if metres:
+                route["distance_m"] = float(metres[1])
+            if re.search(r"лестниц|ступен", low):
+                steps = _bool_feature(low, r"лестниц|ступен")
+                if steps is not None:
+                    route["has_steps"] = steps
+            if route and not re.search(UNCERTAIN, low):
+                route["available"] = True
+                add("beach_walk", route, sentence)
+            elif route:
+                unknown.add("beach_walk")
 
     represented = {update.characteristic_id for update in updates}
     unknown.update(set(question.characteristic_ids)-represented)

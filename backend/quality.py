@@ -158,6 +158,10 @@ def evaluate(hotels: list[dict], facts: list[dict], characteristics: list[dict],
                 prediction_facts = [fact for fact in facts if not fact.get("synthetic") and
                                     any(evidence.get("kind")=="calculation" for evidence in fact.get("evidence",[])) and
                                     not any(evidence.get("kind")=="quote" for evidence in fact.get("evidence",[]))]
+                # A calculation disputed only by the held-out quote is still the model's prediction;
+                # excluding it would turn every disagreement with the label into an abstention.
+                prediction_facts = [{**fact, "status": "computed"} if fact.get("status") == "disputed" else fact
+                                    for fact in prediction_facts]
             fact = pick_fact(prediction_facts, label["hotel_id"], label["characteristic_id"], scope)
             if label_type=="weak_website" and not scope and label["characteristic_id"] in {"sea_view","sunset_view","mountain_view"}:
                 candidates = [candidate for candidate in prediction_facts if candidate["hotel_id"]==label["hotel_id"] and

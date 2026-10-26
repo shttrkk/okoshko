@@ -90,3 +90,20 @@ def test_masha_and_air_quality_survive_until(now, shipped_claims, catalog, monke
     for claim in air:
         [fact] = [f for f in resolve_claims(claim.hotel_id, [claim], catalog, _sources(), at=now)[0] if f.characteristic_id == "air_quality"]
         assert fact.status == "computed", (claim.hotel_id, fact.status)
+
+
+def test_shipped_seed_materializes_real_source_contradictions(shipped_claims, catalog):
+    from backend.agents.resolver import CONTRADICTION_PREFIX
+    expected = {"osm-way-53301256": "sea_view", "osm-node-13825400642": "sea_view",
+                "osm-way-98649266": "beach_walk", "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7": "beach_walk"}
+    found = {}
+    for hotel_id in expected:
+        claims = [Claim.model_validate(row) for row in shipped_claims if row["hotel_id"] == hotel_id]
+        facts, conflicts = resolve_claims(hotel_id, claims, catalog, _sources())
+        for conflict in conflicts:
+            if conflict.id.startswith(CONTRADICTION_PREFIX):
+                found[hotel_id] = conflict.characteristic_id
+                assert conflict.resolution_note.startswith("Противоречие источников. Сайт отеля: «")
+                assert all(f.status == "disputed" for f in facts if f.characteristic_id == conflict.characteristic_id
+                           and set(f.supporting_claim_ids) & set(conflict.claim_ids))
+    assert found == expected

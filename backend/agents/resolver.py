@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections import defaultdict
 from datetime import UTC, datetime
 
@@ -11,6 +12,12 @@ from backend.contracts import CharacteristicSpec, Claim, Conflict, Fact, Scope
 INTERNAL = {"soundproofing", "room_orientation", "pets"}
 VIEWS = {"sea_view", "sunset_view", "mountain_view"}
 CATEGORIES = ("facade", "month", "room_type")
+# A hotel-wide "yes" contradicts the model only when every computed facade says
+# "no" with this confidence, and the model covers enough sides of the building.
+CONTRADICTION_CONFIDENCE = .6
+CONTRADICTION_MIN_FACADES = 3
+CONTRADICTION_PREFIX = "contradiction-"
+VIEW_LABELS = {"sea_view": ("вид на море", "море"), "sunset_view": ("закат из окна", "закат"), "mountain_view": ("вид на горы", "горы")}
 
 
 def stable_id(*parts) -> str:
@@ -136,6 +143,86 @@ def partition_claims(claims: list[Claim], *, at: datetime) -> dict[tuple[str, st
     return {key: group for key, group in grouped.items() if group}
 
 
+def _number(value: float) -> str:
+    return f"{value:.2f}".rstrip("0").rstrip(".").replace(".", ",")
+
+
+def view_contradictions(hotel_id: str, latest: list[Claim], at: datetime) -> list[tuple[str, list[Claim], list[Claim]]]:
+    """Hotel-wide website/hotelier 'yes' against an all-'no' facade model.
+
+    Returns (characteristic, general claims, computed claims). Once the hotel has
+    answered with its own claims for the view, the vote is no longer two-sided
+    marketing against geometry, and ordinary resolution applies.
+    """
+    found = []
+    for characteristic_id in sorted(VIEWS):
+        related = [claim for claim in latest if claim.characteristic_id == characteristic_id and claim.valid_until > at]
+        general = [claim for claim in related if existential_view(claim)
+                   and (claim.source == "hotel_website" or claim.source.startswith("hotelier"))]
+        if not general or any(claim.source.startswith("hotelier") and claim not in general for claim in related):
+            continue
+        computed = [claim for claim in related if claim.source == "geo_engine" and claim.scope.type in {"facade", "floor_range"}]
+        if len({claim.scope.facade for claim in computed}) < CONTRADICTION_MIN_FACADES:
+            continue
+        if all(isinstance(claim.value, dict) and claim.value.get("available") is False
+               and claim.confidence >= CONTRADICTION_CONFIDENCE for claim in computed):
+            found.append((characteristic_id, general, computed))
+    return found
+
+
+def _quoted_metres(claim: Claim) -> float | None:
+    quoted = claim.value.get("quoted_distance") if isinstance(claim.value, dict) else None
+    if isinstance(quoted, dict) and quoted.get("relation") in {"stated", "less_than"} and isinstance(quoted.get("meters"), int | float):
+        return float(quoted["meters"])
+    return None
+
+
+def route_contradictions(latest: list[Claim], at: datetime) -> list[tuple[str, list[Claim], list[Claim]]]:
+    """A quoted distance to the beach far shorter than the computed walking route.
+
+    Straight-line marketing distances are expected to be shorter than a real
+    route; only a gap of more than 2x and more than 300 m is treated as a
+    contradiction worth asking the hotel about.
+    """
+    related = [claim for claim in latest if claim.characteristic_id == "beach_walk" and claim.valid_until > at]
+    if any(claim.source.startswith("hotelier") for claim in related):
+        return []
+    quoted = [claim for claim in related if claim.source == "hotel_website" and _quoted_metres(claim) is not None]
+    routes = [claim for claim in related if claim.source == "geo_engine" and claim.confidence >= CONTRADICTION_CONFIDENCE
+              and isinstance(claim.value, dict) and isinstance(claim.value.get("distance_m"), int | float)]
+    found = []
+    for claim in quoted:
+        metres = _quoted_metres(claim)
+        against = [route for route in routes if route.value["distance_m"] > max(2*metres, metres + 300)]
+        if against and len(against) == len(routes):
+            found.append(("beach_walk", [claim], against))
+    return found
+
+
+def contradiction_note(characteristic_id: str, general: list[Claim], computed: list[Claim]) -> str:
+    if characteristic_id == "beach_walk":
+        quotes = [evidence.quote for claim in general for evidence in claim.evidence if evidence.quote]
+        route = max(computed, key=lambda claim: claim.confidence)
+        minutes = route.value.get("minutes")
+        walk = f"{round(route.value['distance_m'])} м" + (f", ≈ {math.ceil(minutes)} мин" if isinstance(minutes, int | float) else "")
+        return (f"Противоречие источников. Сайт отеля: «{quotes[0] if quotes else 'расстояние до пляжа'}» "
+                f"(уверенность {_number(max(c.confidence for c in general))}). Пешеходный маршрут по графу OSM с учётом рельефа: "
+                f"{walk} (уверенность {_number(route.confidence)}). Расхождение больше чем вдвое: сайт мог указать расстояние по прямой, "
+                "или в графе нет короткого прохода. Время пути не принято как подтверждённое; отельеру отправлен вопрос о реальном пешем пути.")
+    label, target = VIEW_LABELS[characteristic_id]
+    quotes = [evidence.quote for claim in general for evidence in claim.evidence if evidence.quote]
+    who = "Сайт отеля" if all(claim.source == "hotel_website" for claim in general) else "Отельер"
+    claimed = f"{who}: «{quotes[0]}»" if quotes else f"{who} заявляет {label}"
+    floors = [(claim.scope.floor_min, claim.scope.floor_max) for claim in computed if claim.scope.floor_min]
+    span = f"на этажах {min(low for low, _ in floors)}–{max(high or low for low, high in floors)}" if floors else "на рассчитанных этажах"
+    confidences = [claim.confidence for claim in computed]
+    return (f"Противоречие источников. {claimed} (уверенность {_number(max(c.confidence for c in general))}). "
+            f"Расчёт прямой видимости по рельефу и высотам зданий: {target} не видно ни с одного из "
+            f"{len({claim.scope.facade for claim in computed})} фасадов {span} (уверенность {_number(min(confidences))}–{_number(max(confidences))}). "
+            "Ни одна сторона не принята как подтверждённая: в поиске условие считается неподтверждённым, "
+            "отельеру отправлен вопрос, какие номера и с какого этажа его видят.")
+
+
 def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[CharacteristicSpec], sources: list[dict], *, at: datetime | None = None) -> tuple[list[Fact], list[Conflict]]:
     at = at or datetime.now(UTC)
     source_priors = {source["id"]: source.get("alpha", 7)/(source.get("alpha", 7)+source.get("beta", 3)) for source in sources}
@@ -231,8 +318,24 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
     for spec in specs:
         if spec.id not in represented:
             facts.append(Fact(id=stable_id("fact",hotel_id,spec.id,"hotel"), hotel_id=hotel_id, characteristic_id=spec.id))
+    contradicted = set()
+    for characteristic_id, general, computed in [*view_contradictions(hotel_id, list(latest.values()), at),
+                                                 *route_contradictions(list(latest.values()), at)]:
+        contradicted.add(characteristic_id)
+        general_ids, computed_ids = {claim.id for claim in general}, {claim.id for claim in computed}
+        for fact in facts:
+            supporting = set(fact.supporting_claim_ids)
+            if fact.characteristic_id == characteristic_id and supporting & (general_ids | computed_ids):
+                fact.status = "disputed"
+                opposite = computed_ids if supporting & general_ids else general_ids
+                fact.conflicting_claim_ids = sorted(set(fact.conflicting_claim_ids) | opposite)
+        ids = sorted(general_ids | computed_ids)
+        conflicts.append(Conflict(id=CONTRADICTION_PREFIX + stable_id("contradiction", hotel_id, characteristic_id, ids),
+                                  hotel_id=hotel_id, characteristic_id=characteristic_id, claim_ids=ids, kind="value", status="open",
+                                  synthetic=any(claim.synthetic for claim in [*general, *computed]),
+                                  resolution_note=contradiction_note(characteristic_id, general, computed)))
     # General statements and facade-specific observations coexist; they must not overwrite each other.
-    for characteristic_id in represented:
+    for characteristic_id in represented - contradicted:
         general = [claim for claim in latest.values() if claim.characteristic_id == characteristic_id and existential_view(claim) and claim.valid_until > at]
         specific = [claim for claim in latest.values() if claim.characteristic_id == characteristic_id and claim.scope.type != "hotel" and claim.valid_until > at]
         for broad in general:
@@ -293,7 +396,8 @@ def resolve_hotel(hotel_id: str, repo) -> list[Fact]:
         else:
             for payload in payloads:
                 repo.upsert("facts", payload)
-    reconcile_conflicts(repo, conflicts, {hotel_id})
+    from backend.agents.interviewer import ask_contradictions
+    reconcile_conflicts(repo, ask_contradictions(repo, conflicts), {hotel_id})
     return facts
 
 
@@ -314,6 +418,9 @@ def resolve_all(repo):
         repo.replace_materialized_facts([hotel["id"] for hotel in hotels], facts)
     else:
         repo.upsert_many("facts", facts)
-    reconcile_conflicts(repo, [Conflict.model_validate(conflict) for conflict in conflicts], {hotel["id"] for hotel in hotels})
-    return {"facts": len(facts), "conflicts": len(conflicts)}
+    from backend.agents.interviewer import ask_contradictions
+    typed = ask_contradictions(repo, [Conflict.model_validate(conflict) for conflict in conflicts])
+    reconcile_conflicts(repo, typed, {hotel["id"] for hotel in hotels})
+    return {"facts": len(facts), "conflicts": len(conflicts),
+            "contradictions": sum(conflict.id.startswith(CONTRADICTION_PREFIX) for conflict in typed)}
 

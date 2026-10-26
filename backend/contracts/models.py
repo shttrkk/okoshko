@@ -202,7 +202,7 @@ class Question(Model):
     hypothesis: str | None = None
     options: list[str] = Field(default_factory=lambda: ["Да", "Нет", "Частично", "Не знаю"])
     priority: float = 0
-    reason: Literal["unknown", "disputed", "low_confidence", "guest"] = "unknown"
+    reason: Literal["unknown", "disputed", "low_confidence", "guest", "conflict"] = "unknown"
     status: Literal["pending", "answered", "expired"] = "pending"
     evidence_refs: list[str] = Field(default_factory=list)
     demand_estimate: int = 0

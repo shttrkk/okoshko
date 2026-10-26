@@ -79,3 +79,39 @@ def generate_questions(hotel_id: str, repo) -> list[Question]:
             question = Question.model_validate(value)
             by_cid[question.characteristic_ids[0]] = question
     return sorted(by_cid.values(), key=lambda question: (-question.priority, question.id))
+
+
+def ask_contradictions(repo, conflicts: list) -> list:
+    """Ask the hotel about each detected source contradiction exactly once.
+
+    Returns the conflicts with ``status="asked"`` and the question reference. The
+    question quotes both sides; it never proposes which side is right.
+    """
+    from backend.agents.resolver import CONTRADICTION_PREFIX, VIEW_LABELS
+    updated = []
+    for conflict in conflicts:
+        if not conflict.id.startswith(CONTRADICTION_PREFIX) or conflict.status != "open":
+            updated.append(conflict)
+            continue
+        question_id = stable_id("question", conflict.hotel_id, conflict.characteristic_id, "conflict", conflict.id)
+        if repo.get("questions", question_id) is None:
+            label, target = VIEW_LABELS.get(conflict.characteristic_id, (conflict.characteristic_id, conflict.characteristic_id))
+            claims = [repo.get("claims", claim_id) for claim_id in conflict.claim_ids]
+            evidence_refs = [evidence["id"] for claim in claims if claim for evidence in claim.get("evidence", [])]
+            if conflict.characteristic_id == "beach_walk":
+                text = ("Источники расходятся: на сайте указано короткое расстояние до пляжа, а пешеходный маршрут по карте "
+                        "заметно длиннее. Есть ли более короткий пеший проход к пляжу? Сколько минут идти и есть ли на пути "
+                        "лестницы или переходы через дорогу?")
+            else:
+                text = (f"Источники расходятся: в открытом описании указан {label}, а наш расчёт видимости не находит его "
+                        "ни с одного рассчитанного фасада. Какие номера, с какой стороны и с какого этажа видят "
+                        f"{target}? Если таких номеров нет, напишите об этом.")
+            question = Question(id=question_id, hotel_id=conflict.hotel_id, characteristic_ids=[conflict.characteristic_id], text=text,
+                                hypothesis=conflict.resolution_note, priority=1000.0, reason="conflict",
+                                evidence_refs=evidence_refs, demand_estimate=0, demand_synthetic=False)
+            try:
+                repo.insert("questions", question.model_dump(mode="json"))
+            except UniqueViolation:
+                pass
+        updated.append(conflict.model_copy(update={"status": "asked", "question_id": question_id}))
+    return updated
