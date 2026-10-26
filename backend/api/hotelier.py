@@ -21,6 +21,8 @@ from backend.contracts import (
     Claim,
     Evidence,
     LoginRequest,
+    LoginResponse,
+    LogoutResponse,
     Question,
     Source,
     now,
@@ -54,7 +56,7 @@ def _get(repo, table: str, item_id: str, label: str):
     return value
 
 
-@router.post("/hotelier/login")
+@router.post("/hotelier/login", response_model=LoginResponse)
 def login(request: LoginRequest, response: Response):
     principal = authenticate(request.username, request.password)
     token = issue_token(principal)
@@ -67,7 +69,7 @@ def login(request: LoginRequest, response: Response):
             "role": principal.role, "hotel_ids": list(principal.hotel_ids)}
 
 
-@router.post("/hotelier/logout")
+@router.post("/hotelier/logout", response_model=LogoutResponse)
 def logout(response: Response):
     response.delete_cookie(SESSION_COOKIE, path="/api/runs", httponly=True, samesite="strict")
     response.headers["Cache-Control"] = "no-store"

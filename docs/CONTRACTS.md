@@ -127,10 +127,11 @@ S2 публичный runtime вход: `geo.service.compute_hotel(hotel: dict, 
 | GET | /api/hotels/{id} | HotelDetail |
 | GET | /api/hotels/{id}/geo | geo JSON из раздела 6 |
 | GET | /api/compare?ids=a,b,c | `{hotels:HotelDetail[],characteristics:CharacteristicSpec[]}` |
-| POST | /api/hotelier/login | `{username,password}` → `{token,username,synthetic:true}` |
+| POST | /api/hotelier/login | `{username,password}` → `{token,username,role,hotel_ids,synthetic:true}` |
+| POST | /api/hotelier/logout | → `{logged_out:true,synthetic:true}`, удаление read-only SSE cookie |
 | GET | /api/hotelier/{id} | `{hotel,facts,claims,questions,conflicts,passports,strengths,demand_synthetic:true}` |
 | POST | /api/questions | `{hotel_id,characteristic_id}` → Question (идемпотентно для pending пары) |
-| POST | /api/questions/{id}/answer | `{text,confirm:false,synthetic:false}` → Answer; предпросмотр, без claims до confirm |
+| POST | /api/questions/{id}/answer | `{text,confirm:false,synthetic}` (demo server принудительно synthetic=true) → Answer; предпросмотр, без claims до confirm |
 | POST | /api/questions/{id}/simulate | → Answer с synthetic=true, без сохранения claims до confirm |
 | POST | /api/answers/{id}/confirm | → Answer с confirmed=true и created_claim_ids; повтор не дублирует |
 | POST | /api/passports | PassportCreate → ExpectationPassport |
@@ -154,7 +155,7 @@ S2 публичный runtime вход: `geo.service.compute_hotel(hotel: dict, 
 | GET | /api/quality/label | `{hotel,facts,evidence_links,existing_labels}[]` |
 | POST | /api/quality/label | LabelRequest → сохранённая метка с id |
 
-Демо login защищает мутации кабинета `Authorization: Bearer <token>`; это демонстрационные локальные учётные данные, не production IAM. Публичные паспорт/поиск доступны без входа. API студии/симуляций явно demo-only.
+Демо login возвращает signed bearer с role/hotel_ids и HttpOnly SameSite=Strict cookie Path=/api/runs для EventSource. Кабинет, ответы, список паспортов и изменения требуют Bearer; tenant видит только свой hotel_id. Demo admin может запускать changes simulate/refresh. Public changes удаляет private notification IDs, оставляя aggregate notification_count. Private interview runs доступны только своему tenant/admin, публичные search/collect traces остаются открыты. Logout удаляет SSE cookie; restart отзывает локальные demo sessions. Это демонстрационные credentials, не production IAM. Гостевой GET паспорта по UUID остаётся capability; expiry/revocation не реализованы. Все ответы demo principals synthetic независимо от запроса. Студия — публичный demo-only sandbox с whitelist tools, без shell/произвольной сети.
 
 ## 6. Geo JSON для фронта
 
@@ -187,3 +188,5 @@ S2 публичный runtime вход: `geo.service.compute_hotel(hotel: dict, 
 
 - `data/seed/demo_hotelier_dialogues.json`: synthetic/version1 envelope содержит typed questions/answers/claims/agent_runs/agent_steps;7 confirmed synthetic answers +2 pending. Loader проверяетrefs/flags/источник/отели иinsert-only, не сбрасывает уже отвеченные вопросы. Fact остаётсяcomputed/synthetic; статусреальногоподтверждениянеприсваивается.
 - Для parking/family числовое наблюдение можетбытьcomputed при available=null. Это знание конкретного расстояния, не утверждение о въезде/услуге. Сравнение available продолжаетunknown.
+
+- `GET /api/quality` дополнительно возвращает filter_baseline (версионированный модельный отчёт) и provenance актуальной БД: known/non_synthetic/synthetic/mixed/unknown_stale_disputed, unit=materialized_facts. Mixed — подмножество synthetic; это не доля отелей и не полевая точность.

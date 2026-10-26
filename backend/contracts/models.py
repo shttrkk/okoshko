@@ -494,6 +494,19 @@ class LoginRequest(Model):
     password: str
 
 
+class LoginResponse(Model):
+    token: str
+    username: str
+    synthetic: Literal[True] = True
+    role: Literal["demo_admin", "hotelier"]
+    hotel_ids: list[str] = Field(default_factory=list)
+
+
+class LogoutResponse(Model):
+    logged_out: Literal[True] = True
+    synthetic: Literal[True] = True
+
+
 class LabelRequest(Model):
     hotel_id: str
     characteristic_id: str

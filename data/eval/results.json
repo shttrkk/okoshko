@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-26T15:33:25.476618+00:00",
+  "generated_at": "2026-10-26T17:15:29.584131+00:00",
   "hotel_count": 250,
   "characteristic_count": 16,
   "fact_count": 25884,
@@ -131,11 +131,21 @@
   },
   "parser_accuracy": null,
   "ndcg_at_5": null,
+  "provenance": {
+    "unit": "materialized_facts",
+    "known": 23744,
+    "non_synthetic": 23734,
+    "synthetic": 10,
+    "mixed": 3,
+    "unknown_stale_disputed": 2140,
+    "synthetic_share": 0.0004211590296495957
+  },
   "status": "measured",
   "limitations": [
     "Слабые метки с сайтов могут описывать только часть номеров; scope проверяется отдельно.",
     "Monte Carlo характеризует устойчивость модели, а не точность на независимой разметке.",
-    "Отсутствующие метрики показаны как не измеренные, а не как ноль."
+    "Отсутствующие метрики показаны как не измеренные, а не как ноль.",
+    "Доли происхождения считают materialized facts, включая отдельные фасады/месяцы; это не доля отелей и не независимая точность. Mixed входит в synthetic; неизвестные, пустые, устаревшие и спорные значения исключены из знаменателя."
   ],
   "methodology_url": "/data/eval/README.md",
   "inputs": "Versioned seed ledgers; runtime-only POI and manual actions are evaluated separately by /api/quality"

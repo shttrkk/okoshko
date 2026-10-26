@@ -1,5 +1,6 @@
 -r backend/requirements.in
 pytest==9.1.1
+pytest-cov==7.1.0
 ruff==0.11.9
 pip-tools==7.6.2
 

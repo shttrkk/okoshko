@@ -1,111 +1,77 @@
 # Статус О!кно
 
-Обновлено: 26.10.2026 18:22 МСК. Интегрированы API, поиск, кабинет, SPA и финальные 20 340 гео-claims. Пересборка стенда и demo-check — текущая P0. `[x]` означает проверено, не обещано.
+Обновлено: 26.10.2026 20:16 МСК. Интегрированы scoped demo auth, защита LLM и Quality baseline. Python: 365 tests + 125 subtests PASS; frontend lint/build PASS. Следующий P0 — повтор чистого запуска без `.env`.
+
+`[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
 ## Контрольные точки
 
-- Ф0 завершена: контракты, миграции, Docker-каркас проверены. Текущая волна: сквозная интеграция и приёмка REVIEW 003.
-- 27.10 12:00: сквозной сценарий Маши на данных Сочи.
-- 28.10 18:00: feature freeze.
-- 29.10 до 10:00: последний main + удалённый тег submission.
+- Сквозной сценарий уже записан: 11 реальных UI-сцен, 178,9 с, отчёт `docs/checks/demo_video_20261026.json`.
+- 27.10 12:00 — повторная контрольная точка; 28.10 18:00 — feature freeze; 29.10 10:00 — дедлайн удалённого submission.
+- Текущая волна: REVIEW005, P0 → P1 → P2. Все push выполняет владелец. История не переписывается.
 
 ## Проверки
 
 | ID | Статус | Требование | Проверено / следующий шаг |
 |---|---|---|---|
-| A1 | [x] | Прототип агентной системы, которая собирает уникальные характеристики отелей **и номеров** (CASE: Формулировка) | 250 отелей; фасады/этажи в 20 340 geo claims; S7 проверил provenance и 250/250 артефактов. Runtime после rebuild. |
-| A2 | [ ] | Источники — открытые данные (OSM, карты высот, публичные датасеты и API) **и отельеры** | Минимум 6 разных открытых источников реально использованы в данных демо; у каждого значения указан источник |
+| A1 | [x] | Прототип агентной системы, которая собирает уникальные характеристики отелей **и номеров** (CASE: Формулировка) | 250 отелей, 20 340 гео-claims с фасадами и этажами; 250/250 geo-артефактов валидны. Чистый клон 3e3cc92: API и браузер PASS. |
+| A2 | [x] | Источники — открытые данные (OSM, карты высот, публичные датасеты и API) **и отельеры** | OSM, Overture, Copernicus, Open-Meteo, Commons, Wikidata и другие реально использованные источники в /sources. Петля отельера явно синтетическая: 7 завершённых диалогов в сиде, 2 pending. |
 | A3 | [x] | Систематизировать, хранить и показывать пользователю | PostgreSQL JSONB, типизированные API; browser S6: поиск, карточка, evidence, compare, cabinet PASS. |
-| A4 | [x] | Список отелей, данные, инструменты агентов, логику, интерфейс собираем сами | pipeline/run.py и manifests; финальный набор 175 A + 75 B из OSM/Overture. Повторный полный pipeline ещё проверяется. |
+| A4 | [x] | Список отелей, данные, инструменты агентов, логику, интерфейс собираем сами | pipeline/rebuild.py: источники → DEM/DSM → geo → seed; Docker pipeline, hashed lock. Сочи 175 A + 75 B; второй регион изолирован. |
 | A5 | [x] | «Агент, который просит LLM угадать — не решение». Нужно знать: откуда агент берёт значение, насколько уверен, как проверить, когда устареет | Claim validation + NOT NULL/checks + immutable trigger; rollback SQL-тест и S7 audit всех geo/open/website claims PASS. |
-| A6 | [] | Один регион, проработанный глубоко | 250 реальных отелей Сочи, данные неоднородны; неизвестные внутренние свойства честно сохранены. Полный набор не заявлен. |
-| A7 | [ ] | Запуск по README без многочасовой загрузки; демо-данные заранее собраны и лежат в репо | `docker compose up --build` поднимает всё с уже посчитанными данными; пересчёт — отдельная опциональная команда |
+| A6 | [x] | Один регион, проработанный глубоко | Сочи/Адлер, 250 реальных объектов, region YAML и bbox в UI. Неизвестные значения сохранены; близость к морю не подменяет вид из окна. |
+| A7 | [x] | Запуск по README без многочасовой загрузки; демо-данные заранее собраны и лежат в репо | Первый clean clone с пустым build cache: 139,49 с до health, smoke/demo-check/browser PASS. Повтор без .env и с Docker-only PATH готовится. |
 | A8 | [x] | Если нужен ключ LLM — описать в README и приложить `.env.example` | .env.example LLM_MODE=offline; unit test запрещает сеть без ключа; live provider опционален. |
 | B1 | [x] | **Сбор характеристик**: агент сам решает, какие источники и инструменты нужны для конкретной характеристики, и получает значение | Tool Registry + Planner/Executor; S6 browser /agent: running→33 durable SSE steps→completed. |
-| B1.1 | [x] | Хотя бы одна характеристика вычисляется по геоданным, а не находится в тексте | 16 geo known-answer tests PASS; DSM/LOS/solar/noise/routes в final 2379c02, импорт 2abfd36. Новый стенд ещё проверяется. |
-| B2 | [x] | **Диалог с отельером**: если данных не хватает, агент задаёт вопрос, принимает ответ в свободной форме и раскладывает по полям; отельера можно имитировать | S4 simulator preview→confirm, idempotence; browser S6 PASS. Дополнительные parser/security fixes в интеграции. |
+| B1.1 | [x] | Хотя бы одна характеристика вычисляется по геоданным, а не находится в тексте | DSM/LOS, солнце, приближённый наружный шум, пешие маршруты. Known-answer unit tests и воспроизводимые evidence/input SHA; расчёт не является измерением из номера. |
+| B2 | [x] | **Диалог с отельером**: если данных не хватает, агент задаёт вопрос, принимает ответ в свободной форме и раскладывает по полям; отельера можно имитировать | Preview → дословные цитаты → confirm → immutable claims. 7 завершённых synthetic seed-диалогов; tenant isolation и запрет LLM authority fields проверены тестами. |
 | B3 | [x] | **Хранение и достоверность**: у каждого значения есть источник, уверенность и дата получения | Typed provenance + SQL constraints; evidence UI проверен S6. Эмпирическая калибровка пока недоступна. |
-| B3.1 | [ ] | Если источники противоречат друг другу, система это замечает и разбирается | Детектор конфликтов + стратегия разрешения (веса источников, перепроверка, вопрос отельеру); в демо есть минимум 3 реальных конфликта, показанных в UI с объяснением решения |
-| B4 | [ ] | **Расширяемость**: новую характеристику можно добавить без переписывания системы, например описав её текстом | Новая характеристика добавляется файлом-описанием (YAML/MD) или формой в UI; агент сам подбирает инструменты и считает её; в демо показано добавление новой характеристики вживую |
-| B5 | [] | **Поиск по запросу**: пользователь своими словами описывает, что ему важно («тихий номер с видом на закат недалеко от моря»), получает подходящие отели | 70 unit tests, 32 synthetic persona queries PASS; гео в main, но acceptance Маши/5 персон на свежем стенде ещё не PASS. |
+| B3.1 | [~] | Если источники противоречат друг другу, система это замечает и разбирается | Resolver обнаруживает противоречия и пересечения scope, создаёт вопрос и делит диапазоны. 109 реальных scope qualifications; 3 независимых реальных value-conflict типа не подтверждены. OSM-height vs DSM на тех же OSM входах не выдаём за независимую проверку. |
+| B4 | [x] | **Расширяемость**: новую характеристику можно добавить без переписывания системы, например описав её текстом | В записанном UI: «искупаться до завтрака» → compile/dry-run/publish → 250/250 backfill → новый поисковый чип. 251 durable steps, run 08508096-70a5-46aa-93ff-f048f60b6436. |
+| B5 | [x] | **Поиск по запросу**: пользователь своими словами описывает, что ему важно («тихий номер с видом на закат недалеко от моря»), получает подходящие отели | make demo-check: Маша ≥3 all с выполненными must/confidence≥0,6, 5 персон и негативные guards. В свежем клоне PASS; три ответа о тишине явно synthetic, реальная noise confidence=0,38. |
 | C1 | [x] | **Объяснение выбора**: почему подходит и в чём не дотягивает («вид на закат есть, но только с 5-го этажа») | Scope-compatible verdicts и evidence refs; tests + browser evidence PASS, confidence не повышаем искусственно. |
-| C2 | [x] | **Сравнение** нескольких отелей или номеров по собранным характеристикам | Compare 2–4; browser 3 hotels PASS. API теперь принимает edited ParsedQuery, повторный browser после rebuild. |
-| C3 | [x] | **Кабинет отельера**: видит, что система узнала; подтверждает/исправляет; отвечает на вопросы агента | hotelier/hotelier123; auth401, preview без claims, confirm с quotes, idempotence API/browser PASS. |
-| C4 | [ ] | **Актуализация**: повторная проверка устаревших данных; реакция на изменения (рядом построили дом — закрыли вид) | Планировщик перепроверки по valid_until; сценарий «новое здание» (симуляция изменения OSM/DSM) пересчитывает вид и показывает было/стало |
-| C5 | [] | **Метрики качества**: своя размеченная выборка; точность характеристик, покрытие, доля вопросов к отельеру | 20 слабых website labels; manual=0, field accuracy/nDCG не заявлены. /quality раздельно показывает synthetic parser suite. |
-| D1 | [ ] | Путешественник: быстро найти отель, чтобы на месте всё оказалось так, как хотел | Путь «запрос → выдача с объяснениями → карточка с доказательствами» укладывается в секунды |
-| D2 | [ ] | Островок: знать больше, чем в карточках → точнее подбор, рост конверсии, меньше отмен | Дашборд: сколько новых характеристик, покрытие, уверенность; аргументация в README/презентации |
-| D3 | [ ] | Отельер: сильные стороны видны нужным гостям; отвечать на вопрос один раз | Кабинет показывает, по каким запросам отель находится; ответ отельера переиспользуется для всех гостей |
-| E1 | [ ] | Код только в одном репозитории команды в org `ostrovok-hackathon-2026` | remote указывает на репозиторий команды |
+| C2 | [x] | **Сравнение** нескольких отелей или номеров по собранным характеристикам | Сравнение 2–4 отелей; GET/POST API и UI. Edited ParsedQuery сохраняет must/nice, пороги, flags, месяц и даты. |
+| C3 | [x] | **Кабинет отельера**: видит, что система узнала; подтверждает/исправляет; отвечает на вопросы агента | Signed demo principals: admin и два tenant-аккаунта. Свой отель, quotes/confirm/idempotence; чужой кабинет/паспорт/private trace →403. Совместный live browser smoke новой auth-сборки ожидается. |
+| C4 | [x] | **Актуализация**: повторная проверка устаревших данных; реакция на изменения (рядом построили дом — закрыли вид) | FreshnessWatcher и restart recovery; неизменные input SHA не продлевают TTL. На видео: synthetic новый дом → настоящий cached LOS пересчёт → было/стало → 5 уведомлений паспортам. |
+| C5 | [~] | **Метрики качества**: своя размеченная выборка; точность характеристик, покрытие, доля вопросов к отельеру | 40 слабых website-меток на 40 объектах, 4 частичных parking labels. Manual=0; conditional weak accuracy=0,8 на 15 оценённых/21 abstention, не полевая точность. nDCG пока не измерен. /quality отдельно показывает synthetic parser suite, model baseline и provenance. |
+| D1 | [x] | Путешественник: быстро найти отель, чтобы на месте всё оказалось так, как хотел | Запрос → критерии → выдача → evidence/карта → предварительный паспорт без выдуманных дат; реальный браузерный скринкаст 178,9 с. Поиск обычно 0,9–1,4 с, formal p95 не заявлен. |
+| D2 | [~] | Островок: знать больше, чем в карточках → точнее подбор, рост конверсии, меньше отмен | Бизнес-сравнение воспроизводимо: радиус ≤500 м даёт 132 объекта; 60 поддержанных моделью compatible море+закат, из них 20 вне радиуса (4 предварительных). Влияние на конверсию/отмены не измерено. |
+| D3 | [x] | Отельер: сильные стороны видны нужным гостям; отвечать на вопрос один раз | Кабинет показывает сильные стороны, вопросы и паспорта; confirmed answer переиспользуется Resolver для всех гостей. Индикатор спроса и ответы demo-аккаунтов synthetic. |
+| E1 | [ ] | Код только в одном репозитории команды в org `ostrovok-hackathon-2026` | URL организации владелец пришлёт после готовности. Текущий origin личный; root его не меняет и не пушит. |
 | E2 | [x] | Обязательные файлы: `README.md`, `docker-compose.yml` (в корне), `Dockerfile`(ы), `.env.example` | Файлы есть; `docker compose config` и успешная сборка. |
-| E3 | [ ] | Тег `submission` на последнем коммите основной ветки в дедлайн | Поставлен и запушен |
+| E3 | [ ] | Тег `submission` на последнем коммите основной ветки в дедлайн | Локальный submission tag ставится на финальный проверенный main; удалённый push делает только владелец. Пока тег не объявлен сданным. |
 | E4 | [x] | Нет приватных зависимостей/реестров | `npm ci`, pip --require-hashes из публичных реестров прошли. |
-| E5 | [ ] | Демо-видео (скринкаст) на общедоступном хостинге, открывается в инкогнито | Ссылка в README, проверена в инкогнито |
-| E6 | [ ] | README по шаблону: описание, ссылка на видео, быстрый старт от `git clone` до `localhost:8080`, ресурсы, зависимости, переменные окружения с дефолтами, сидирование, маршруты (`/`, `/health`), тестовые учётные данные | Все разделы шаблона присутствуют |
+| E5 | [~] | Демо-видео (скринкаст) на общедоступном хостинге, открывается в инкогнито | Локальный demo/okno-demo.mp4: 178,9 с, 1920×1080, 10 205 367 B; 11 сцен, 0 browser/errors/external requests. Публичную ссылку/проверку доступа добавим после получения от владельца. |
+| E6 | [~] | README по шаблону: описание, ссылка на видео, быстрый старт от `git clone` до `localhost:8080`, ресурсы, зависимости, переменные окружения с дефолтами, сидирование, маршруты (`/`, `/health`), тестовые учётные данные | Разделы README, быстрый запуск, ресурсы, env, сидирование, маршруты, demo credentials и reuse API добавлены. Ссылки repo/video намеренно плейсхолдеры. |
 | E7 | [x] | Всё в Docker; приложение слушает 8080 внутри; проброс `8080:8080` | Compose запущен; `/health` доступен на localhost:8080. |
-| E8 | [x] | Multi-stage build, лёгкий образ, без dev-инструментов в рантайме | 3 стадии Dockerfile, Node и компилятор не копируются в runtime; docker image inspect Ф0: 155558600 байт. |
+| E8 | [x] | Multi-stage build, лёгкий образ, без dev-инструментов в рантайме | Multi-stage Docker; runtime image 315 513 186 B (~301 MiB) до последней auth/quality пересборки. Node/компиляторов в runtime нет. |
 | E9 | [x] | Процесс под непривилегированным пользователем | `docker compose exec -T app id`: uid=10001(app), gid=10001. |
-| E10 | [ ] | Секреты в `.env`/secrets, реальные секреты не закоммичены | Проверено поиском по истории git |
+| E10 | [x] | Секреты в `.env`/secrets, реальные секреты не закоммичены | scripts/audit_repository.py --history: 0 secret candidates, 0 tracked env/raw/video, 0 tracked files>50 MB. Это эвристический scan, не универсальный DLP. |
 | E11 | [x] | `/health` в приложении + healthcheck в Compose; `depends_on` с `condition: service_healthy` | app и db healthy; depends_on service_healthy; `/health` 200. |
 | E12 | [x] | `platform: linux/amd64` (собираем на Apple Silicon) | `docker image inspect`: amd64; platform у обоих сервисов. |
-| E13 | [ ] | Запуск: `docker compose up --build` без аргументов; без ручных доустановок | Проверено на чистом клоне |
-| E14 | [ ] | Развёртывание ≤10 минут на современном ноутбуке | Замерено на чистом клоне с пустым кэшем Docker; время записано в README |
+| E13 | [x] | Запуск: `docker compose up --build` без аргументов; без ручных доустановок | Первый clean clone exact docker compose up --build PASS. Уточнённый REVIEW005 gate: без .env, Docker-only PATH и уникальные пустые volumes — следующий прогон. |
+| E14 | [x] | Развёртывание ≤10 минут на современном ноутбуке | 139,49 с до /health с пустым build cache; весь smoke/demo-check/browser прогон 212,29 с. Отчёты docs/checks/clean_clone_20261026*.json. |
 | E15 | [x] | Версии базовых образов и зависимостей зафиксированы (не `latest`) | Закреплённые образы; package-lock + requirements.lock c хэшами; greenlet закреплён для amd64. |
 | E16 | [x] | Логи в stdout/stderr; `docker compose logs app` показывает причины отказа | `docker compose logs app`: миграция, статус LLM, uvicorn в stdout. |
-| E17 | [x] | Сидирование/миграции автоматически на старте (или 1–2 команды в README) | boot.py: Alembic→COPY seed→resolve; финальные geo JSONL включены в автоматический loader. Полная приёмка после rebuild. |
-| E18 | [ ] | Большие артефакты/модели не в гите; LLM через OpenAI-совместимое API | Да; размер репо разумный (демо-данные сжаты) |
+| E17 | [x] | Сидирование/миграции автоматически на старте (или 1–2 команды в README) | Seed в репозитории, COPY/bootstrap автоматически. Свежая БД startup 46 с; нет сетевых вызовов в boot. Seed-dialogue refs защищены regression-тестом. |
+| E18 | [x] | Большие артефакты/модели не в гите; LLM через OpenAI-совместимое API | Сырые PBF/DEM и видео ignored; GeoJSON gzip, NPZ lossless LZMA. Самый большой текущий tracked file 19 964 021 B; полная история сохранена, soft pack target 150 MB не достигнут. |
 | E19 | [x] | POSIX-совместимые команды в рантайме контейнера (не bash-специфика) | CMD python; RUN стандартный sh, bash в runtime не используется. |
-| E20 | [] | Рекомендуется: Makefile (`make up/down/seed`), `docker-compose.override.yml`, CI (docker build + линтер), ссылка на развёрнутый сервис | Makefile, override, workflow_dispatch есть; make check/audit расширяются, внешнего хостинга пока нет. |
+| E20 | [~] | Рекомендуется: Makefile (`make up/down/seed`), `docker-compose.override.yml`, CI (docker build + линтер), ссылка на развёрнутый сервис | Makefile, dev override, CI только workflow_dispatch, make check/audit/demo-check. Внешний хостинг не настроен и не требуется для локального старта. |
 
-## Риски и зависимости
+## Текущие проверки и ограничения
 
-- URL репозитория и push-права ожидаются от владельца. Пока только локальный main.
-- Ключ LLM опционален. Offline — обязательный основной сценарий.
-- Регион REVIEW001 принят: 2 зоны; pipeline/regions/sochi.yaml, 175 A + 75 B.
-- Реальные выгрузки и geo provenance проверены; ручная ground truth, видео, чистый clone/build и acceptance остаются открытыми.
-- REVIEW001/002/003 приняты; P0 свежего стенда и 4 S7 P1 в текущей волне.
+- `make audit`: 4 Python locks + 3 npm scopes, 0 advisories/scanner errors; после добавления coverage будет повторён.
+- `scripts/audit_repository.py --history`: 12/12 release guards PASS, полная история сохранена.
+- `pytest`: 365 passed + 125 subtests; `ruff`, frontend lint/build PASS после integration 3293368.
+- Security: schema whitelist, no shell/network tools from text, exact secret echo filter, signed tenant scope, SSE cookie и logout. Production SSO, capability revocation и универсальная DLP не заявлены; см. SECURITY.md.
+- Второй регион: изолированный Геленджик, 30 объектов, 2 376 geo + 418 open claims; тайминги/ресурсы оформляются, основной seed Сочи не изменялся.
+- Требуется повтор clean clone: без .env, новый project/пустые volumes, Docker-only PATH, prune, smoke/demo-check/browser. Предыдущий прогон был с .env.example→.env.
+- pytest-cov и make demo-voice интегрированы; 85% line coverage без кода тестов. README provenance обновляется. Голос и публичные URL предоставляет владелец позже; плейсхолдеры сохраняются.
+- Перед финальной упаковкой рабочие reviews/Telegram/blueprint будут убраны из tracked tree с сохранением полной git-истории. Сейчас канал ревью остаётся доступным.
+- Ручная разметка отсутствует; nDCG и полевая точность не придуманы. Реальный независимый третий тип конфликта высот не подтверждён.
 
-## Журнал проверок
+## Последние интеграции
 
-- 26.10 15:00 `date`: старт подтверждён, Europe/Moscow.
-- 26.10 Docker Desktop запущен; `docker info`: 29.4.0, Compose v5.1.1.
-- Контракты и SQL миграция написаны, runtime health проверяется сборкой.
-- 26.10 15:12 `docker compose up --build -d`: app + PostGIS amd64 запущены; миграция 0001 выполнена.
-- 26.10 `make smoke`: health/status PASS; `pytest`: 4 passed; `ruff`: All checks passed.
-- Ф0 API функциональных маршрутов пока честно возвращает 501, а не выдаёт фикстуры за данные.
-
-- 26.10 15:20 PostgreSQL: в rollback-транзакции проверены запрет UPDATE claims и отказ INSERT без provenance, тестовые строки не сохранены.
-- 26.10 LLM transport: 7 unit tests суммарно; offline запрещает сеть, mock provider проверяет structured cascade и fallback при HTTP 503. Реальный провайдер пока не настроен.
-- Первая волна: S1 скачал Geofabrik 2026-10-25, Overture 264 исходных lodging records и Copernicus tiles; сбор и проверка ещё идут.
-
-- 26.10 15:22 внешний P1 REVIEW_001_region прочитан и принят; точные bbox A/B переданы всем активным потокам. Исполнение/финальный manifest ещё проверяются.
-
-- 26.10 REVIEW002 принят: Actions только workflow_dispatch; make check/audit и README блоки добавлены. Первый audit выявил Starlette и MapLibre/React Router advisories; исправления внесены, повтор проверяется.
-- 26.10 S6 первый UI commit aa3a346 интегрирован:12 маршрутов, build/lint PASS у потока, npm production audit0 у потока. Backend функциональные маршруты ещё интегрируются.
-- 26.10 S2 core интегрирован,23 теста суммарно PASS. P1 гео-исправления и backfill250 ещё в работе.
-
-- 26.10 15:41 повторный make audit PASS: Python0, npm production0, scanner_errors=false; docs/audits/*.json. Новые Python версии прошли23 tests.
-
-- 26.10 16:54 интеграция: 2abfd36 final geo data; fbf997d schema retrieval forbidden + parsed-query API (20 tests PASS); frontend worker/map/evidence интегрированы. Пересборка и demo-check ещё не PASS.
-
-- 26.10 17:00 интегрированы S4 parser/паспорт/SSRF fixes (141 targeted tests у S4) и S6 default month/disputed badges (build/lint/browser month12 PASS). Независимый retest и новый Docker image ещё в работе.
-
-- 26.10 17:04 свежий Docker: SQL geo_engine=20 340, osm_geofabrik=750; Masha HTTP1.20s, latency1118ms. Гео есть у всех250. Runtime startup пока201s (>цели120s): batch COPY materialization в исправлении. SQL facts: computed24 160, unknown3 671, disputed0;75 scope qualifications auto_resolved. make audit5наборов0, pip check PASS (2bddbff).
-
-- 26.10 17:08 compact697b15a: GeoJSON58 264 156→7 272 848bytes, дублиCSV−7 815 034bytes. Geo21tests, pipeline.validate, strict compute_validate250/20 340 PASS у потока. Все250 geoJSON snapshots и6 logicalinputhash побайтно прежние; cached change0.46s. Интегрирован gzip HTTP/helper; общий retest ниже.
-
-- 26.10 17:14 main2b82451: full pytest190passed+115subtests, ruff PASS; fresh startup16.5s послеbatchCOPY. Masha3all/1.38s, synthetic markers провереныS6. S7 c504697:4/4P1closed,128tests+104subtests, SSRF18reject/network0, живойPOI2collect PASS. Acceptance покаFAIL: одиночныйзамер2.85s истарыеобщиеfacts вdevDB; исправляетсяатомарнаязаменаматериализации. GeoJSON178.37MiBpack послеgc >150, делаемсверкуreachablemain иархив старыхветок.
-
-- 26.10 17:23 a64453e: materialization удаляет obsolete facts атомарно;6 дополнительныхofflineglyphfiles сохранены. c17821d: demo-check13negative boundarytests PASS; Makefile smoke теперь вызываетприёмку и сохраняетпаспортссинтетическимгостем. Search compact snapshot прогреваетсянастарте иобновляетсясразу послеAPI mutations (singleprocess). Frontend4a3ed86 интегрирован; browserrecordingвработе.
-
-- 26.10 17:28 свежаяизолированнаяБД обнаружила750SQLlookupsвPOIbootstrap; registryполучаетпредзагруженнуюкартуclaimsбезизмененияprovenance. Startupдалеемеряетсяснулевымитаблицами. RecoverInterrupted+60sFreshnessWatcher:12targetedtests PASS, архивныеисточникинеполучаютфиктивнуюсвежесть.
-
-- 26.10 17:41 пустаяБДokno_acceptance_fast: startup46s, Masha967.99mswall/892.12msAPI; все11demo-checkchecksPASS, evidenceгерояесть. Этоизолированныйfreshseed, ещёнеполныйcleancloneсprune. ОригинальныйdevDBсодержиттестовыеответы, егопродолжаемиспользоватьдлязаписивидео.
-- NPZ75c91a7:250outputs107.48→70.88MB, битовыемассивы/JSON/claims/inputhashбезизменений,21geotest+strictvalidationPASS. Изолированныйpipelineimage4750f2c45lockedpackages/audit0, readonlyofflinevalidation250/20 340PASS.
-
-- 26.10 17:48 интегрирован S5f3fb782:196tests+115subtestsPASS; однаbeach_walkсANDflags, stroller→no_stairs, реальныйBrevisсоstairsнеall; «рядом» получаетпорог, закатсбокуиscoreпонижен, округление≈мин/м. Liveafterrebuildещёвплане. Freshness/sourceageбезизменений. CascadeLOS84KBсозданизреальныхinputs, cachedsyntheticchange0.33s/59claims, SW3sea142°→116° — реальныйпересчётнадsyntheticдомом.
-
-- 26.10 18:17 интегрированы40weaklabels/40uniqueproperties(86eab8b),7completedpets+2pending(2be9c3d),temporalguard(f00a28b),UIпредварительногопаспортабезвыдуманныхдат(0af73f7). Предыдущийfullpytest261+125subtestsPASS; последующаяпроверкаещёвпроцессе. Source-to-geo pipelineиdemoпакетзакреплены,audit4Python+3npmPASS.
-- НовыйP1S7:пересекающиесяfloor ranges безConflict; исправляется S5, финальнуюготовностьнеобъявляем. ТипOSMheightvsindependentDSMheightпоканеподтверждён,сравнениесмодельюнаосновеOSMнедопустимо.
-
-- 26.10 18:22 rollback startup обнаружилошибкуseed_dialogues: Answer.hotel_id отсутствует, связьидётчерезQuestion. Исправленыпроверкиcross-hotelrefs, новыйrelease-seed regressionтестпроверяетвсе9/7/7/28/7rows. Старыйvolumeнетронут. Mainпередследующейинтеграциейпересобираетсядлявозвратаhealthy.
+- 26.10 19:10: чистый клон 3e3cc92, empty build cache, 139,49 с до health; API smoke, 12 demo-check guards, браузер PASS.
+- 26.10 19:20: REVIEW005 принят; сохранение истории, no.env Docker-only gate и нейтральные PRODUCT/ARCHITECTURE документы.
+- 26.10 20:12: main 3293368: tenant auth, live-mock injection guards, private Changes projections; Quality model baseline/provenance; timed VOICEOVER и lossless mix helper; frontend XSS regression.

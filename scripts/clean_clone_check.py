@@ -9,12 +9,14 @@ import argparse
 import json
 import os
 import shutil
+import socket
 import subprocess
 import tempfile
 import time
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.request import urlopen
+from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -43,7 +45,11 @@ def main():
     command(["git", "clone", "--no-local", str(ROOT), str(args.clone)])
     if not args.without_env:
         shutil.copyfile(args.clone/".env.example", args.clone/".env")
-    environment = {**os.environ, "COMPOSE_PROJECT_NAME": "okno-clean", "LLM_MODE": "offline"}
+    # A new folder alone is insufficient: the Compose file has a fixed name.
+    # Never reuse the previous acceptance run's database or runtime volume.
+    project = "okno-clean-" + uuid4().hex[:12]
+    environment = {**os.environ, "COMPOSE_PROJECT_NAME": project, "LLM_MODE": "offline"}
+    environment.pop("DB_URL", None)  # Verify the Compose default, not a developer's database.
     launch_environment = environment.copy()
     cli_directory = None
     if args.docker_only_path:
@@ -65,11 +71,23 @@ def main():
         launch_environment["PATH"] = cli_directory.name
     if args.stop_current_app:
         command(["docker", "compose", "stop", "app"])
+    with socket.socket() as port_probe:
+        if port_probe.connect_ex(("127.0.0.1", 8080)) == 0:
+            if args.stop_current_app:
+                command(["docker", "compose", "start", "app"])
+            raise RuntimeError("Port8080 is still occupied; cannot verify a fresh application's health")
     report = {"revision": revision, "clone": str(args.clone), "checked_at": datetime.now(UTC).isoformat(),
-              "command": "docker compose up --build", "project": "okno-clean", "pruned_build_cache": args.prune, "passed": False,
+              "command": "docker compose up --build", "project": project, "fresh_project_volumes": True,
+              "pruned_build_cache": args.prune, "passed": False,
               "env_file_created": not args.without_env, "docker_only_launch_path": args.docker_only_path,
               "launch_path_has_python": bool(shutil.which("python3", path=launch_environment["PATH"])),
               "launch_path_has_node": bool(shutil.which("node", path=launch_environment["PATH"]))}
+    report["preexisting_project_volumes"] = subprocess.check_output(
+        ["docker", "volume", "ls", "--filter", f"label=com.docker.compose.project={project}", "--format", "{{.Name}}"],
+        text=True,
+    ).splitlines()
+    if report["preexisting_project_volumes"]:
+        raise RuntimeError("Acceptance project already has volumes")
     with log_path.open("w") as log:
         prepared = time.monotonic()
         if args.prune:

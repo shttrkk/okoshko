@@ -7455,6 +7455,66 @@
     "title": "LoginRequest",
     "type": "object"
   },
+  "LoginResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "token": {
+        "title": "Token",
+        "type": "string"
+      },
+      "username": {
+        "title": "Username",
+        "type": "string"
+      },
+      "synthetic": {
+        "const": true,
+        "default": true,
+        "title": "Synthetic",
+        "type": "boolean"
+      },
+      "role": {
+        "enum": [
+          "demo_admin",
+          "hotelier"
+        ],
+        "title": "Role",
+        "type": "string"
+      },
+      "hotel_ids": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Hotel Ids",
+        "type": "array"
+      }
+    },
+    "required": [
+      "token",
+      "username",
+      "role"
+    ],
+    "title": "LoginResponse",
+    "type": "object"
+  },
+  "LogoutResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "logged_out": {
+        "const": true,
+        "default": true,
+        "title": "Logged Out",
+        "type": "boolean"
+      },
+      "synthetic": {
+        "const": true,
+        "default": true,
+        "title": "Synthetic",
+        "type": "boolean"
+      }
+    },
+    "title": "LogoutResponse",
+    "type": "object"
+  },
   "LabelRequest": {
     "$defs": {
       "Scope": {

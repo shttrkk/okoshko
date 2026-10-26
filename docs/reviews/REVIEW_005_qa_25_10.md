@@ -79,15 +79,18 @@
 11. Доля реальных и синтетических значений: % значений из открытых данных против синтетики с пометкой, на `/quality` и в README. Организаторы: реальные данные — «безусловный плюс».
 12. В методике слабых меток одной строкой: сбор одноразовый и офлайн, robots.txt соблюдается, OTA (включая Островок) заблокированы, в рантайме сетевых запросов нет.
 
-Статус (заполняет Codex): [x] принято 26.10 19:20 МСК
+Статус (заполняет Codex): принято 26.10; обновлено 20:17 МСК.
 
-- [x] Предыдущая волна завершена: release guards12/12; full history/current secret candidates0, trackedfiles>50MB0. Cleanclone3e3cc92,emptybuildercache,139.49shealth,smoke/demo-check/browserPASS. Вэтомпрогоне.envexampleкопировался; дополнительныйno.env/Docker-only-PATHпрогонвплане.
-- [x] Полнаяистория/main/originсохраняются;никакиеorphan/squash/filter-exportне выполнялись. Прежняяидеякомпактнойкопииотмененадо реализации. Packtarget150MB — advisory,полнаяисторияважнее.
-- [ ] Финальныйсанитайзингактивногодерева:reviews/Telegram/blueprintбудутархивированывнеproductпослеэтойволны,историясохранится. Новуюрасшифровкуизmaterialsне копируем.
-- [x] READMEпереиспользованиеиARCHITECTURE/PRODUCT:04336b9. Реальныезамерыpipelineещёвработе.
-- [ ] Геленджик:потокgelendzhik_scale,старт19:46МСК,бюджет90минут,изолированныеданные.
-- [ ] Бизнесbaseline:потокS6;предварительно20из60compatiblemodelcandidatesвне500m,безконверсии/реальныхокон. API/quality/CLIвтестировании.
-- [ ] SECURITY/tenant/live-mockinjection:потокS7,подтверждённыеprivacyissuesисправляютсяипроверяются.
-- [ ] Voiceover/voicemix:потокS6,голосзаписываетвладелец.
-- [ ] P2coverageиprovenanceshare:вработе;sourcefieldaccuracy/nDCGневыдумываются.
-- [x] Ссылкиrepo/videoвладелецявноотложил;placeholdersоставляем,не спрашиваемповторно. Pushделаеттольковладелец.
+- [x] Предыдущая волна завершена: 12/12 release guards; 0 secret candidates в текущем дереве/истории, 0 tracked files >50 MB. Clean clone 3e3cc92 с пустым build cache: 139,49 с до health, smoke/demo-check/browser PASS. Этот прогон был с `.env.example → .env`.
+- [ ] P0: повтор без `.env`, с Docker-only PATH, новым Compose project и пустыми volumes. Исправлен driver, чтобы не переиспользовать БД предыдущего прогона; ожидается финальная интеграция.
+- [x] Полная история/main/origin сохраняются; squash/filter/orphan/export не выполнялись. Идея компактной копии отменена до реализации; soft pack target 150 MB не достигнут.
+- [ ] P1.3: финальная очистка tracked tree. Reviews/Telegram/blueprint будут архивированы вне продукта после этой волны; история останется. Новая расшифровка не скопирована.
+- [x] P1.4/8: README reuse API, ARCHITECTURE и нейтральный PRODUCT: 04336b9; обновление auth и фактических pipeline timings продолжается.
+- [ ] P1.5: Геленджик. Изолированный полный DAG завершён: 30 отелей, 2 376 geo + 418 open claims; validation и network-none validation PASS. Отчёт и переносимые изменения готовятся. Основной seed Сочи не тронут.
+- [x] P1.6: baseline/API/Quality UI интегрированы b861232. Радиус ≤500 м даёт 132 отеля; модель поддерживает compatible море+закат у 60, включая 20 вне радиуса (4 предварительных). Это не конверсия и не проверка реальных окон.
+- [x] P1.7: SECURITY, signed tenant scope, private passport/run/event projection, live-mock injection и XSS regression интегрированы 2dea871/c32baba/3293368. 365 tests +125 subtests, Ruff/frontend lint/build PASS. Совместный live auth smoke идёт.
+- [x] P1.9: VOICEOVER на 381 слово, 11 таймкодов; helper b27f4e5, Makefile `demo-voice VOICE=...` добавлен. Проверка техническим тоном: 178,9 с, оригинал и видеопоток неизменны. Голос записывает владелец.
+- [x] P2.10: pytest-cov 7.1.0 с hashed lock. Без кода тестов: 4 597/5 413 строк, 84,925% (85%); `make coverage`, JSON в docs/checks/coverage.json. Coverage не является доказательством функциональной полноты.
+- [x] P2.11: provenance на /quality и в seed eval: 23 734 non-synthetic +10 synthetic из 23 744 известных materialized facts (0,0421% synthetic), mixed3 входит в synthetic; 2 140 unknown/stale/disputed/empty исключены. Runtime после действий отличается.
+- [ ] P2.12: одноразовый офлайн сбор слабых меток/robots/OTA/runtime ограничения уточняются в README.
+- [x] Ссылки repo/video владелец явно отложил; плейсхолдеры остаются, повторно не спрашиваем. Push выполняет только владелец.

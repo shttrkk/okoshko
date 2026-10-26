@@ -10,3 +10,6 @@ ignore = ["E501"]
 testpaths = ["tests", "geo/tests", "backend/tests"]
 pythonpath = ["."]
 
+[tool.coverage.run]
+omit = ["backend/tests/*", "geo/tests/*"]
+
