@@ -1,0 +1,9 @@
+# One isolated Python 3.12 pipeline environment. Shared packages keep runtime pins.
+-r ../backend/requirements.in
+
+# Only the additional acquisition/GeoTIFF/export packages from requirements.in.
+duckdb==2.0.0
+osmium==4.3.2
+requests==2.34.2
+rasterio==1.5.2
+pmtiles==3.8.1
