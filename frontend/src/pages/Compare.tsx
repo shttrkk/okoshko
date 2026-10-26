@@ -13,6 +13,7 @@ import {
   names,
   PageIntro,
   scopeText,
+  Synthetic,
 } from "../components/ui";
 export function ComparePage() {
   const { compare, toggleCompare, parsed, hotels } = useApp();
@@ -146,12 +147,18 @@ export function ComparePage() {
                         ) && <span className="row-required">Обязательно</span>}
                       </th>
                       {d.hotels.map((h) => {
-                        const facts = h.facts.filter(
+                        const allFacts = h.facts.filter(
                           (f) => f.characteristic_id === id,
                         );
                         const verdict = h.verdicts.find(
                           (v) => v.characteristic_id === id,
                         );
+                        const selectedFacts = allFacts.filter((f) =>
+                          verdict?.fact_ids.includes(f.id),
+                        );
+                        const facts = selectedFacts.length
+                          ? selectedFacts
+                          : allFacts;
                         return (
                           <td
                             className={
@@ -163,6 +170,13 @@ export function ComparePage() {
                               facts.map((f) => (
                                 <div className="compare-fact" key={f.id}>
                                   <FactValue fact={f} />
+                                  {f.synthetic && (
+                                    <Synthetic>Синтетика</Synthetic>
+                                  )}
+                                  <small>
+                                    Уверенность {Math.round(f.confidence * 100)}
+                                    %
+                                  </small>
                                   <small>{scopeText(f.scope)}</small>
                                   <EvidenceButton fact={f} claims={h.claims} />
                                   {f.status === "unknown" && (
@@ -186,6 +200,16 @@ export function ComparePage() {
                                 />
                               </>
                             )}
+                            {selectedFacts.length > 0 &&
+                              allFacts.length > selectedFacts.length && (
+                                <Link
+                                  className="text-button"
+                                  to={`/hotel/${h.hotel.id}`}
+                                >
+                                  Другие стороны и этажи{" "}
+                                  <ArrowRight size={12} />
+                                </Link>
+                              )}
                           </td>
                         );
                       })}

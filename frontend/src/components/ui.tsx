@@ -329,8 +329,16 @@ export function VerdictList({
               )}
               {v.synthetic && <Synthetic>Подтверждение · синтетика</Synthetic>}
               <span>{v.text}</span>
-              {v.caveat && <small>{v.caveat}</small>}
+              {v.caveat && (
+                <small>{v.caveat.split(";")[0].slice(0, 220)}</small>
+              )}
             </button>
+            {v.caveat && (v.caveat.includes(";") || v.caveat.length > 220) && (
+              <details className="verdict-caveats">
+                <summary>Все оговорки</summary>
+                <p>{v.caveat}</p>
+              </details>
+            )}
             {v.status === "unknown" && (
               <AskButton
                 compact
