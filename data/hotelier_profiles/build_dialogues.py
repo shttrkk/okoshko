@@ -16,6 +16,7 @@ from backend.agents.resolver import resolve_claims
 from backend.api.hotelier import confirm_answer
 from backend.contracts import AgentRun, AgentStep, Answer, CharacteristicSpec, Claim, Question, now
 from backend.contracts.validation import validate_value
+from backend.security import DEMO_ADMIN
 from backend.sim.hotelier import simulate_answer
 from backend.tests.test_hotelier import MemoryRepo
 
@@ -59,9 +60,9 @@ def build(profile: dict) -> dict:
         ]
         repo.insert("agent_runs", run.model_dump(mode="json"))
         before = len(repo.all("claims"))
-        confirmed = confirm_answer(answer.id, repo)
+        confirmed = confirm_answer(answer.id, repo, principal=DEMO_ADMIN)
         assert confirmed.confirmed and len(repo.all("claims")) == before + len(answer.updates)
-        assert confirm_answer(answer.id, repo).created_claim_ids == confirmed.created_claim_ids
+        assert confirm_answer(answer.id, repo, principal=DEMO_ADMIN).created_claim_ids == confirmed.created_claim_ids
         assert len(repo.all("claims")) == before + len(answer.updates)
         exported_claims = []
         for claim_id in confirmed.created_claim_ids:

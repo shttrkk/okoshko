@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from backend.agents.interviewer import stable_id
 from backend.agents.query_match import route_constraints
-from backend.api.hotelier import _get, require_hotelier
+from backend.api.hotelier import _get
 from backend.contracts import (
     Criterion,
     ExpectationPassport,
@@ -24,11 +24,13 @@ from backend.contracts import (
     now,
 )
 from backend.db.repository import get_repo
+from backend.security import Principal, authorize_hotel, optional_principal, require_hotelier
 
 router = APIRouter(prefix="/api", tags=["passports"])
 _LOCK = RLock()
 _REPO = Depends(get_repo)
 _AUTH = Depends(require_hotelier)
+_OPTIONAL_AUTH = Depends(optional_principal)
 ROOM_CHARACTERISTICS = {"sea_view", "sunset_view", "mountain_view", "quiet_night", "soundproofing", "room_orientation"}
 
 
@@ -335,20 +337,27 @@ def create(request: PassportCreate, repo=_REPO):
 
 
 @router.get("/passports", response_model=list[ExpectationPassport])
-def list_passports(hotel_id: str | None = None, repo=_REPO):
+def list_passports(hotel_id: str | None = None, repo=_REPO, _user=_AUTH):
     if hotel_id:
+        authorize_hotel(_user, hotel_id)
         _get(repo, "hotels", hotel_id, "Отель")
-    return repo.find("expectation_passports", hotel_id=hotel_id) if hotel_id else repo.all("expectation_passports")
+        return repo.find("expectation_passports", hotel_id=hotel_id)
+    return [value for value in repo.all("expectation_passports") if _user.permits(value["hotel_id"])]
 
 
 @router.get("/passports/{passport_id}", response_model=ExpectationPassport)
-def get_passport(passport_id: str, repo=_REPO):
-    return _get(repo, "expectation_passports", passport_id, "Паспорт")
+def get_passport(passport_id: str, repo=_REPO, _user=_OPTIONAL_AUTH):
+    passport = _get(repo, "expectation_passports", passport_id, "Паспорт")
+    if _user is not None:
+        authorize_hotel(_user, passport["hotel_id"])
+    # UUID possession is the existing guest read capability, never a write token.
+    return passport
 
 
-def passport_action(passport_id: str, request: PassportAction, repo) -> ExpectationPassport:
+def passport_action(passport_id: str, request: PassportAction, repo, *, principal: Principal) -> ExpectationPassport:
     with _LOCK:
         passport = ExpectationPassport.model_validate(_get(repo, "expectation_passports", passport_id, "Паспорт"))
+        authorize_hotel(principal, passport.hotel_id)
         key = stable_id("passport_action", passport.id, request.model_dump_json())
         facts = []
         if request.action == "confirm":
@@ -463,4 +472,4 @@ def passport_action(passport_id: str, request: PassportAction, repo) -> Expectat
 
 @router.post("/passports/{passport_id}/action", response_model=ExpectationPassport)
 def action(passport_id: str, request: PassportAction, repo=_REPO, _user=_AUTH):
-    return passport_action(passport_id, request, repo)
+    return passport_action(passport_id, request, repo, principal=_user)

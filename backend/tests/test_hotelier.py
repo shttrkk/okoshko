@@ -15,6 +15,7 @@ from backend.agents.interviewer import create_question, generate_questions
 from backend.api.hotelier import confirm_answer, router
 from backend.contracts import Claim, Question
 from backend.db.repository import get_repo
+from backend.security import DEMO_ADMIN
 from backend.sim.hotelier import simulate_answer
 
 
@@ -175,20 +176,21 @@ class HotelierWorkflowTests(unittest.TestCase):
         self.assertEqual(again.json(), confirmed.json())
         self.assertEqual(len(self.repo.all("claims")), 1)
         claim = self.repo.all("claims")[0]
-        self.assertEqual(claim["source"], "hotelier")
+        self.assertEqual(claim["source"], "hotelier_simulator")
+        self.assertTrue(claim["synthetic"])
         self.assertIn(claim["evidence"][0]["quote"], preview["raw_text"])
-        self.assertEqual(self.repo.find("facts", characteristic_id="pets")[0]["status"], "confirmed")
+        self.assertEqual(self.repo.find("facts", characteristic_id="pets")[0]["status"], "computed")
         # New repository reads use stored answers/facts, no module-level state.
         copied = MemoryRepo()
         copied.tables = copy.deepcopy(self.repo.tables)
-        self.assertEqual(confirm_answer(preview["id"], copied).created_claim_ids, confirmed.json()["created_claim_ids"])
+        self.assertEqual(confirm_answer(preview["id"], copied, principal=DEMO_ADMIN).created_claim_ids, confirmed.json()["created_claim_ids"])
 
     def test_confirmation_is_concurrently_idempotent(self):
         question = create_question("test-hotel", "pets", self.repo)
         answer = parse_answer(question, "С собакой можно.")
         self.repo.insert("answers", answer.model_dump(mode="json"))
         with ThreadPoolExecutor(max_workers=4) as pool:
-            values = list(pool.map(lambda _: confirm_answer(answer.id, self.repo), range(8)))
+            values = list(pool.map(lambda _: confirm_answer(answer.id, self.repo, principal=DEMO_ADMIN), range(8)))
         self.assertTrue(all(value.confirmed for value in values))
         self.assertEqual(len(self.repo.all("claims")), 1)
 
@@ -212,7 +214,7 @@ class HotelierWorkflowTests(unittest.TestCase):
         self.assertTrue(answer.synthetic)
         self.assertEqual(self.repo.all("claims"), [])
         self.repo.insert("answers", answer.model_dump(mode="json"))
-        confirm_answer(answer.id, self.repo)
+        confirm_answer(answer.id, self.repo, principal=DEMO_ADMIN)
         self.assertTrue(all(c["synthetic"] and c["source"] == "hotelier_simulator" for c in self.repo.all("claims")))
         self.assertTrue(self.repo.find("facts", characteristic_id="pets")[0]["synthetic"])
 
@@ -343,7 +345,7 @@ class SafeConfirmationSchemaTests(unittest.TestCase):
                 repo.upsert("characteristics", spec)
                 with patch("urllib.request.urlopen", side_effect=AssertionError("Network retrieval is forbidden")) as retrieve:
                     with self.assertRaises(HTTPException) as error:
-                        confirm_answer(answer.id, repo)
+                        confirm_answer(answer.id, repo, principal=DEMO_ADMIN)
                     self.assertEqual(error.exception.status_code, 422)
                     retrieve.assert_not_called()
                 self.assertEqual(repo.all("claims"), [])

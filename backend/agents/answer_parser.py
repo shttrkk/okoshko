@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import re
 
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
 from backend.contracts import Answer, FieldUpdate, Question, Scope
 
 SIDES = {
@@ -17,6 +19,45 @@ SIDES = {
 UNCERTAIN = r"(?:не\s+зна\w*|не\s+уверен\w*|возможно|наверно\w*|кажется|может\s+быть|не\s+помню|уточн\w*|неизвест\w*|не\s+провер\w*|не\s+измер\w*|нет\s+измер\w*)"
 NEGATIVE = r"(?:\bне\b|\bнет\b|\bбез\b|нельзя|запрещ\w*|отсутств\w*)"
 INTERNAL = {"soundproofing", "room_orientation", "pets", "quiet_night", "sea_view", "sunset_view", "mountain_view"}
+HOTELIER_VALUE_FIELDS = {
+    "soundproofing": {"available", "windows", "blackout", "air_conditioning"},
+    "room_orientation": {"available", "facade", "min_floor", "max_floor", "rooms", "balcony"},
+    "pets": {"available", "species", "max_weight_kg", "fee_rub_night"},
+    "quiet_night": {"available", "facade"},
+    "sea_view": {"available", "facade", "min_floor"},
+    "sunset_view": {"available", "facade", "min_floor"},
+    "mountain_view": {"available", "facade", "min_floor"},
+}
+
+
+class _ProposedUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    characteristic_id: str
+    scope: Scope = Field(default_factory=Scope)
+    value: dict
+    quote: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def local_fields(self):
+        allowed = HOTELIER_VALUE_FIELDS.get(self.characteristic_id)
+        if not allowed or set(self.value) - allowed:
+            raise ValueError("Unsupported hotelier extraction fields")
+        return self
+
+
+class _AnswerProposal(BaseModel):
+    """No IDs, source, confirmation, dates or confidence under model control."""
+    model_config = ConfigDict(extra="forbid")
+    raw_text: str
+    updates: list[_ProposedUpdate] = Field(default_factory=list)
+    unknown_fields: list[str] = Field(default_factory=list)
+    needs_clarification: str | None = None
+
+    @model_validator(mode="after")
+    def quotes(self):
+        if any(update.quote not in self.raw_text for update in self.updates):
+            raise ValueError("Proposals require verbatim quotes")
+        return self
 
 
 def _sentences(text: str) -> list[str]:
@@ -307,15 +348,17 @@ def parse_answer(question: Question, text: str, *, synthetic: bool = False, llm=
     fallback = _offline(question, text, synthetic)
     if llm is None:
         return fallback
-    proposed, mode = llm.structured(Answer, [{"role": "user", "content":
+    proposal_fallback = {"raw_text": fallback.raw_text, "unknown_fields": fallback.unknown_fields,
+                         "needs_clarification": fallback.needs_clarification,
+                         "updates": [update.model_dump(exclude={"confidence"}) for update in fallback.updates]}
+    _proposed, mode = llm.structured(_AnswerProposal, [{"role": "user", "content":
         "Разбери ответ отельера на русском. Точные цитаты из raw_text обязательны. Не выводи шумоизоляцию из двойных окон. "
         "Не выдумывай измерения, этаж из номера комнаты или стоимость за ночь из разового сбора. "
         "Неизвестное и отрицания сохраняй. question=" + question.model_dump_json() + "\nraw_text=" + text}],
-        fallback=lambda: fallback, task="hotelier_answer", budget_s=2.4)
+        fallback=lambda: proposal_fallback, task="hotelier_answer", budget_s=2.4)
     # Live proposals cannot bypass the conservative evidence/negation/range gate.
     # The deterministic extraction is the authority for factual fields; the model
-    # may improve the clarification wording, never invent a new hotel assertion.
-    if proposed.raw_text == text and proposed.needs_clarification and fallback.needs_clarification:
-        fallback.needs_clarification = proposed.needs_clarification
+    # cannot supply authority, a confirmation, confidence or free-form instructions
+    # in the clarification channel. Clarifications also come from the local gate.
     fallback.parser = mode
     return fallback
