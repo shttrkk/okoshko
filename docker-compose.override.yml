@@ -1,0 +1,7 @@
+# Optional development settings, automatically picked up by Docker Compose.
+services:
+  app:
+    environment:
+      LOG_LEVEL: info
+    init: true
+

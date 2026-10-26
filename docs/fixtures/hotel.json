@@ -1,0 +1,153 @@
+{
+  "hotel": {
+    "id": "fixture-hotel",
+    "name": "Пример для разработки · синтетика",
+    "lat": 43.58,
+    "lon": 39.72,
+    "address": "Сочи",
+    "stars": 4,
+    "price_rub": 8500,
+    "basic_fields_source": "mock_basic_card",
+    "source_ids": [],
+    "osm_id": null,
+    "overture_id": null,
+    "website": null,
+    "floors": 9,
+    "footprint": null,
+    "image": null,
+    "image_attribution": null,
+    "room_types": [],
+    "tags": {
+      "synthetic": true
+    }
+  },
+  "facts": [
+    {
+      "id": "fixture-fact",
+      "hotel_id": "fixture-hotel",
+      "characteristic_id": "sunset_view",
+      "scope": {
+        "type": "floor_range",
+        "facade": "W",
+        "floor_min": 5,
+        "floor_max": 9,
+        "room_type": null,
+        "month": null
+      },
+      "value": {
+        "available": true,
+        "min_floor": 5,
+        "facade": "W",
+        "months": [
+          9
+        ],
+        "probability": 0.72
+      },
+      "confidence": 0.65,
+      "status": "computed",
+      "resolution": "single",
+      "supporting_claim_ids": [
+        "fixture-claim"
+      ],
+      "conflicting_claim_ids": [],
+      "evidence": [
+        {
+          "id": "fixture-evidence",
+          "kind": "simulation",
+          "label": "Синтетический пример wire-контракта",
+          "source_ids": [
+            "fixture"
+          ],
+          "url": null,
+          "artifact": "/data/fixtures/development.json",
+          "quote": null,
+          "message_id": null,
+          "inputs": {},
+          "output": {},
+          "limitations": [
+            "Это не реальный расчёт и не данные отеля"
+          ]
+        }
+      ],
+      "updated_at": "2026-10-26T12:10:58.379969Z",
+      "valid_until": "2027-04-24T12:00:00Z",
+      "synthetic": true
+    }
+  ],
+  "claims": [
+    {
+      "id": "fixture-claim",
+      "hotel_id": "fixture-hotel",
+      "characteristic_id": "sunset_view",
+      "spec_version": 1,
+      "scope": {
+        "type": "floor_range",
+        "facade": "W",
+        "floor_min": 5,
+        "floor_max": 9,
+        "room_type": null,
+        "month": null
+      },
+      "value": {
+        "available": true,
+        "min_floor": 5,
+        "facade": "W",
+        "months": [
+          9
+        ],
+        "probability": 0.72
+      },
+      "unit": null,
+      "source": "fixture",
+      "method": "fixture@1",
+      "evidence": [
+        {
+          "id": "fixture-evidence",
+          "kind": "simulation",
+          "label": "Синтетический пример wire-контракта",
+          "source_ids": [
+            "fixture"
+          ],
+          "url": null,
+          "artifact": "/data/fixtures/development.json",
+          "quote": null,
+          "message_id": null,
+          "inputs": {},
+          "output": {},
+          "limitations": [
+            "Это не реальный расчёт и не данные отеля"
+          ]
+        }
+      ],
+      "confidence": 0.65,
+      "observed_at": "2026-10-26T12:00:00Z",
+      "valid_until": "2027-04-24T12:00:00Z",
+      "run_id": null,
+      "supersedes": null,
+      "synthetic": true
+    }
+  ],
+  "conflicts": [],
+  "questions": [],
+  "verdicts": [
+    {
+      "characteristic_id": "sunset_view",
+      "label": "Закат из окна",
+      "required": true,
+      "status": "partial",
+      "symbol": "≈",
+      "text": "Закат — с 5-го этажа, западный фасад · синтетический пример",
+      "confidence": 0.65,
+      "fact_ids": [
+        "fixture-fact"
+      ],
+      "evidence_refs": [
+        "fixture-evidence"
+      ],
+      "caveat": "Уточните номер у отеля"
+    }
+  ],
+  "room_recommendation": "Западная сторона, этаж 5+ · синтетический пример",
+  "disappointments": [],
+  "geo": {}
+}

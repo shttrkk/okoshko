@@ -1,0 +1,101 @@
+{
+  "parsed": {
+    "text": "тихий номер с видом на закат недалеко от моря",
+    "must": [
+      {
+        "characteristic_id": "sunset_view",
+        "label": "Закат из окна",
+        "op": "eq",
+        "value": true,
+        "field": null,
+        "weight": 1.0,
+        "scope": null
+      }
+    ],
+    "nice": [
+      {
+        "characteristic_id": "quiet_night",
+        "label": "Тишина ночью",
+        "op": "eq",
+        "value": true,
+        "field": null,
+        "weight": 1.0,
+        "scope": null
+      },
+      {
+        "characteristic_id": "beach_walk",
+        "label": "До моря ≤ 10 минут",
+        "op": "lte",
+        "value": 10,
+        "field": "minutes",
+        "weight": 1.0,
+        "scope": null
+      }
+    ],
+    "check_in": "2027-09-14",
+    "check_out": "2027-09-21",
+    "month": 9,
+    "persona": null,
+    "pet_weight_kg": null,
+    "min_floor": null,
+    "facade": null,
+    "unmapped": [],
+    "clarifications": [],
+    "mode": "offline"
+  },
+  "results": [
+    {
+      "hotel": {
+        "id": "fixture-hotel",
+        "name": "Пример для разработки · синтетика",
+        "lat": 43.58,
+        "lon": 39.72,
+        "address": "Сочи",
+        "stars": 4,
+        "price_rub": 8500,
+        "basic_fields_source": "mock_basic_card",
+        "source_ids": [],
+        "osm_id": null,
+        "overture_id": null,
+        "website": null,
+        "floors": 9,
+        "footprint": null,
+        "image": null,
+        "image_attribution": null,
+        "room_types": [],
+        "tags": {
+          "synthetic": true
+        }
+      },
+      "score": 0.65,
+      "group": "almost",
+      "must_satisfied": 0,
+      "must_total": 1,
+      "verdicts": [
+        {
+          "characteristic_id": "sunset_view",
+          "label": "Закат из окна",
+          "required": true,
+          "status": "partial",
+          "symbol": "≈",
+          "text": "Закат — с 5-го этажа, западный фасад · синтетический пример",
+          "confidence": 0.65,
+          "fact_ids": [
+            "fixture-fact"
+          ],
+          "evidence_refs": [
+            "fixture-evidence"
+          ],
+          "caveat": "Уточните номер у отеля"
+        }
+      ],
+      "room_recommendation": "Западная сторона, этаж 5+ · синтетический пример",
+      "disappointments": [],
+      "summary": ""
+    }
+  ],
+  "total": 1,
+  "latency_ms": 12.0,
+  "run_id": null,
+  "mode": "offline"
+}

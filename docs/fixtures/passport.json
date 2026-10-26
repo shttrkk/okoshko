@@ -1,0 +1,37 @@
+{
+  "id": "fixture-passport",
+  "hotel_id": "fixture-hotel",
+  "guest_name": "Маша",
+  "check_in": null,
+  "check_out": null,
+  "items": [
+    {
+      "id": "12471061-ac54-414c-a272-9cd0f0290fa8",
+      "characteristic_id": "sunset_view",
+      "text": "Западный фасад, этаж 5+",
+      "critical": true,
+      "scope": {
+        "type": "floor_range",
+        "facade": "W",
+        "floor_min": 5,
+        "floor_max": 9,
+        "room_type": null,
+        "month": null
+      },
+      "fact_ids": [],
+      "status": "pending",
+      "response": null
+    }
+  ],
+  "status": "sent",
+  "room_number": null,
+  "timeline": [
+    {
+      "at": "2026-10-26T12:00:00+00:00",
+      "text": "Демонстрационный запрос отправлен"
+    }
+  ],
+  "notifications": [],
+  "synthetic_booking": true,
+  "created_at": "2026-10-26T12:10:58.381022Z"
+}
