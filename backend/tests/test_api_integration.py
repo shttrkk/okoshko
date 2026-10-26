@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from backend.contracts import Evidence, Fact, now
 from backend.db.repository import get_repo
 from backend.main import app
+from backend.settings import DATA
 from backend.tests.test_hotelier import MemoryRepo
 
 
@@ -57,7 +58,8 @@ def client(repo):
 def test_health_status_public_files_and_catalog(client, repo):
     assert client.get("/health").json() == {"status": "ok"}
     status = client.get("/api/status").json()
-    assert status["hotel_count"] == 3 and status["characteristic_count"] == 16
+    shipped = len(list((DATA / "characteristics").glob("*.yaml")))
+    assert status["hotel_count"] == 3 and status["characteristic_count"] == shipped >= 17
     assert "Сочи" in status["region_name"]
     assert client.get("/api/tools").json()
     assert client.get("/api/characteristics").json()

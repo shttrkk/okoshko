@@ -100,6 +100,10 @@ def _details(fact: Fact, criterion: Criterion) -> str:
             details.append("кондиционер есть" if value["air_conditioning"] else "кондиционера нет")
     elif cid == "air_quality" and value.get("european_aqi") is not None:
         details.append(f"European AQI {number(value['european_aqi'])}")
+    elif cid == "nightlife" and value.get("venues_500m") is not None:
+        details.append(f"в 500 м заведений: {value['venues_500m']}, из них баров и клубов {value.get('bars_500m', 0)}")
+        if value.get("promenade_distance_m") is not None:
+            details.append(f"до пешеходной улицы или набережной {approximate(value['promenade_distance_m'])} м")
     elif cid == "night_pharmacy" and value.get("minutes") is not None:
         details.append(f"до аптеки {approximate(value['minutes'], minutes=True)} мин")
     if cid in {"family_nearby", "car_access", "night_pharmacy"} and criterion.field and value.get(criterion.field) is not None:

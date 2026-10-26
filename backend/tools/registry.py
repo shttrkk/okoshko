@@ -25,14 +25,52 @@ EV_CHARGING_NEAR_M = 1000
 POI_METHOD = "local_poi_lookup@2"
 # A kind's method version changes when its value semantics change; older claims
 # for the same hotel and characteristic are superseded, never edited.
-POI_METHODS = {"car": "local_poi_lookup@3"}
+POI_METHODS = {"car": "local_poi_lookup@3", "nightlife": "local_poi_nightlife@1"}
+POI_CATEGORY_METHOD = "local_poi_category@1"
+# "В гуще событий": bars, pubs, clubs, cafes and restaurants within 500 m.
+NIGHTLIFE_RADIUS_M = 500
+NIGHTLIFE_MIN_VENUES = 30
+NIGHTLIFE_VENUES = {"bar", "pub", "nightclub", "biergarten", "cafe", "restaurant"}
+NIGHTLIFE_BARS = {"bar", "pub", "nightclub", "biergarten"}
 
 
-def poi_method(kind: str) -> str:
-    return POI_METHODS.get(kind, POI_METHOD)
+def _promenade(properties: dict) -> bool:
+    return properties.get("highway") == "pedestrian" or "набережн" in str(properties.get("name") or "").lower()
 
 
-@lru_cache(maxsize=4)
+# Generic OSM categories for declarative "<place> nearby" characteristics:
+# id -> (Russian label, local dataset in data/seed, tag predicate).
+POI_CATEGORIES = {
+    "supermarket": ("Супермаркет или продукты", "pois", lambda p: p.get("shop") in {"supermarket", "convenience", "greengrocer"}),
+    "pharmacy": ("Аптека", "pois", lambda p: p.get("amenity") == "pharmacy"),
+    "cafe": ("Кафе", "pois", lambda p: p.get("amenity") == "cafe"),
+    "restaurant": ("Ресторан", "pois", lambda p: p.get("amenity") == "restaurant"),
+    "bar": ("Бар, паб или клуб", "pois", lambda p: p.get("amenity") in NIGHTLIFE_BARS),
+    "bus_stop": ("Остановка общественного транспорта", "pois",
+                 lambda p: p.get("highway") == "bus_stop" or p.get("public_transport") in {"platform", "stop_position", "station"}
+                 or p.get("railway") in {"station", "halt", "tram_stop"}),
+    "park": ("Парк или сквер", "pois", lambda p: p.get("leisure") in {"park", "garden"}),
+    "atm": ("Банкомат", "pois", lambda p: p.get("amenity") == "atm" or p.get("atm") == "yes"),
+    "playground": ("Детская площадка", "pois", lambda p: p.get("leisure") == "playground"),
+    "fitness": ("Спортзал или фитнес-клуб", "pois", lambda p: p.get("leisure") in {"fitness_centre", "sports_centre"} or p.get("sport") == "fitness"),
+    "marketplace": ("Рынок", "pois", lambda p: p.get("amenity") == "marketplace"),
+    "beach": ("Пляж", "beaches", lambda p: True),
+    "promenade": ("Набережная или пешеходная улица", "roads", _promenade),
+    "rental": ("Прокат велосипедов, самокатов или авто", "pois",
+               lambda p: p.get("amenity") in {"bicycle_rental", "car_rental", "boat_rental", "scooter_rental"} or p.get("shop") == "rental"),
+    "fuel": ("Заправка", "pois", lambda p: p.get("amenity") == "fuel"),
+}
+
+
+def poi_method(kind_or_params) -> str:
+    if isinstance(kind_or_params, dict):
+        if kind_or_params.get("category"):
+            return POI_CATEGORY_METHOD
+        kind_or_params = kind_or_params.get("kind", "pharmacy")
+    return POI_METHODS.get(kind_or_params, POI_METHOD)
+
+
+@lru_cache(maxsize=8)
 def feature_index(data_dir: str, name: str):
     path = Path(data_dir)/"seed"/(name+".geojson")
     if not exists(path):
@@ -58,7 +96,8 @@ class Registry:
         self.specs = {}
         self.handlers = {}
         schema = {"type":"object", "properties":{"target":{"type":"string","enum":["sea","mountains","landmark","beach"]},
-                  "kind":{"type":"string","enum":["pharmacy","family","car"]},"radius_m":{"type":"number","minimum":50,"maximum":5000},
+                  "kind":{"type":"string","enum":["pharmacy","family","car","nightlife"]},"radius_m":{"type":"number","minimum":50,"maximum":5000},
+                  "category":{"type":"string","enum":sorted(POI_CATEGORIES)},"near_m":{"type":"number","minimum":50,"maximum":5000},
                   "open_at":{"type":"string","enum":["02:00"]},"expr":{"type":"string","maxLength":2000}},"additionalProperties":False}
         for id, description in {
             "viewshed_facade":"Лучевая видимость по DSM, фасаду и этажу, Monte Carlo и список препятствий",
@@ -123,22 +162,29 @@ class Registry:
         if not hotel:
             return ToolResult(warnings=["Отель не найден"])
         self._hotels[context.hotel_id] = hotel
-        features, geometries, tree = feature_index(str(self.data_dir.resolve()),"pois")
-        if tree is None:
-            return ToolResult(warnings=["OSM POI не загружены"])
         center = Point(hotel["lon"],hotel["lat"])
         metric_center = transform(TO_UTM.transform,center)
-        radius = call.params.get("radius_m",1200)
-        candidates = []
-        for index in tree.query(metric_center.buffer(radius)):
-            index = int(index)
-            distance = geometries[index].distance(metric_center)
-            if distance<=radius:
-                candidates.append((distance,features[index]))
-        candidates.sort(key=lambda item:item[0])
+        category = call.params.get("category")
+        dataset = POI_CATEGORIES[category][1] if category else "pois"
+        if self._nearby(dataset, metric_center, 1) is None:
+            return ToolResult(warnings=["OSM POI не загружены"])
+        near = call.params.get("near_m", 500)
+        radius = call.params.get("radius_m", min(5000, max(1000, 2*near)) if category else 1200)
+        candidates = self._nearby(dataset, metric_center, radius)
         kind = call.params.get("kind", {"family_nearby":"family","car_access":"car"}.get(context.characteristic_id,"pharmacy"))
         selected = []
-        if kind == "pharmacy":
+        artifacts = ["/data/seed/" + dataset + ".geojson"]
+        if category:
+            label, _, predicate = POI_CATEGORIES[category]
+            matches = [(d,f) for d,f in candidates if predicate(f["properties"])]
+            selected = matches[:1]
+            nearest = round(matches[0][0]) if matches else None
+            # Nothing mapped within the search radius is unknown, never "absent".
+            value = {"available": None if nearest is None else nearest<=near, "distance_m": nearest, "near_m": near,
+                     "count_near": sum(d<=near for d,_ in matches), "category": category, "category_label": label,
+                     "osm_id": matches[0][1]["id"] if matches else None, "name": matches[0][1]["properties"].get("name") if matches else None}
+            kind = f"category:{category}:{near}"
+        elif kind == "pharmacy":
             pharmacies = [(d,f) for d,f in candidates if f["properties"].get("amenity")=="pharmacy"]
             opened = [(d,f) for d,f in pharmacies if f["properties"].get("opening_hours", "").strip()=="24/7"]
             selected = opened[:1]
@@ -152,6 +198,17 @@ class Registry:
             value = {"available":True if playgrounds else None,"playground_distance_m":round(playgrounds[0][0]) if playgrounds else None,
                      "playground_osm_id":playgrounds[0][1]["id"] if playgrounds else None,
                      "hospital_distance_m":round(hospitals[0][0]) if hospitals else None,"crossings":[]}
+        elif kind == "nightlife":
+            venues = [(d,f) for d,f in candidates if d<=NIGHTLIFE_RADIUS_M and f["properties"].get("amenity") in NIGHTLIFE_VENUES]
+            bars = [(d,f) for d,f in venues if f["properties"].get("amenity") in NIGHTLIFE_BARS]
+            any_bar = [(d,f) for d,f in candidates if f["properties"].get("amenity") in NIGHTLIFE_BARS]
+            promenades = self._nearby("roads", metric_center, 1500, lambda p: _promenade(p))
+            selected = bars[:3] + promenades[:1]
+            artifacts.append("/data/seed/roads.geojson")
+            value = {"available": len(venues)>=NIGHTLIFE_MIN_VENUES, "venues_500m": len(venues), "bars_500m": len(bars),
+                     "cafes_restaurants_500m": len(venues)-len(bars), "nearest_bar_m": round(any_bar[0][0]) if any_bar else None,
+                     "promenade_distance_m": round(promenades[0][0]) if promenades else None,
+                     "radius_m": NIGHTLIFE_RADIUS_M, "min_venues": NIGHTLIFE_MIN_VENUES}
         else:
             parking = [(d,f) for d,f in candidates if f["properties"].get("amenity")=="parking" and f["properties"].get("access") not in {"no","private"}]
             ev = [(d,f) for d,f in candidates if f["properties"].get("amenity")=="charging_station"]
@@ -167,15 +224,19 @@ class Registry:
         observed = max((feature["properties"].get("observed_at","2026-10-25T21:21:21Z") for _,feature in selected),default="2026-10-25T21:21:21Z")
         observed = datetime.fromisoformat(observed.replace("Z","+00:00"))
         limitations = ["Расстояния по прямой, не время пешего маршрута", "Отсутствие объекта или opening_hours в OSM не доказывает отсутствие услуги", "Подъезд к фактическому входу, детский профиль больницы и доступность для коляски требуют отдельного подтверждения"]
+        if kind == "nightlife":
+            limitations.append(f"«В гуще событий» означает не меньше {NIGHTLIFE_MIN_VENUES} баров, пабов, клубов, кафе и ресторанов OSM в {NIGHTLIFE_RADIUS_M} м по прямой; часы работы и громкость заведений не проверяются")
+        if category:
+            limitations.append(f"«Рядом» означает объект категории OSM не дальше {near} м по прямой; закрытые или не отмеченные в OSM объекты не учитываются")
         if kind == "car":
             limitations.append(f"«Рядом» означает общедоступную парковку OSM не дальше {PARKING_NEAR_M} м и зарядку не дальше {EV_CHARGING_NEAR_M} м по прямой; собственная парковка отеля и свободные места не подтверждаются")
-        evidence = Evidence(kind="calculation",label="Поиск по локальному снимку OpenStreetMap",source_ids=["osm_geofabrik"],artifact="/data/seed/pois.geojson",
-                            inputs={"hotel_id":context.hotel_id,"radius_m":radius,"kind":kind,"matched_osm_ids":[feature["id"] for _,feature in selected]},output=value,
+        evidence = Evidence(kind="calculation",label="Поиск по локальному снимку OpenStreetMap",source_ids=["osm_geofabrik"],artifact=artifacts[0],
+                            inputs={"hotel_id":context.hotel_id,"radius_m":radius,"kind":kind,"artifacts":artifacts,"matched_osm_ids":[feature["id"] for _,feature in selected]},output=value,
                             limitations=limitations)
-        method = poi_method(kind)
+        method = POI_CATEGORY_METHOD if category else poi_method(kind)
         identity = hashlib.sha256(json.dumps([method,context.hotel_id,context.characteristic_id,kind,radius,observed.isoformat(),value],sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:24]
         evidence.id = "ev-poi-"+identity
-        measured_distance = any(isinstance(value.get(key), int | float) for key in ("distance_m", "parking_distance_m", "ev_distance_m", "playground_distance_m", "hospital_distance_m"))
+        measured_distance = any(isinstance(value.get(key), int | float) for key in ("distance_m", "parking_distance_m", "ev_distance_m", "playground_distance_m", "hospital_distance_m", "venues_500m"))
         claim = Claim(id="poi-"+identity,hotel_id=context.hotel_id,characteristic_id=context.characteristic_id,value=value,source="osm_geofabrik",method=method,evidence=[evidence],confidence=.65 if value["available"] or measured_distance else .35,
                       observed_at=observed,valid_until=observed+timedelta(days=90),run_id=context.run_id)
         outdated = self._outdated_poi_claims(context.hotel_id, context.characteristic_id, method)
@@ -190,19 +251,33 @@ class Registry:
             claim = claim.model_copy(update={"id": uid(), "supersedes": existing["id"], "supersedes_ids": list(dict.fromkeys([*equivalent, *outdated]))})
         return ToolResult(claims=[claim], artifacts={"cache_hit": existing is not None})
 
+    def _nearby(self, dataset: str, metric_center, radius: float, predicate=None):
+        """Features of a local dataset within a straight-line radius, nearest first; None if absent."""
+        features, geometries, tree = feature_index(str(self.data_dir.resolve()), dataset)
+        if tree is None:
+            return None
+        found = []
+        for index in tree.query(metric_center.buffer(radius)):
+            index = int(index)
+            distance = geometries[index].distance(metric_center)
+            if distance <= radius and (predicate is None or predicate(features[index]["properties"])):
+                found.append((distance, features[index]))
+        found.sort(key=lambda item: item[0])
+        return found
+
     def _outdated_poi_claims(self, hotel_id: str, characteristic_id: str, method: str) -> list[str]:
         """IDs of earlier POI method versions for this hotel/characteristic."""
         if self._known_claims is not None:
             if getattr(self, "_poi_index", None) is None:
                 index = {}
                 for row in self._known_claims.values():
-                    if str(row.get("method", "")).startswith("local_poi_lookup@"):
+                    if str(row.get("method", "")).startswith("local_poi_"):
                         index.setdefault((row["hotel_id"], row["characteristic_id"]), []).append(row)
                 self._poi_index = index
             rows = self._poi_index.get((hotel_id, characteristic_id), [])
         else:
             rows = self.repo.find("claims", hotel_id=hotel_id, characteristic_id=characteristic_id)
-        return sorted(row["id"] for row in rows if str(row.get("method", "")).startswith("local_poi_lookup@") and row.get("method") != method)
+        return sorted(row["id"] for row in rows if str(row.get("method", "")).startswith("local_poi_") and row.get("method") != method)
 
     def _derive(self, context, call):
         expression = call.params.get("expr")

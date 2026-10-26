@@ -32,7 +32,11 @@ RULES = {
     "climate": r"тепл\w* (?:вода|воды|море)|\bкупаться\b|\bпогод\w*|\bвода\b.*?(?:градус|°)|вод\w* (?:от|не ниже|не холоднее|выше)",
     "car_access": r"\bпарков\w*|на машине|\bподъезд\w*|\bэлектромобил\w*|\bзарядк\w*",
     "night_pharmacy": r"\bаптек\w*",
+    "nightlife": r"в гуще событий|ночн\w* жизн\w*|\bбар(?:ы|ов|ам|ами|ах)?\b|\bпаб(?:ы|ов)?\b|ночн\w* клуб\w*|\bклубы\b|\bтусов\w*|\bдвиж\b|\bдвижух\w*|оживл[её]нн\w*|\bкафе и ресторан\w*",
 }
+# "подальше от баров" asks for a calm area: the same measurement, opposite threshold.
+AWAY = r"(?:подальше|вдали|далеко|подальш\w*)\s+от\s+$"
+CALM_VENUES_MAX = 10
 OUTSIDE = r"москв\w*|саратов\w*|санкт[ -]?петербург\w*|петербург\w*|спб|казан[ьиь]\w*|анап\w*|геленджик\w*|краснодар\w*|стамбул\w*|париж\w*|дуба[ий]\w*|калининград\w*|екатеринбург\w*|новосибирск\w*|ялт\w*|туапсе|крым\w*|ростов\w*|нижн\w* новгород\w*|самар\w*|твер[ьиь]\w*|минск\w*|батум\w*|красн\w* полян\w*|воронеж\w*|волгоград\w*|омск\w*|томск\w*|перм[ьиь]\w*|уф[аеуы]\w*|челябинск\w*|красноярск\w*|тюмен[ьиь]\w*|иркутск\w*|хабаровск\w*|владивосток\w*|сургут\w*|сочи-парк|тбилиси|ереван\w*|ташкент\w*|белград\w*|антал[ьи]\w*|бишкек\w*|алмат[ыи]|астан\w*|псков\w*|суздал\w*|ярославл\w*|костром\w*|владимир\w*|иванов\w*|смоленск\w*|брянск\w*|ор[её]л\w*|курск\w*|белгород\w*|рязан\w*|тул[аеуы]\w*|тамбов\w*|липецк\w*|пенза|пензе|ижевск\w*|киров\w*|чебоксар\w*|саранск\w*|йошкар\w*|ульяновск\w*|оренбург\w*|барнаул\w*|кемеров\w*|новокузнецк\w*|абакан\w*|чита|чите|улан-удэ|якутск\w*|магадан\w*|мурманск\w*|архангельск\w*|петрозаводск\w*|вологд\w*|сыктывкар\w*|грозн\w*|махачкал\w*|владикавказ\w*|ставропол\w*|пятигорск\w*|кисловодск\w*|ессентук\w*|нальчик\w*|майкоп\w*"
 SOFT = r"желатель\w*|хорошо бы|по возможности|необязатель\w*|не обязател\w*|можно(?: бы)?|не принципиаль\w*"
 HARD = r"(?<!не )обязатель\w*|только|важн\w*|нуж(?:ен|на|но|ны)|долж\w*|необходим\w*"
@@ -106,7 +110,7 @@ def _importance(text: str, start: int, end: int) -> tuple[bool, bool, bool]:
         return False, False, True
     markers = [(m.start(), True) for m in re.finditer(SOFT, before)] + [(m.start(), False) for m in re.finditer(HARD, before)]
     soft = max(markers, default=(-1, False))[1]
-    if re.match(r"\s*(?:необязатель\w*|не обязател\w*|желатель\w*)", after):
+    if re.match(r"\s*(?:[а-яa-z]+\s+){0,3}?(?:необязатель\w*|не обязател\w*|желатель\w*)", after):
         soft = True
     negative = bool(re.search(r"(?:\bбез|\bне)\s*(?:вид\w*\s*(?:на\s*)?)?$", before[-35:]))
     # Negated noise is a positive request for quiet; "не обязательно" is a preference.
@@ -148,10 +152,10 @@ def _nearby_intents(text: str) -> dict:
     return attached
 
 
-def _criterion_label(criterion: Criterion, fallback: str) -> str:
+def _criterion_label(criterion: Criterion, fallback: str, unit: str | None = None) -> str:
     cid = criterion.characteristic_id
-    if (cid, criterion.field) in FIELD_LABELS:
-        name, unit = FIELD_LABELS[(cid, criterion.field)]
+    if (cid, criterion.field) in FIELD_LABELS or unit and criterion.op in {"lte", "gte"}:
+        name, unit = FIELD_LABELS.get((cid, criterion.field), (fallback, unit))
         sign = {"lte": "≤", "gte": "≥", "eq": "="}.get(criterion.op, criterion.op)
         threshold = f"{criterion.value:g}".replace(".", ",") if isinstance(criterion.value, int | float) else str(criterion.value)
         fallback = f"{name} {sign} {threshold} {unit}"
@@ -245,6 +249,14 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         op, value = _numeric(text, numeric_match.start(), numeric_match.end(), field, op, value)
         if negative and isinstance(value, bool):
             value = not value
+        away = spec.id == "nightlife" and (negative or re.search(AWAY, text[max(0, match.start()-25):match.start()]))
+        if away:
+            op, value = "lte", CALM_VENUES_MAX
+        if spec.id == "nightlife":
+            # "рядом бары" / "кафе рядом": the proximity is part of the 500 m density measure.
+            consumed.extend((near.start(), near.end()) for near in re.finditer(r"\bрядом\b|\bподальше\b|\bвдали\b", text)
+                            if any(min(abs(near.start() - m.end()), abs(m.start() - near.end())) <= 25
+                                   and not re.search(r"[,;.!?]", text[min(near.end(), m.end()):max(near.start(), m.start())]) for m in matches))
         if spec.id == "soundproofing":
             matched_text = match[0]
             if re.search(r"двойн\w* ок", matched_text):
@@ -299,13 +311,13 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
                         group = parsed.nice if extra_soft else parsed.must
                         if not any(c.characteristic_id == spec.id and c.field == extra_field and c.value == extra_value for c in group):
                             group.append(Criterion(characteristic_id=spec.id, label=label, field=extra_field, value=extra_value))
-        criterion.label = _criterion_label(criterion, spec.name_ru)
+        criterion.label = _criterion_label(criterion, "Спокойный район" if spec.id == "nightlife" and away else spec.name_ru, spec.search.unit)
     residual = list(text)
     for start, end in consumed:
         residual[start:end] = " " * (end-start)
     remaining = "".join(residual)
     remaining = re.sub(r"\b(?:" + OUTSIDE + "|" + "|".join(MONTHS) + r")\w*\b", " ", remaining)
-    ignored = r"сочи|адлер\w*|сириус\w*|имеретин\w*|центр\w*|номер\w*|отел\w*|гостиниц\w*|вид\w*|сторон\w*|этаж\w*|окн\w*|ноч\w*|днем|летом|утром|пешком|мин\w*|кг|градус\w*|мбит|мб|с|в|во|на|за|к|от|до|и|но|а|не|без|для|из|по|у|со|же|бы|или|нам|мне|мы|я|нас|над|около|это|его|ее|их|чтобы|где|ищу|найти|хочу|хотим|нуж\w*|важ\w*|обязатель\w*|желатель\w*|необязатель\w*|возможности|хорошо|только|более|менее|ниже|выше|дальше|больше|дольше|максимум|сентябр\w*|пожалуйста|спасибо|ехать|едем|еду|отдых\w*|поездк\w*|пару|двоих|пары|романти\w*|годовщин\w*|муж\w*|жена|спит|сплю|чутко|чуткий|требуется|разрешен\w*|принима\w*|допуска\w*|принципиаль\w*|размер\w*|вес\w*|был\w*|будет|есть|быть|метр\w*|море|моря|пляж\w*|вод\w*|тепл\w*"
+    ignored = r"сочи|адлер\w*|сириус\w*|имеретин\w*|центр\w*|номер\w*|отел\w*|гостиниц\w*|вид\w*|сторон\w*|этаж\w*|окн\w*|ноч\w*|днем|летом|утром|пешком|мин\w*|кг|градус\w*|мбит|мб|с|в|во|на|за|к|от|до|и|но|а|не|без|для|из|по|у|со|же|бы|или|нам|мне|мы|я|нас|над|около|это|его|ее|их|чтобы|где|ищу|найти|хочу|хотим|жить|живем|нуж\w*|обязател\w*|важ\w*|обязатель\w*|желатель\w*|необязатель\w*|возможности|хорошо|только|более|менее|ниже|выше|дальше|больше|дольше|максимум|сентябр\w*|пожалуйста|спасибо|ехать|едем|еду|отдых\w*|поездк\w*|пару|двоих|пары|романти\w*|годовщин\w*|муж\w*|жена|спит|сплю|чутко|чуткий|требуется|разрешен\w*|принима\w*|допуска\w*|принципиаль\w*|размер\w*|вес\w*|был\w*|будет|есть|быть|метр\w*|море|моря|пляж\w*|вод\w*|тепл\w*"
     tokens = [word for word in re.findall(r"[а-яa-z][а-яa-z-]*", remaining) if len(word) > 2 and not re.fullmatch(ignored, word)]
     if tokens:
         parsed.unmapped.append(" ".join(dict.fromkeys(tokens)))

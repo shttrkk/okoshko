@@ -122,7 +122,8 @@ def poi_plans(specs: list[CharacteristicSpec]) -> list[tuple[CharacteristicSpec,
         for method in spec.methods:
             if method.tool == "poi_nearby":
                 params = dict(method.params)
-                params.setdefault("kind", POI_DEFAULT_KINDS.get(spec.id, "pharmacy"))
+                if not params.get("category"):
+                    params.setdefault("kind", POI_DEFAULT_KINDS.get(spec.id, "pharmacy"))
                 plans.append((spec, params))
     return plans
 
@@ -134,11 +135,11 @@ def bootstrap_poi(repo,data_dir):
     known_claims = repo.all("claims")
     specs = [CharacteristicSpec.model_validate(row) for row in repo.all("characteristics")]
     plans = poi_plans(specs)
-    current = {(claim["hotel_id"],claim["characteristic_id"],claim["method"]) for claim in known_claims if claim["method"].startswith("local_poi_lookup@")}
+    current = {(claim["hotel_id"],claim["characteristic_id"],claim["method"]) for claim in known_claims if claim["method"].startswith("local_poi_")}
     hotels = repo.all("hotels")
     # A newer method version (changed value semantics) is recomputed and supersedes older claims.
     missing = [(hotel,spec,params) for hotel in hotels for spec,params in plans
-               if (hotel["id"],spec.id,poi_method(params["kind"])) not in current]
+               if (hotel["id"],spec.id,poi_method(params)) not in current]
     if not missing:
         return
     trace = Trace(repo,"backfill",trigger="seed")

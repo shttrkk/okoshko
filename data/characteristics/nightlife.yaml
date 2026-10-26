@@ -1,0 +1,56 @@
+id: nightlife
+version: 1
+name_ru: В гуще событий
+description: Плотность баров, пабов, клубов, кафе и ресторанов OSM в 500 м по прямой и расстояние до ближайшей пешеходной улицы или набережной. «В гуще событий» — не меньше 30 заведений; часы работы и громкость не проверяются.
+category: Окружение
+synonyms:
+- в гуще событий
+- ночная жизнь
+- бары рядом
+- тусовки
+- движ
+- кафе рядом
+- рестораны рядом
+- оживлённо
+- оживлённый район
+- ночной клуб
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+    venues_500m:
+      type:
+      - integer
+      - 'null'
+    bars_500m:
+      type:
+      - integer
+      - 'null'
+    promenade_distance_m:
+      type:
+      - integer
+      - 'null'
+  additionalProperties: true
+methods:
+- tool: poi_nearby
+  params:
+    kind: nightlife
+  rationale: Бары, кафе и рестораны OSM в 500 м и ближайшая пешеходная улица или набережная по локальному снимку
+  when: null
+combine: null
+ttl_days: 90
+change_triggers: []
+search:
+  kind: numeric
+  field: venues_500m
+  default_op: gte
+  default_value: 30
+  unit: заведений в 500 м
+  explain_ok: Рядом много баров, кафе и ресторанов
+  explain_bad: Заведений рядом меньше порога
+hotelier_answerable: false
+status: active

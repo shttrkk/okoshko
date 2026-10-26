@@ -167,6 +167,7 @@ class SearchSpec(Model):
     field: str = "available"
     default_op: Literal["eq", "lte", "gte", "contains"] = "eq"
     default_value: Any = True
+    unit: str | None = None
     explain_ok: str = "Соответствует условию"
     explain_bad: str = "Условие не выполняется"
 

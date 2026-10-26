@@ -7,8 +7,8 @@ from backend.agents.query_match import fresh, scope_values, value_at
 from backend.contracts import CharacteristicSpec, Criterion, Fact, Hotel, ParsedQuery, SearchHit
 
 WEIGHTS = {"sea_view": 2, "sunset_view": 2, "quiet_night": 2, "beach_walk": 2,
-           "soundproofing": 1.5, "pets": 1.5, "connectivity": 1.5}
-SCALES = {"minutes": 20, "download_mbps": 100, "water_c": 15, "european_aqi": 80}
+           "soundproofing": 1.5, "pets": 1.5, "connectivity": 1.5, "nightlife": 1.5}
+SCALES = {"minutes": 20, "download_mbps": 100, "water_c": 15, "european_aqi": 80, "venues_500m": 60}
 
 
 def _fingerprint(facts: list[Fact], specs: list[CharacteristicSpec]) -> dict:
