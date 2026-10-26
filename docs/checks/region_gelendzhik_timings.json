@@ -1,0 +1,1061 @@
+{
+  "schema_version": 1,
+  "workflow_started_at": "2026-10-26T16:46:03+00:00",
+  "report_generated_at": "2026-10-26T17:11:03.183441+00:00",
+  "base_commit": "04336b93db973844c5ddfeeb893804a16ebbbab0",
+  "branch": "feat/gelendzhik",
+  "region": "gelendzhik",
+  "artifact_root": "runtime/gelendzhik-data",
+  "hardware": {
+    "host": "Apple M4 / Mac16,12",
+    "host_cpu_count": 10,
+    "host_ram_bytes": 17179869184,
+    "docker_server": "29.4.0",
+    "docker_cpu_count": 10,
+    "docker_ram_limit_bytes": 8321712128,
+    "image_id": "sha256:ff679436cc062273f797b6e871e17b1bcda30efbf131a4bbe4969b62420d67e5",
+    "platform": "Linux-6.12.76-linuxkit-x86_64-with-glibc2.36",
+    "execution": "linux/amd64 under Docker Desktop Rosetta on arm64; one compute worker"
+  },
+  "region_config_sha256": "2dcfc71c8e2d6d4b227b95be3c65315ce56a83ecc11aefb552e9b4f225c59c17",
+  "terrain_bbox_wgs84": [
+    37.65,
+    44.25,
+    38.5,
+    44.9
+  ],
+  "terrain_valid_fraction": 1.0,
+  "pipeline_runs": [
+    {
+      "started_at": "2026-10-26T16:47:53.268974+00:00",
+      "argv": [
+        "--region",
+        "pipeline/regions/gelendzhik.yaml",
+        "--terrain-bbox",
+        "37.65",
+        "44.25",
+        "38.50",
+        "44.90",
+        "--to-stage",
+        "fetch_osm"
+      ],
+      "platform": "Linux-6.12.76-linuxkit-x86_64-with-glibc2.36",
+      "rss_scope": "lifetime high water mark of this process and completed children; not per-stage allocation",
+      "stages": [
+        {
+          "stage": "fetch_osm",
+          "started_at": "2026-10-26T16:47:53.331861+00:00",
+          "status": "ok",
+          "ended_at": "2026-10-26T16:57:21.121043+00:00",
+          "elapsed_s": 567.786373,
+          "cpu_user_s": 576.640581,
+          "cpu_system_s": 4.377363,
+          "process_peak_rss_bytes": 1196236800,
+          "completed_child_peak_rss_bytes": 21721088
+        }
+      ],
+      "ended_at": "2026-10-26T16:57:21.122700+00:00"
+    },
+    {
+      "started_at": "2026-10-26T16:57:56.498872+00:00",
+      "argv": [
+        "--region",
+        "pipeline/regions/gelendzhik.yaml",
+        "--terrain-bbox",
+        "37.65",
+        "44.25",
+        "38.50",
+        "44.90",
+        "--from-stage",
+        "fetch_overture",
+        "--to-stage",
+        "compute_views",
+        "--workers",
+        "1"
+      ],
+      "platform": "Linux-6.12.76-linuxkit-x86_64-with-glibc2.36",
+      "rss_scope": "lifetime high water mark of this process and completed children; not per-stage allocation",
+      "stages": [
+        {
+          "stage": "fetch_overture",
+          "started_at": "2026-10-26T16:57:56.564253+00:00",
+          "status": "ok",
+          "ended_at": "2026-10-26T16:59:10.376793+00:00",
+          "elapsed_s": 73.815481,
+          "cpu_user_s": 110.72598,
+          "cpu_system_s": 18.010758,
+          "process_peak_rss_bytes": 1808293888,
+          "completed_child_peak_rss_bytes": 24301568
+        },
+        {
+          "stage": "merge_hotels",
+          "started_at": "2026-10-26T16:59:10.379851+00:00",
+          "status": "ok",
+          "ended_at": "2026-10-26T16:59:16.251427+00:00",
+          "elapsed_s": 5.871715,
+          "cpu_user_s": 5.755841,
+          "cpu_system_s": 0.074899,
+          "process_peak_rss_bytes": 1808293888,
+          "completed_child_peak_rss_bytes": 24301568
+        },
+        {
+          "stage": "fetch_dem",
+          "started_at": "2026-10-26T16:59:16.253017+00:00",
+          "status": "ok",
+          "ended_at": "2026-10-26T16:59:25.130735+00:00",
+          "elapsed_s": 8.874384,
+          "cpu_user_s": 6.084276,
+          "cpu_system_s": 0.745302,
+          "process_peak_rss_bytes": 1808293888,
+          "completed_child_peak_rss_bytes": 24301568
+        },
+        {
+          "stage": "build_dsm",
+          "started_at": "2026-10-26T16:59:25.131793+00:00",
+          "status": "ok",
+          "ended_at": "2026-10-26T16:59:27.554579+00:00",
+          "elapsed_s": 2.42282,
+          "cpu_user_s": 2.22809,
+          "cpu_system_s": 0.144134,
+          "process_peak_rss_bytes": 1808293888,
+          "completed_child_peak_rss_bytes": 24301568
+        },
+        {
+          "stage": "fetch_open",
+          "started_at": "2026-10-26T16:59:27.555055+00:00",
+          "status": "ok",
+          "ended_at": "2026-10-26T16:59:43.228477+00:00",
+          "elapsed_s": 15.67346,
+          "cpu_user_s": 0.693379,
+          "cpu_system_s": 0.031092,
+          "process_peak_rss_bytes": 1808293888,
+          "completed_child_peak_rss_bytes": 24301568
+        },
+        {
+          "stage": "fetch_ookla",
+          "started_at": "2026-10-26T16:59:43.229464+00:00",
+          "status": "ok",
+          "ended_at": "2026-10-26T17:00:13.390894+00:00",
+          "elapsed_s": 30.161427,
+          "cpu_user_s": 5.601432,
+          "cpu_system_s": 3.001989,
+          "process_peak_rss_bytes": 1808293888,
+          "completed_child_peak_rss_bytes": 24301568
+        },
+        {
+          "stage": "fetch_tiles",
+          "started_at": "2026-10-26T17:00:13.392062+00:00",
+          "status": "ok",
+          "ended_at": "2026-10-26T17:00:48.940342+00:00",
+          "elapsed_s": 35.548137,
+          "cpu_user_s": 2.012735,
+          "cpu_system_s": 0.416022,
+          "process_peak_rss_bytes": 1808293888,
+          "completed_child_peak_rss_bytes": 295546880
+        },
+        {
+          "stage": "export_seed",
+          "started_at": "2026-10-26T17:00:48.941266+00:00",
+          "status": "ok",
+          "ended_at": "2026-10-26T17:00:50.552539+00:00",
+          "elapsed_s": 1.611369,
+          "cpu_user_s": 1.517447,
+          "cpu_system_s": 0.059695,
+          "process_peak_rss_bytes": 1808293888,
+          "completed_child_peak_rss_bytes": 295546880
+        },
+        {
+          "stage": "compute_views",
+          "started_at": "2026-10-26T17:00:50.553912+00:00",
+          "status": "ok",
+          "hotels": [
+            {
+              "hotel_id": "osm-node-10759614136",
+              "elapsed_s": 22.56555,
+              "claims": 76,
+              "facades": 5
+            },
+            {
+              "hotel_id": "osm-node-11067209470",
+              "elapsed_s": 9.573473,
+              "claims": 89,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-node-12174798945",
+              "elapsed_s": 10.835974,
+              "claims": 91,
+              "facades": 6
+            },
+            {
+              "hotel_id": "osm-node-1219433529",
+              "elapsed_s": 8.526528,
+              "claims": 72,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-node-1221423928",
+              "elapsed_s": 5.897069,
+              "claims": 61,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-node-1253639553",
+              "elapsed_s": 7.768254,
+              "claims": 61,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-node-1922177387",
+              "elapsed_s": 10.86539,
+              "claims": 106,
+              "facades": 5
+            },
+            {
+              "hotel_id": "osm-node-2388986086",
+              "elapsed_s": 8.613123,
+              "claims": 89,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-node-2938065609",
+              "elapsed_s": 7.253065,
+              "claims": 71,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-node-4359855957",
+              "elapsed_s": 11.152174,
+              "claims": 61,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-node-494318107",
+              "elapsed_s": 15.123834,
+              "claims": 102,
+              "facades": 5
+            },
+            {
+              "hotel_id": "osm-node-494319456",
+              "elapsed_s": 12.635972,
+              "claims": 81,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-node-5391442522",
+              "elapsed_s": 18.287574,
+              "claims": 88,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-node-5865786385",
+              "elapsed_s": 14.005941,
+              "claims": 112,
+              "facades": 7
+            },
+            {
+              "hotel_id": "osm-node-6813957785",
+              "elapsed_s": 10.457787,
+              "claims": 61,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-node-7063051121",
+              "elapsed_s": 16.853536,
+              "claims": 61,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-node-8984044317",
+              "elapsed_s": 13.961574,
+              "claims": 89,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-node-946151417",
+              "elapsed_s": 8.843313,
+              "claims": 61,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-way-105825202",
+              "elapsed_s": 12.837425,
+              "claims": 79,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-way-105849587",
+              "elapsed_s": 17.729112,
+              "claims": 78,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-way-105861070",
+              "elapsed_s": 14.870111,
+              "claims": 82,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-way-105866809",
+              "elapsed_s": 7.374259,
+              "claims": 61,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-way-105873075",
+              "elapsed_s": 9.759537,
+              "claims": 84,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-way-105873168",
+              "elapsed_s": 12.216505,
+              "claims": 70,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-way-105874029",
+              "elapsed_s": 11.034589,
+              "claims": 66,
+              "facades": 3
+            },
+            {
+              "hotel_id": "osm-way-105883489",
+              "elapsed_s": 19.979389,
+              "claims": 100,
+              "facades": 6
+            },
+            {
+              "hotel_id": "osm-way-105896888",
+              "elapsed_s": 9.094677,
+              "claims": 82,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-way-173348800",
+              "elapsed_s": 13.632847,
+              "claims": 75,
+              "facades": 4
+            },
+            {
+              "hotel_id": "osm-way-444802651",
+              "elapsed_s": 17.337288,
+              "claims": 106,
+              "facades": 7
+            },
+            {
+              "hotel_id": "osm-way-579865454",
+              "elapsed_s": 5.528961,
+              "claims": 61,
+              "facades": 4
+            }
+          ],
+          "region_load_s": 7.417978,
+          "ended_at": "2026-10-26T17:07:03.802852+00:00",
+          "elapsed_s": 373.246517,
+          "cpu_user_s": 372.551192,
+          "cpu_system_s": 0.115314,
+          "process_peak_rss_bytes": 1808293888,
+          "completed_child_peak_rss_bytes": 295546880
+        }
+      ],
+      "ended_at": "2026-10-26T17:07:03.803835+00:00"
+    },
+    {
+      "started_at": "2026-10-26T17:07:15.492522+00:00",
+      "argv": [
+        "--region",
+        "pipeline/regions/gelendzhik.yaml",
+        "--terrain-bbox",
+        "37.65",
+        "44.25",
+        "38.50",
+        "44.90",
+        "--from-stage",
+        "compute_runtime_cache",
+        "--cache-hotel-id",
+        "osm-node-1922177387"
+      ],
+      "platform": "Linux-6.12.76-linuxkit-x86_64-with-glibc2.36",
+      "rss_scope": "lifetime high water mark of this process and completed children; not per-stage allocation",
+      "stages": [
+        {
+          "stage": "compute_runtime_cache",
+          "started_at": "2026-10-26T17:07:15.559599+00:00",
+          "status": "ok",
+          "ended_at": "2026-10-26T17:07:33.776321+00:00",
+          "elapsed_s": 18.216717,
+          "cpu_user_s": 20.009816,
+          "cpu_system_s": 0.369659,
+          "process_peak_rss_bytes": 605573120,
+          "completed_child_peak_rss_bytes": 24317952
+        },
+        {
+          "stage": "compact_seed",
+          "started_at": "2026-10-26T17:07:33.777438+00:00",
+          "status": "ok",
+          "ended_at": "2026-10-26T17:07:34.587003+00:00",
+          "elapsed_s": 0.809609,
+          "cpu_user_s": 0.77797,
+          "cpu_system_s": 0.010978,
+          "process_peak_rss_bytes": 605573120,
+          "completed_child_peak_rss_bytes": 24317952
+        },
+        {
+          "stage": "validate",
+          "started_at": "2026-10-26T17:07:34.587548+00:00",
+          "status": "ok",
+          "ended_at": "2026-10-26T17:07:38.986849+00:00",
+          "elapsed_s": 4.399378,
+          "cpu_user_s": 4.345751,
+          "cpu_system_s": 0.025517,
+          "process_peak_rss_bytes": 605573120,
+          "completed_child_peak_rss_bytes": 24317952
+        },
+        {
+          "stage": "compute_validate",
+          "started_at": "2026-10-26T17:07:38.987791+00:00",
+          "status": "ok",
+          "ended_at": "2026-10-26T17:07:41.480958+00:00",
+          "elapsed_s": 2.493207,
+          "cpu_user_s": 2.38501,
+          "cpu_system_s": 0.029077,
+          "process_peak_rss_bytes": 605573120,
+          "completed_child_peak_rss_bytes": 24317952
+        }
+      ],
+      "ended_at": "2026-10-26T17:07:41.481650+00:00"
+    }
+  ],
+  "read_only_verification": {
+    "started_at": "2026-10-26T17:08:13.003527+00:00",
+    "argv": [
+      "--region",
+      "pipeline/regions/gelendzhik.yaml",
+      "--terrain-bbox",
+      "37.65",
+      "44.25",
+      "38.50",
+      "44.90",
+      "--validate-only"
+    ],
+    "platform": "Linux-6.12.76-linuxkit-x86_64-with-glibc2.36",
+    "rss_scope": "lifetime high water mark of this process and completed children; not per-stage allocation",
+    "stages": [
+      {
+        "stage": "validate",
+        "started_at": "2026-10-26T17:08:13.377283+00:00",
+        "status": "ok",
+        "ended_at": "2026-10-26T17:08:18.394921+00:00",
+        "elapsed_s": 5.017813,
+        "cpu_user_s": 7.267577,
+        "cpu_system_s": 0.116678,
+        "process_peak_rss_bytes": 267440128,
+        "completed_child_peak_rss_bytes": 24293376
+      },
+      {
+        "stage": "compute_validate",
+        "started_at": "2026-10-26T17:08:18.395915+00:00",
+        "status": "ok",
+        "ended_at": "2026-10-26T17:08:20.903483+00:00",
+        "elapsed_s": 2.507605,
+        "cpu_user_s": 2.37851,
+        "cpu_system_s": 0.058551,
+        "process_peak_rss_bytes": 267440128,
+        "completed_child_peak_rss_bytes": 24293376
+      }
+    ],
+    "ended_at": "2026-10-26T17:08:20.904207+00:00"
+  },
+  "aggregate": {
+    "stage_elapsed_s": 1140.930594,
+    "stage_cpu_user_s": 1111.3295,
+    "stage_cpu_system_s": 27.411799,
+    "max_process_lifetime_rss_bytes": 1808293888,
+    "max_completed_child_lifetime_rss_bytes": 295546880,
+    "regional_preparation_s": 741.765166
+  },
+  "hotel_compute": {
+    "workers": 1,
+    "region_load_s": 7.417978,
+    "first_cold_hotel_s": 22.56555,
+    "per_hotel_total_s": 364.614831,
+    "warm_n": 29,
+    "warm_mean_s": 11.794802793103448,
+    "warm_median_s": 11.034589,
+    "warm_p90_s": 17.4156528,
+    "warm_min_s": 5.528961,
+    "warm_max_s": 19.979389,
+    "similar_mix_1000_hotels_mean_compute_s": 11794.802793103448,
+    "similar_mix_1000_hotels_p90_budget_s": 17415.6528,
+    "limitation": "Extrapolation, not a 1000-hotel benchmark or production SLA; same mix of 1–7 modeled floors and 3–7 facades, hardware and inputs required. Cold first object includes JIT and geometry work, not an isolated startup measurement."
+  },
+  "downloads": {
+    "cached_pbf": {
+      "bytes": 316601771,
+      "sha256": "f30952667b42e6c88a442c7570292bd70c29c83c4d4aae1fe68aad08ef00be0f",
+      "retrieved_at": "2026-10-26T12:16:08.470334+00:00",
+      "network_download_bytes_this_run": 0
+    },
+    "new_http_body_bytes_saved": 61266872,
+    "new_dem_tiff_bytes": 41592727,
+    "materialized_bbox_query_bytes": 12785670,
+    "http_files": [
+      {
+        "metadata": "data/raw/Copernicus_DSM_COG_10_N44_00_E037_00_DEM.tif.metadata.json",
+        "bytes": 10567140,
+        "sha256": "76ef2ccfaa5f3dff0c9ae1ee72285de5c645bdef431f8aa92bde54ea7be44e87"
+      },
+      {
+        "metadata": "data/raw/Copernicus_DSM_COG_10_N44_00_E038_00_DEM.tif.metadata.json",
+        "bytes": 31025587,
+        "sha256": "1729741ea9770e07b512686b3025ace830274eb7e3db7cde202fbf009b41adda"
+      },
+      {
+        "metadata": "data/raw/LICENSE.NOTO.txt.metadata.json",
+        "bytes": 4374,
+        "sha256": "7713cfc8e3c36d5ec4aa3d6cffe7500a1b3310f8a86d914b8ea09c2a9dee7c2d"
+      },
+      {
+        "metadata": "data/raw/LICENSE.SPRITES.txt.metadata.json",
+        "bytes": 1074,
+        "sha256": "46d0ca73c10d7366ef7bf3932d8508267096393ccc9ef3a41d1b1d1fe37023f1"
+      },
+      {
+        "metadata": "data/raw/Noto_Sans_Italic_0-255.pbf.metadata.json",
+        "bytes": 79344,
+        "sha256": "43edfca91c285ba1226f09d5e74d68e1473a088c517f02a5212ff6ccb10037dc"
+      },
+      {
+        "metadata": "data/raw/Noto_Sans_Italic_1024-1279.pbf.metadata.json",
+        "bytes": 128015,
+        "sha256": "9c3f67dce1f538ee635405a5562c364c95ba4db06a6b312a45c84ad6edf4c28a"
+      },
+      {
+        "metadata": "data/raw/Noto_Sans_Italic_8192-8447.pbf.metadata.json",
+        "bytes": 52891,
+        "sha256": "5dc4e6680116fef01be024e272859d130262613c7e634409a590e5d50ad124ae"
+      },
+      {
+        "metadata": "data/raw/Noto_Sans_Italic_8448-8703.pbf.metadata.json",
+        "bytes": 49772,
+        "sha256": "c5ac063bb324f783a20ad168587f5d3c6966df53114ca95ab7a3af3d61458a42"
+      },
+      {
+        "metadata": "data/raw/Noto_Sans_Medium_0-255.pbf.metadata.json",
+        "bytes": 77628,
+        "sha256": "ba2f0118dd024e3041b158e5f9eb49bc0a658019f53f458e9f5c0b8efcd79b91"
+      },
+      {
+        "metadata": "data/raw/Noto_Sans_Medium_1024-1279.pbf.metadata.json",
+        "bytes": 128608,
+        "sha256": "1fd3385560bae824ee48de8c920412ca3a75cabe5ada5ea67d8d188787018319"
+      },
+      {
+        "metadata": "data/raw/Noto_Sans_Medium_8192-8447.pbf.metadata.json",
+        "bytes": 65101,
+        "sha256": "cc38e4956207f0edba1aaf749b61e8f6f1678ef1ad443d32ee285b21d0eb67aa"
+      },
+      {
+        "metadata": "data/raw/Noto_Sans_Medium_8448-8703.pbf.metadata.json",
+        "bytes": 77027,
+        "sha256": "9579816ed2c7765b605f76271f212b28fb82ba2019bef3156db270d3e9aa6790"
+      },
+      {
+        "metadata": "data/raw/Noto_Sans_Regular_0-255.pbf.metadata.json",
+        "bytes": 76044,
+        "sha256": "62c6d49b15fa836eb6aa45e259c7ca6762f44b011b09e47776efbe4a6db1b397"
+      },
+      {
+        "metadata": "data/raw/Noto_Sans_Regular_1024-1279.pbf.metadata.json",
+        "bytes": 125320,
+        "sha256": "302231023f7048d9694a7b3f3b737c8bc378f5af0175aed5bb4f2f3b6188919a"
+      },
+      {
+        "metadata": "data/raw/Noto_Sans_Regular_8192-8447.pbf.metadata.json",
+        "bytes": 64220,
+        "sha256": "8ea977a587352fe31b4159ffdbc9a40be79056f2472017c742ea1e4a931864b9"
+      },
+      {
+        "metadata": "data/raw/Noto_Sans_Regular_8448-8703.pbf.metadata.json",
+        "bytes": 82014,
+        "sha256": "125b49cccfe95ac2f64b6bc2661871fba0081ff1b24f34c20bd29260b9351b57"
+      },
+      {
+        "metadata": "data/raw/commons_geosearch.json.metadata.json",
+        "bytes": 412673,
+        "sha256": "dc89d8e10b6e85e79af2587f61f26223007591e4a017b50918a9c6050560cc03"
+      },
+      {
+        "metadata": "data/raw/commons_geosearch_b.json.metadata.json",
+        "bytes": 316943,
+        "sha256": "565d5575ecce9a39fd68c3900a78cdfcc0781a5563ddcfb7460a33ef91a94cdb"
+      },
+      {
+        "metadata": "data/raw/go-pmtiles_1.31.2_Linux_x86_64.tar.gz.metadata.json",
+        "bytes": 17444324,
+        "sha256": "3ed7dbf4ec2e6dfe5e25b6f70d1ffc932729f93c86db353bf514dd71010a312f"
+      },
+      {
+        "metadata": "data/raw/open_meteo_aq.json.metadata.json",
+        "bytes": 4112,
+        "sha256": "7d129433811fc28f98665e143adc94c5dc1d5cb21c25612fbd466b65b4c3824f"
+      },
+      {
+        "metadata": "data/raw/open_meteo_aq_b.json.metadata.json",
+        "bytes": 4113,
+        "sha256": "ec6abb18241de336ff7885460d0b3f4dceb4dda516a0181af03cd143635d2d56"
+      },
+      {
+        "metadata": "data/raw/open_meteo_archive.json.metadata.json",
+        "bytes": 115630,
+        "sha256": "2f85fc5df311a209cce058b84930be0931f89f34495689221d2523f825e3bd7d"
+      },
+      {
+        "metadata": "data/raw/open_meteo_archive_b.json.metadata.json",
+        "bytes": 115669,
+        "sha256": "6669b41e8b8dfa7799d7ed994d70b480183c6e6491060c00fb6ac283792c34cf"
+      },
+      {
+        "metadata": "data/raw/open_meteo_climate.json.metadata.json",
+        "bytes": 6769,
+        "sha256": "3fcb04385418e5f2d23ea0b44778916f462f351519cb3f517445b1513d76c1c0"
+      },
+      {
+        "metadata": "data/raw/open_meteo_climate_b.json.metadata.json",
+        "bytes": 6776,
+        "sha256": "499ded7b4ff093faf92cae0a9e54513ae1db13672b951cb0b90e8d53e7a9c432"
+      },
+      {
+        "metadata": "data/raw/open_meteo_marine.json.metadata.json",
+        "bytes": 65978,
+        "sha256": "da41c0f775de6bb4f234eb32f0da9aca0e1914c1f06a946d07609f38e92b4265"
+      },
+      {
+        "metadata": "data/raw/open_meteo_marine_b.json.metadata.json",
+        "bytes": 65983,
+        "sha256": "5414a76d8979d18da61c87119435e2bf8e694f9e17fb9c5606f29ce9f92f6afc"
+      },
+      {
+        "metadata": "data/raw/sprites_v4_dark.json.metadata.json",
+        "bytes": 3549,
+        "sha256": "bfac76cf7ed5c2aa2992695904056a1c6b07785b7fd20e6c640cb44fd6244a2e"
+      },
+      {
+        "metadata": "data/raw/sprites_v4_dark.png.metadata.json",
+        "bytes": 16054,
+        "sha256": "8920f68e8f9f7a4188da43e62a81bbc426532579fff7b5f27aad09e130f4246e"
+      },
+      {
+        "metadata": "data/raw/sprites_v4_dark@2x.json.metadata.json",
+        "bytes": 3579,
+        "sha256": "1fb5b123fbe35d2e1f6ac171513ce01df89e671273a417ee89c44886a4c132f0"
+      },
+      {
+        "metadata": "data/raw/sprites_v4_dark@2x.png.metadata.json",
+        "bytes": 28407,
+        "sha256": "6e01b4e366d304f27bbd55390511a3d4e39aa1d03eb3e82f873f7ea32e74cbe4"
+      },
+      {
+        "metadata": "data/raw/sprites_v4_light.json.metadata.json",
+        "bytes": 3549,
+        "sha256": "bfac76cf7ed5c2aa2992695904056a1c6b07785b7fd20e6c640cb44fd6244a2e"
+      },
+      {
+        "metadata": "data/raw/sprites_v4_light.png.metadata.json",
+        "bytes": 16174,
+        "sha256": "b6a34640917bdc57d0bd080836db33376371a3312ebe7b849045268015de3481"
+      },
+      {
+        "metadata": "data/raw/sprites_v4_light@2x.json.metadata.json",
+        "bytes": 3579,
+        "sha256": "1fb5b123fbe35d2e1f6ac171513ce01df89e671273a417ee89c44886a4c132f0"
+      },
+      {
+        "metadata": "data/raw/sprites_v4_light@2x.png.metadata.json",
+        "bytes": 28852,
+        "sha256": "23f6e9df27c2e9a14385763980a24e3608966bfc8192a106058bc2ca959ab563"
+      }
+    ],
+    "materialized_query_files": [
+      {
+        "metadata": "data/raw/ookla_fixed.metadata.json",
+        "bytes": 3,
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+      },
+      {
+        "metadata": "data/raw/ookla_mobile.metadata.json",
+        "bytes": 3,
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+      },
+      {
+        "metadata": "data/raw/overture_buildings.metadata.json",
+        "bytes": 12630845,
+        "sha256": "9338167ade0b94ba3d874ffaf497e37e98d533a77c0180bedcc90f6389486cf6"
+      },
+      {
+        "metadata": "data/raw/overture_places.metadata.json",
+        "bytes": 154819,
+        "sha256": "c51aed9adf48047d7dca1c73c56fb3b1e9491e4cd4f1566970359a219fa1fea2"
+      }
+    ],
+    "source_container_eth0_after_fetch_rx_bytes": 844037968,
+    "source_container_eth0_after_fetch_tx_bytes": 9001631,
+    "network_sample_at": "2026-10-26T17:01:28.205343+00:00",
+    "network_scope": "Container interface counters after all source stages; include protocol/extension traffic and remote range reads. Saved JSON query result sizes are not upstream network transfer sizes."
+  },
+  "results": {
+    "seed_validation": {
+      "building_height_provenance": {
+        "height": 7,
+        "levels": 1969,
+        "unknown": 22391
+      },
+      "external_dataset_families": [
+        "OpenStreetMap/Geofabrik",
+        "Overture",
+        "Copernicus DEM",
+        "Open-Meteo",
+        "Wikimedia Commons",
+        "Protomaps"
+      ],
+      "external_source_registry_count": 10,
+      "geometry_counts": {
+        "beaches": 37,
+        "buildings": 24367,
+        "coastline": 16,
+        "pois": 3952,
+        "railways": 0,
+        "roads": 6400
+      },
+      "hotel_count": 30,
+      "hotel_zones": {
+        "A": 15,
+        "B": 15
+      },
+      "largest_output_bytes": 3329038,
+      "open_claims": {
+        "air_quality": 30,
+        "climate": 360,
+        "nearby_photos": 28
+      },
+      "photos": {
+        "local_thumbnails": 0,
+        "metadata": 100
+      },
+      "source_count": 11,
+      "tables": {
+        "hotels": 30,
+        "sources": 11
+      },
+      "valid": true,
+      "walk_graph": {
+        "directed_edges": 80924,
+        "largest_components": [
+          35698,
+          438,
+          105,
+          95,
+          85,
+          51,
+          36,
+          31,
+          23,
+          17
+        ],
+        "nodes": 36860,
+        "nodes_with_dem": 36860,
+        "weak_components": 61
+      }
+    },
+    "geo_claims": 2376,
+    "geo_claims_by_characteristic": {
+      "beach_walk": 29,
+      "mountain_view": 198,
+      "quiet_night": 132,
+      "sea_view": 184,
+      "sunset_view": 1833
+    },
+    "geo_coverage_hotels": {
+      "beach_walk": 29,
+      "mountain_view": 30,
+      "quiet_night": 30,
+      "sea_view": 30,
+      "sunset_view": 30
+    },
+    "distinct_characteristics": 8,
+    "card_floors_known": 21,
+    "card_floors_unknown_ids": [
+      "osm-node-12174798945",
+      "osm-node-1221423928",
+      "osm-node-1253639553",
+      "osm-node-4359855957",
+      "osm-node-6813957785",
+      "osm-node-7063051121",
+      "osm-way-105866809",
+      "osm-way-444802651",
+      "osm-way-579865454"
+    ],
+    "geo_floors_count_known": 22,
+    "geo_floors_unknown_ids": [
+      "osm-node-12174798945",
+      "osm-node-1221423928",
+      "osm-node-1253639553",
+      "osm-node-4359855957",
+      "osm-node-7063051121",
+      "osm-way-105866809",
+      "osm-way-444802651",
+      "osm-way-579865454"
+    ],
+    "nearest_building_matches": [
+      {
+        "hotel_id": "osm-node-6813957785",
+        "name": "Приморье Grand Resort Hotel",
+        "building_id": "osm-way-713938727",
+        "building_match": {
+          "distance_m": 2.148019364087086,
+          "method": "nearest_30m"
+        },
+        "floors": {
+          "base_m": 15.126065444946288,
+          "count": 1,
+          "eye_offset_m": 1.5,
+          "floor_height_m": 3,
+          "modeled_count": 1
+        }
+      },
+      {
+        "hotel_id": "osm-way-444802651",
+        "name": "Alean Family Biarritz",
+        "building_id": "osm-way-105890342",
+        "building_match": {
+          "distance_m": 20.210785594192156,
+          "method": "nearest_30m"
+        },
+        "floors": {
+          "base_m": 29.365303611755373,
+          "count": null,
+          "eye_offset_m": 1.5,
+          "floor_height_m": 3,
+          "modeled_count": 1
+        }
+      }
+    ],
+    "unknown_characteristics": {
+      "beach_walk": 1
+    },
+    "sea_available_model_hotels": 20,
+    "sea_p80_model_hotels": 13,
+    "runtime_cache_hotel_ids": [
+      "osm-node-1922177387"
+    ],
+    "ground_truth_labels": 0,
+    "accuracy": null
+  },
+  "artifacts": {
+    "per_hotel_json_npz_bytes": 43798223,
+    "similar_mix_1000_hotel_json_npz_bytes": 1459940766.6666665,
+    "directory_bytes": {
+      "raw": 448457411,
+      "seed": 4719257,
+      "geo": 56522996,
+      "tiles": 4444469
+    },
+    "sha256": {
+      "data/seed/manifest.json": "249f40b7195849e15d1b03d3dfb97580fcb16c71d15eefb029f7da54ac6ce19d",
+      "data/seed/hotels.json": "72757bf3e15fcc8c35c2ee8b3756a5466ca0a73a3d876889e1e992e529810d5c",
+      "data/geo/terrain_30m.npz": "2437028e9a5738be40f31858fc7eaa6e278c66602c8a488210ca16e120d1c769",
+      "data/geo/geo_claims.jsonl.gz": "4a5c3b4e845de3cee1b2311e61ea57a86d6eb4e523c58b000a50cbf25514c007",
+      "data/geo/osm-node-1922177387.los.npz": "6a4c0c3c736266ded163596615d44318ee469f27e2a3b9441bbb039c9f9cbcca"
+    }
+  },
+  "examples": [
+    {
+      "hotel_id": "osm-node-1922177387",
+      "name": "Плаза",
+      "center": [
+        38.0469409,
+        44.5895603
+      ],
+      "building_id": "osm-way-181827895",
+      "building_match": {
+        "distance_m": 0.0,
+        "method": "id"
+      },
+      "claim_id": "geo-1644db5d5588eef8d188",
+      "scope": {
+        "facade": "W",
+        "floor_max": 6,
+        "floor_min": 2,
+        "type": "floor_range"
+      },
+      "value": {
+        "available": true,
+        "blocking_building_ids": [
+          "osm-way-105829316",
+          "osm-way-105829372",
+          "osm-way-105829407",
+          "osm-way-105829418",
+          "osm-way-443910857"
+        ],
+        "facade": "W",
+        "min_floor": 2,
+        "probability": 0.7844,
+        "sea_fraction": 0.287,
+        "sea_width_deg": 43.0
+      },
+      "confidence": 0.6275,
+      "min_floor_sea_p80": 4,
+      "sea_probability_by_floor": [
+        0.0,
+        0.296875,
+        0.640625,
+        0.984375,
+        1.0,
+        1.0
+      ],
+      "sea_width_by_floor": [
+        0.0,
+        13.0,
+        37.0,
+        51.0,
+        57.0,
+        57.0
+      ],
+      "height_coverage": 0.8,
+      "evidence_artifact": "/data/geo/osm-node-1922177387.json",
+      "snapshot_sha256": "516e94da055070406adc1a262e8f43e508b84af997e398b2b9b752e2f99344d4"
+    },
+    {
+      "hotel_id": "osm-node-11067209470",
+      "name": "Малахит",
+      "center": [
+        38.0552137,
+        44.586259
+      ],
+      "building_id": "osm-way-105825791",
+      "building_match": {
+        "distance_m": 0.0,
+        "method": "id"
+      },
+      "claim_id": "geo-75623f1184e08413b331",
+      "scope": {
+        "facade": "SW",
+        "floor_max": 3,
+        "floor_min": 2,
+        "type": "floor_range"
+      },
+      "value": {
+        "available": true,
+        "blocking_building_ids": [
+          "osm-way-105825748",
+          "osm-way-105825783",
+          "osm-way-105825794",
+          "osm-way-105825840",
+          "osm-way-1412242782",
+          "osm-way-1412242783"
+        ],
+        "facade": "SW",
+        "min_floor": 2,
+        "probability": 0.8281,
+        "sea_fraction": 0.473,
+        "sea_width_deg": 71.0
+      },
+      "confidence": 0.5383,
+      "min_floor_sea_p80": 3,
+      "sea_probability_by_floor": [
+        0.0,
+        0.65625,
+        1.0
+      ],
+      "sea_width_by_floor": [
+        0.0,
+        30.0,
+        112.0
+      ],
+      "height_coverage": 0.5,
+      "evidence_artifact": "/data/geo/osm-node-11067209470.json",
+      "snapshot_sha256": "ba789c8fbbb6556a7742e94c8cee18ebe4a2b8265dda23456219024b219863d1"
+    },
+    {
+      "hotel_id": "osm-node-1219433529",
+      "name": "Золотая лоза",
+      "center": [
+        38.0590242,
+        44.5836442
+      ],
+      "building_id": "osm-way-105896881",
+      "building_match": {
+        "distance_m": 0.0,
+        "method": "id"
+      },
+      "claim_id": "geo-8649e83eeccb80217081",
+      "scope": {
+        "facade": "SW",
+        "floor_max": 2,
+        "floor_min": 2,
+        "type": "floor_range"
+      },
+      "value": {
+        "available": true,
+        "blocking_building_ids": [
+          "osm-way-105825783",
+          "osm-way-105825840",
+          "osm-way-105896835",
+          "osm-way-105896837",
+          "osm-way-105896848",
+          "osm-way-105896859",
+          "osm-way-105896864",
+          "osm-way-105896865",
+          "osm-way-105896875",
+          "osm-way-105896878",
+          "osm-way-105896882",
+          "osm-way-105896913",
+          "osm-way-105896915",
+          "osm-way-105896923",
+          "osm-way-1426629001",
+          "osm-way-247782946",
+          "osm-way-247782958",
+          "osm-way-645680847",
+          "overture-1e7be200-6556-4f95-a16d-615ec6963570",
+          "overture-460345af-e2df-4230-8459-c009f8706cff",
+          "overture-c9e743c5-6d99-430d-93c5-9e1218b6b9bf"
+        ],
+        "facade": "SW",
+        "min_floor": 2,
+        "probability": 0.4531,
+        "sea_fraction": 0.147,
+        "sea_width_deg": 22.0
+      },
+      "confidence": 0.2891,
+      "min_floor_sea_p80": null,
+      "sea_probability_by_floor": [
+        0.015625,
+        0.453125
+      ],
+      "sea_width_by_floor": [
+        0.0,
+        22.0
+      ],
+      "height_coverage": 0.47619047619047616,
+      "evidence_artifact": "/data/geo/osm-node-1219433529.json",
+      "snapshot_sha256": "8db2b3435bf407b31ff9e65636bac5e00dd70c7efaefdaa3199523fba5d82658"
+    }
+  ],
+  "verification": {
+    "sochi_read_only_regression": {
+      "hotels": 250,
+      "geo_claims": 20340,
+      "runtime_caches": 2,
+      "exit_code": 0
+    },
+    "main_data_manifest_sha256": "3589fc304c83771768c4bed3ec1622871bb6875ee5db40d348bc29ba05df5e57",
+    "main_data_git_status": "clean",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "compact_geo": "not enabled; optional stage excluded by default",
+    "source_formats": "unchanged; Hotel/Source/Claim and numeric NPZ schema validation passed"
+  },
+  "workflow_ended_at": "2026-10-26T17:16:21.534268+00:00",
+  "workflow_elapsed_s": 1818.534268
+}

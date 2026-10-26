@@ -19,7 +19,7 @@ def run():
     manifest = read(SEED / "manifest.json")
     sources = {s["id"]: Source.model_validate(s) for s in read(SEED / "sources.json")}
     hotels = [Hotel.model_validate(h) for h in read(SEED / "hotels.json")]
-    assert 150 <= len(hotels) <= 250
+    assert len(hotels) == sum(zone["hotel_limit"] for zone in CONFIG["zones"].values())
     assert len({h.id for h in hotels}) == len(hotels)
     assert Counter(h.tags["demo_zone"] for h in hotels) == {z: v["hotel_limit"] for z, v in CONFIG["zones"].items()}
     assert all(h.basic_fields_source == "open_data" and h.price_rub is None for h in hotels)
