@@ -232,6 +232,50 @@ def test_overlapping_short_match_does_not_erase_a_postfix_preference(catalog, te
     assert not parsed.must and len(parsed.nice) == 1
 
 
+@pytest.mark.parametrize('text', ['интернет, интернет от 100 Мбит/с',
+                                 'интернет от 100 Мбит/с, интернет',
+                                 'интернет от 30 Мбит/с, интернет от 100 Мбит/с'])
+def test_repeated_numeric_requirement_keeps_the_strongest_hard_bound(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert [(c.field, c.op, c.value) for c in parsed.must] == [('download_mbps', 'gte', 100)]
+
+
+@pytest.mark.parametrize('text', [
+    'желательно интернет от 200 Мбит/с, интернет от 100 Мбит/с обязательно',
+    'интернет от 100 Мбит/с обязательно, желательно интернет от 200 Мбит/с',
+])
+def test_each_repeated_numeric_mention_keeps_its_own_priority(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert [(c.field, c.value) for c in parsed.must] == [('download_mbps', 100)]
+    assert [(c.field, c.value) for c in parsed.nice] == [('download_mbps', 200)]
+
+
+def test_later_explicit_beach_limit_is_hard_even_when_the_first_mention_was_soft(catalog):
+    parsed = parse_query(SearchRequest(text='желательно до моря 10 минут, обязательно до пляжа 4 минуты'), catalog)
+    assert [(c.field, c.value) for c in parsed.must] == [('minutes', 4)]
+    assert not parsed.nice
+
+
+def test_generic_family_requirement_does_not_make_a_later_distance_preference_hard(catalog):
+    parsed = parse_query(SearchRequest(text='с ребенком, желательно площадка в 100 м'), catalog)
+    assert [(c.field, c.value) for c in parsed.must] == [('available', True)]
+    assert [(c.field, c.value) for c in parsed.nice] == [('playground_distance_m', 100)]
+
+
+@pytest.mark.parametrize('text', ['на машине, желательно зарядка для электромобиля',
+                                 'на машине, зарядка для электромобиля желательно'])
+def test_optional_ev_charging_does_not_remove_hard_car_parking(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert [(c.field, c.value) for c in parsed.must] == [('parking_distance_m', 500)]
+    assert [(c.field, c.value) for c in parsed.nice] == [('ev_distance_m', 1000)]
+
+
+@pytest.mark.parametrize('text', ['интернет от 75 Мбит/с желательно', 'до пляжа 6 минут желательно'])
+def test_a_postfix_preference_can_follow_an_explicit_numeric_limit(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert not parsed.must and len(parsed.nice) == 1
+
+
 def test_negative_corpus_false_criteria_rate_is_at_most_one_percent(catalog):
     rows = load_jsonl(ROOT/'data/eval/queries_negative.jsonl')
     false_queries = []

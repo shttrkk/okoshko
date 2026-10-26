@@ -1,7 +1,7 @@
 """Russian intent extraction against the current characteristic catalogue.
 
-The deterministic path is deliberately small and inspectable. Optional structured
-LLM extraction may add language coverage, but cannot add catalogue IDs or facts.
+The deterministic path is inspectable. Optional structured LLM suggestions must
+match independently grounded local conditions before they can be cached or used.
 """
 from __future__ import annotations
 
@@ -141,6 +141,11 @@ def _importance(text: str, start: int, end: int) -> tuple[bool, bool, bool]:
     soft = max(markers, default=(-1, False))[1]
     if re.match(r"\s*(?:необязатель\w*|не обязател\w*|желатель\w*|по возможности|не принципиал\w*|(?:будет )?плюсом)", after):
         soft = True
+    numeric_postfix = (r'\s*(?:(?:не менее|не ниже|не выше|не более|не дальше|не ближе|хотя бы|минимум|максимум|от|до|в|за)\s*)?'
+                       r'\d+(?:[.,]\d+)?\s*(?:мбит(?:/с)?|mbps|мб/с|гбит(?:/с)?|gbps|минут\w*|час\w*|км|метр\w*|м\b|дб|градус\w*|°\s*[cс]?)'
+                       r'\s*(?:(?:в секунду|пешком)\s*)?(?:желатель\w*|необязатель\w*|не обязател\w*|по возможности|не принципиал\w*)')
+    if re.match(numeric_postfix, after):
+        soft = True
     if re.search(r'по возможности|желатель\w*|будет плюсом', text[start:end]):
         soft = True
     if re.search(r"(?:^|[,;])\s*можно(?: бы)?\s*$", before) and not re.search(r"\b(?:собак|кошк|котом|питом)\w*", text[start:end]):
@@ -254,6 +259,40 @@ def _criterion_label(criterion: Criterion, fallback: str, unit: str | None = Non
     return ", ".join([fallback, *flags])
 
 
+def _numeric_mentions(text: str, spec: CharacteristicSpec, matches: list,
+                      template: Criterion) -> list[tuple[bool, Criterion]]:
+    """Retain explicit limits from every mention, with that mention's priority."""
+    fields = {
+        'quiet_night': [('night_db_max', 'lte')],
+        'beach_walk': [('minutes', 'lte'), ('distance_m', 'lte')],
+        'night_pharmacy': [('minutes', 'lte'), ('distance_m', 'lte')],
+        'connectivity': [('download_mbps', 'gte')],
+        'climate': [('water_c', 'gte')],
+        'air_quality': [('european_aqi', 'lte')],
+    }.get(spec.id, [])
+    result = []
+    for atom in matches:
+        soft, negative, skip = _importance(text, atom.start(), atom.end())
+        if skip or negative:
+            continue
+        atom_fields = fields
+        if spec.id == 'car_access':
+            if re.search(r'\bпарковк\w*', atom[0]):
+                atom_fields = [('parking_distance_m', 'lte')]
+            elif re.search(r'\bзарядк\w*|\bзарядн\w*\s+станц\w*', atom[0]):
+                atom_fields = [('ev_distance_m', 'lte')]
+        elif spec.id == 'family_nearby' and re.search(r'\bплощадк\w*', atom[0]):
+            atom_fields = [('playground_distance_m', 'lte')]
+        for field, default_op in atom_fields:
+            op, value = _numeric(text, atom.start(), atom.end(), field, default_op, None)
+            if value is None:
+                continue
+            criterion = template.model_copy(update={'field': field, 'op': op, 'value': value})
+            criterion.label = _criterion_label(criterion, spec.name_ru, spec.search.unit)
+            result.append((soft, criterion))
+    return result
+
+
 def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> ParsedQuery:
     text = normalized(request.text)
     check_in, check_out, month, warnings = _dates(text, request)
@@ -323,6 +362,8 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         matches = [m for phrase in [spec.name_ru, *spec.synonyms] for m in re.finditer(_phrase_pattern(phrase), text)]
         if spec.id in RULES:
             matches += list(re.finditer(RULES[spec.id], text))
+        if spec.id == 'car_access':
+            matches += list(re.finditer(CAR_CHARGING, text))
         if spec.id in nearby:
             matches.append(nearby[spec.id][0])
             consumed.extend((m.start(), m.end()) for m in nearby[spec.id][1])
@@ -352,7 +393,8 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             explicit_car = [m for m in matches if re.search(r'\bпарковк\w*|\bзарядк\w*', m[0])]
             if explicit_car:
                 parking = [m for m in explicit_car if re.search(r'\bпарковк\w*', m[0])]
-                match = min(parking or explicit_car, key=lambda m: (m.start(), -(m.end()-m.start())))
+                parking_vehicle = [m for m in matches if re.search(CAR_PARKING, m[0])]
+                match = min(parking or parking_vehicle or explicit_car, key=lambda m: (m.start(), -(m.end()-m.start())))
         positions[spec.id] = match.start()
         soft, negative, skip = _importance(text, match.start(), match.end())
         if skip:
@@ -360,8 +402,10 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         field, op, value = spec.search.field, spec.search.default_op, spec.search.default_value
         numeric_match = match
         explicit_measurement = False
-        if spec.id == "quiet_night" and re.search(r"\d+\s*дб", text):
-            field, op, value = "night_db_max", "lte", 45
+        if spec.id == 'quiet_night':
+            noise_op, noise_value = _numeric(text, match.start(), match.end(), 'night_db_max', 'lte', None)
+            if noise_value is not None:
+                field, op, value = 'night_db_max', noise_op, noise_value
         elif spec.id == "car_access" and re.search(CAR_CHARGING, text) and not re.search(CAR_PARKING, text):
             field, op, value = "ev_distance_m", "lte", EV_CHARGING_NEAR_M
         anchors = {
@@ -388,6 +432,11 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
                     numeric_match, (op, value) = measured
                     field = numeric_field
                     explicit_measurement = True
+        if explicit_measurement and _importance(text, numeric_match.start(), numeric_match.end())[0] != soft:
+            # A limit in another clause can be optional even when the first
+            # generic mention was mandatory (and vice versa).
+            field, op, value = spec.search.field, spec.search.default_op, spec.search.default_value
+            numeric_match, explicit_measurement = match, False
         nearby_preference = None
         if spec.id in nearby:
             if not explicit_measurement:
@@ -528,6 +577,8 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
                 extra = Criterion(characteristic_id=spec.id, label=spec.name_ru, field=atom_field, op=atom_op, value=atom_value)
                 extra.label = _criterion_label(extra, spec.name_ru, spec.search.unit)
                 (parsed.nice if atom_soft else parsed.must).append(extra)
+        for atom_soft, extra in _numeric_mentions(text, spec, matches, criterion):
+            (parsed.nice if atom_soft else parsed.must).append(extra)
         hard = [c for c in parsed.must if c.characteristic_id == spec.id]
         for boolean_field in {c.field for c in hard if isinstance(c.value, bool)}:
             if len({c.value for c in hard if c.field == boolean_field and isinstance(c.value, bool)}) > 1:
@@ -574,8 +625,26 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             key = json.dumps(criterion.model_dump(exclude={'label', 'weight'}, mode='json'), sort_keys=True)
             unique.setdefault(key, criterion)
         group[:] = unique.values()
+        tightest = {}
+        others = []
+        for criterion in group:
+            if criterion.op not in {'lte', 'gte'} or not isinstance(criterion.value, int | float) or isinstance(criterion.value, bool):
+                others.append(criterion)
+                continue
+            key = json.dumps(criterion.model_dump(exclude={'label', 'weight', 'value'}, mode='json'), sort_keys=True)
+            previous = tightest.get(key)
+            if previous is None or (criterion.value < previous.value if criterion.op == 'lte' else criterion.value > previous.value):
+                tightest[key] = criterion
+        group[:] = [*others, *tightest.values()]
     hard_meanings = {json.dumps(c.model_dump(exclude={'label', 'weight'}, mode='json'), sort_keys=True) for c in parsed.must}
     parsed.nice[:] = [c for c in parsed.nice if json.dumps(c.model_dump(exclude={'label', 'weight'}, mode='json'), sort_keys=True) not in hard_meanings]
+    parsed.nice[:] = [c for c in parsed.nice if not any(
+        c.characteristic_id == hard.characteristic_id and c.field == hard.field and c.scope == hard.scope
+        and c.op == hard.op and c.op in {'lte', 'gte'}
+        and isinstance(c.value, int | float) and not isinstance(c.value, bool)
+        and isinstance(hard.value, int | float) and not isinstance(hard.value, bool)
+        and (hard.value <= c.value if c.op == 'lte' else hard.value >= c.value)
+        for hard in parsed.must)]
     parsed.must.sort(key=lambda c: positions[c.characteristic_id])
     parsed.nice.sort(key=lambda c: positions[c.characteristic_id])
     criteria = [*parsed.must, *parsed.nice]
