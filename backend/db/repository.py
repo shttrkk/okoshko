@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import time
+from collections import OrderedDict
 from datetime import date, datetime
 from functools import lru_cache, wraps
 from threading import RLock
@@ -22,6 +24,10 @@ TABLES = frozenset({
     "eval_labels", "eval_results", "expectation_passports", "passport_items",
 })
 
+COMPACT_FACT = """(payload-'evidence') || jsonb_build_object('evidence', COALESCE(
+    (SELECT jsonb_agg(evidence-'inputs'-'output') FROM jsonb_array_elements(payload->'evidence') evidence),
+    '[]'::jsonb))"""
+
 
 def dump_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, default=lambda obj: obj.isoformat() if isinstance(obj, date | datetime) else str(obj))
@@ -40,9 +46,13 @@ class Repository:
         self.db_url = db_url
         self._search_snapshot = None
         self._search_lock = RLock()
+        self._search_generation = 0
+        self._search_results = OrderedDict()
 
     def _update_search(self, values: list[dict], *, hotel_ids: list[str] | None = None):
         with self._search_lock:
+            self._search_generation += 1
+            self._search_results.clear()
             if self._search_snapshot is None:
                 return
             snapshot = {key: value for key, value in self._search_snapshot.items()
@@ -50,6 +60,38 @@ class Repository:
             for value in values:
                 snapshot[value["id"]] = {**value, "evidence": [{key: field for key, field in evidence.items() if key not in {"inputs", "output"}} for evidence in value.get("evidence", [])]}
             self._search_snapshot = snapshot
+
+    def _invalidate_catalog(self, table: str):
+        if table in {"hotels", "characteristics"}:
+            with self._search_lock:
+                self._search_generation += 1
+                self._search_results.clear()
+
+    def search_cache_get(self, key: str):
+        """Cache derived rankings only; every request still gets its own trace/log.
+
+        The generation prevents a computation racing a fact/catalog write from
+        entering the cache. Expiry is capped by both fact validity and two
+        minutes. This has the same single-process ownership as search_facts.
+        """
+        with self._search_lock:
+            cached = self._search_results.get(key)
+            if cached and cached[0] > time.time():
+                self._search_results.move_to_end(key)
+                return self._search_generation, cached[1]
+            self._search_results.pop(key, None)
+            return self._search_generation, None
+
+    def search_cache_put(self, key: str, generation: int, value, valid_until: float | None):
+        with self._search_lock:
+            if generation != self._search_generation:
+                return
+            deadline = min(time.time() + 120, valid_until) if valid_until else time.time() + 120
+            if deadline > time.time():
+                self._search_results[key] = deadline, value
+                self._search_results.move_to_end(key)
+                while len(self._search_results) > 32:
+                    self._search_results.popitem(last=False)
 
     @staticmethod
     def table(name: str) -> sql.Identifier:
@@ -83,6 +125,33 @@ class Repository:
         with psycopg.connect(self.db_url) as conn:
             return [row[0] for row in conn.execute(query, params)]
 
+    def get_many(self, table: str, ids: list[str]) -> list[dict]:
+        query = sql.SQL("SELECT payload FROM {} WHERE id=ANY(%s) ORDER BY created_at,id").format(self.table(table))
+        with psycopg.connect(self.db_url) as conn:
+            return [row[0] for row in conn.execute(query, (ids,))]
+
+    def catalog_details(self, hotel_ids: list[str], *, compact: bool = False) -> dict[str, list[dict]]:
+        """One connection and a constant number of bound queries for 1–4 hotels.
+
+        Raw calculation payloads are removed in SQL, before transfer from DB.
+        Full reads keep the legacy facts/claims/geometry contract intact.
+        """
+        tables = ["hotels", "facts", "conflicts", "questions"]
+        if not compact:
+            tables.extend(["claims", "change_events"])
+        result = {"claims": [], "change_events": []}
+        with psycopg.connect(self.db_url) as conn:
+            for table in tables:
+                projection = sql.SQL(COMPACT_FACT if compact and table == "facts" else "payload")
+                predicate = sql.SQL("id=ANY(%s)" if table == "hotels" else "payload->>'hotel_id'=ANY(%s)")
+                if table == "change_events":
+                    # Include events with only affected_hotel_ids, as read_geo does.
+                    predicate = sql.SQL("payload->>'hotel_id'=ANY(%s) OR (payload->'affected_hotel_ids') ?| %s")
+                query = sql.SQL("SELECT {} FROM {} WHERE {} ORDER BY created_at,id").format(projection, self.table(table), predicate)
+                params = (hotel_ids, hotel_ids) if table == "change_events" else (hotel_ids,)
+                result[table] = [row[0] for row in conn.execute(query, params)]
+        return result
+
     def insert(self, table: str, value: dict) -> dict:
         table_sql = self.table(table)
         if table == "claims":
@@ -90,6 +159,9 @@ class Repository:
         query = sql.SQL("INSERT INTO {} (id,payload) VALUES (%s,%s)").format(table_sql)
         with psycopg.connect(self.db_url) as conn:
             conn.execute(query, (value["id"], Jsonb(value, dumps=dump_json)))
+        if table == "facts":
+            self._update_search([value])
+        self._invalidate_catalog(table)
         return value
 
     @serialized_write
@@ -102,6 +174,7 @@ class Repository:
             conn.execute(query, (value["id"], Jsonb(value, dumps=dump_json)))
         if table == "facts":
             self._update_search([value])
+        self._invalidate_catalog(table)
         return value
 
     def add_claim(self, claim: Claim | dict) -> dict:
@@ -129,6 +202,7 @@ class Repository:
                 cursor.execute(sql.SQL("INSERT INTO {}(id,payload) SELECT id,payload FROM batch_import ON CONFLICT(id) DO UPDATE SET payload=EXCLUDED.payload,updated_at=now()").format(self.table(table)))
         if table == "facts":
             self._update_search(values)
+        self._invalidate_catalog(table)
 
     def insert_claims(self, values: list[Claim | dict]) -> list[dict]:
         validated = [Claim.model_validate(value).model_dump(mode="json") for value in values]
@@ -171,9 +245,7 @@ class Repository:
 
     def search_facts(self, characteristic_ids: list[str] | None = None, month: int | None = None) -> list[dict]:
         # Keep evidence references, quotes and limitations; omit repeated raw calculation payloads.
-        query = """SELECT (payload-'evidence') || jsonb_build_object('evidence', COALESCE(
-            (SELECT jsonb_agg(evidence-'inputs'-'output') FROM jsonb_array_elements(payload->'evidence') evidence),
-            '[]'::jsonb)) FROM facts"""
+        query = "SELECT " + COMPACT_FACT + " FROM facts"
         with self._search_lock:
             if self._search_snapshot is None:
                 with psycopg.connect(self.db_url) as conn:
