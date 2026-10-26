@@ -39,11 +39,13 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
     must_total = active_must_total + len(parsed.no_data_must)
     for hotel in hotels:
         hotel_facts = by_hotel[hotel.id]
-        assessment = assess_hotel(hotel_facts, parsed, specs)
+        assessment = assess_hotel(hotel_facts, parsed, specs, hotel=hotel)
         required = assessment.matches[:active_must_total]
         satisfied = sum(m.supported for m in required)
         some_support = any(m.status in {"yes", "partial"} for m in required)
-        if parsed.no_data_must:
+        if assessment.domain_reason:
+            group = "almost" if satisfied else "unknown"
+        elif parsed.no_data_must:
             group = "almost" if satisfied else "unknown"
         else:
             group = "all" if satisfied == must_total else "almost" if some_support or all(m.status == "no" for m in required) else "unknown"
@@ -65,7 +67,9 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
         hit.verdicts = [verdict(c, m, i < active_must_total, parsed,
                             conflict=assessment.scope_conflict and i < active_must_total and m.status not in {"yes", "partial"},
                             alternatives=assessment.alternatives.get(i)) for i, (c, m) in enumerate(zip(criteria, assessment.matches, strict=True))]
-        if not must_total:
+        if assessment.domain_reason:
+            summary = "Полное совпадение нельзя подтвердить: " + assessment.domain_reason + "."
+        elif not must_total:
             summary = "Оценка по желательным условиям." if criteria else "Задайте условия, чтобы сравнить отели по подтверждённым фактам."
         elif parsed.no_data_must and not active_must_total:
             summary = "Полное совпадение нельзя подтвердить: по обязательным условиям нет данных в регионе."

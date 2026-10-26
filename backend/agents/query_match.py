@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from itertools import product
 from typing import Any
 
-from backend.contracts import CharacteristicSpec, Criterion, Fact, ParsedQuery
+from backend.contracts import CharacteristicSpec, Criterion, Fact, Hotel, ParsedQuery
 
 TRUSTED_CONFIDENCE = .7
 ROOM_CHARACTERISTICS = {"sea_view", "sunset_view", "mountain_view", "quiet_night", "soundproofing", "room_orientation",
@@ -19,6 +19,7 @@ ROOM_CHARACTERISTICS = {"sea_view", "sunset_view", "mountain_view", "quiet_night
 DEFAULT_FIELDS = {"beach_walk": "minutes", "climate": "water_c", "air_quality": "european_aqi", "connectivity": "download_mbps"}
 MONTHLY = {"climate", "sunset_view", "morning_swim", 'morning_sun', 'evening_heat'}
 COMPASS_AZIMUTHS = {side: index * 45 for index, side in enumerate(("N", "NE", "E", "SE", "S", "SW", "W", "NW"))}
+FLOOR_DOMAIN_UNKNOWN = "Этажность отеля/привязка к зданию не подтверждена; этажи геомодели условны для выбранного контура"
 
 
 @dataclass(frozen=True)
@@ -101,6 +102,8 @@ class Assessment:
     matches: list[Match]
     scope_conflict: bool = False
     alternatives: dict[int, list[Fact]] = field(default_factory=dict)
+    known_floors: int | None = None
+    domain_reason: str | None = None
 
 
 def fresh(fact: Fact, at: datetime | None = None) -> bool:
@@ -227,7 +230,19 @@ def _route_reason(fact: Fact, criterion: Criterion) -> str:
     return "Маршрут " + ("без лестниц и переходов" if criterion.no_stairs and criterion.no_crossings else "без лестниц" if criterion.no_stairs else "без переходов") + " не подтверждён: " + "; ".join(details)
 
 
-def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_name: str) -> Match:
+def real_room_confirmation(fact: Fact) -> bool:
+    """An actual scoped hotel answer can stand independently of the geo model."""
+    return (fact.status == "confirmed" and not fact.synthetic and fresh(fact) and bool(fact.supporting_claim_ids)
+            and any(e.kind == "hotelier" for e in fact.evidence)
+            and not any(e.kind in {"simulation", "mock"} for e in fact.evidence))
+
+
+def hotel_floor_count(hotel: Hotel | None) -> int | None:
+    return hotel.floors if hotel is not None and type(hotel.floors) is int and 1 <= hotel.floors <= 100 else None
+
+
+def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_name: str,
+                  *, hotel: Hotel | None = None) -> Match:
     if not fresh(fact):
         reason = "Данные оспариваются" if fact.status == "disputed" else "Данные неизвестны" if fact.status == "unknown" else "Данные устарели; нужно перепроверить"
         return Match(facts=[fact], reason=reason)
@@ -237,6 +252,11 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
     value = fact.value if isinstance(fact.value, dict) else {}
     result = _compare(actual, criterion)
     scope = scope_values(fact)
+    geometric = any(e.kind in {"calculation", "simulation"} for e in fact.evidence)
+    scoped_floors = fact.scope.type == "floor_range" or any(scope.get(key) is not None for key in ("floor_min", "floor_max"))
+    if (hotel is not None and hotel_floor_count(hotel) is None and not real_room_confirmation(fact)
+            and (scoped_floors or geometric and fact.characteristic_id in {"sea_view", "sunset_view", "mountain_view"})):
+        return Match(facts=[fact], reason=FLOOR_DOMAIN_UNKNOWN, value=actual)
     if fact.scope.month and value.get("month") and fact.scope.month != value["month"]:
         return Match(facts=[fact], reason="Месяц значения расходится с областью действия факта", value=actual)
     if fact.scope.facade and value.get("facade") and fact.scope.facade != value["facade"]:
@@ -317,7 +337,9 @@ def _best_match(facts: list[Fact], criterion: Criterion, context: RoomContext, f
     return max(evaluated, key=lambda m: m.confidence, default=Match())
 
 
-def assess_hotel(facts: list[Fact], parsed: ParsedQuery, specs: list[CharacteristicSpec] | None = None) -> Assessment:
+def assess_hotel(facts: list[Fact], parsed: ParsedQuery, specs: list[CharacteristicSpec] | None = None,
+                 *, hotel: Hotel | None = None) -> Assessment:
+    """Evaluate a room; omitted hotel metadata retains conditional pure-call semantics."""
     criteria = [*parsed.must, *parsed.nice]
     fields = {s.id: s.search.field for s in specs or []}
     by_id = {c.characteristic_id: [] for c in criteria}
@@ -327,7 +349,7 @@ def assess_hotel(facts: list[Fact], parsed: ParsedQuery, specs: list[Characteris
             by_id[fact.characteristic_id].append(fact)
     relevant = [f for values in by_id.values() for f in values]
     criterion_fields = [c.field or fields.get(c.characteristic_id) or DEFAULT_FIELDS.get(c.characteristic_id, "available") for c in criteria]
-    evaluations = [{id(f): evaluate_fact(f, c, parsed, name) for f in by_id[c.characteristic_id]}
+    evaluations = [{id(f): evaluate_fact(f, c, parsed, name, hotel=hotel) for f in by_id[c.characteristic_id]}
                    for c, name in zip(criteria, criterion_fields, strict=True)]
     detailed = {cid: any(any(scopes[id(f)].get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type"))
                          and fresh(f) and f.evidence for f in values) for cid, values in by_id.items()}
@@ -348,19 +370,46 @@ def assess_hotel(facts: list[Fact], parsed: ParsedQuery, specs: list[Characteris
                 room_types.add(criterion.scope.room_type)
             if criterion.scope.floor_min:
                 floors.add(criterion.scope.floor_min)
-    floors = {f for f in floors if (parsed.min_floor or 1) <= f <= 100}
+    known_floors = hotel_floor_count(hotel)
+    floors = {f for f in floors if (parsed.min_floor or 1) <= f <= (known_floors or 100)}
     contexts = [RoomContext(side, floor, room_type, parsed.month) for side, floor, room_type in product(
         [parsed.facade] if parsed.facade else sorted(facades) or [None], sorted(floors), sorted(room_types) or [None])]
     requested_contexts = [context for context in contexts if all(
         not c.scope or _includes(c.scope.model_dump(exclude_none=True), context) for c in parsed.must)]
     if requested_contexts:
         contexts = requested_contexts
+    if not contexts:
+        reason = "Запрошенный этаж выходит за пределы известной этажности отеля; подходящий номер не подтверждён"
+        matches = []
+        for criterion, name in zip(criteria, criterion_fields, strict=True):
+            selected = max(by_id[criterion.characteristic_id], key=lambda fact: fact.confidence, default=None)
+            matches.append(Match(facts=[selected] if selected else [], reason=reason,
+                                 value=value_at(selected, name) if selected else None))
+        return Assessment(RoomContext(month=parsed.month), matches, known_floors=known_floors, domain_reason=reason)
     candidates = []
     alternatives: dict[int, list[Fact]] = {}
     for context in contexts:
         matches = [_best_match(by_id[c.characteristic_id], c, context, name, scopes, evaluated, detailed[c.characteristic_id])
                    for c, name, evaluated in zip(criteria, criterion_fields, evaluations, strict=True)]
-        candidates.append(Assessment(context, matches))
+        domain_reason = None
+        if hotel is not None and known_floors is None:
+            # A hotel-wide amenity cannot establish that the requested floor
+            # exists. A genuine room answer with matching explicit floors can.
+            witnessed = any(real_room_confirmation(fact) and any(scopes[id(fact)].get(key) is not None for key in ("floor_min", "floor_max"))
+                            and _includes(scopes[id(fact)], context) and match.supported
+                            for match in matches[:len(parsed.must)] for fact in match.facts)
+            for index, criterion in enumerate(criteria):
+                floor_required = (index < len(parsed.must) and parsed.min_floor is not None
+                                  or criterion.scope is not None and any(getattr(criterion.scope, key) is not None
+                                                                         for key in ("floor_min", "floor_max")))
+                if floor_required and not witnessed:
+                    original = matches[index]
+                    matches[index] = Match(facts=original.facts, reason=FLOOR_DOMAIN_UNKNOWN, value=original.value)
+                    if index < len(parsed.must):
+                        domain_reason = FLOOR_DOMAIN_UNKNOWN
+            if parsed.min_floor is not None and not witnessed:
+                domain_reason = FLOOR_DOMAIN_UNKNOWN
+        candidates.append(Assessment(context, matches, known_floors=known_floors, domain_reason=domain_reason))
         for index, match in enumerate(matches[:len(parsed.must)]):
             if match.status in {"yes", "partial"}:
                 alternatives.setdefault(index, []).extend(match.facts)
@@ -369,7 +418,8 @@ def assess_hotel(facts: list[Fact], parsed: ParsedQuery, specs: list[Characteris
         yes = sum(m.status == "yes" for m in required)
         progress = sum({"yes": 1, "partial": .5, "unknown": .1, "no": 0}[m.status] for m in required)
         utility = sum(m.utility*c.weight*(2 if i < len(parsed.must) else 1) for i, (c, m) in enumerate(zip(criteria, item.matches, strict=True)))
-        return sum(m.supported for m in required), yes, progress, utility, -item.context.floor
+        conditional_evidence = sum(m.reason == FLOOR_DOMAIN_UNKNOWN and bool(m.facts) for m in required)
+        return sum(m.supported for m in required), yes, progress, utility, conditional_evidence, -item.context.floor
     best = max(candidates, key=key, default=Assessment(RoomContext(month=parsed.month), []))
     best.alternatives = {i: list({f.id: f for f in fs}.values()) for i, fs in alternatives.items()}
     best.scope_conflict = len(alternatives) >= 2 and not any(

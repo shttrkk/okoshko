@@ -72,6 +72,7 @@ def test_compare_uses_one_bulk_read_and_edited_criteria_survive(client, repo, ca
 def test_similarity_keeps_requested_month_for_additional_must(client, repo):  # noqa: F811
     from backend.tests.test_search import fact
     for hotel_id, may in [("test-hotel", True), ("test-2", True), ("test-3", False)]:
+        repo.upsert("hotels", {**repo.get("hotels", hotel_id), "floors": 5})
         for month, available in [(5, may), (9, True)]:
             row = fact(hotel_id, "sunset_view", {"available": available}, side="W", low=1, high=5, month=month)
             repo.upsert("facts", row.model_dump(mode="json"))

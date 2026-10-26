@@ -30,6 +30,7 @@ def client(repo):  # noqa: F811
     for fact in repo.all("facts"):
         repo.upsert("facts", {**fact, "supporting_claim_ids": ["synthetic-input"]})
     for hotel in repo.all("hotels"):
+        repo.upsert("hotels", {**hotel, "floors": 4})
         add_fact(repo, hotel["id"], "sea_view", {"available": hotel["id"] != "test-3"})
     app.dependency_overrides[get_repo] = lambda: repo
     try:

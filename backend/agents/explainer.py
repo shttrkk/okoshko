@@ -3,8 +3,16 @@ from __future__ import annotations
 
 import math
 
-from backend.agents.query_match import Assessment, Match, assess_hotel, fresh, scope_values, sunset_aspect
-from backend.contracts import Criterion, CriterionVerdict, Fact, ParsedQuery
+from backend.agents.query_match import (
+    FLOOR_DOMAIN_UNKNOWN,
+    Assessment,
+    Match,
+    assess_hotel,
+    fresh,
+    scope_values,
+    sunset_aspect,
+)
+from backend.contracts import Criterion, CriterionVerdict, Fact, Hotel, ParsedQuery
 
 SIDES = {"N": "северная", "NE": "северо-восточная", "E": "восточная", "SE": "юго-восточная", "S": "южная", "SW": "юго-западная", "W": "западная", "NW": "северо-западная"}
 
@@ -169,11 +177,14 @@ def _default_query(facts: list[Fact]) -> ParsedQuery:
 
 
 def room_from_assessment(assessment: Assessment, parsed: ParsedQuery) -> str:
+    relevant = assessment.matches[:len(parsed.must)] or assessment.matches
+    domain_reason = assessment.domain_reason or next((m.reason for m in relevant if m.reason == FLOOR_DOMAIN_UNKNOWN), None)
+    if domain_reason:
+        return domain_reason + ". Уточните у отеля существование номера, его сторону и этаж; геомодель доступна для условного просмотра."
     if assessment.scope_conflict:
         return "Один номер со всеми обязательными условиями не подтверждён: подходящие данные относятся к разным сторонам, этажам или типам номера. Уточните компромисс у отеля."
     if any(m.status == "no" for m in assessment.matches[:len(parsed.must)]):
         return "Номер со всеми обязательными условиями не найден в имеющихся данных. Уточните у отеля альтернативный номер или измените условие."
-    relevant = assessment.matches[:len(parsed.must)] or assessment.matches
     supported = [f for m in relevant if m.status in {"yes", "partial"} for f in m.facts]
     scoped = [scope_values(f) for f in supported if any(scope_values(f).get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type"))]
     if not scoped:
@@ -182,6 +193,8 @@ def room_from_assessment(assessment: Assessment, parsed: ParsedQuery) -> str:
     requested = [c.scope.model_dump(exclude_none=True) for c in parsed.must if c.scope]
     low = max([s.get("floor_min", 1) for s in [*scoped, *requested]] + [parsed.min_floor or 1])
     highs = [s["floor_max"] for s in [*scoped, *requested] if s.get("floor_max")]
+    if assessment.known_floors:
+        highs.append(assessment.known_floors)
     high = min(highs) if highs else None
     parts = []
     if context.facade:
@@ -202,13 +215,15 @@ def room_from_assessment(assessment: Assessment, parsed: ParsedQuery) -> str:
     return result
 
 
-def recommend_room(facts: list[Fact], parsed: ParsedQuery | None = None) -> str:
+def recommend_room(facts: list[Fact], parsed: ParsedQuery | None = None, *, hotel: Hotel | None = None) -> str:
     parsed = parsed or _default_query(facts)
-    return room_from_assessment(assess_hotel(facts, parsed), parsed)
+    return room_from_assessment(assess_hotel(facts, parsed, hotel=hotel), parsed)
 
 
 def disappointments_from_assessment(facts: list[Fact], parsed: ParsedQuery, assessment: Assessment) -> list[str]:
     notes = []
+    if assessment.domain_reason:
+        notes.append(assessment.domain_reason + ".")
     if assessment.scope_conflict:
         notes.append("Обязательные условия найдены в разных номерах; общего сочетания стороны, этажа и типа номера нет в подтверждённых данных.")
     for criterion, match in zip([*parsed.must, *parsed.nice], assessment.matches, strict=True):
@@ -237,6 +252,6 @@ def disappointments_from_assessment(facts: list[Fact], parsed: ParsedQuery, asse
     return list(dict.fromkeys(notes))[:8]
 
 
-def disappointments(facts: list[Fact], parsed: ParsedQuery | None = None) -> list[str]:
+def disappointments(facts: list[Fact], parsed: ParsedQuery | None = None, *, hotel: Hotel | None = None) -> list[str]:
     parsed = parsed or _default_query(facts)
-    return disappointments_from_assessment(facts, parsed, assess_hotel(facts, parsed))
+    return disappointments_from_assessment(facts, parsed, assess_hotel(facts, parsed, hotel=hotel))

@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 02:39 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 02:42 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -147,3 +147,5 @@
 - 27.10.2026 02:38: fix(search): exclude neutral request words from unmapped; 782 passed, 1 warning, 125 subtests passed in 50.63s; Ruff и frontend lint PASS.
 
 - 27.10.2026 02:39: fix(search): separate reported states and depicted properties; 813 passed, 1 warning, 125 subtests passed in 48.83s; Ruff и frontend lint PASS.
+
+- 27.10.2026 02:42: fix(ranking): require a confirmed hotel floor domain for room geometry; 833 passed, 1 warning, 125 subtests passed in 48.20s; Ruff и frontend lint PASS.

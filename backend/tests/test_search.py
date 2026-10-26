@@ -41,7 +41,7 @@ def catalog():
 
 
 def hotel(id):
-    return Hotel(id=id, name="Synthetic " + id, lat=43.58, lon=39.72)
+    return Hotel(id=id, name="Synthetic " + id, lat=43.58, lon=39.72, floors=20)
 
 
 def fact(hotel_id, cid, value, *, side=None, low=None, high=None, room_type=None, month=None, confidence=.9, status="computed", synthetic=False):
@@ -469,7 +469,7 @@ def test_every_nonunknown_verdict_has_fact_and_evidence_references(catalog):
     hit = rank_hotels([hotel("h")], [item], required("sea_view"), catalog)[0]
     assert hit.verdicts[0].fact_ids == [item.id]
     assert hit.verdicts[0].evidence_refs == [item.evidence[0].id]
-    assert recommend_room([item], required("sea_view")) == hit.room_recommendation
+    assert recommend_room([item], required("sea_view"), hotel=hotel("h")) == hit.room_recommendation
     assert isinstance(disappointments([item]), list)
 
 

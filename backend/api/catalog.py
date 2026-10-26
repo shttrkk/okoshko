@@ -167,8 +167,8 @@ def details(hotel_ids: list[str], repo, *, text: str = "", month: int | None = N
         public_facts = [fact.model_copy(update={"evidence": []}) for fact in facts] if compact else facts
         result.append(HotelDetail(hotel=hotel, facts=public_facts, claims=grouped["claims"][hotel_id],
                                   conflicts=grouped["conflicts"][hotel_id], questions=grouped["questions"][hotel_id],
-                                  verdicts=verdicts, room_recommendation=recommend_room(facts, parsed),
-                                  disappointments=disappointments(facts, parsed),
+                                  verdicts=verdicts, room_recommendation=recommend_room(facts, parsed, hotel=hotel),
+                                  disappointments=disappointments(facts, parsed, hotel=hotel),
                                   geo={} if compact else read_geo(hotel_id, repo, hotel_row=hotels_by_id[hotel_id], events=rows["change_events"]),
                                   evidence_deferred=compact, geometry_deferred=compact))
     return result
