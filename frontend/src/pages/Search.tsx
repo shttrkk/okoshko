@@ -305,7 +305,7 @@ export function Home() {
       <section className="home-data-note">
         <span className="connection-dot connected" />
         {status.data
-          ? `${status.data.hotel_count} отелей · ${status.data.characteristic_count} характеристик · ${status.data.mode}`
+          ? `${status.data.hotel_count ?? hotels.data?.length ?? "…"} отелей · ${status.data.characteristic_count ?? "…"} характеристик · ${status.data.mode}`
           : "Подключаем каталог реальных отелей"}
         <Link to="/quality">
           Как проверяем качество <ArrowUpRight size={13} />
@@ -634,9 +634,20 @@ export function SearchPage() {
         <div className="search-heading-meta">
           <span>
             <MapPin size={14} />
-            Демо-регион: Сочи · центр + Адлер–Имеретинка · {status.data?.hotel_count ?? "…"} отелей
+            Демо-регион: Сочи · центр + Адлер–Имеретинка ·{" "}
+            {status.data?.hotel_count ?? "…"} отелей
           </span>
-          <span>{request.check_in ? new Intl.DateTimeFormat("ru", { day: "numeric", month: "long" }).format(new Date(request.check_in)) : "Даты не указаны"}{request.check_out ? ` — ${new Intl.DateTimeFormat("ru", { day: "numeric", month: "long" }).format(new Date(request.check_out))}` : ""}</span>
+          <span>
+            {request.check_in
+              ? new Intl.DateTimeFormat("ru", {
+                  day: "numeric",
+                  month: "long",
+                }).format(new Date(request.check_in))
+              : "Даты не указаны"}
+            {request.check_out
+              ? ` — ${new Intl.DateTimeFormat("ru", { day: "numeric", month: "long" }).format(new Date(request.check_out))}`
+              : ""}
+          </span>
         </div>
       </div>
       <div className="search-split">

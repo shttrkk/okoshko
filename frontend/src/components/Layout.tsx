@@ -119,7 +119,7 @@ export function Layout() {
             className={`connection-dot ${status.data ? "connected" : ""}`}
           />
           {status.data
-            ? `${status.data.mode} · ${status.data.hotel_count} отелей`
+            ? `${status.data.mode} · ${status.data.hotel_count ?? "…"} отелей`
             : "Ожидаем подключение API"}
         </div>
         <Link to="/sources">

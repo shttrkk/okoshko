@@ -31,7 +31,15 @@ function baseStyle(dark: boolean): StyleSpecification {
     ],
   };
 }
-async function getGeoJSON(
+const geoCache = new Map<string, Promise<GeoJSON.FeatureCollection | null>>();
+function getGeoJSON(path: string): Promise<GeoJSON.FeatureCollection | null> {
+  const cached = geoCache.get(path);
+  if (cached) return cached;
+  const pending = fetchGeoJSON(path);
+  geoCache.set(path, pending);
+  return pending;
+}
+async function fetchGeoJSON(
   path: string,
 ): Promise<GeoJSON.FeatureCollection | null> {
   try {
@@ -52,8 +60,12 @@ function put(map: LibreMap, id: string, data: GeoJSON.GeoJSON) {
   if (source) source.setData(data);
   else map.addSource(id, { type: "geojson", data });
 }
-function safeLayer(map: LibreMap, layer: maplibregl.LayerSpecification) {
-  if (!map.getLayer(layer.id)) map.addLayer(layer);
+function safeLayer(
+  map: LibreMap,
+  layer: maplibregl.LayerSpecification,
+  before?: string,
+) {
+  if (!map.getLayer(layer.id)) map.addLayer(layer, before);
 }
 function drawGeo(
   map: LibreMap,
@@ -391,13 +403,16 @@ export function TravelMap({
           paint: {
             "fill-extrusion-color": dark ? "#748073" : "#d1cbb7",
             "fill-extrusion-height": [
-              "coalesce",
-              ["to-number", ["get", "height"]],
-              [
-                "*",
-                ["coalesce", ["to-number", ["get", "building:levels"]], 3],
-                3,
-              ],
+              "case",
+              ["!=", ["get", "height_m"], null],
+              ["to-number", ["get", "height_m"], 9],
+              ["!=", ["get", "height"], null],
+              ["to-number", ["get", "height"], 9],
+              ["!=", ["get", "levels"], null],
+              ["*", ["to-number", ["get", "levels"], 3], 3],
+              ["!=", ["get", "building:levels"], null],
+              ["*", ["to-number", ["get", "building:levels"], 3], 3],
+              9,
             ],
             "fill-extrusion-base": 0,
             "fill-extrusion-opacity": 0.95,
@@ -406,7 +421,7 @@ export function TravelMap({
       }
       setBase(
         data.some(Boolean)
-          ? "Локальные геоданные · OSM"
+          ? "OSM · неизвестные высоты условные"
           : "Базовые слои пока не загружены",
       );
       setReady(true);
@@ -427,11 +442,14 @@ export function TravelMap({
           type: "vector",
           url: `pmtiles://${window.location.origin}/data/tiles/city.pmtiles`,
         });
+        const baseBefore = map
+          .getStyle()
+          .layers.find((l) => l.id !== "background")?.id;
         for (const l of meta.vector_layers || []) {
           const isBuilding = /building/.test(l.id),
             isRoad = /road|transport/.test(l.id),
             isWater = /water/.test(l.id),
-            isLand = /land|earth/.test(l.id);
+            isLand = l.id === "earth";
           if (isBuilding && !buildings)
             safeLayer(map, {
               id: `tile-${l.id}`,
@@ -458,24 +476,28 @@ export function TravelMap({
                 "line-width": 2,
               },
             });
-          else if ((isWater || isLand) && !coast)
-            safeLayer(map, {
-              id: `tile-${l.id}`,
-              type: "fill",
-              source: "city",
-              "source-layer": l.id,
-              paint: {
-                "fill-color": isWater
-                  ? dark
-                    ? "#162f36"
-                    : "#b7d5d5"
-                  : dark
-                    ? "#343d36"
-                    : "#e4e3d3",
+          else if (isWater || isLand)
+            safeLayer(
+              map,
+              {
+                id: `tile-${l.id}`,
+                type: "fill",
+                source: "city",
+                "source-layer": l.id,
+                paint: {
+                  "fill-color": isWater
+                    ? dark
+                      ? "#162f36"
+                      : "#b7d5d5"
+                    : dark
+                      ? "#343d36"
+                      : "#e4e3d3",
+                },
               },
-            });
+              baseBefore,
+            );
         }
-        setBase("Офлайн-карта · PMTiles + OSM");
+        setBase("PMTiles + OSM · часть высот условная");
       } catch {
         /* GeoJSON fallback remains available. */
       }
