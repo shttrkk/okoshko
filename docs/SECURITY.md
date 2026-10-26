@@ -102,6 +102,9 @@ smoke — отдельная проверка UI; её результат нел
 Отдельный browser прогон S6 с route-fulfilled синтетическими hotel.name,
 quote/raw answer/parsed JSON и `javascript:` ссылками прошёл без выполнения
 payload, injected elements, dialogs или внешних запросов; сервер не изменялся.
+Воспроизводимый browser script: `node frontend/scripts/security-smoke.mjs`
+(S6 commit `d4890aa`; `OKNO_BASE_URL` задаёт локальный адрес). Он использует
+изолированный контекст и mock responses для payload, не пишет их в сервер.
 
 ## Проверки и пределы
 
