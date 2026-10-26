@@ -70,7 +70,12 @@ def load_seed(data_dir: Path = DATA):
                 logging.info("Seed %s: validated %s rows", table, count)
         for path in sorted((data_dir / "characteristics").glob("*.yaml")):
             spec = CharacteristicSpec.model_validate(yaml.safe_load(path.read_text()))
-            conn.execute("INSERT INTO characteristics (id,payload) VALUES (%s,%s) ON CONFLICT(id) DO NOTHING",
+            # Shipped YAML is the product definition: a changed file reaches existing
+            # databases, but a studio publication with a newer version is kept.
+            conn.execute("INSERT INTO characteristics (id,payload) VALUES (%s,%s) ON CONFLICT(id) DO UPDATE "
+                         "SET payload=EXCLUDED.payload, updated_at=now() "
+                         "WHERE (characteristics.payload->>'version')::int <= (EXCLUDED.payload->>'version')::int "
+                         "AND characteristics.payload IS DISTINCT FROM EXCLUDED.payload",
                          (spec.id, Jsonb(spec.model_dump(mode="json"))))
         known_hotels = {row[0] for row in conn.execute("SELECT id FROM hotels")}
         if (data_dir/"seed"/"demo_hotelier_claims.jsonl").exists():
@@ -105,15 +110,35 @@ def load_seed(data_dir: Path = DATA):
         logging.info("Resolver materialized %s", resolve_all(get_repo()))
 
 
+POI_DEFAULT_KINDS = {"night_pharmacy": "pharmacy", "family_nearby": "family", "car_access": "car"}
+
+
+def poi_plans(specs: list[CharacteristicSpec]) -> list[tuple[CharacteristicSpec, dict]]:
+    """Every active characteristic computed by the local POI tool, as declared in its spec."""
+    plans = []
+    for spec in specs:
+        if spec.status != "active":
+            continue
+        for method in spec.methods:
+            if method.tool == "poi_nearby":
+                params = dict(method.params)
+                params.setdefault("kind", POI_DEFAULT_KINDS.get(spec.id, "pharmacy"))
+                plans.append((spec, params))
+    return plans
+
+
 def bootstrap_poi(repo,data_dir):
     from backend.contracts import ToolCall, ToolContext
-    from backend.tools.registry import Registry
+    from backend.tools.registry import Registry, poi_method
     from backend.tracing import Trace
     known_claims = repo.all("claims")
-    existing = {(claim["hotel_id"],claim["characteristic_id"]) for claim in known_claims if claim["method"].startswith("local_poi_lookup@")}
+    specs = [CharacteristicSpec.model_validate(row) for row in repo.all("characteristics")]
+    plans = poi_plans(specs)
+    current = {(claim["hotel_id"],claim["characteristic_id"],claim["method"]) for claim in known_claims if claim["method"].startswith("local_poi_lookup@")}
     hotels = repo.all("hotels")
-    kinds = {"night_pharmacy":"pharmacy","family_nearby":"family","car_access":"car"}
-    missing = [(hotel,cid,kind) for hotel in hotels for cid,kind in kinds.items() if (hotel["id"],cid) not in existing]
+    # A newer method version (changed value semantics) is recomputed and supersedes older claims.
+    missing = [(hotel,spec,params) for hotel in hotels for spec,params in plans
+               if (hotel["id"],spec.id,poi_method(params["kind"])) not in current]
     if not missing:
         return
     trace = Trace(repo,"backfill",trigger="seed")
@@ -121,11 +146,13 @@ def bootstrap_poi(repo,data_dir):
     registry._known_claims = {claim["id"]:claim for claim in known_claims}
     registry._hotels = {hotel["id"]:hotel for hotel in hotels}
     values=[]
-    for hotel,cid,kind in missing:
-        result = registry.execute(ToolContext(hotel_id=hotel["id"],characteristic_id=cid,run_id=trace.run.id),ToolCall(tool="poi_nearby",params={"kind":kind}))
+    for hotel,spec,params in missing:
+        result = registry.execute(ToolContext(hotel_id=hotel["id"],characteristic_id=spec.id,run_id=trace.run.id),ToolCall(tool="poi_nearby",params=params))
+        for claim in result.claims:
+            claim.spec_version = spec.version
         values.extend(result.claims)
     repo.insert_claims(values)
-    trace.step("collector","tool_call","Локальные OSM POI",input={"characteristics":list(kinds),"hotels":len(hotels)},
+    trace.step("collector","tool_call","Локальные OSM POI",input={"characteristics":sorted({spec.id for _,spec,_ in missing}),"hotels":len(hotels)},
                output={"claims":len(values)},evidence_refs=[ev.id for claim in values for ev in claim.evidence],
                rationale="Близость и известные часы работы рассчитаны по сохранённому снимку; отсутствие данных остаётся unknown")
     trace.finish()

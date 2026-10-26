@@ -140,7 +140,7 @@ queries:
     persona: Олег — на машине с собакой
     text: с собакой 18 кг на машине в сентябре
     expected:
-      must: [{id: pets, value: true}, {id: car_access, value: true}]
+      must: [{id: pets, value: true}, {id: car_access, field: parking_distance_m, op: lte, value: 500}]
       pet_weight_kg: 18
       month: 9
   - id: dog_labrador
@@ -166,7 +166,7 @@ queries:
     persona: Олег — на машине с собакой
     text: электромобиль, нужна зарядка, с собакой
     expected:
-      must: [{id: car_access}, {id: pets}]
+      must: [{id: car_access, field: ev_distance_m, op: lte, value: 1000}, {id: pets}]
   - id: culture_history
     persona: Лена — прогулки и впечатления
     text: историческое здание и фото вокруг, желательно вид на горы

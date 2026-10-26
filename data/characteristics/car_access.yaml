@@ -1,7 +1,7 @@
 id: car_access
 version: 1
 name_ru: На машине
-description: На машине — подтверждённые данные с указанием источника и ограничений
+description: Общедоступная парковка OSM не дальше 500 м и зарядка для электромобиля не дальше 1000 м по прямой; собственная парковка отеля и въезд к двери не подтверждаются
 category: Доступ
 synonyms:
 - парковка
@@ -28,11 +28,11 @@ combine: null
 ttl_days: 180
 change_triggers: []
 search:
-  kind: boolean
-  field: available
-  default_op: eq
-  default_value: true
-  explain_ok: На машине — условие выполнено
-  explain_bad: На машине — условие не выполняется
+  kind: numeric
+  field: parking_distance_m
+  default_op: lte
+  default_value: 500
+  explain_ok: Общедоступная парковка по OSM в пределах порога
+  explain_bad: Ближайшая парковка по OSM дальше порога
 hotelier_answerable: false
 status: active

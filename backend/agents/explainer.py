@@ -103,7 +103,8 @@ def _details(fact: Fact, criterion: Criterion) -> str:
     elif cid == "night_pharmacy" and value.get("minutes") is not None:
         details.append(f"до аптеки {approximate(value['minutes'], minutes=True)} мин")
     if cid in {"family_nearby", "car_access", "night_pharmacy"} and criterion.field and value.get(criterion.field) is not None:
-        labels = {"playground_distance_m": "до детской площадки", "parking_distance_m": "до парковки", "distance_m": "до ночной аптеки"}
+        labels = {"playground_distance_m": "до детской площадки", "parking_distance_m": "до парковки",
+                  "ev_distance_m": "до зарядки для электромобиля", "distance_m": "до ночной аптеки"}
         if criterion.field in labels:
             details.append(f"{labels[criterion.field]} {approximate(value[criterion.field])} м")
     if not details and criterion.field and value.get(criterion.field) is not None:

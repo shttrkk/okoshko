@@ -10,6 +10,7 @@ import re
 from datetime import date
 
 from backend.contracts import CharacteristicSpec, Criterion, ParsedQuery, Scope, SearchRequest
+from backend.tools.registry import EV_CHARGING_NEAR_M
 
 MONTHS = ("январ", "феврал", "март", "апрел", "ма[йяе]", "июн", "июл", "август", "сентябр", "октябр", "ноябр", "декабр")
 SIDE_PATTERNS = {
@@ -41,6 +42,11 @@ NEARBY = {
     "car_access": (r"\bпарков\w*", "parking_distance_m", 500, "Парковка", "м"),
     "night_pharmacy": (r"\bаптек\w*", "distance_m", 500, "Ночная аптека", "м"),
 }
+# Labels for numeric criteria, so the threshold the search applies is visible in the chip.
+FIELD_LABELS = {(cid, field): (name, unit) for cid, (_, field, _, name, unit) in NEARBY.items()}
+FIELD_LABELS.update({("car_access", "ev_distance_m"): ("Зарядка для электромобиля", "м")})
+CAR_PARKING = r"\bпарков\w*|\bприпарков\w*|на машин\w*|на авто\w*|\bподъезд\w*|\bподъехать\b"
+CAR_CHARGING = r"\bэлектромобил\w*|\bэлектрокар\w*|\bзарядк\w*|\bзарядн\w* станц\w*"
 
 
 def normalized(text: str) -> str:
@@ -112,7 +118,7 @@ def _importance(text: str, start: int, end: int) -> tuple[bool, bool, bool]:
 def _numeric(text: str, start: int, end: int, field: str, default_op: str, default_value):
     offset = max(0, start - 50)
     window = text[offset:min(len(text), end + 70)]
-    units = {"minutes": r"мин(?:ут\w*)?", "water_c": r"(?:°\s*с?|градус\w*)", "download_mbps": r"(?:мбит(?:/с)?|mbps|мб/с)", "european_aqi": r"(?:aqi|единиц\w*)", "night_db_max": r"дб", "parking_distance_m": r"м(?:етр\w*)?\b", "playground_distance_m": r"м(?:етр\w*)?\b", "distance_m": r"м(?:етр\w*)?\b"}
+    units = {"minutes": r"мин(?:ут\w*)?", "water_c": r"(?:°\s*с?|градус\w*)", "download_mbps": r"(?:мбит(?:/с)?|mbps|мб/с)", "european_aqi": r"(?:aqi|единиц\w*)", "night_db_max": r"дб", "parking_distance_m": r"м(?:етр\w*)?\b", "playground_distance_m": r"м(?:етр\w*)?\b", "distance_m": r"м(?:етр\w*)?\b", "ev_distance_m": r"м(?:етр\w*)?\b"}
     unit = units.get(field)
     if not unit and field not in {"available", "windows", "blackout", "balcony", "air_conditioning"}:
         unit = r"(?:час\w*|метр\w*|м\b|%|балл\w*|люкс\w*|км\b)"
@@ -144,8 +150,8 @@ def _nearby_intents(text: str) -> dict:
 
 def _criterion_label(criterion: Criterion, fallback: str) -> str:
     cid = criterion.characteristic_id
-    if cid in NEARBY and criterion.field == NEARBY[cid][1]:
-        _, _, _, name, unit = NEARBY[cid]
+    if (cid, criterion.field) in FIELD_LABELS:
+        name, unit = FIELD_LABELS[(cid, criterion.field)]
         sign = {"lte": "≤", "gte": "≥", "eq": "="}.get(criterion.op, criterion.op)
         threshold = f"{criterion.value:g}".replace(".", ",") if isinstance(criterion.value, int | float) else str(criterion.value)
         fallback = f"{name} {sign} {threshold} {unit}"
@@ -220,6 +226,8 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             field, op, value = "night_db_max", "lte", 45
         elif spec.id == "car_access" and re.search(r"парков\w*[^,;.]{0,30}\d+\s*м(?:етр\w*)?\b", text):
             field, op, value = "parking_distance_m", "lte", 100
+        elif spec.id == "car_access" and re.search(CAR_CHARGING, text) and not re.search(CAR_PARKING, text):
+            field, op, value = "ev_distance_m", "lte", EV_CHARGING_NEAR_M
         elif spec.id == "family_nearby" and re.search(r"площадк\w*[^,;.]{0,30}\d+\s*м(?:етр\w*)?\b", text):
             field, op, value = "playground_distance_m", "lte", 300
         numeric_match = match
@@ -268,6 +276,14 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
                     if not extra_skip:
                         (parsed.nice if extra_soft else parsed.must).append(Criterion(characteristic_id=spec.id, label=spec.name_ru, field=extra_field,
                             value=not extra_negative if isinstance(extra_value, bool) else extra_value, scope=scope))
+        if spec.id == "car_access" and field != "ev_distance_m":
+            charging = re.search(CAR_CHARGING, text)
+            if charging:
+                charging_soft, _, charging_skip = _importance(text, charging.start(), charging.end())
+                if not charging_skip:
+                    extra = Criterion(characteristic_id=spec.id, label=spec.name_ru, field="ev_distance_m", op="lte", value=EV_CHARGING_NEAR_M)
+                    extra.label = _criterion_label(extra, spec.name_ru)
+                    (parsed.nice if charging_soft else parsed.must).append(extra)
         if spec.id == "beach_walk":
             for flag, extra_field, label, pattern, extra_value in [
                 ("no_stairs", "has_steps", "Без лестниц до пляжа", r"без (?:лестниц\w*|ступен\w*)|\bколяск\w*", False),

@@ -18,6 +18,19 @@ from backend.tools.derive import MissingInput, evaluate_expression
 from geo.coordinates import TO_UTM
 from geo.io import exists, read_json
 
+# Explicit straight-line thresholds behind derived "available" flags; the same
+# numbers appear in search criteria labels, so the guest sees what "рядом" means.
+PARKING_NEAR_M = 500
+EV_CHARGING_NEAR_M = 1000
+POI_METHOD = "local_poi_lookup@2"
+# A kind's method version changes when its value semantics change; older claims
+# for the same hotel and characteristic are superseded, never edited.
+POI_METHODS = {"car": "local_poi_lookup@3"}
+
+
+def poi_method(kind: str) -> str:
+    return POI_METHODS.get(kind, POI_METHOD)
+
 
 @lru_cache(maxsize=4)
 def feature_index(data_dir: str, name: str):
@@ -143,28 +156,53 @@ class Registry:
             parking = [(d,f) for d,f in candidates if f["properties"].get("amenity")=="parking" and f["properties"].get("access") not in {"no","private"}]
             ev = [(d,f) for d,f in candidates if f["properties"].get("amenity")=="charging_station"]
             selected = parking[:1]+ev[:1]
-            value = {"available":None,"parking_distance_m":round(parking[0][0]) if parking else None,
-                     "parking_osm_id":parking[0][1]["id"] if parking else None,"ev_distance_m":round(ev[0][0]) if ev else None,
+            parking_distance = round(parking[0][0]) if parking else None
+            ev_distance = round(ev[0][0]) if ev else None
+            # No mapped parking within the search radius is a data gap (None), not "no parking".
+            value = {"available":None if parking_distance is None else parking_distance<=PARKING_NEAR_M,
+                     "parking_distance_m":parking_distance,"parking_osm_id":parking[0][1]["id"] if parking else None,
+                     "ev_available":None if ev_distance is None else ev_distance<=EV_CHARGING_NEAR_M,
+                     "ev_distance_m":ev_distance,"parking_threshold_m":PARKING_NEAR_M,"ev_threshold_m":EV_CHARGING_NEAR_M,
                      "pedestrian_zone":None}
         observed = max((feature["properties"].get("observed_at","2026-10-25T21:21:21Z") for _,feature in selected),default="2026-10-25T21:21:21Z")
         observed = datetime.fromisoformat(observed.replace("Z","+00:00"))
+        limitations = ["Расстояния по прямой, не время пешего маршрута", "Отсутствие объекта или opening_hours в OSM не доказывает отсутствие услуги", "Подъезд к фактическому входу, детский профиль больницы и доступность для коляски требуют отдельного подтверждения"]
+        if kind == "car":
+            limitations.append(f"«Рядом» означает общедоступную парковку OSM не дальше {PARKING_NEAR_M} м и зарядку не дальше {EV_CHARGING_NEAR_M} м по прямой; собственная парковка отеля и свободные места не подтверждаются")
         evidence = Evidence(kind="calculation",label="Поиск по локальному снимку OpenStreetMap",source_ids=["osm_geofabrik"],artifact="/data/seed/pois.geojson",
                             inputs={"hotel_id":context.hotel_id,"radius_m":radius,"kind":kind,"matched_osm_ids":[feature["id"] for _,feature in selected]},output=value,
-                            limitations=["Расстояния по прямой, не время пешего маршрута", "Отсутствие объекта или opening_hours в OSM не доказывает отсутствие услуги", "Подъезд к фактическому входу, детский профиль больницы и доступность для коляски требуют отдельного подтверждения"])
-        method = "local_poi_lookup@2"
+                            limitations=limitations)
+        method = poi_method(kind)
         identity = hashlib.sha256(json.dumps([method,context.hotel_id,context.characteristic_id,kind,radius,observed.isoformat(),value],sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:24]
         evidence.id = "ev-poi-"+identity
         measured_distance = any(isinstance(value.get(key), int | float) for key in ("distance_m", "parking_distance_m", "ev_distance_m", "playground_distance_m", "hospital_distance_m"))
         claim = Claim(id="poi-"+identity,hotel_id=context.hotel_id,characteristic_id=context.characteristic_id,value=value,source="osm_geofabrik",method=method,evidence=[evidence],confidence=.65 if value["available"] or measured_distance else .35,
                       observed_at=observed,valid_until=observed+timedelta(days=90),run_id=context.run_id)
+        outdated = self._outdated_poi_claims(context.hotel_id, context.characteristic_id, method)
+        if outdated:
+            claim = claim.model_copy(update={"supersedes_ids": outdated})
         existing = self._known_claims.get(claim.id) if self._known_claims is not None else self.repo.get("claims", claim.id)
         if existing is not None:
             # Reuse the observation date, not its primary key. Append-only claims
             # retain an explicit supersession chain across manual collections.
             previous = self.repo.find("claims", hotel_id=context.hotel_id, characteristic_id=context.characteristic_id)
             equivalent = [row["id"] for row in previous if row.get("method") == claim.method and row.get("value") == value]
-            claim = claim.model_copy(update={"id": uid(), "supersedes": existing["id"], "supersedes_ids": equivalent})
+            claim = claim.model_copy(update={"id": uid(), "supersedes": existing["id"], "supersedes_ids": list(dict.fromkeys([*equivalent, *outdated]))})
         return ToolResult(claims=[claim], artifacts={"cache_hit": existing is not None})
+
+    def _outdated_poi_claims(self, hotel_id: str, characteristic_id: str, method: str) -> list[str]:
+        """IDs of earlier POI method versions for this hotel/characteristic."""
+        if self._known_claims is not None:
+            if getattr(self, "_poi_index", None) is None:
+                index = {}
+                for row in self._known_claims.values():
+                    if str(row.get("method", "")).startswith("local_poi_lookup@"):
+                        index.setdefault((row["hotel_id"], row["characteristic_id"]), []).append(row)
+                self._poi_index = index
+            rows = self._poi_index.get((hotel_id, characteristic_id), [])
+        else:
+            rows = self.repo.find("claims", hotel_id=hotel_id, characteristic_id=characteristic_id)
+        return sorted(row["id"] for row in rows if str(row.get("method", "")).startswith("local_poi_lookup@") and row.get("method") != method)
 
     def _derive(self, context, call):
         expression = call.params.get("expr")
