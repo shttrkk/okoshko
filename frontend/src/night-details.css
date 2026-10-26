@@ -1,0 +1,211 @@
+/* Detail-page connections extend the existing cards and map. */
+.fact-card,
+.unknown-facts li,
+.hotel-hero-map {
+  scroll-margin-top: 100px;
+}
+.fact-card:focus,
+.unknown-facts li:focus,
+.hotel-hero-map:focus {
+  outline: 2px solid var(--accent, #d96b47);
+  outline-offset: 4px;
+}
+.fact-card.fact-selected {
+  border-color: var(--accent, #d96b47);
+}
+.fact-map-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  font-size: 12px;
+}
+.fact-map-actions > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+}
+.solar-proxy-matrix .proxy-yes button {
+  background: #e8d7ad;
+  color: #514a27;
+}
+/* Empty-state layout must not turn missing table cells into flex columns. */
+.facts-panel .sun-matrix td.empty {
+  display: table-cell;
+  padding: 0;
+}
+.solar-proxy-note {
+  display: block;
+  line-height: 1.5;
+}
+.hotel-map-context {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.hotel-map-context p {
+  margin-bottom: 4px;
+}
+.hotel-map-context-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 8px;
+}
+.panorama-question {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  margin-top: 14px;
+}
+.related-hotel-list {
+  display: grid;
+  gap: 14px;
+  margin: 20px 0;
+}
+.related-hotel-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px 20px;
+  background: var(--surface);
+}
+.related-hotel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.related-hotel-title h3 {
+  margin: 0;
+  font-size: 18px;
+}
+.related-hotel-title a:hover {
+  text-decoration: underline;
+}
+.related-hotel-card > p {
+  margin-top: 8px;
+}
+.related-profile-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 22px;
+  margin: 18px 0 14px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.related-profile-pair h4 {
+  font-size: 13px;
+  font-weight: 650;
+  margin-bottom: 7px;
+}
+.related-profile-pair ul {
+  padding-left: 17px;
+  list-style: disc;
+}
+.related-profile-pair li + li {
+  margin-top: 6px;
+}
+.map-poi-marker,
+.map-poi-key {
+  --poi-color: #0e6b70;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff9ed;
+  border-radius: 6px;
+  background: var(--poi-color);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1;
+}
+.map-poi-marker {
+  width: 27px;
+  height: 27px;
+  box-shadow: 0 2px 8px #14343444;
+  cursor: pointer;
+}
+.map-poi-marker:focus-visible,
+.map-poi-marker.focused {
+  outline: 3px solid #e9894d;
+  outline-offset: 3px;
+  z-index: 5;
+}
+.map-poi-pharmacy {
+  --poi-color: #9b4f4b;
+}
+.map-poi-parking {
+  --poi-color: #4d6390;
+}
+.map-poi-playground {
+  --poi-color: #93632c;
+}
+.map-poi-green {
+  --poi-color: #4c744e;
+}
+.map-nearby-legend {
+  position: absolute;
+  bottom: 72px;
+  left: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  max-width: calc(100% - 75px);
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: #fff9edec;
+  color: #314c46;
+  font-size: 11px;
+  pointer-events: none;
+}
+.map-nearby-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.map-poi-key {
+  width: 18px;
+  height: 18px;
+  border-width: 1px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-style: normal;
+}
+.map-poi-popup {
+  color: #263a33;
+  font-family: "Manrope Variable", sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.map-poi-popup p {
+  margin: 6px 0 0;
+}
+.map-poi-popup p:last-child {
+  font-size: 11px;
+}
+@media (max-width: 700px) {
+  .related-profile-pair {
+    grid-template-columns: 1fr;
+  }
+  .related-hotel-card {
+    padding: 16px;
+  }
+  .map-nearby-legend {
+    left: 12px;
+    max-width: calc(100% - 65px);
+    gap: 4px 8px;
+  }
+}

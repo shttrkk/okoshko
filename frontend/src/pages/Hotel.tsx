@@ -15,6 +15,7 @@ import { api, useResource } from "../api";
 import { useApp } from "../state";
 import { GeoModal, TravelMap } from "../components/Map";
 import { FactsPanel } from "../components/FactsPanel";
+import { factCardId, SIDES, TRAIT_NAMES } from "../components/facts";
 import { PanoramaModal } from "../components/Panorama";
 import {
   AskButton,
@@ -28,13 +29,137 @@ import {
   Synthetic,
   VerdictList,
 } from "../components/ui";
-import type { Fact } from "../types";
+import type { Fact, Hotel, SearchHit, Verdict } from "../types";
+import "../night-details.css";
 const conflictStatus: Record<string, string> = {
   asked: "Спросили отель",
   open: "Открыт",
   auto_resolved: "Разобрано автоматически",
   resolved: "Разрешён",
 };
+const normalizedName = (name: string) =>
+  name
+    .toLocaleLowerCase("ru")
+    .replaceAll("ё", "е")
+    .replace(/[^\p{L}\p{N}]+/gu, "")
+    .trim();
+function relatedHotels(results: SearchHit[], reference: Hotel) {
+  const ids = new Set([reference.id]);
+  const names = new Set([normalizedName(reference.name)]);
+  return results
+    .filter(({ hotel }) => {
+      const name = normalizedName(hotel.name);
+      if (ids.has(hotel.id) || names.has(name)) return false;
+      ids.add(hotel.id);
+      names.add(name);
+      return true;
+    })
+    .slice(0, 3);
+}
+function RelatedHotels({ hotel }: { hotel: Hotel }) {
+  // Independent profile browsing must never replace the user's edited query.
+  const related = useResource(
+    () => api.search({ similar_to: hotel.id, text: "", limit: 3 }),
+    [hotel.id],
+  );
+  const candidates = related.data
+    ? relatedHotels(related.data.results, hotel)
+    : [];
+  return (
+    <section
+      className="section-block related-hotels"
+      data-testid="related-hotels"
+    >
+      <span className="eyebrow">ПРОФИЛИ ДЛЯ СРАВНЕНИЯ</span>
+      <h2>Похожие отели</h2>
+      <p className="muted section-lead">
+        Сходство по известным характеристикам за сентябрь. Выбранные условия
+        поездки сохраняются; совпадения профиля не подтверждают их совместимость
+        в одном номере.
+      </p>
+      {related.loading && (
+        <p role="status" className="muted">
+          Сопоставляем известные профили…
+        </p>
+      )}
+      <ErrorState error={related.error} retry={related.reload} />
+      {!related.loading && !related.error && !candidates.length && (
+        <p className="muted">
+          Недостаточно сопоставимых данных для похожих профилей.
+        </p>
+      )}
+      <div className="related-hotel-list">
+        {candidates.map((hit) => {
+          const similarities = (hit.similarity_reasons || []).filter(
+            (reason) =>
+              !/^Отличается|различается|близкое значение/i.test(reason) &&
+              !/[:;]\s*(различается|близкое значение)/i.test(reason),
+          );
+          const differences = (hit.similarity_reasons || []).filter(
+            (reason) => !similarities.includes(reason),
+          );
+          return (
+            <article
+              className="related-hotel-card"
+              key={hit.hotel.id}
+              data-testid={`related-hotel-${hit.hotel.id}`}
+              data-hotel-id={hit.hotel.id}
+            >
+              <div className="related-hotel-title">
+                <h3>
+                  <Link to={`/hotel/${encodeURIComponent(hit.hotel.id)}`}>
+                    {hit.hotel.name}
+                  </Link>
+                </h3>
+                <CompareButton hotelId={hit.hotel.id} />
+              </div>
+              <p className="muted small">{hit.hotel.address}</p>
+              <div className="related-profile-pair">
+                <div>
+                  <h4>Что схоже</h4>
+                  {similarities.length ? (
+                    <ul>
+                      {similarities.map((text) => (
+                        <li key={text}>{text}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="muted">Совпадения не выделены.</p>
+                  )}
+                </div>
+                <div>
+                  <h4>Чем отличается от этого отеля</h4>
+                  {differences.length ? (
+                    <ul>
+                      {differences.map((text) => (
+                        <li key={text}>{text}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="muted">
+                      Сопоставимые различия не выделены в данных.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Link
+                className="text-button small"
+                to={`/hotel/${encodeURIComponent(hit.hotel.id)}`}
+              >
+                Посмотреть факты <ArrowRight size={14} />
+              </Link>
+            </article>
+          );
+        })}
+      </div>
+      {candidates.length > 0 && (
+        <Link className="text-button" to="/compare">
+          Открыть сравнение выбранных отелей <ArrowRight size={15} />
+        </Link>
+      )}
+    </section>
+  );
+}
 export function HotelPage() {
   const { id = "" } = useParams();
   const { specs, parsed } = useApp();
@@ -43,11 +168,43 @@ export function HotelPage() {
   const [panorama, setPanorama] = useState<string | null>(null),
     [showGeo, setShowGeo] = useState(false),
     [evidence, setEvidence] = useState<Fact | null>(null);
+  const [selection, setSelection] = useState<{
+    hotelId: string;
+    fact: Fact;
+  } | null>(null);
   const d = detail.data,
     geo = geoResource.data || d?.geo || {};
   const verdicts = d?.verdicts || [];
   const disappointments = d?.disappointments || [];
   const rec = d?.room_recommendation;
+  const selectedFact = selection?.hotelId === id ? selection.fact : null;
+  const selectedSide =
+    selectedFact?.scope.facade ||
+    (selectedFact?.value &&
+    typeof selectedFact.value === "object" &&
+    "facade" in selectedFact.value
+      ? String(selectedFact.value.facade || "")
+      : undefined);
+  const focusFact = (fact: Fact, target: "card" | "map" = "card") => {
+    setSelection({ hotelId: id, fact });
+    const node = document.getElementById(
+      target === "card"
+        ? factCardId(fact.characteristic_id)
+        : `hotel-map-${id}`,
+    );
+    node?.scrollIntoView({ behavior: "smooth", block: "center" });
+    node?.focus({ preventScroll: true });
+  };
+  const focusVerdict = (verdict: Verdict) => {
+    const own = d?.facts.filter((fact) => verdict.fact_ids.includes(fact.id));
+    const fact =
+      own?.find(
+        (f) => !f.scope.month || f.scope.month === (parsed?.month || 9),
+      ) ||
+      own?.[0] ||
+      d?.facts.find((f) => f.characteristic_id === verdict.characteristic_id);
+    if (fact) focusFact(fact);
+  };
   // Turn the panorama towards the side that matters most for this hotel.
   const bestSide =
     ["sunset_view", "sea_view", "mountain_view"]
@@ -92,19 +249,27 @@ export function HotelPage() {
               <HotelVisual hotel={d.hotel} className="detail-visual" credit />
               <button
                 className="button panorama-button"
-                onClick={() => setPanorama(bestSide)}
+                onClick={() => setPanorama(selectedSide || bestSide)}
                 data-testid="open-panorama"
               >
                 <Eye size={16} />
                 Панорама рядом
               </button>
             </div>
-            <div className="hotel-hero-map">
+            <div
+              className="hotel-hero-map"
+              id={`hotel-map-${id}`}
+              tabIndex={-1}
+              data-selected-trait={selectedFact?.characteristic_id}
+            >
               <TravelMap
                 hotels={[d.hotel]}
                 activeId={id}
                 geo={geo}
                 month={parsed?.month || 9}
+                facade={selectedSide}
+                floor={selectedFact?.scope.floor_min || undefined}
+                focusTrait={selectedFact?.characteristic_id}
               />
               <button
                 className="button map-calc-button"
@@ -114,6 +279,65 @@ export function HotelPage() {
                 <Compass size={17} />
                 Показать расчёт <ArrowUpRight size={16} />
               </button>
+              {selectedFact && (
+                <div
+                  className="hotel-map-context"
+                  data-testid="hotel-map-context"
+                  data-fact-id={selectedFact.id}
+                >
+                  <p>
+                    <strong>
+                      {specs.data?.find(
+                        (s) => s.id === selectedFact.characteristic_id,
+                      )?.name_ru ||
+                        TRAIT_NAMES[selectedFact.characteristic_id] ||
+                        selectedFact.characteristic_id}
+                    </strong>
+                    {selectedSide &&
+                      ` · ${SIDES[selectedSide] || selectedSide}`}
+                    {selectedFact.scope.floor_min &&
+                      ` · с ${selectedFact.scope.floor_min}-го этажа`}
+                  </p>
+                  <span className="muted small">
+                    Показаны доступные геоданные. Наличие окна и условия номера
+                    уточните у отеля.
+                  </span>
+                  <div className="hotel-map-context-actions">
+                    <button
+                      className="text-button small"
+                      onClick={() => focusFact(selectedFact)}
+                    >
+                      К факту
+                    </button>
+                    <button
+                      className="text-button small"
+                      onClick={() => setEvidence(selectedFact)}
+                    >
+                      Основание
+                    </button>
+                    {selectedSide && (
+                      <button
+                        className="text-button small"
+                        data-testid="selected-panorama"
+                        onClick={() => setPanorama(selectedSide)}
+                      >
+                        <Eye size={14} /> Панорама: {SIDES[selectedSide]}
+                      </button>
+                    )}
+                    <AskButton
+                      hotelId={id}
+                      characteristicId={selectedFact.characteristic_id}
+                      compact
+                    />
+                    <button
+                      className="text-button small"
+                      onClick={() => setSelection(null)}
+                    >
+                      Все фасады
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <div className="hotel-content-grid">
@@ -131,6 +355,7 @@ export function HotelPage() {
                   <VerdictList
                     verdicts={verdicts}
                     hotelId={id}
+                    {...{ onFocusFact: focusVerdict }}
                     onEvidence={(v) => {
                       const fact =
                         d.facts.find((f) => v.fact_ids.includes(f.id)) ||
@@ -223,6 +448,8 @@ export function HotelPage() {
                     month={parsed?.month || 9}
                     onEvidence={setEvidence}
                     onPanorama={setPanorama}
+                    onShowOnMap={(fact) => focusFact(fact, "map")}
+                    selectedTrait={selectedFact?.characteristic_id}
                   />
                 )}
               </section>
@@ -278,6 +505,7 @@ export function HotelPage() {
                   ))}
                 </details>
               )}
+              <RelatedHotels hotel={d.hotel} />
             </div>
             <aside className="booking-aside">
               <span className="eyebrow">ОТДЫХ БЕЗ НЕДОСКАЗАННОСТИ</span>
@@ -337,6 +565,24 @@ export function HotelPage() {
               hotel={d.hotel}
               side={panorama}
               onClose={() => setPanorama(null)}
+              footer={
+                <div
+                  className="panorama-question"
+                  data-testid="panorama-question"
+                >
+                  <p className="muted small">
+                    Уличная панорама не подтверждает условия номера. Уточните их
+                    у отеля.
+                  </p>
+                  <AskButton
+                    hotelId={id}
+                    characteristicId={
+                      selectedFact?.characteristic_id || "room_orientation"
+                    }
+                    compact
+                  />
+                </div>
+              }
             />
           )}
           {evidence && (

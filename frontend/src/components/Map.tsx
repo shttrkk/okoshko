@@ -21,11 +21,74 @@ import { api } from "../api";
 import type { Geo, Hotel } from "../types";
 import { useApp } from "../state";
 import { Empty, Modal } from "./ui";
-import { SIDES } from "./facts";
+import { meters, SIDES } from "./facts";
 const empty: GeoJSON.FeatureCollection = {
   type: "FeatureCollection",
   features: [],
 };
+const POI_KINDS: Record<
+  string,
+  { label: string; symbol: string; trait: string[] }
+> = {
+  beach: {
+    label: "Пляж",
+    symbol: "П",
+    trait: ["beach_walk", "beach_surface", "accessible_route"],
+  },
+  pharmacy: { label: "Аптека", symbol: "А", trait: ["night_pharmacy"] },
+  parking: { label: "Парковка", symbol: "Р", trait: ["car_access"] },
+  playground: { label: "Площадка", symbol: "Д", trait: ["family_nearby"] },
+  green: { label: "Парк / сад", symbol: "З", trait: ["green_nearby"] },
+};
+type NearbyPoint = GeoJSON.Feature<GeoJSON.Point>;
+/** Plot only coordinates actually present in the per-hotel response. */
+function nearbyPoints(geo: Geo | null): NearbyPoint[] {
+  const input: GeoJSON.Feature[] = geo?.nearby?.features || [];
+  const features = input
+    .filter(
+      (f): f is NearbyPoint =>
+        f.geometry?.type === "Point" &&
+        f.geometry.coordinates.length >= 2 &&
+        f.geometry.coordinates.every(
+          (n) => typeof n === "number" && Number.isFinite(n),
+        ) &&
+        Math.abs(f.geometry.coordinates[0]) <= 180 &&
+        Math.abs(f.geometry.coordinates[1]) <= 90,
+    )
+    .map((f) => ({ ...f, properties: { ...f.properties } }));
+  for (const feature of features) {
+    const kind = String(feature.properties?.kind || "");
+    feature.properties!.kind =
+      (
+        {
+          night_pharmacy: "pharmacy",
+          family_nearby: "playground",
+          car_access: "parking",
+          green_nearby: "green",
+          park: "green",
+          garden: "green",
+        } as Record<string, string>
+      )[kind] || kind;
+  }
+  const walk = geo?.route?.features.find(
+    (f) => f.geometry.type === "LineString",
+  );
+  const end =
+    walk?.geometry.type === "LineString"
+      ? walk.geometry.coordinates.at(-1)
+      : null;
+  if (end && !features.some((f) => f.properties?.kind === "beach"))
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: end },
+      properties: {
+        kind: "beach",
+        name: walk?.properties?.beach_name || "Конец пешего маршрута до пляжа",
+        coordinate_source: "route_endpoint",
+      },
+    });
+  return features.filter((f) => String(f.properties?.kind) in POI_KINDS);
+}
 maplibregl.setWorkerUrl(mapWorkerUrl);
 let registered = false;
 const protocol = new Protocol();
@@ -437,6 +500,7 @@ function drawGeo(
   floor?: number,
   facade?: string,
   month = 9,
+  focusTrait?: string,
 ) {
   const facades: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
@@ -448,7 +512,21 @@ function drawGeo(
         properties: { code: f.code, noise: f.night_db_max ?? null },
       })),
   };
-  const cones = viewGeometry(geo, floor, facade);
+  const allCones = viewGeometry(geo, floor, facade);
+  const target =
+    focusTrait === "sea_view"
+      ? ["sea"]
+      : focusTrait === "mountain_view"
+        ? ["mountain", "mountains"]
+        : null;
+  const cones = target
+    ? {
+        ...allCones,
+        features: allCones.features.filter((f) =>
+          target.includes(String(f.properties?.target)),
+        ),
+      }
+    : allCones;
   const sun = geo?.sun_paths
     ?.find((s) => s.month === month)
     ?.points.filter((p) => p.elevation_deg >= 0)
@@ -511,6 +589,7 @@ function drawGeo(
   for (const [id, data] of [
     ["selected-building", building],
     ["facades", facades],
+    ["focused-facade", facade ? facades : empty],
     ["cones", cones],
     ["walk-route", geo?.route || empty],
     ["route-end", routeEnd],
@@ -518,6 +597,17 @@ function drawGeo(
     ["sunset", sunset],
   ] as const)
     put(map, id, data);
+  safeLayer(map, {
+    id: "focused-facade-line",
+    type: "line",
+    source: "focused-facade",
+    paint: {
+      "line-color": "#fff6e9",
+      "line-width": 11,
+      "line-gap-width": 7,
+      "line-opacity": 0.95,
+    },
+  });
   safeLayer(map, {
     id: "selected-building",
     type: "fill-extrusion",
@@ -774,6 +864,7 @@ export function TravelMap({
   floor,
   facade,
   month = 9,
+  focusTrait,
 }: {
   hotels?: Hotel[];
   activeId?: string | null;
@@ -788,11 +879,14 @@ export function TravelMap({
   floor?: number;
   facade?: string;
   month?: number;
+  focusTrait?: string;
 }) {
   const { theme } = useApp();
   const container = useRef<HTMLDivElement>(null),
     mapRef = useRef<LibreMap | null>(null),
     markers = useRef<maplibregl.Marker[]>([]);
+  const poiMarkers = useRef<maplibregl.Marker[]>([]);
+  const poiPopup = useRef<maplibregl.Popup | null>(null);
   const [ready, setReady] = useState(false),
     [rendered, setRendered] = useState(false),
     [error, setError] = useState(""),
@@ -896,6 +990,9 @@ export function TravelMap({
       setReady(false);
       markers.current.forEach((m) => m.remove());
       markers.current = [];
+      poiMarkers.current.forEach((m) => m.remove());
+      poiMarkers.current = [];
+      poiPopup.current?.remove();
       map.remove();
       mapRef.current = null;
     };
@@ -952,6 +1049,96 @@ export function TravelMap({
   }, [hotelKey, ready, hero]);
   useEffect(() => {
     const map = mapRef.current;
+    if (!map || !ready || hero) return;
+    const points = nearbyPoints(geo);
+    poiMarkers.current.forEach((m) => m.remove());
+    poiPopup.current?.remove();
+    poiMarkers.current = points.map((feature) => {
+      const properties = feature.properties || {};
+      const kind = String(properties.kind);
+      const entry = POI_KINDS[kind];
+      const name =
+        typeof properties.name === "string" && properties.name
+          ? properties.name
+          : entry.label;
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = `map-poi-marker map-poi-${kind}${focusTrait && entry.trait.includes(focusTrait) ? " focused" : ""}`;
+      el.textContent = entry.symbol;
+      el.title = `${entry.label}: ${name}`;
+      el.setAttribute("aria-label", el.title);
+      el.dataset.testid = `map-poi-${kind}`;
+      el.dataset.poiKind = kind;
+      el.dataset.osmId = String(properties.osm_id || "");
+      el.onclick = (event) => {
+        // Do not let the opening click immediately trigger Popup.closeOnClick.
+        event.stopPropagation();
+        poiPopup.current?.remove();
+        const content = document.createElement("div");
+        content.className = "map-poi-popup";
+        content.dataset.testid = "map-poi-popup";
+        const title = document.createElement("strong");
+        title.textContent = name;
+        content.append(title);
+        const detail = document.createElement("p");
+        detail.textContent = `${entry.label} · ${properties.coordinate_source === "route_endpoint" ? "конец рассчитанного маршрута" : "картированный объект OSM"}${typeof properties.distance_m === "number" ? ` · ${meters(properties.distance_m)} по прямой` : ""}`;
+        content.append(detail);
+        const caveat = document.createElement("p");
+        caveat.textContent =
+          "Метка не подтверждает вход, часы работы и доступность объекта.";
+        content.append(caveat);
+        poiPopup.current = new maplibregl.Popup({
+          offset: 18,
+          closeButton: true,
+          maxWidth: "260px",
+        })
+          .setLngLat(feature.geometry.coordinates as [number, number])
+          .setDOMContent(content)
+          .addTo(map);
+      };
+      return new maplibregl.Marker({ element: el })
+        .setLngLat(feature.geometry.coordinates as [number, number])
+        .addTo(map);
+    });
+    return () => {
+      poiMarkers.current.forEach((m) => m.remove());
+      poiMarkers.current = [];
+      poiPopup.current?.remove();
+    };
+  }, [geo, ready, hero, focusTrait]);
+  useEffect(() => {
+    if (!focusTrait) return;
+    const layer = ["quiet_night", "railway_noise"].includes(focusTrait)
+      ? "noise"
+      : ["sea_view", "mountain_view"].includes(focusTrait)
+        ? "view"
+        : ["beach_walk", "accessible_route", "beach_surface"].includes(
+              focusTrait,
+            )
+          ? "route"
+          : focusTrait === "sunset_view"
+            ? "sun"
+            : null;
+    if (layer)
+      setLayers((old) => (old.includes(layer) ? old : [...old, layer]));
+    const map = mapRef.current;
+    if (!map || !ready || !geo?.center) return;
+    const points = nearbyPoints(geo).filter((f) =>
+      POI_KINDS[String(f.properties?.kind)].trait.includes(focusTrait),
+    );
+    if (!points.length) return;
+    const bounds = new maplibregl.LngLatBounds(geo.center, geo.center);
+    points.forEach((f) =>
+      bounds.extend(f.geometry.coordinates as [number, number]),
+    );
+    map.fitBounds(bounds, {
+      padding: { top: 105, bottom: 100, left: 65, right: 65 },
+      maxZoom: 16.2,
+      duration: 650,
+    });
+  }, [focusTrait, geo, ready]);
+  useEffect(() => {
+    const map = mapRef.current;
     if (!map || !ready || !hero) return;
     drawHeroOverlay(map, hotelList.current);
   }, [ready, hero, hotelKey]);
@@ -965,7 +1152,7 @@ export function TravelMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
-    drawGeo(map, geo, layers, floor, facade, month);
+    drawGeo(map, geo, layers, floor, facade, month, focusTrait);
     put(map, "scenario-building", extraGeometry || empty);
     safeLayer(map, {
       id: "scenario-building",
@@ -982,7 +1169,7 @@ export function TravelMap({
         "fill-extrusion-opacity": 0.9,
       },
     });
-  }, [geo, layers, ready, floor, facade, month, extraGeometry]);
+  }, [geo, layers, ready, floor, facade, month, extraGeometry, focusTrait]);
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready || hero) return;
@@ -1017,6 +1204,8 @@ export function TravelMap({
         error ? "error" : ready && rendered ? "ready" : "loading"
       }
       data-map-source={base}
+      data-selected-trait={focusTrait}
+      data-selected-facade={facade}
     >
       <div className="map-canvas" ref={container} />
       {error && (
@@ -1133,6 +1322,26 @@ export function TravelMap({
               Закат
             </span>
           </div>
+          {nearbyPoints(geo).length > 0 && (
+            <div
+              className="map-nearby-legend"
+              aria-label="Объекты рядом"
+              data-testid="map-nearby-legend"
+            >
+              {[
+                ...new Set(
+                  nearbyPoints(geo).map((f) => String(f.properties?.kind)),
+                ),
+              ].map((kind) => (
+                <span key={kind}>
+                  <i className={`map-poi-key map-poi-${kind}`}>
+                    {POI_KINDS[kind].symbol}
+                  </i>
+                  {POI_KINDS[kind].label}
+                </span>
+              ))}
+            </div>
+          )}
         </>
       )}
       <div className="map-source">
@@ -1156,6 +1365,9 @@ export function TravelMap({
             onSelect={onSelect}
             onOpen={onOpen}
             month={month}
+            floor={floor}
+            facade={facade}
+            focusTrait={focusTrait}
           />
         </Modal>
       )}

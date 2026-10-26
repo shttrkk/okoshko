@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ExternalLink } from "lucide-react";
 import type { Hotel } from "../types";
 import { Modal } from "./ui";
@@ -33,10 +33,12 @@ export function PanoramaModal({
   hotel,
   side: initialSide = "S",
   onClose,
+  footer,
 }: {
   hotel: Hotel;
   side?: string;
   onClose: () => void;
+  footer?: ReactNode;
 }) {
   const [side, setSide] = useState(initialSide);
   const query = panoramaQuery(hotel, side);
@@ -81,6 +83,7 @@ export function PanoramaModal({
       >
         Открыть в Яндекс Картах <ExternalLink size={14} />
       </a>
+      {footer}
     </Modal>
   );
 }

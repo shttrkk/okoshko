@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Eye } from "lucide-react";
+import { Eye, MapPin } from "lucide-react";
 import { record } from "../api";
 import type { Claim, Fact } from "../types";
 import { NearbyPhotos } from "./Photos";
@@ -14,6 +14,7 @@ import {
 } from "./ui";
 import {
   fmt,
+  factCardId,
   humanFact,
   MONTHS_IN,
   MONTHS_SHORT,
@@ -22,11 +23,13 @@ import {
   SIDE_ORDER,
   SIDES,
   SIDES_SHORT,
+  TRAIT_NAMES,
 } from "./facts";
 type Spec = { id: string; name_ru?: string; category?: string };
 const CATEGORY_ORDER = [
   "Вид",
   "Сон",
+  "Шум",
   "Рядом",
   "Атмосфера",
   "Доступ",
@@ -35,10 +38,26 @@ const CATEGORY_ORDER = [
   "Номер",
   "Окружение",
 ];
-const WIDE = new Set(["sunset_view", "climate", "nearby_photos"]);
+const SOLAR = new Set(["morning_sun", "evening_heat"]);
+const WIDE = new Set(["sunset_view", "climate", "nearby_photos", ...SOLAR]);
 const VIEWS = new Set(["sunset_view", "sea_view", "mountain_view"]);
+const MAPPABLE = new Set([
+  ...VIEWS,
+  ...SOLAR,
+  "quiet_night",
+  "railway_noise",
+  "beach_walk",
+  "night_pharmacy",
+  "family_nearby",
+  "car_access",
+  "beach_surface",
+  "accessible_route",
+  "green_nearby",
+]);
 const v = (f: Fact) => record(f.value);
 const known = (f: Fact) => f.status !== "unknown" && f.value !== null;
+const reliable = (f: Fact) =>
+  ["computed", "confirmed"].includes(f.status) && f.value !== null;
 const floorOf = (f: Fact) => {
   const value = v(f).min_floor ?? f.scope.floor_min;
   return typeof value === "number" ? value : null;
@@ -52,7 +71,7 @@ function bySide(facts: Fact[]) {
   return sides.map((side) => {
     const own = facts.filter((f) => (f.scope.facade || v(f).facade) === side);
     const yes = own
-      .filter((f) => v(f).available === true)
+      .filter((f) => reliable(f) && v(f).available === true)
       .sort((a, b) => (floorOf(a) ?? 0) - (floorOf(b) ?? 0));
     const best = yes[0] || [...own].sort((a, b) => prob(b) - prob(a))[0];
     return { side, own, yes, best };
@@ -88,7 +107,7 @@ function SunsetMatrix({
             (v(f).months as number[]).includes(m))),
     );
     const yes = own
-      .filter((f) => v(f).available === true)
+      .filter((f) => reliable(f) && v(f).available === true)
       .sort((a, b) => (floorOf(a) ?? 0) - (floorOf(b) ?? 0));
     return { best: yes[0] || own.sort((a, b) => prob(b) - prob(a))[0], yes };
   };
@@ -126,13 +145,15 @@ function SunsetMatrix({
                     </td>
                   );
                 const p = yes.length ? Math.max(...yes.map(prob)) : 0;
-                const level = !yes.length
-                  ? "no"
-                  : p >= 0.8
-                    ? "high"
-                    : p >= 0.5
-                      ? "mid"
-                      : "low";
+                const level = !reliable(best)
+                  ? "empty"
+                  : !yes.length
+                    ? "no"
+                    : p >= 0.8
+                      ? "high"
+                      : p >= 0.5
+                        ? "mid"
+                        : "low";
                 const floor = floorOf(best);
                 return (
                   <td
@@ -144,11 +165,13 @@ function SunsetMatrix({
                       title={`${SIDES[side]}, ${MONTHS_IN[i]}: ${humanFact(best) || ""}`}
                       aria-label={`${SIDES[side]}, ${MONTHS_IN[i]}: ${humanFact(best) || ""}`}
                     >
-                      {yes.length
-                        ? floor && floor > 1
-                          ? `${floor}+`
-                          : "✓"
-                        : "—"}
+                      {!reliable(best)
+                        ? "?"
+                        : yes.length
+                          ? floor && floor > 1
+                            ? `${floor}+`
+                            : "✓"
+                          : "—"}
                     </button>
                   </td>
                 );
@@ -172,7 +195,107 @@ function SunsetMatrix({
         </span>
         <span>
           «7+» — с 7-го этажа. Нажмите на клетку, чтобы открыть расчёт.
+          Видимость фасада не подтверждает наличие окна.
         </span>
+      </p>
+    </div>
+  );
+}
+/** These deterministic proxies have no Monte Carlo probability to colour. */
+function SolarMatrix({
+  facts,
+  month,
+  onEvidence,
+}: {
+  facts: Fact[];
+  month: number;
+  onEvidence: (f: Fact) => void;
+}) {
+  const sides = SIDE_ORDER.filter((side) =>
+    facts.some((f) => f.scope.facade === side),
+  );
+  return (
+    <div
+      className="sun-matrix-wrap solar-proxy-matrix"
+      data-testid="solar-proxy-matrix"
+    >
+      <table className="sun-matrix">
+        <thead>
+          <tr>
+            <th scope="col">
+              <span className="visually-hidden">Фасад</span>
+            </th>
+            {MONTHS_SHORT.map((name, i) => (
+              <th
+                scope="col"
+                key={name}
+                className={i + 1 === month ? "current" : ""}
+              >
+                {name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {sides.map((side) => (
+            <tr key={side}>
+              <th scope="row" title={SIDES[side]}>
+                {SIDES_SHORT[side]}
+              </th>
+              {MONTHS_SHORT.map((name, i) => {
+                const own = facts.filter(
+                  (f) => f.scope.facade === side && f.scope.month === i + 1,
+                );
+                if (!own.length)
+                  return (
+                    <td className="empty" key={name}>
+                      ·
+                    </td>
+                  );
+                const yes = own
+                  .filter((f) => reliable(f) && v(f).available === true)
+                  .sort((a, b) => (floorOf(a) ?? 0) - (floorOf(b) ?? 0));
+                const best = yes[0] || own[0];
+                const state = !reliable(best)
+                  ? "empty"
+                  : yes.length
+                    ? "proxy-yes"
+                    : v(best).available === false
+                      ? "no"
+                      : "empty";
+                const floor = floorOf(best);
+                const label = `${SIDES[side]}, ${MONTHS_IN[i]}: ${humanFact(best) || "нет данных"}. ${scopeText(best.scope)}`;
+                return (
+                  <td
+                    key={name}
+                    className={`${state} ${i + 1 === month ? "current" : ""}`}
+                  >
+                    <button
+                      onClick={() => onEvidence(best)}
+                      title={label}
+                      aria-label={label}
+                    >
+                      {state === "empty"
+                        ? "?"
+                        : yes.length
+                          ? floor && floor > 1
+                            ? `${floor}+`
+                            : "✓"
+                          : "<20"}
+                    </button>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="matrix-legend solar-proxy-note">
+        Геометрическая оценка на 15-е число месяца: ✓ — не менее 20 минут
+        прямого солнца; «7+» — начиная с 7-го этажа в рассчитанном диапазоне.
+        «&lt;20» — меньше 20 минут, «?» — требуется уточнение. Нажмите клетку
+        для диапазона этажей и значений. Облачность и наличие окна неизвестны;
+        индекс экспозиции не измеряет температуру комнаты.
       </p>
     </div>
   );
@@ -183,25 +306,33 @@ function SideChips({
   onEvidence,
 }: {
   facts: Fact[];
-  kind: "view" | "noise";
+  kind: "view" | "noise" | "rail";
   onEvidence: (f: Fact) => void;
 }) {
   return (
     <div className="side-chips">
       {bySide(facts).map(({ side, yes, best }) => {
         const value = v(best);
-        const level =
-          kind === "noise"
+        const level = !reliable(best)
+          ? "unknown"
+          : kind === "noise"
             ? String(value.index || "unknown")
-            : yes.length
-              ? "yes"
-              : "no";
-        const detail =
-          kind === "noise"
+            : kind === "rail"
+              ? "rail-proxy"
+              : yes.length
+                ? "yes"
+                : "no";
+        const detail = !reliable(best)
+          ? "нужно уточнить"
+          : kind === "noise"
             ? `${noiseLabel[String(value.index)] || "нет данных"}${typeof value.night_db_max === "number" ? ` · до ${fmt(value.night_db_max)} дБ` : ""}`
-            : yes.length
-              ? `${floorOf(best) && floorOf(best)! > 1 ? `с ${floorOf(best)} эт.` : "все этажи"} · ${pct(Math.max(...yes.map(prob)))}`
-              : "нет";
+            : kind === "rail"
+              ? `${fmt(value.night_db_min)}–${fmt(value.night_db_max)} дБ · прокси`
+              : yes.length
+                ? `${floorOf(best) && floorOf(best)! > 1 ? `с ${floorOf(best)} эт.` : "все этажи"} · ${pct(Math.max(...yes.map(prob)))}`
+                : value.available === false
+                  ? "не виден"
+                  : "нет данных";
         return (
           <button
             key={side}
@@ -275,7 +406,26 @@ function ClimateTable({ facts, month }: { facts: Fact[]; month: number }) {
   );
 }
 export function headline(id: string, facts: Fact[], month: number): ReactNode {
-  const shown = facts.filter(known);
+  const shown = facts.filter(reliable);
+  if (!shown.length) {
+    if (facts.some((f) => f.status === "disputed"))
+      return "Источники противоречат друг другу — уточните у отеля.";
+    if (facts.some((f) => f.status === "stale"))
+      return "Данные требуют перепроверки. Откройте источник и уточните условия.";
+    return "Данных недостаточно для вывода.";
+  }
+  if (SOLAR.has(id)) {
+    const inMonth = shown.filter((f) => f.scope.month === month);
+    if (!inMonth.length)
+      return `Для ${MONTHS_IN[month - 1]} нет геометрической оценки.`;
+    const yes = sideList(bySide(inMonth));
+    const summary =
+      yes ||
+      (inMonth.every((f) => v(f).available === false)
+        ? "на рассчитанных фасадах меньше 20 минут"
+        : "достаточность прямого солнца неизвестна");
+    return `${id === "morning_sun" ? "Утреннее" : "Вечернее"} прямое солнце в ${MONTHS_IN[month - 1]}: ${summary}. Геометрическая оценка, не прогноз погоды${id === "evening_heat" ? " и не температура номера" : ""}.`;
+  }
   if (id === "sunset_view") {
     const inMonth = shown.filter(
       (f) =>
@@ -292,21 +442,25 @@ export function headline(id: string, facts: Fact[], month: number): ReactNode {
       .filter((m): m is number => typeof m === "number")
       .sort((a, b) => a - b);
     return list
-      ? `В ${MONTHS_IN[month - 1]} закат виден из окон: ${list}.`
-      : `В ${MONTHS_IN[month - 1]} закат из окон не виден.${good.length ? ` Виден в месяцах: ${good.map((m) => MONTHS_SHORT[m - 1]).join(", ")}.` : ""}`;
+      ? `В ${MONTHS_IN[month - 1]} модель показывает видимость заката: ${list}.`
+      : !inMonth.length || !inMonth.every((f) => v(f).available === false)
+        ? `В ${MONTHS_IN[month - 1]} видимость заката неизвестна.`
+        : `В ${MONTHS_IN[month - 1]} закат на рассчитанных фасадах не виден.${good.length ? ` Виден в месяцах: ${good.map((m) => MONTHS_SHORT[m - 1]).join(", ")}.` : ""}`;
   }
   if (id === "sea_view" || id === "mountain_view") {
     const list = sideList(bySide(shown));
     const what = id === "sea_view" ? "Море" : "Горы";
     return list
-      ? `${what} видно: ${list}.`
-      : `${what === "Море" ? "Моря" : "Гор"} из окон не видно ни с одной стороны.`;
+      ? `Модель показывает видимость ${id === "sea_view" ? "моря" : "гор"}: ${list}.`
+      : shown.every((f) => v(f).available === false)
+        ? `${what === "Море" ? "Моря" : "Гор"} на рассчитанных фасадах не видно.`
+        : `Вид на ${id === "sea_view" ? "море" : "горы"} требует уточнения.`;
   }
   if (id === "quiet_night") {
     const quiet = bySide(shown).filter((r) => v(r.best).index === "quiet");
     return quiet.length
       ? `Тише всего ночью: ${quiet.map((r) => SIDES[r.side]).join(", ")}.`
-      : "Тихих фасадов нет — просите номер подальше от дороги.";
+      : "Модель не выделила тихий фасад. Наружный шум не определяет тишину в номере.";
   }
   if (id === "climate") {
     const f = shown.find(
@@ -321,8 +475,11 @@ export function headline(id: string, facts: Fact[], month: number): ReactNode {
   return rep ? humanFact(rep) || <FactValue fact={rep} /> : null;
 }
 /** The fact that best stands for a characteristic (evidence link, ask). */
-export function representative(facts: Fact[]): Fact {
-  const shown = facts.filter(known);
+export function representative(facts: Fact[], month?: number): Fact {
+  const current = month
+    ? facts.filter((f) => !f.scope.month || f.scope.month === month)
+    : facts;
+  const shown = (current.length ? current : facts).filter(reliable);
   return (
     [...shown]
       .filter((f) => v(f).available === true)
@@ -342,6 +499,8 @@ function FactCard({
   onEvidence,
   canAsk,
   onPanorama,
+  onShowOnMap,
+  selectedTrait,
 }: {
   id: string;
   name: string;
@@ -352,17 +511,31 @@ function FactCard({
   onEvidence: (f: Fact) => void;
   canAsk: boolean;
   onPanorama?: (side: string) => void;
+  onShowOnMap?: (fact: Fact) => void;
+  selectedTrait?: string;
 }) {
   const shown = facts.filter(known);
-  const rep = representative(facts);
+  const rep = representative(facts, month);
   const disputed = facts.some((f) => f.status === "disputed");
   const confidence = Math.max(...shown.map((f) => f.confidence), 0);
   const multi = shown.length > 1;
-  const sided = ["sea_view", "mountain_view", "quiet_night"].includes(id);
+  const sided = [
+    "sea_view",
+    "mountain_view",
+    "quiet_night",
+    "railway_noise",
+  ].includes(id);
+  const mapSides = bySide(
+    facts.filter((f) => !f.scope.month || f.scope.month === month),
+  );
   return (
     <article
-      className={`fact-card ${WIDE.has(id) ? "wide" : ""} ${disputed ? "disputed" : ""}`}
+      id={factCardId(id)}
+      tabIndex={-1}
+      className={`fact-card ${WIDE.has(id) ? "wide" : ""} ${disputed ? "disputed" : ""} ${selectedTrait === id ? "fact-selected" : ""}`}
       data-testid={`fact-card-${id}`}
+      data-characteristic-id={id}
+      data-fact-ids={facts.map((f) => f.id).join(" ")}
     >
       <div className="fact-card-head">
         <h4>{name}</h4>
@@ -377,10 +550,19 @@ function FactCard({
       {id === "sunset_view" && (
         <SunsetMatrix facts={shown} month={month} onEvidence={onEvidence} />
       )}
+      {SOLAR.has(id) && (
+        <SolarMatrix facts={shown} month={month} onEvidence={onEvidence} />
+      )}
       {sided && (
         <SideChips
           facts={shown}
-          kind={id === "quiet_night" ? "noise" : "view"}
+          kind={
+            id === "quiet_night"
+              ? "noise"
+              : id === "railway_noise"
+                ? "rail"
+                : "view"
+          }
           onEvidence={onEvidence}
         />
       )}
@@ -388,10 +570,10 @@ function FactCard({
       {id === "nearby_photos" && <NearbyPhotos value={rep.value} />}
       {multi &&
         !sided &&
-        !["sunset_view", "climate", "nearby_photos"].includes(id) && (
+        !["sunset_view", "climate", "nearby_photos", ...SOLAR].includes(id) && (
           <ul className="fact-scopes">
             {shown.map((f) => (
-              <li key={f.id}>
+              <li key={f.id} data-fact-id={f.id}>
                 <span>{scopeText(f.scope)}</span>
                 <FactValue fact={f} />
               </li>
@@ -401,9 +583,13 @@ function FactCard({
       <div className="fact-card-foot">
         <EvidenceButton fact={rep} claims={claims} />
         {shown.some((f) => f.synthetic) && <Synthetic />}
-        {canAsk && (disputed || needsQuestion(rep)) && (
-          <AskButton hotelId={hotelId} characteristicId={id} compact />
-        )}
+        {canAsk &&
+          (disputed ||
+            needsQuestion(rep) ||
+            SOLAR.has(id) ||
+            id === "railway_noise") && (
+            <AskButton hotelId={hotelId} characteristicId={id} compact />
+          )}
         {onPanorama &&
           VIEWS.has(id) &&
           !!(rep.scope.facade || v(rep).facade) && (
@@ -418,6 +604,35 @@ function FactCard({
             </button>
           )}
       </div>
+      {onShowOnMap && MAPPABLE.has(id) && (
+        <div className="fact-map-actions">
+          <span>
+            <MapPin size={13} /> На карте{mapSides.length ? ":" : ""}
+          </span>
+          {mapSides.length ? (
+            mapSides.map(({ side, best }) => (
+              <button
+                className="text-button small"
+                key={side}
+                data-testid={`fact-map-${id}-${side}`}
+                data-fact-id={best.id}
+                onClick={() => onShowOnMap(best)}
+                aria-label={`Показать на карте: ${name}, ${SIDES[side]}`}
+              >
+                {SIDES[side]}
+              </button>
+            ))
+          ) : (
+            <button
+              className="text-button small"
+              data-testid={`fact-map-${id}`}
+              onClick={() => onShowOnMap(rep)}
+            >
+              Показать
+            </button>
+          )}
+        </div>
+      )}
     </article>
   );
 }
@@ -430,6 +645,8 @@ export function FactsPanel({
   onEvidence,
   hotelier = false,
   onPanorama,
+  onShowOnMap,
+  selectedTrait,
 }: {
   facts: Fact[];
   claims: Claim[];
@@ -441,10 +658,14 @@ export function FactsPanel({
   hotelier?: boolean;
   /** Open a street panorama turned towards a facade. */
   onPanorama?: (side: string) => void;
+  /** Focus a characteristic and its actual scope on the hotel map. */
+  onShowOnMap?: (fact: Fact) => void;
+  selectedTrait?: string;
 }) {
   const ids = [...new Set(facts.map((f) => f.characteristic_id))];
   const spec = (id: string) => specs.find((s) => s.id === id);
-  const nameOf = (id: string) => spec(id)?.name_ru || names[id] || id;
+  const nameOf = (id: string) =>
+    spec(id)?.name_ru || names[id] || TRAIT_NAMES[id] || id;
   const isKnown = (id: string) =>
     facts.some((f) => f.characteristic_id === id && known(f));
   const categories = [
@@ -481,6 +702,8 @@ export function FactsPanel({
                   onEvidence={onEvidence}
                   canAsk={!hotelier}
                   onPanorama={onPanorama}
+                  onShowOnMap={onShowOnMap}
+                  selectedTrait={selectedTrait}
                 />
               ))}
           </div>
@@ -496,7 +719,13 @@ export function FactsPanel({
           </p>
           <ul>
             {unknown.map((id) => (
-              <li key={id}>
+              <li
+                key={id}
+                id={factCardId(id)}
+                tabIndex={-1}
+                data-characteristic-id={id}
+                data-testid={`fact-card-${id}`}
+              >
                 <span>{nameOf(id)}</span>
                 {!hotelier && (
                   <AskButton hotelId={hotelId} characteristicId={id} compact />

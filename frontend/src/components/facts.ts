@@ -63,6 +63,16 @@ export const SIDES_SHORT: Record<string, string> = {
   W: "З",
   NW: "СЗ",
 };
+export const TRAIT_NAMES: Record<string, string> = {
+  morning_sun: "Утреннее солнце",
+  evening_heat: "Вечернее солнце и нагрев",
+  railway_noise: "Железнодорожный шум",
+  beach_surface: "Покрытие пляжа",
+  accessible_route: "Доступность маршрута",
+  green_nearby: "Зелень рядом",
+};
+/** Stable anchors shared by verdicts, cards and the map's return link. */
+export const factCardId = (id: string) => `fact-card-${id}`;
 const num = (v: unknown) =>
   typeof v === "number" && Number.isFinite(v) ? v : null;
 /** Russian number formatting without false precision. */
@@ -89,6 +99,28 @@ export function meters(v: unknown) {
 }
 export const floorFrom = (v: unknown) =>
   num(v) === null ? "" : `с ${v}-го этажа`;
+function range(low: unknown, high: unknown, digits = 0) {
+  const a = num(low),
+    b = num(high);
+  return a === null
+    ? b === null
+      ? null
+      : fmt(b, digits)
+    : b === null || a === b
+      ? fmt(a, digits)
+      : `${fmt(a, digits)}–${fmt(b, digits)}`;
+}
+const SURFACES: Record<string, string> = {
+  sand: "песок",
+  pebblestone: "галька",
+  gravel: "гравий",
+  fine_gravel: "мелкий гравий",
+  shingle: "галька",
+  rock: "камни",
+  concrete: "бетон",
+  ground: "грунт",
+  grass: "трава",
+};
 function aqiLabel(aqi: number) {
   if (aqi <= 20) return "хорошее";
   if (aqi <= 40) return "удовлетворительное";
@@ -122,6 +154,85 @@ export function humanFact(fact: Fact): string | null {
   const id = fact.characteristic_id;
   const month = num(fact.scope.month);
   switch (id) {
+    case "morning_sun":
+    case "evening_heat": {
+      const duration = range(
+        v.visible_minutes_min ?? v.visible_minutes,
+        v.visible_minutes_max ?? v.visible_minutes,
+      );
+      const exposure = range(
+        v.exposure_index_min ?? v.exposure_index,
+        v.exposure_index_max ?? v.exposure_index,
+        2,
+      );
+      if (duration === null && exposure === null) return null;
+      return [
+        month && `В ${MONTHS_IN[month - 1]}`,
+        duration !== null &&
+          `${id === "morning_sun" ? "утреннее" : "вечернее"} прямое солнце ${duration} мин`,
+        id === "evening_heat" &&
+          exposure !== null &&
+          `индекс экспозиции ${exposure} из 1`,
+        "геометрическая оценка",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    }
+    case "railway_noise": {
+      const night = range(v.night_db_min, v.night_db_max);
+      return night === null
+        ? null
+        : `Наружный шум поездов ночью ${night} дБ · некалиброванный прокси, не измерение в номере`;
+    }
+    case "beach_surface": {
+      const raw = typeof v.surface === "string" ? v.surface : null;
+      const surface = raw
+        ? raw
+            .split(";")
+            .map((part) => SURFACES[part.trim()] || part.trim())
+            .join(", ")
+        : null;
+      return [
+        surface ? `По OSM: ${surface}` : "Покрытие пляжа не указано в OSM",
+        v.selection_kind === "beach_walk_destination"
+          ? "пляж пешего маршрута"
+          : v.selection_kind
+            ? "ближайший картированный пляж"
+            : null,
+        num(v.distance_m) !== null && `${meters(v.distance_m)} по прямой`,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    }
+    case "accessible_route": {
+      return [
+        v.wheelchair_suitable === true
+          ? "Проезд на коляске подтверждён явными данными маршрута"
+          : v.wheelchair_suitable === false
+            ? "В OSM есть явное ограничение проезда на коляске"
+            : "Проезд на коляске не подтверждён",
+        v.has_steps === true
+          ? "на маршруте отмечены лестницы"
+          : v.has_steps === false
+            ? "на рёбрах маршрута лестницы не отмечены"
+            : "о лестницах нет данных",
+        num(v.wheelchair_tag_coverage) !== null &&
+          `теги доступности у ${pct(v.wheelchair_tag_coverage)} рёбер`,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    }
+    case "green_nearby": {
+      const kind =
+        v.leisure === "garden"
+          ? "сад"
+          : v.leisure === "park"
+            ? "парк"
+            : "зелёная территория";
+      return num(v.distance_m) === null
+        ? null
+        : `Картированный ${kind} в ${meters(v.distance_m)} по прямой · вход и пеший путь не проверены`;
+    }
     case "sunset_view": {
       const when = month ? `в ${MONTHS_IN[month - 1]}` : "";
       if (v.available === false)
@@ -132,7 +243,7 @@ export function humanFact(fact: Fact): string | null {
         `Виден ${when}`.trim(),
         floorFrom(v.min_floor),
         num(v.visible_minutes) !== null &&
-          `солнце в окне последние ${minutes(v.visible_minutes)}`,
+          `видимость солнца последние ${minutes(v.visible_minutes)}`,
         `вероятность ${pct(v.probability)}`,
       ]
         .filter(Boolean)
@@ -295,6 +406,17 @@ export const METHOD_NAMES: Record<string, string> = {
   "local_poi_lookup@2": "Поиск ближайших объектов OSM",
   "hotelier_answer@1": "Ответ отеля с цитатой",
   "simulated_hotelier_quote@1": "Синтетический ответ отеля с цитатой",
+  astral_morning_horizon_proxy_v1:
+    "Утреннее солнце по профилю горизонта · геометрический прокси",
+  astral_evening_exposure_proxy_v1:
+    "Вечерняя солнечная экспозиция · не температура комнаты",
+  outdoor_rail_noise_proxy_v1:
+    "Некалиброванный прокси наружного шума железной дороги",
+  osm_beach_surface_v2: "Явный тег покрытия выбранного пляжа в OpenStreetMap",
+  osm_route_accessibility_v1:
+    "Явные теги доступности рёбер пешего маршрута OSM",
+  osm_green_geometry_distance_v1:
+    "Расстояние по прямой до картированного парка или сада OSM",
 };
 export const SOURCE_NAMES: Record<string, string> = {
   geo_engine: "Расчёт О!кно по OSM и Copernicus",
