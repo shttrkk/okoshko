@@ -164,8 +164,7 @@ def details(hotel_ids: list[str], repo, *, text: str = "", month: int | None = N
             from backend.agents.ranker import rank_hotels
             hits = rank_hotels([hotel], facts, parsed, specs)
             verdicts = hits[0].verdicts if hits else []
-        public_facts = [fact.model_copy(update={"evidence": [e.model_copy(update={"limitations": []})
-                                                            for e in fact.evidence]}) for fact in facts] if compact else facts
+        public_facts = [fact.model_copy(update={"evidence": []}) for fact in facts] if compact else facts
         result.append(HotelDetail(hotel=hotel, facts=public_facts, claims=grouped["claims"][hotel_id],
                                   conflicts=grouped["conflicts"][hotel_id], questions=grouped["questions"][hotel_id],
                                   verdicts=verdicts, room_recommendation=recommend_room(facts, parsed),
@@ -183,6 +182,16 @@ def compact_payload(value: HotelDetail) -> dict:
     """Omit optional empty evidence fields; validators restore their defaults."""
     payload = value.model_dump(mode="json")
     for fact in payload["facts"]:
+        if fact.get("synthetic") is False:
+            fact.pop("synthetic")
+        if fact.get("conflicting_claim_ids") == []:
+            fact.pop("conflicting_claim_ids")
+        if fact.get("valid_until") is None:
+            fact.pop("valid_until")
+        # Aggregation metadata is available with the full evidence response.
+        fact.pop("resolution", None)
+        fact["scope"] = {key: field for key, field in fact["scope"].items()
+                         if field is not None and (key != "type" or field != "hotel")}
         for evidence in fact["evidence"]:
             for key in ("url", "artifact", "quote", "message_id", "inputs", "output"):
                 if evidence.get(key) is None or evidence.get(key) == {}:

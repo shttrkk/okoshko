@@ -50,13 +50,13 @@ export interface Fact {
   value: unknown;
   confidence: number;
   status: "computed" | "confirmed" | "disputed" | "unknown" | "stale";
-  resolution: string;
+  resolution?: string;
   supporting_claim_ids: string[];
-  conflicting_claim_ids: string[];
+  conflicting_claim_ids?: string[];
   evidence: Evidence[];
   updated_at: string;
-  valid_until: string | null;
-  synthetic: boolean;
+  valid_until?: string | null;
+  synthetic?: boolean;
 }
 export interface Hotel {
   id: string;

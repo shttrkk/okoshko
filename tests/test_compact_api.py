@@ -33,14 +33,11 @@ def test_compact_is_opt_in_and_evidence_can_be_loaded_completely(client, calcula
     assert [f["id"] for f in compact["facts"]] == [f["id"] for f in full["facts"]]
     preview = next(f for f in compact["facts"] if f["id"] == fact["id"])
     assert preview["supporting_claim_ids"] == [claim["id"]]
-    assert preview["evidence"][0]["id"] == fact["evidence"][0]["id"]
-    assert preview["evidence"][0]["source_ids"] == fact["evidence"][0]["source_ids"]
-    assert preview["evidence"][0].get("inputs", {}) == {} and preview["evidence"][0].get("output", {}) == {}
-    assert preview["evidence"][0]["artifact"] == fact["evidence"][0]["artifact"]
-    assert preview["evidence"][0]["limitations"] == []
-    assert preview["evidence"][0]["label"] == fact["evidence"][0]["label"]
+    assert preview["evidence"] == []
     assert HotelDetail.model_validate(compact).evidence_deferred
     loaded = client.get(path + "/facts/" + fact["id"] + "/evidence").json()
+    assert loaded["fact"]["evidence"][0]["id"] == fact["evidence"][0]["id"]
+    assert loaded["fact"]["evidence"][0]["source_ids"] == fact["evidence"][0]["source_ids"]
     assert loaded["fact"]["evidence"][0]["inputs"] == fact["evidence"][0]["inputs"]
     assert loaded["fact"]["evidence"][0]["limitations"] == fact["evidence"][0]["limitations"]
     assert loaded["fact"]["evidence"][0]["artifact"] == fact["evidence"][0]["artifact"]
@@ -113,4 +110,7 @@ def test_compact_keeps_exact_sunset_geometry_in_verdicts(client, repo):  # noqa:
     assert compact['verdicts'] == full['verdicts']
     assert compact['disappointments'] == full['disappointments']
     projected = next(f for f in compact['facts'] if f['id'] == row.id)
-    assert projected['evidence'][0]['inputs'] == {'facade_azimuth_deg': 345, 'window_half_angle_deg': 75}
+    assert projected['evidence'] == []
+    complete = client.get('/api/hotels/test-hotel/facts/'+row.id+'/evidence').json()
+    assert complete['fact']['evidence'][0]['inputs']['facade_azimuth_deg'] == 345
+    assert complete['fact']['evidence'][0]['inputs']['raw_array'] == [42]*1000

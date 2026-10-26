@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 02:06 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 02:35 МСК. Проверены расширенный профиль и загрузка доказательств по клику.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -139,3 +139,5 @@
 - 27.10.2026 02:05: fix(cache): retire trait values when model inputs become invalid; 712 passed, 1 warning, 125 subtests passed in 47.12s; Ruff и frontend lint PASS.
 
 - 27.10.2026 02:06: fix(coverage): retain typed partial fields independently of availability; 736 passed, 1 warning, 125 subtests passed in 50.94s; Ruff и frontend lint PASS.
+
+- Полностью отложенное evidence: Brevis 252 939 B / 356 facts, Sochi Black Sea 389 040 B / 490 facts, Apartments v Mayake 358 057 B / 507 facts. Model roundtrip PASS; полные источники и даты открываются по факту. Проверки: 736 tests +125 subtests, Ruff, frontend lint, rebuild, demo-check13, browser smoke и16 сценариев связей PASS.

@@ -605,7 +605,7 @@ export function EvidenceModal({
 }) {
   const expectedIds = [
     ...initialFact.supporting_claim_ids,
-    ...initialFact.conflicting_claim_ids,
+    ...(initialFact.conflicting_claim_ids || []),
   ];
   const deferred = expectedIds.some(
     (id) => !initialClaims.some((claim) => claim.id === id),
@@ -732,7 +732,7 @@ export function EvidenceModal({
           </details>
         </article>
       ))}
-      {!fact.evidence.length && (
+      {!fact.evidence.length && !deferred && (
         <p className="muted">
           Доказательств пока нет. Это неизвестное значение, оно не означает
           «нет».
