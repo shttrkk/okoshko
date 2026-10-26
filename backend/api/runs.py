@@ -22,8 +22,10 @@ def run_collection(body, repo, trace):
     from backend.agents.orchestrator import collect_hotel
     try:
         collect_hotel(body.hotel_id, repo, body.characteristic_ids, trace=trace)
-    except Exception:
-        # collect_hotel has already persisted a failed status and a diagnostic step.
+    except Exception as error:
+        # The orchestrator normally persists its own failure; also cover import/start errors.
+        if trace.run.status == "running":
+            trace.finish("failed", str(error)[:300])
         logger.exception("Collection failed for run %s", trace.run.id)
 
 

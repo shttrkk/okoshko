@@ -151,3 +151,47 @@ def test_background_run_identity_and_sse_resume(client, repo):
     resumed = client.get("/api/runs/"+run_id+"/stream", headers={"Last-Event-ID": run["steps"][-1]["id"]})
     assert "event: step" not in resumed.text and "event: done" in resumed.text
     assert client.get("/api/runs/missing/stream").status_code == 404
+
+
+def test_search_uses_compact_month_projection_and_skips_it_outside_region(client, repo):
+    calls = []
+
+    def compact(ids=None, month=None):
+        calls.append((ids, month))
+        return repo.all("facts")
+
+    repo.search_facts = compact
+    response = client.post("/api/search", json={"text": "В сентябре до пляжа не больше 10 минут"})
+    assert response.status_code == 200
+    assert calls == [(["beach_walk"], 9)]
+    response = client.post("/api/search", json={"text": "Отель в Казани"})
+    assert response.status_code == 200 and response.json()["results"] == []
+    assert len(calls) == 1
+
+
+def test_new_definition_does_not_reuse_materialized_old_meaning(client, repo):
+    from unittest.mock import patch
+    spec = client.post("/api/characteristics/compile", json={"text": "Искупаться до завтрака"}).json()["spec"]
+    assert client.post("/api/characteristics/publish", json=spec).status_code == 200
+    assert all(fact["value"]["available"] for fact in repo.find("facts", characteristic_id="morning_swim"))
+    spec["description"] = "Другой температурный порог"
+    spec["methods"][0]["params"]["expr"] = "beach_walk.minutes <= 10 and climate.water_c >= 25"
+    spec["combine"] = spec["methods"][0]["params"]["expr"]
+    # Hold execution so the externally visible period before backfill is tested.
+    with patch("backend.api.studio.backfill"):
+        response = client.post("/api/characteristics/publish", json=spec)
+    assert response.json()["spec"]["version"] == 2
+    assert all(fact["status"] == "stale" for fact in repo.find("facts", characteristic_id="morning_swim"))
+    search = client.post("/api/search", json={"text": "Искупаться до завтрака"}).json()
+    assert all(hit["verdicts"][0]["status"] == "unknown" for hit in search["results"])
+
+
+def test_background_start_failure_is_durably_failed(client, repo):
+    from unittest.mock import patch
+    with patch("backend.agents.orchestrator.collect_hotel", side_effect=RuntimeError("synthetic start failure")):
+        response = client.post("/api/runs", json={"hotel_id": "test-hotel", "characteristic_ids": ["soundproofing"]})
+    assert response.status_code == 200
+    run = repo.get("agent_runs", response.json()["id"])
+    assert run["status"] == "failed" and run["error"] == "synthetic start failure"
+    stream = client.get("/api/runs/"+run["id"]+"/stream")
+    assert "event: done" in stream.text and '"status": "failed"' in stream.text
