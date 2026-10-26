@@ -13,7 +13,7 @@ from backend.agents.query_rules import apply_region_coverage
 from backend.contracts import CharacteristicSpec, SearchRequest
 from backend.llm.client import LLMClient
 from backend.tests.test_hotelier import MemoryRepo
-from scripts.parser_eval import criterion_multiset, load_jsonl
+from scripts.parser_eval import aggregate, compare_case, criterion_multiset, load_jsonl
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -105,6 +105,17 @@ def test_eval_numeric_equivalence_does_not_confuse_boolean_with_number():
     criterion = {'characteristic_id': 'beach_walk', 'field': 'minutes', 'op': 'lte', 'value': 10}
     assert criterion_multiset({'must': [criterion]}) == criterion_multiset({'must': [{**criterion, 'value': 10.0}]})
     assert criterion_multiset({'must': [{**criterion, 'value': True}]}) != criterion_multiset({'must': [{**criterion, 'value': 1}]})
+
+
+def test_unchecked_unmapped_is_not_reported_as_perfect_accuracy():
+    actual = {'must': [], 'nice': [], 'no_data': [], 'unmapped': ['непонятное']}
+    base = {'id': 'measurement', 'text': 'synthetic', 'split': 'external',
+            'expected': {'must': [], 'nice': [], 'no_data': [], 'unmapped': None}}
+    unchecked = compare_case(base, actual)
+    assert aggregate([unchecked])['unmapped_expectation_accuracy'] is None
+    checked = compare_case({**base, 'expected': {**base['expected'], 'unmapped': []}}, actual)
+    result = aggregate([unchecked, checked])
+    assert result['unmapped_evaluated_queries'] == 1 and result['unmapped_expectation_accuracy'] == 0
 
 
 def test_authored_corpora_have_disjoint_splits_and_no_parser_generated_labels():

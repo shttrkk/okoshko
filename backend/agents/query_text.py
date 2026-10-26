@@ -10,21 +10,66 @@ from difflib import SequenceMatcher
 from functools import lru_cache
 
 _NUMBER_WORDS = {
+    0: r'ноль|нуля|нулю|нулем',
     1: r'один|одна|одну|одного|одной',
     2: r'два|две|двух', 3: r'три|трех', 4: r'четыре|четырех',
     5: r'пять|пяти', 6: r'шесть|шести', 7: r'семь|семи', 8: r'восемь|восьми',
     9: r'девять|девяти', 10: r'десять|десяти', 11: r'одиннадцать|одиннадцати',
-    12: r'двенадцать|двенадцати', 15: r'пятнадцать|пятнадцати',
-    20: r'двадцать|двадцати', 30: r'тридцать|тридцати',
-    50: r'пятьдесят|пятидесяти', 100: r'сто|ста',
+    12: r'двенадцать|двенадцати', 13: r'тринадцать|тринадцати',
+    14: r'четырнадцать|четырнадцати', 15: r'пятнадцать|пятнадцати',
+    16: r'шестнадцать|шестнадцати', 17: r'семнадцать|семнадцати',
+    18: r'восемнадцать|восемнадцати', 19: r'девятнадцать|девятнадцати',
+    20: r'двадцать|двадцати', 30: r'тридцать|тридцати', 40: r'сорок|сорока',
+    50: r'пятьдесят|пятидесяти', 60: r'шестьдесят|шестидесяти',
+    70: r'семьдесят|семидесяти', 80: r'восемьдесят|восьмидесяти',
+    90: r'девяносто|девяноста', 100: r'сто|ста',
+    200: r'двести|двухсот|двумстам|двумястами|двухстах',
+    300: r'триста|трехсот|тремстам|тремястами|трехстах',
+    400: r'четыреста|четырехсот|четыремстам|четырьмястами|четырехстах',
+    500: r'пятьсот|пятисот|пятистам|пятьюстами|пятистах',
+    600: r'шестьсот|шестисот|шестистам|шестьюстами|шестистах',
+    700: r'семьсот|семисот|семистам|семьюстами|семистах',
+    800: r'восемьсот|восьмисот|восьмистам|восемьюстами|восьмистах',
+    900: r'девятьсот|девятисот|девятистам|девятьюстами|девятистах',
+    1000: r'тысяча|тысячи|тысячу|тысяче|тысячей',
 }
 _ORDINAL_WORDS = {
     1: r'перв\w*', 2: r'втор\w*', 3: r'трет\w*', 4: r'четверт\w*',
     5: r'пят\w*', 6: r'шест\w*', 7: r'седьм\w*', 8: r'восьм\w*',
     9: r'девят\w*', 10: r'десят\w*', 11: r'одиннадцат\w*', 12: r'двенадцат\w*',
-    15: r'пятнадцат\w*', 20: r'двадцат\w*',
-    50: r'пятидесят\w*', 100: r'сот\w*',
+    13: r'тринадцат\w*', 14: r'четырнадцат\w*', 15: r'пятнадцат\w*',
+    16: r'шестнадцат\w*', 17: r'семнадцат\w*', 18: r'восемнадцат\w*', 19: r'девятнадцат\w*',
+    20: r'двадцат\w*', 30: r'тридцат\w*', 40: r'сороков\w*',
+    50: r'пятидесят\w*', 60: r'шестидесят\w*', 70: r'семидесят\w*',
+    80: r'восьмидесят\w*', 90: r'девяност\w*', 100: r'сот\w*', 0: r'нулев\w*',
 }
+_CARDINAL_VALUES = {word: number for number, forms in _NUMBER_WORDS.items() for word in forms.split('|')}
+_CARDINAL_TOKEN = '(?:' + '|'.join(sorted(_CARDINAL_VALUES, key=len, reverse=True)) + ')'
+_QUANTITY_UNIT = r'(?:мин(?:ут\w*)?\b|метр\w*|м\b|километр\w*|км\b|час\w*|кг\b|килограмм\w*|градус\w*|мбит|mbps|этаж\w*)'
+
+
+def _cardinal_number(words: list[str]) -> int | None:
+    values = [_CARDINAL_VALUES[word] for word in words]
+    if len(values) == 1:
+        return values[0]
+    total = 0
+    if values and 100 <= values[0] <= 900 and values[0] % 100 == 0:
+        total = values.pop(0)
+    if len(values) == 1 and values[0] < 100:
+        return total + values[0]
+    if len(values) == 2 and 20 <= values[0] <= 90 and values[0] % 10 == 0 and 1 <= values[1] <= 9:
+        return total + values[0] + values[1]
+    return None
+
+
+def _normalize_cardinals(text: str) -> str:
+    pattern = r'\b(?P<words>' + _CARDINAL_TOKEN + r'(?:\s+' + _CARDINAL_TOKEN + r'){0,2})\b(?=\s+' + _QUANTITY_UNIT + ')'
+
+    def replacement(match):
+        value = _cardinal_number(match['words'].split())
+        return str(value) if value is not None else match[0]
+
+    return re.sub(pattern, replacement, text)
 _TRANSLATIONS = (
     (r'\bno need (?:for )?(?:wi[ -]?fi|internet)\b', 'интернет не нужен'),
     (r'\bsea view\b', 'вид на море'),
@@ -67,8 +112,7 @@ def normalize_query_text(value: str) -> str:
     text = re.sub(r'\bполчаса\b', '30 минут', text)
     text = re.sub(r'\bчетверт[ьи]\s+часа\b', '15 минут', text)
     text = re.sub(r'\bполукилометр\w*\b', '0,5 км', text)
-    for number, words in _NUMBER_WORDS.items():
-        text = re.sub(r'\b(?:' + words + r')\b(?=\s+(?:минут|метр|километр|час|кг|килограмм|градус))', str(number), text)
+    text = _normalize_cardinals(text)
     for number, words in sorted(_ORDINAL_WORDS.items(), reverse=True):
         suffixes = r'(?:ый|ой|ого|ому|ом|ая|ую|ое|ые|ых|ыми)'
         if number == 3:
@@ -98,6 +142,27 @@ def valid_intent_match(cid: str, text: str, match: re.Match) -> bool:
     left, right = clause_bounds(text, match.start(), match.end())
     clause = text[left:right]
     after = text[match.end():right]
+    quoted = any(m.start() < match.start() and m.end() > match.end()
+                 for m in re.finditer(r'«[^»]+»|"[^"]+"|“[^”]+”', text))
+    if quoted and re.search(r'\b(?:названи\w*|называ\w*|марк\w*|бренд\w*|слово|термин\w*)\b', clause):
+        return False
+    operative_search = bool(re.search(r'\b(?:ищу|ищем|найди\w*|подбер\w*|хочу|хотим|нужен|нужна)\s+(?:\w+\s+){0,3}(?:отел\w*|номер\w*|гостиниц\w*)\b', text))
+    if not operative_search and re.search(r'\b(?:слово|термин\w*|фраз\w*)\b', text) and re.search(
+            r'означа\w*|обознача\w*|договор\w*|определени\w*|перевод\w*', text):
+        return False
+    if not operative_search and re.search(r'\bчто\s+(?:означает|значит)\b', text):
+        return False
+    if re.search(r'\b(?:песн\w*|стихотворени\w*|цитат\w*)\b', clause):
+        if quoted or not operative_search and re.search(r'автор\w*|назов\w*|названи\w*', clause):
+            return False
+    if cid == 'car_access' and re.search(r'\b(?:площад\w*|периметр\w*)\b', clause) and re.search(
+            r'посчита\w*|расчет\w*|рассчит\w*|вычисл\w*|чертеж\w*', clause):
+        return False
+    if cid == 'connectivity' and re.search(r'\bинтернет[- ](?:сервис\w*|магазин\w*|портал\w*|площадк\w*)', clause):
+        if re.search(r'интернет', match[0]):
+            return False
+    if cid == 'green_nearby' and re.search(r'\bскверн\w*', match[0]):
+        return False
     if cid in {'sea_view', 'sunset_view', 'mountain_view', 'room_orientation', 'family_nearby', 'pets'} and re.search(
             r'\b(?:картин\w*|рисун(?:ок|к\w*)|открытк\w*|фотограф\w*)\b', clause):
         return False
@@ -130,6 +195,8 @@ def valid_intent_match(cid: str, text: str, match: re.Match) -> bool:
     if cid == 'building_history' and not re.search(r'здани\w*|особняк\w*|отел\w*|гостиниц\w*|архитектур\w*', clause):
         return False
     if cid == 'climate' and re.search(r'погод\w*\s+в\s+дом\w*', clause):
+        return False
+    if cid == 'beach_walk' and re.search(r'\bне\s+(?:хочу|хотим|буду|будем|планир\w*)\s+(?:(?:вообще|совсем)\s+)?(?:ходить|идти)\s+пешком', clause):
         return False
     return True
 

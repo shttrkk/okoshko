@@ -97,6 +97,8 @@ def compare_case(row: dict, actual: dict) -> dict:
             'criteria_exact': not missing and not extra,
             'true_positive': sum((want & got).values()), 'expected_count': sum(want.values()),
             'actual_count': sum(got.values()), 'unmapped_ok': unmapped_ok,
+            'unmapped_evaluated': (expected.get('unmapped') is not None and 'unmapped' in expected)
+                                  or bool(expected.get('unmapped_contains')),
             'has_unmapped': bool(actual.get('unmapped')), 'errors': errors}
 
 
@@ -105,13 +107,15 @@ def aggregate(results: list[dict]) -> dict:
     true_positive = sum(row['true_positive'] for row in results)
     expected = sum(row['expected_count'] for row in results)
     actual = sum(row['actual_count'] for row in results)
+    unmapped_checked = [row for row in results if row.get('unmapped_evaluated', True)]
     return {'queries': total, 'exact_matches': sum(row['exact'] for row in results),
             'exact_match_rate': round(sum(row['exact'] for row in results)/total, 6) if total else None,
             'criterion_precision': round(true_positive/actual, 6) if actual else None,
             'criterion_recall': round(true_positive/expected, 6) if expected else None,
             'criterion_true_positive': true_positive, 'criterion_expected': expected, 'criterion_actual': actual,
             'criteria_exact_match_rate': round(sum(row['criteria_exact'] for row in results)/total, 6) if total else None,
-            'unmapped_expectation_accuracy': round(sum(row['unmapped_ok'] for row in results)/total, 6) if total else None,
+            'unmapped_expectation_accuracy': round(sum(row['unmapped_ok'] for row in unmapped_checked)/len(unmapped_checked), 6) if unmapped_checked else None,
+            'unmapped_evaluated_queries': len(unmapped_checked),
             'queries_with_unmapped': sum(row['has_unmapped'] for row in results)}
 
 
