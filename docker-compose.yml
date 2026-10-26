@@ -18,8 +18,10 @@ services:
   app:
     build: .
     platform: linux/amd64
-    # Values come from an optional .env (read by Compose for interpolation) with the
-    # same defaults as .env.example; no env_file is required, so any Compose v2 works.
+    # .env.example is always present and gives the defaults; an optional .env overrides
+    # them through interpolation below. Short env_file syntax works on any Compose v2.
+    env_file:
+      - .env.example
     environment:
       APP_PORT: ${APP_PORT:-8080}
       DB_URL: ${DB_URL:-postgresql://okno:okno@db:5432/okno}
