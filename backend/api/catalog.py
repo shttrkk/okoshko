@@ -162,12 +162,25 @@ def search(body: SearchRequest, repo=_REPO):
             hits = []
         else:
             hotel_rows = [Hotel.model_validate(row) for row in repo.all("hotels")]
-            ids = None if body.similar_to else sorted({criterion.characteristic_id for criterion in [*parsed.must, *parsed.nice]} | {"beach_walk"})
-            rows = repo.search_facts(ids, 9 if body.similar_to else parsed.month) if hasattr(repo, "search_facts") else repo.all("facts")
+            reference = Hotel.model_validate(required(repo, "hotels", body.similar_to, "Отель")) if body.similar_to else None
+            if reference is None and not body.parsed:
+                from backend.agents.similarity import reference_hotel
+                reference, ambiguous = reference_hotel(body.text, hotel_rows)
+                if ambiguous:
+                    parsed.clarifications = ["Похожих названий несколько: " + ", ".join(ambiguous) + ". Уточните, какой отель вам понравился."]
+            if reference is not None:
+                parsed.similar_to, parsed.similar_to_name = reference.id, reference.name
+                # The reference phrase names a hotel; it is not an unknown condition.
+                parsed.unmapped = []
+                parsed.clarifications = (["Режим «похожий отель»: условия из запроса в сравнении профилей не применяются."]
+                                         if parsed.must or parsed.nice else [])
+            ids = None if reference else sorted({criterion.characteristic_id for criterion in [*parsed.must, *parsed.nice]} | {"beach_walk"})
+            rows = repo.search_facts(ids, 9 if reference else parsed.month) if hasattr(repo, "search_facts") else repo.all("facts")
             facts = [Fact.model_validate(row) for row in rows]
-            if body.similar_to:
-                required(repo, "hotels", body.similar_to, "Отель")
-                hits = similar_hotels(body.similar_to, hotel_rows, facts, specs)
+            if reference is not None:
+                # Buildings of one complex share a name; they are not "similar" discoveries.
+                candidates = [hotel for hotel in hotel_rows if hotel.id == reference.id or hotel.name.casefold() != reference.name.casefold()]
+                hits = similar_hotels(reference.id, candidates, facts, specs)
             else:
                 hits = rank_hotels(hotel_rows, facts, parsed, specs)
         trace.step("search", "decision", "Ранжирование по фактам", output={"total": len(hits), "hotel_ids": [hit.hotel.id for hit in hits[:body.limit]]},

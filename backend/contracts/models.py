@@ -265,6 +265,8 @@ class ParsedQuery(Model):
     unmapped: list[str] = Field(default_factory=list)
     clarifications: list[str] = Field(default_factory=list, max_length=2)
     mode: Mode = "offline"
+    similar_to: str | None = None
+    similar_to_name: str | None = None
 
 
 class SearchRequest(Model):
