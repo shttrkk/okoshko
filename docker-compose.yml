@@ -18,12 +18,17 @@ services:
   app:
     build: .
     platform: linux/amd64
-    env_file:
-      - path: .env
-        required: false
+    # Values come from an optional .env (read by Compose for interpolation) with the
+    # same defaults as .env.example; no env_file is required, so any Compose v2 works.
     environment:
+      APP_PORT: ${APP_PORT:-8080}
       DB_URL: ${DB_URL:-postgresql://okno:okno@db:5432/okno}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
       LLM_MODE: ${LLM_MODE:-offline}
+      LLM_STRUCTURED_MODE: ${LLM_STRUCTURED_MODE:-auto}
+      LLM_TIMEOUT_S: ${LLM_TIMEOUT_S:-12}
     ports:
       - "8080:8080"
     volumes:
