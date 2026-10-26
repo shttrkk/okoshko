@@ -22,9 +22,54 @@ def available(value):
 def known_value(value) -> bool:
     if isinstance(value, dict):
         if "available" in value:
-            return value["available"] is not None
-        return any(v is not None for key, v in value.items() if key not in {"month", "period", "model", "limitations"})
+            return isinstance(value["available"], bool)
+        return any(known_value(v) for key, v in value.items()
+                   if key not in {"month", "period", "model", "limitations"})
+    if isinstance(value, list | tuple):
+        return any(known_value(item) for item in value)
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, float):
+        return math.isfinite(value)
     return value is not None
+
+
+def current_value(fact: dict, at: datetime) -> bool:
+    if fact.get("status") not in {"computed", "confirmed"} or not known_value(fact.get("value")):
+        return False
+    deadline = fact.get("valid_until")
+    if deadline:
+        try:
+            parsed = datetime.fromisoformat(str(deadline).replace("Z", "+00:00"))
+            if parsed.tzinfo is None or parsed <= at:
+                return False
+        except (ValueError, TypeError):
+            return False
+    return True
+
+
+def provenance(facts: list[dict], claims: list[dict] | None = None, *, at: datetime | None = None) -> dict:
+    """Count materialized values once. Mixed is a subset of synthetic, not real."""
+    at = at or datetime.now(UTC)
+    flags = {claim["id"]: bool(claim.get("synthetic")) for claim in claims or []}
+    non_synthetic = synthetic = mixed = unknown = 0
+    for fact in facts:
+        if not current_value(fact, at):
+            unknown += 1
+            continue
+        support = [flags[id] for id in fact.get("supporting_claim_ids", []) if id in flags]
+        kinds = {evidence.get("kind") for evidence in fact.get("evidence", [])}
+        has_synthetic = bool(fact.get("synthetic") or True in support or kinds & {"simulation", "mock"})
+        has_non_synthetic = False in support
+        if has_synthetic:
+            synthetic += 1
+            mixed += bool(has_non_synthetic)
+        else:
+            non_synthetic += 1
+    known = non_synthetic + synthetic
+    return {"unit": "materialized_facts", "known": known, "non_synthetic": non_synthetic,
+            "synthetic": synthetic, "mixed": mixed, "unknown_stale_disputed": unknown,
+            "synthetic_share": synthetic / known if known else None}
 
 
 def scope_matches(expected: dict, actual: dict) -> bool:
@@ -82,14 +127,15 @@ def classification(rows: list[tuple[bool, bool, float]], abstentions: int = 0):
             "brier": brier, "ece": ece, "calibration": bins}
 
 
-def evaluate(hotels: list[dict], facts: list[dict], characteristics: list[dict], labels: list[dict], questions: list[dict] | None = None) -> dict:
+def evaluate(hotels: list[dict], facts: list[dict], characteristics: list[dict], labels: list[dict], questions: list[dict] | None = None, claims: list[dict] | None = None) -> dict:
     # Do not count synthetic hotelier answers as independently verified real facts.
     ids = {h["id"] for h in hotels}
     hotel_by_id = {hotel["id"]:hotel for hotel in hotels}
     active = {c["id"] for c in characteristics if c.get("status", "active") == "active"}
     denominator = len(ids)*len(active)
+    at = datetime.now(UTC)
     covered = {(f["hotel_id"], f["characteristic_id"]) for f in facts if not f.get("synthetic") and f["hotel_id"] in ids and f["characteristic_id"] in active
-               and f.get("status") not in {"unknown", "stale", "disputed"} and known_value(f.get("value"))}
+               and current_value(f, at)}
     groups = {}
     for label_type in sorted({label.get("label_type", "manual") for label in labels}):
         selected = [label for label in labels if label.get("label_type", "manual") == label_type]
@@ -149,10 +195,12 @@ def evaluate(hotels: list[dict], facts: list[dict], characteristics: list[dict],
         "synthetic_fact_count": sum(bool(f.get("synthetic")) for f in facts),
         "question_share": len({(q["hotel_id"], cid) for q in questions or [] for cid in q.get("characteristic_ids", [])})/denominator if denominator else 0,
         "label_groups": groups, "parser_accuracy": None, "ndcg_at_5": None,
+        "provenance": provenance(facts, claims, at=at),
         "status": "measured" if groups else "awaiting_independent_labels",
         "limitations": ["Слабые метки с сайтов могут описывать только часть номеров; scope проверяется отдельно.",
                          "Monte Carlo характеризует устойчивость модели, а не точность на независимой разметке.",
-                         "Отсутствующие метрики показаны как не измеренные, а не как ноль."],
+                         "Отсутствующие метрики показаны как не измеренные, а не как ноль.",
+                         "Доли происхождения считают materialized facts, включая отдельные фасады/месяцы; это не доля отелей и не независимая точность. Mixed входит в synthetic; неизвестные, пустые, устаревшие и спорные значения исключены из знаменателя."],
         "methodology_url": "/data/eval/README.md",
     }
 
@@ -168,6 +216,18 @@ def from_repository(repo, data_dir: Path) -> dict:
     labels = read_labels(data_dir / "eval" / "labels.csv")
     for row in repo.all("eval_labels"):
         labels.append({**row, "label_type": row.get("label_type", "manual")})
-    facts = [Fact.model_validate(row).model_dump(mode="json") for row in repo.all("facts")]
-    return evaluate(repo.all("hotels"), facts, repo.all("characteristics"), labels, repo.all("questions"))
+    # Metrics use values, scope, status, supporting IDs, confidence and evidence
+    # kinds/quotes/limitations. Cached search snapshots omit only large tool
+    # inputs/output, which none of these metric definitions reads.
+    rows = repo.search_facts() if hasattr(repo, "search_facts") else repo.all("facts")
+    facts = [Fact.model_validate(row).model_dump(mode="json") for row in rows]
+    if hasattr(repo, "db_url"):
+        # Read only provenance flags, never duplicate large evidence payloads.
+        import psycopg
+        with psycopg.connect(repo.db_url) as conn:
+            claims = [{"id": row[0], "synthetic": row[1]} for row in conn.execute(
+                "SELECT id, COALESCE((payload->>'synthetic')::boolean, false) FROM claims")]
+    else:
+        claims = repo.all("claims")
+    return evaluate(repo.all("hotels"), facts, repo.all("characteristics"), labels, repo.all("questions"), claims)
 

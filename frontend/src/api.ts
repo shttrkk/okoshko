@@ -21,6 +21,7 @@ import type {
   Spec,
   Status,
   Geo,
+  QualityReport,
 } from "./types";
 
 export class ApiError extends Error {
@@ -111,10 +112,13 @@ export const api = {
   ask: (hotel_id: string, characteristic_id: string) =>
     request<Question>("/api/questions", { hotel_id, characteristic_id }),
   login: (username: string, password: string) =>
-    request<{ token: string; username: string; synthetic: boolean }>(
-      "/api/hotelier/login",
-      { username, password },
-    ),
+    request<{
+      token: string;
+      username: string;
+      synthetic: boolean;
+      role?: "demo_admin" | "hotelier";
+      hotel_ids?: string[];
+    }>("/api/hotelier/login", { username, password }),
   hotelier: (hotelId: string) =>
     request<HotelierData>(
       `/api/hotelier/${id(hotelId)}`,
@@ -146,7 +150,12 @@ export const api = {
   createPassport: (body: PassportCreate) =>
     request<Passport>("/api/passports", body),
   passports: (hotelId: string) =>
-    request<Passport[]>(`/api/passports?hotel_id=${id(hotelId)}`),
+    request<Passport[]>(
+      `/api/passports?hotel_id=${id(hotelId)}`,
+      undefined,
+      undefined,
+      true,
+    ),
   passport: (passportId: string) =>
     request<Passport>(`/api/passports/${id(passportId)}`),
   passportAction: (
@@ -183,7 +192,7 @@ export const api = {
   refresh: () =>
     request<{ processed: number; run_id: string }>("/api/changes/refresh", {}),
   sources: () => request<Source[]>("/api/sources"),
-  quality: () => request<Json>("/api/quality"),
+  quality: () => request<QualityReport>("/api/quality"),
   labels: () => request<LabelTarget[]>("/api/quality/label"),
   label: (body: Json) => request<Json>("/api/quality/label", body),
 };

@@ -59,6 +59,234 @@ export function QualityPage() {
       <ErrorState error={quality.error} retry={quality.reload} />
       {q && (
         <>
+          {q.filter_comparison ? (
+            <section className="quality-group" data-testid="filter-comparison">
+              <span className="eyebrow">
+                СРАВНЕНИЕ ФИЛЬТРОВ · СОХРАНЁННАЯ МОДЕЛЬ
+              </span>
+              <h2>
+                {number(q.filter_comparison.search.outside_radius_supported)}{" "}
+                кандидатов за пределами радиуса
+              </h2>
+              <p>
+                Модель нашла совместимые море и закат у{" "}
+                {number(q.filter_comparison.search.outside_radius_supported)}{" "}
+                отелей дальше {number(q.filter_comparison.settings.radius_m)} м
+                от картированной береговой линии. Из них{" "}
+                {number(q.filter_comparison.search.outside_radius_partial)} —
+                предварительные результаты. Это дополнительные модельные
+                кандидаты для проверки, а не реальные окна, рост конверсии или
+                измеренная точность.
+              </p>
+              <div className="metric-row">
+                <div>
+                  <span>
+                    Простой фильтр ≤
+                    {number(q.filter_comparison.settings.radius_m)} м
+                  </span>
+                  <strong>
+                    {number(q.filter_comparison.baseline.within_radius)}
+                  </strong>
+                  <small>
+                    из {number(q.filter_comparison.population.hotels)} отелей
+                  </small>
+                </div>
+                <div>
+                  <span>Море + закат в одном scope</span>
+                  <strong>
+                    {number(q.filter_comparison.search.compatible_supported)}
+                  </strong>
+                  <small>
+                    {number(q.filter_comparison.search.partial_supported)}{" "}
+                    предварительных
+                  </small>
+                </div>
+                <div>
+                  <span>Вне радиуса · модель нашла оба</span>
+                  <strong>
+                    {number(
+                      q.filter_comparison.search.outside_radius_supported,
+                    )}
+                  </strong>
+                  <small>не прошли бы простой фильтр близости</small>
+                </div>
+                <div>
+                  <span>Этажность неизвестна</span>
+                  <strong>
+                    {number(q.filter_comparison.population.unknown_floor_count)}
+                  </strong>
+                  <small>не даёт уверенно отрицать верхние этажи</small>
+                </div>
+              </div>
+              <p className="fine-print">
+                Месяц:{" "}
+                {new Intl.DateTimeFormat("ru", {
+                  month: "long",
+                  timeZone: "UTC",
+                }).format(
+                  new Date(
+                    Date.UTC(2026, q.filter_comparison.settings.month - 1, 15),
+                  ),
+                )}
+                . Поиск с{" "}
+                {number(q.filter_comparison.settings.search_min_floor)}-го
+                этажа, уверенность ≥
+                {percent(q.filter_comparison.settings.confidence_floor)}; для
+                отрицательного вывода ≥
+                {percent(
+                  q.filter_comparison.settings.negative_confidence_floor,
+                )}
+                . Расстояние — по прямой в UTM 37N, не пеший маршрут. Только
+                nonsynthetic geo/open seed, без демонстрационных ответов и
+                нового дома.
+              </p>
+              <details>
+                <summary>
+                  Что модель знает внутри радиуса и где остаются пробелы
+                </summary>
+                <div className="table-scroll">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Внутри радиуса</th>
+                        <th>Положительные</th>
+                        <th>Из них неполные</th>
+                        <th>Модельные отрицательные</th>
+                        <th>Неизвестно</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(["sea_view", "sunset_view"] as const).map((cid) => {
+                        const v =
+                          q.filter_comparison!.baseline.views_within_radius[
+                            cid
+                          ];
+                        return (
+                          <tr key={cid}>
+                            <th>{names[cid]}</th>
+                            <td>{number(v.positive)}</td>
+                            <td>{number(v.partial_positive)}</td>
+                            <td>{number(v.model_negative)}</td>
+                            <td>{number(v.unknown)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="fine-print">
+                  Отрицательный результат требует известной этажности и
+                  уверенных отрицательных значений во всех смоделированных
+                  фасадах и этажах. Он не означает «нет ни одного реального
+                  окна».
+                </p>
+                <div className="table-scroll">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>На всей выборке</th>
+                        <th>
+                          Положительные расчёты только с{" "}
+                          {number(q.filter_comparison.settings.k_floor)}-го
+                          этажа
+                        </th>
+                        <th>При уверенном отрицании ниже</th>
+                        <th>Положительные расчёты с одного фасада</th>
+                        <th>При уверенном отрицании остальных</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(["sea_view", "sunset_view"] as const).map((cid) => {
+                        const v = q.filter_comparison!.scoped[cid];
+                        return (
+                          <tr key={cid}>
+                            <th>{names[cid]}</th>
+                            <td>
+                              {number(v.observed_positive_only_at_or_above_k)}
+                            </td>
+                            <td>{number(v.model_only_at_or_above_k)}</td>
+                            <td>
+                              {number(v.observed_positive_only_one_facade)}
+                            </td>
+                            <td>{number(v.model_only_one_facade)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="fine-print">
+                  Левые числа описывают только расположение доступных
+                  положительных расчётов; в непокрытых scope может оставаться
+                  unknown. Соседние строгие числа дополнительно требуют
+                  уверенных отрицательных значений в исключённых scope. Фасады
+                  модели не заменяют планировку номеров.
+                </p>
+                {q.filter_comparison.limitations.map((limitation) => (
+                  <p className="fine-print" key={limitation}>
+                    {limitation}
+                  </p>
+                ))}
+                <p className="fine-print">
+                  Версия seed: {q.filter_comparison.seed_version}. Сформировано:{" "}
+                  {dateText(q.filter_comparison.generated_at)}.
+                </p>
+                <code>{q.filter_comparison.settings.reproduce}</code>
+                <p>
+                  <a
+                    className="text-button"
+                    href="/data/eval/filter_baseline.json"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Полный отчёт и SHA256 входов <ExternalLink size={14} />
+                  </a>
+                </p>
+              </details>
+            </section>
+          ) : (
+            <p className="fine-print">
+              Сравнение фильтров для текущей версии данных ещё не опубликовано.
+            </p>
+          )}
+          {q.provenance && (
+            <section className="quality-group" data-testid="fact-provenance">
+              <span className="eyebrow">
+                ПРОИСХОЖДЕНИЕ ЗНАЧЕНИЙ В ТЕКУЩЕМ СТЕНДЕ
+              </span>
+              <h2>
+                {percent(q.provenance.synthetic_share)} известных значений
+                опираются на синтетику
+              </h2>
+              <div className="metric-row">
+                <div>
+                  <span>Без синтетических оснований</span>
+                  <strong>{number(q.provenance.non_synthetic)}</strong>
+                </div>
+                <div>
+                  <span>Синтетические · включая смешанные</span>
+                  <strong>{number(q.provenance.synthetic)}</strong>
+                </div>
+                <div>
+                  <span>Смешанные · уже входят в синтетические</span>
+                  <strong>{number(q.provenance.mixed)}</strong>
+                </div>
+                <div>
+                  <span>Неизвестные, пустые, устаревшие, спорные</span>
+                  <strong>{number(q.provenance.unknown_stale_disputed)}</strong>
+                </div>
+              </div>
+              <p className="fine-print">
+                Единица — materialized fact, отдельное значение для scope, а не
+                отель, claim или независимое наблюдение. Знаменатель доли:{" "}
+                {number(q.provenance.known)} известных актуальных значений;
+                фасады и месяцы учитываются отдельно. Mixed входит в synthetic
+                один раз и не выдаётся за независимое реальное подтверждение.
+                Значения без синтетики тоже могут быть модельными и требуют
+                проверки.
+              </p>
+            </section>
+          )}
           <div className="quality-stats">
             <div>
               <span className="eyebrow">ПРОФИЛИ</span>

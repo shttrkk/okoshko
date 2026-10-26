@@ -226,6 +226,9 @@ def quality(repo=_REPO):
     from backend.quality import from_repository
     result = from_repository(repo, DATA)
     result["synthetic_parser"] = parser_metrics()
+    from geo.io import exists, read_json
+    path = DATA / "eval" / "filter_baseline.json"
+    result["filter_comparison"] = read_json(path) if exists(path) else None
     return result
 
 

@@ -399,3 +399,73 @@ export interface Geo {
   };
   limitations?: string[];
 }
+
+export interface FactProvenance {
+  unit: "materialized_facts";
+  known: number;
+  non_synthetic: number;
+  /** Includes mixed; mixed is a subset, never add it again. */
+  synthetic: number;
+  mixed: number;
+  unknown_stale_disputed: number;
+  synthetic_share: number | null;
+}
+export interface FilterViewCounts {
+  positive: number;
+  model_negative: number;
+  unknown: number;
+  partial_positive: number;
+}
+export interface FilterScopedCounts extends FilterViewCounts {
+  observed_positive_only_at_or_above_k: number;
+  model_only_at_or_above_k: number;
+  observed_positive_only_one_facade: number;
+  model_only_one_facade: number;
+  complete_modeled_domain: number;
+  complete_known_slots: number;
+}
+export interface FilterComparison {
+  schema_version: 1;
+  generated_at: string;
+  seed_version: string;
+  settings: {
+    radius_m: number;
+    month: number;
+    k_floor: number;
+    confidence_floor: number;
+    negative_confidence_floor: number;
+    search_min_floor: number;
+    distance_method: string;
+    search_method: string;
+    input_policy: string;
+    reproduce: string;
+  };
+  population: {
+    hotels: number;
+    known_floor_count: number;
+    unknown_floor_count: number;
+    distance_unknown: number;
+  };
+  baseline: {
+    within_radius: number;
+    outside_radius: number;
+    views_within_radius: Record<"sea_view" | "sunset_view", FilterViewCounts>;
+  };
+  scoped: Record<"sea_view" | "sunset_view", FilterScopedCounts>;
+  search: {
+    compatible_supported: number;
+    partial_supported: number;
+    within_radius_supported: number;
+    outside_radius_supported: number;
+    outside_radius_partial: number;
+    scope_conflict: number;
+    unknown_or_unsupported: number;
+  };
+  examples: Json;
+  limitations: string[];
+  inputs_sha256: Record<string, string>;
+}
+export interface QualityReport extends Json {
+  provenance?: FactProvenance;
+  filter_comparison?: FilterComparison | null;
+}
