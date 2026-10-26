@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 
 from backend.contracts.models import Claim
+from geo.io import exists, read_bytes
 
 
 def validate(data_dir, geo_dir):
@@ -18,9 +19,12 @@ def validate(data_dir, geo_dir):
     by_id = {hotel["id"]: hotel for hotel in hotels}
     samples, characteristics, counts = [], {}, {}
     inputs = {}
-    for path in sorted(seed.glob("*.geojson")) + [seed/"hotels.json", seed/"walk_graph.json.gz"]:
-        if path.exists():
-            inputs["/data/seed/"+path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
+    for path in [seed/(name+".geojson") for name in ("buildings", "coastline", "roads", "railways", "beaches", "pois")] + [seed/"hotels.json", seed/"walk_graph.json.gz"]:
+        assert exists(path), str(path)
+        inputs["/data/seed/"+path.name] = hashlib.sha256(read_bytes(path)).hexdigest()
+    terrain = data_dir/"geo"/"terrain_30m.npz"
+    if terrain.is_file():
+        inputs["/data/geo/terrain_30m.npz"] = hashlib.sha256(terrain.read_bytes()).hexdigest()
     for hotel in hotels:
         name = hotel["id"]
         path = geo_dir/(name+".json")
@@ -30,6 +34,8 @@ def validate(data_dir, geo_dir):
         assert not data["synthetic"], name
         assert len(data["sun_paths"]) in {0, 12}, name
         assert data["calculation_version"]
+        for artifact, digest in data["inputs"].items():
+            assert artifact in inputs and inputs[artifact] == digest, (name, artifact)
         for facade in data["facades"]:
             floors = len(facade["sea_width_by_floor"])
             assert len(facade["sea_probability_by_floor"]) == floors
@@ -49,8 +55,7 @@ def validate(data_dir, geo_dir):
                 assert evidence["inputs"] and evidence["output"]
                 assert (geo_dir/Path(evidence["artifact"]).name).exists()
                 for artifact, digest in evidence["inputs"]["input_sha256"].items():
-                    if artifact in inputs:
-                        assert inputs[artifact] == digest, (name, artifact)
+                    assert artifact in inputs and inputs[artifact] == digest, (name, artifact)
             if characteristic == "sea_view" and claim["value"]["available"]:
                 assert claim["value"]["sea_width_deg"] >= 10
                 assert claim["scope"]["facade"] == claim["value"]["facade"]
