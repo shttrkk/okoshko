@@ -6,6 +6,7 @@ import json
 from datetime import datetime, timedelta
 from uuid import NAMESPACE_URL, uuid5
 
+import yaml
 from shapely import wkt
 from shapely.geometry import Point
 
@@ -42,6 +43,12 @@ def load_stages():
     return stages, registry
 
 
+def ttl_days(characteristic_id: str) -> int:
+    """Claim validity follows the characteristic definition, one source of truth."""
+    spec = yaml.safe_load((ROOT / "data" / "characteristics" / (characteristic_id + ".yaml")).read_text())
+    return int(spec["ttl_days"])
+
+
 def claims(hotels, sources):
     records = []
     weather = {"A": read(SEED / "open_meteo.json"), "B": read(SEED / "open_meteo_b.json")}
@@ -50,7 +57,8 @@ def claims(hotels, sources):
     from pyproj import Geod
     geod = Geod(ellps="WGS84")
 
-    def add(h, char, value, source_id, method, artifact, *, confidence=.7, days=365, limitations=None, inputs=None, scope=None, additional_sources=None):
+    def add(h, char, value, source_id, method, artifact, *, confidence=.7, days=None, limitations=None, inputs=None, scope=None, additional_sources=None):
+        days = days or ttl_days(char)
         source_ids = [source_id] + (additional_sources or [])
         observed = max(sources[s]["retrieved_at"] for s in source_ids)
         valid = (datetime.fromisoformat(observed.replace("Z", "+00:00")) + timedelta(days=days)).isoformat()
@@ -78,7 +86,7 @@ def claims(hotels, sources):
             value = {k: aq[k] for k in ["pm2_5", "european_aqi", "model"]}
             value["period"] = " / ".join(aq["period"])
             add(h, "air_quality", value, "open_meteo_aq", "CAMS Europe recent model-window mean", weather_file,
-                days=1, confidence=.6, limitations=["Model estimate, not measurements at hotel; window includes current-day forecast.", "Recent sample cannot establish seasonal air quality."], inputs={"region": region, "samples": aq.get("european_aqi_samples")})
+                confidence=.6, limitations=["Model estimate, not measurements at hotel; window includes current-day forecast.", "Recent sample cannot establish seasonal air quality."], inputs={"region": region, "samples": aq.get("european_aqi_samples")})
         radius = CONFIG["photos"]["radius_m"]
         nearby = [p for p in photos if p.get("lat") is not None and p.get("lon") is not None and geod.inv(h["lon"], h["lat"], p["lon"], p["lat"])[2] <= radius]
         if nearby:
@@ -91,7 +99,7 @@ def claims(hotels, sources):
             if wkt.loads(tile["tile"]).covers(point):
                 value = {"download_mbps": tile["avg_d_kbps"] / 1000, "upload_mbps": tile["avg_u_kbps"] / 1000,
                          "latency_ms": tile["avg_lat_ms"], "tests": tile["tests"], "kind": tile["kind"], "quarter": tile["quarter"]}
-                add(h, "connectivity", value, "ookla", "Hotel point containment in Ookla area tile", "/data/seed/connectivity.json", confidence=.55, days=180,
+                add(h, "connectivity", value, "ookla", "Hotel point containment in Ookla area tile", "/data/seed/connectivity.json", confidence=.55,
                     limitations=["Area average from Speedtest samples; not a hotel Wi-Fi test or service guarantee."], inputs={"quadkey": tile["quadkey"], "devices": tile["devices"]})
     return sorted(records, key=lambda c: c["id"])
 

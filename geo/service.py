@@ -29,6 +29,13 @@ MC_ITERATIONS = 64
 MC_SEED = 20261026
 SEA_MIN_WIDTH_DEG = 10.0
 AZIMUTH_STEP_DEG = 3.0
+# Geometric outputs are re-checked quarterly against a new OSM/DEM snapshot. The
+# characteristic ttl_days (data/characteristics/*.yaml) is the upper bound.
+GEO_RECHECK_DAYS = 90
+
+
+def geo_ttl_days(characteristic: str) -> int:
+    return GEO_RECHECK_DAYS
 
 
 def _json(value):
@@ -115,7 +122,7 @@ def compute_with_region(hotel, region, output_dir, *, new_building=None, compute
         record = {"hotel_id": hotel_id, "characteristic_id": characteristic, "spec_version": 1,
                   "scope": scope, "value": value, "source": "geo_engine", "method": method,
                   "confidence": confidence, "observed_at": timestamp.isoformat(),
-                  "valid_until": (timestamp+timedelta(days=30 if characteristic == "quiet_night" else 90)).isoformat(),
+                  "valid_until": (timestamp+timedelta(days=geo_ttl_days(characteristic))).isoformat(),
                   "synthetic": synthetic}
         evidence_inputs = {"input_sha256": region.inputs, "version": VERSION, "building_id": geo.get("building_id"),
                            "mc_seed": MC_SEED, **(inputs or {})}
