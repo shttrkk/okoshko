@@ -88,7 +88,8 @@ def search_coverage(rows: list[dict], specs: list[CharacteristicSpec], hotel_cou
     return coverage
 
 
-def read_geo(hotel_id: str, repo, *, hotel_row: dict | None = None, events: list[dict] | None = None) -> dict:
+def read_geo(hotel_id: str, repo, *, hotel_row: dict | None = None, events: list[dict] | None = None,
+             fact_rows: list[dict] | None = None) -> dict:
     hotel = hotel_row if hotel_row is not None else required(repo, "hotels", hotel_id, "Отель")
     if "/" in hotel_id or "\\" in hotel_id or hotel_id in {".", ".."}:
         raise HTTPException(422, "Некорректный ID отеля")
@@ -118,8 +119,12 @@ def read_geo(hotel_id: str, repo, *, hotel_row: dict | None = None, events: list
                 continue
             geo = document.get("geo", document)
             # Claims are exposed separately and can be large; indexes are private calculation inputs.
-            return {key: value for key, value in geo.items()
-                    if key not in {"claims", "dependency_building_ids", "profile_arrays", "spatial_index"}}
+            public = {key: value for key, value in geo.items()
+                      if key not in {"claims", "dependency_building_ids", "profile_arrays", "spatial_index", "building_index"}}
+            from backend.nearby import linked_places
+            facts = fact_rows if fact_rows is not None else repo.find("facts", hotel_id=hotel_id)
+            public["nearby"] = linked_places(facts, public, DATA)
+            return public
     return {"hotel_id": hotel_id, "center": [hotel["lon"], hotel["lat"]], "facades": [],
             "limitations": ["Георасчёт для этого отеля ещё не подготовлен; отсутствие данных не означает отсутствие вида."]}
 
@@ -169,7 +174,8 @@ def details(hotel_ids: list[str], repo, *, text: str = "", month: int | None = N
                                   conflicts=grouped["conflicts"][hotel_id], questions=grouped["questions"][hotel_id],
                                   verdicts=verdicts, room_recommendation=recommend_room(facts, parsed, hotel=hotel),
                                   disappointments=disappointments(facts, parsed, hotel=hotel),
-                                  geo={} if compact else read_geo(hotel_id, repo, hotel_row=hotels_by_id[hotel_id], events=rows["change_events"]),
+                                  geo={} if compact else read_geo(hotel_id, repo, hotel_row=hotels_by_id[hotel_id],
+                                                               events=rows["change_events"], fact_rows=grouped["facts"][hotel_id]),
                                   evidence_deferred=compact, geometry_deferred=compact))
     return result
 
