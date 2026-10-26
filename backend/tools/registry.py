@@ -32,6 +32,7 @@ NIGHTLIFE_RADIUS_M = 500
 NIGHTLIFE_MIN_VENUES = 30
 NIGHTLIFE_VENUES = {"bar", "pub", "nightclub", "biergarten", "cafe", "restaurant"}
 NIGHTLIFE_BARS = {"bar", "pub", "nightclub", "biergarten"}
+GEO_TRAITS = {"morning_sun", "evening_heat", "railway_noise", "beach_surface", "accessible_route", "green_nearby"}
 
 
 def _promenade(properties: dict) -> bool:
@@ -117,6 +118,12 @@ class Registry:
                                       prior_reliability=.45 if id=="noise_facade" else .7)
         self.handlers = {id:self._cached for id in self.specs}
         self.handlers.update(poi_nearby=self._poi, derive=self._derive, hotelier_ask=self._ask)
+        self.specs["geo_trait"] = ToolSpec(
+            id="geo_trait", description="Локальные солнечные, маршрутные и природные признаки с явными ограничениями",
+            parameters_schema={"type": "object", "properties": {"kind": {"type": "string", "enum": sorted(GEO_TRAITS)}},
+                               "required": ["kind"], "additionalProperties": False}, prior_reliability=.5,
+        )
+        self.handlers["geo_trait"] = self._geo_trait
 
     def list(self):
         return list(self.specs.values())
@@ -156,6 +163,40 @@ class Registry:
 
     def _ask(self, context, call):
         return ToolResult(warnings=["Свойство требует ответа отельера; вопрос формируется Interviewer"])
+
+    def _geo_trait(self, context, call):
+        kind = call.params["kind"]
+        hotel = self.repo.get("hotels", context.hotel_id)
+        if hotel is None:
+            return ToolResult(warnings=["Отель не найден"])
+        changes = [event for event in self.repo.all("change_events")
+                   if context.hotel_id in event.get("affected_hotel_ids", [])]
+        if changes and kind in {"morning_sun", "evening_heat", "railway_noise"}:
+            return ToolResult(warnings=["Геометрия здания изменилась; дополнительный признак требует расчёта по актуальному артефакту"])
+        existing = self.repo.find("claims", hotel_id=context.hotel_id, characteristic_id=context.characteristic_id)
+        superseded = {item for row in existing for item in [row.get("supersedes"), *row.get("supersedes_ids", [])] if item}
+        cached = [Claim.model_validate(row) for row in existing
+                  if row["id"] not in superseded and row.get("source") == "geo_engine"
+                  and datetime.fromisoformat(row["valid_until"].replace("Z", "+00:00")) > datetime.now(UTC)
+                  and row.get("scope", {}).get("month") in {None, context.month}]
+        if cached:
+            return ToolResult(claims=[claim.model_copy(update={"id": uid(), "run_id": context.run_id,
+                              "supersedes": claim.id, "supersedes_ids": []}) for claim in cached], artifacts={"cache_hit": True})
+        try:
+            from geo.traits import compute_trait
+        except ImportError:
+            return ToolResult(warnings=["Локальный расчёт признака пока не подготовлен"])
+        result = compute_trait(hotel, self.data_dir, kind, month=context.month)
+        claims = []
+        for row in result["claims"]:
+            claim = Claim.model_validate(row)
+            if claim.characteristic_id != context.characteristic_id:
+                identity = hashlib.sha256((claim.id + context.characteristic_id).encode()).hexdigest()[:32]
+                claim = claim.model_copy(update={"id": "trait-" + identity, "characteristic_id": context.characteristic_id})
+            if self.repo.get("claims", claim.id) is not None:
+                claim = claim.model_copy(update={"id": uid(), "supersedes": claim.id, "supersedes_ids": []})
+            claims.append(claim.model_copy(update={"run_id": context.run_id}))
+        return ToolResult(claims=claims, warnings=result["warnings"], artifacts=result["artifacts"])
 
     def _poi(self, context, call):
         hotel = self._hotels.get(context.hotel_id) or self.repo.get("hotels",context.hotel_id)
