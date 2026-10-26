@@ -25,8 +25,21 @@ TABLES = frozenset({
 })
 
 COMPACT_FACT = """(payload-'evidence') || jsonb_build_object('evidence', COALESCE(
-    (SELECT jsonb_agg(evidence-'inputs'-'output') FROM jsonb_array_elements(payload->'evidence') evidence),
+    (SELECT jsonb_agg((evidence-'inputs'-'output') || jsonb_build_object('inputs',
+      jsonb_strip_nulls(jsonb_build_object(
+        'facade_azimuth_deg', evidence->'inputs'->'facade_azimuth_deg',
+        'window_half_angle_deg', evidence->'inputs'->'window_half_angle_deg'))))
+     FROM jsonb_array_elements(payload->'evidence') evidence),
     '[]'::jsonb))"""
+
+
+def search_fact(value: dict) -> dict:
+    """Retain small geometry scalars used by explanations, never raw arrays."""
+    return {**value, "evidence": [
+        {**{key: field for key, field in evidence.items() if key not in {"inputs", "output"}},
+         "inputs": {key: field for key, field in evidence.get("inputs", {}).items()
+                    if key in {"facade_azimuth_deg", "window_half_angle_deg"} and field is not None}}
+        for evidence in value.get("evidence", [])]}
 
 
 def dump_json(value: Any) -> str:
@@ -58,7 +71,7 @@ class Repository:
             snapshot = {key: value for key, value in self._search_snapshot.items()
                         if hotel_ids is None or value["hotel_id"] not in hotel_ids}
             for value in values:
-                snapshot[value["id"]] = {**value, "evidence": [{key: field for key, field in evidence.items() if key not in {"inputs", "output"}} for evidence in value.get("evidence", [])]}
+                snapshot[value["id"]] = search_fact(value)
             self._search_snapshot = snapshot
 
     def _invalidate_catalog(self, table: str):

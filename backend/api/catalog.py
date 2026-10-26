@@ -9,6 +9,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 
 from backend.contracts import (
     CharacteristicSpec,
@@ -26,7 +27,7 @@ from backend.contracts import (
     uid,
 )
 from backend.coverage import region_coverage
-from backend.db.repository import get_repo
+from backend.db.repository import get_repo, search_fact
 from backend.llm.client import LLMClient
 from backend.quality import current_value, known_value
 from backend.settings import DATA
@@ -152,8 +153,7 @@ def details(hotel_ids: list[str], repo, *, text: str = "", month: int | None = N
         grouped[table] = defaultdict(list)
         for row in rows[table]:
             if compact and table == "facts":
-                row = {**row, "evidence": [{key: value for key, value in e.items() if key not in {"inputs", "output"}}
-                                          for e in row.get("evidence", [])]}
+                row = search_fact(row)
             grouped[table][row["hotel_id"]].append(row)
     result = []
     for hotel_id in hotel_ids:
@@ -164,7 +164,9 @@ def details(hotel_ids: list[str], repo, *, text: str = "", month: int | None = N
             from backend.agents.ranker import rank_hotels
             hits = rank_hotels([hotel], facts, parsed, specs)
             verdicts = hits[0].verdicts if hits else []
-        result.append(HotelDetail(hotel=hotel, facts=facts, claims=grouped["claims"][hotel_id],
+        public_facts = [fact.model_copy(update={"evidence": [e.model_copy(update={"limitations": []})
+                                                            for e in fact.evidence]}) for fact in facts] if compact else facts
+        result.append(HotelDetail(hotel=hotel, facts=public_facts, claims=grouped["claims"][hotel_id],
                                   conflicts=grouped["conflicts"][hotel_id], questions=grouped["questions"][hotel_id],
                                   verdicts=verdicts, room_recommendation=recommend_room(facts, parsed),
                                   disappointments=disappointments(facts, parsed),
@@ -175,6 +177,17 @@ def details(hotel_ids: list[str], repo, *, text: str = "", month: int | None = N
 
 def detail(hotel_id: str, repo, **kwargs) -> HotelDetail:
     return details([hotel_id], repo, **kwargs)[0]
+
+
+def compact_payload(value: HotelDetail) -> dict:
+    """Omit optional empty evidence fields; validators restore their defaults."""
+    payload = value.model_dump(mode="json")
+    for fact in payload["facts"]:
+        for evidence in fact["evidence"]:
+            for key in ("url", "artifact", "quote", "message_id", "inputs", "output"):
+                if evidence.get(key) is None or evidence.get(key) == {}:
+                    evidence.pop(key, None)
+    return payload
 
 
 @router.get("/status")
@@ -199,7 +212,8 @@ def hotels(repo=_REPO):
 
 @router.get("/hotels/{hotel_id}", response_model=HotelDetail)
 def hotel(hotel_id: str, text: str = "", month: int | None = None, compact: bool = False, repo=_REPO):
-    return detail(hotel_id, repo, text=text, month=month, compact=compact)
+    result = detail(hotel_id, repo, text=text, month=month, compact=compact)
+    return JSONResponse(compact_payload(result)) if compact else result
 
 
 @router.get("/hotels/{hotel_id}/facts/{fact_id}/evidence", response_model=FactEvidence)
@@ -220,7 +234,8 @@ def geo(hotel_id: str, repo=_REPO):
 
 @router.post("/hotels/{hotel_id}/evaluate", response_model=HotelDetail)
 def evaluate_hotel(hotel_id: str, body: ParsedQuery, compact: bool = False, repo=_REPO):
-    return detail(hotel_id, repo, parsed=body, compact=compact)
+    result = detail(hotel_id, repo, parsed=body, compact=compact)
+    return JSONResponse(compact_payload(result)) if compact else result
 
 
 @router.get("/compare")
@@ -228,12 +243,16 @@ def compare(ids: str, text: str = "", month: int | None = None, compact: bool = 
     selected = list(dict.fromkeys(part.strip() for part in ids.split(",") if part.strip()))
     if not 2 <= len(selected) <= 4:
         raise HTTPException(422, "Для сравнения выберите от 2 до 4 разных отелей")
-    return {"hotels": details(selected, repo, text=text, month=month, compact=compact), "characteristics": catalog(repo)}
+    result = {"hotels": details(selected, repo, text=text, month=month, compact=compact), "characteristics": catalog(repo)}
+    return JSONResponse({"hotels": [compact_payload(h) for h in result["hotels"]],
+                         "characteristics": [spec.model_dump(mode="json") for spec in result["characteristics"]]}) if compact else result
 
 
 @router.post("/compare")
 def compare_parsed(body: ComparisonRequest, compact: bool = False, repo=_REPO):
-    return {"hotels": details(body.ids, repo, parsed=body.parsed, compact=compact), "characteristics": catalog(repo)}
+    result = {"hotels": details(body.ids, repo, parsed=body.parsed, compact=compact), "characteristics": catalog(repo)}
+    return JSONResponse({"hotels": [compact_payload(h) for h in result["hotels"]],
+                         "characteristics": [spec.model_dump(mode="json") for spec in result["characteristics"]]}) if compact else result
 
 
 @router.post("/search", response_model=SearchResult)

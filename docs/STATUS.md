@@ -127,3 +127,5 @@
 - Поставка дополнительного ledger прошла 629 tests + 125 subtests, Ruff и frontend lint; rebuild, demo-check 13 и browser smoke PASS. make eval: 53 838 известных facts, 143 synthetic (0,2656%), 40 слабых меток. Точность на поле не заявлена. Дополнительный Chrome-прогон связей и выбора окна PASS: 16 сценариев, без ошибок браузера.
 
 - После расширения данных compact Brevis вырос до 917 032 B (356 facts): цель <400 КБ временно не выполнена. Следующая итерация переносит повторяющиеся ограничения и artifact URI в ленивое evidence; полные источники сохраняются.
+
+- Расширенная compact карточка Brevis: 393762 B, 356 facts; JSON прошёл HotelDetail validation. Повторные limitations и пустые optional evidence поля догружаются, references и геометрические углы сохранены. Full pytest/Ruff/frontend lint, demo-check 13, browser smoke и 16 сценариев связей/выбора окна PASS.

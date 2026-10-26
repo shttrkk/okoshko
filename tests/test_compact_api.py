@@ -3,14 +3,15 @@ from datetime import timedelta
 
 import pytest
 
-from backend.contracts import Claim, now
+from backend.contracts import Claim, HotelDetail, now
 from backend.tests.test_api_integration import client, repo  # noqa: F401
 
 
 @pytest.fixture
 def calculation(repo):  # noqa: F811
     fact = repo.all("facts")[0]
-    evidence = {**fact["evidence"][0], "inputs": {"large": "x" * 100_000}, "output": {"value": 7}}
+    evidence = {**fact["evidence"][0], "inputs": {"large": "x" * 100_000}, "output": {"value": 7},
+                "artifact": "/data/geo/test-hotel.json", "limitations": ["Large repeated model limitation " * 1000]}
     claim = Claim(id="compact-claim", hotel_id=fact["hotel_id"], characteristic_id=fact["characteristic_id"],
                   value=fact["value"], source="geo_engine", method="synthetic_test_v1", evidence=[evidence],
                   confidence=.7, observed_at=now()-timedelta(days=1), valid_until=now()+timedelta(days=1), synthetic=True)
@@ -34,9 +35,15 @@ def test_compact_is_opt_in_and_evidence_can_be_loaded_completely(client, calcula
     assert preview["supporting_claim_ids"] == [claim["id"]]
     assert preview["evidence"][0]["id"] == fact["evidence"][0]["id"]
     assert preview["evidence"][0]["source_ids"] == fact["evidence"][0]["source_ids"]
-    assert preview["evidence"][0]["inputs"] == {} and preview["evidence"][0]["output"] == {}
+    assert preview["evidence"][0].get("inputs", {}) == {} and preview["evidence"][0].get("output", {}) == {}
+    assert preview["evidence"][0]["artifact"] == fact["evidence"][0]["artifact"]
+    assert preview["evidence"][0]["limitations"] == []
+    assert preview["evidence"][0]["label"] == fact["evidence"][0]["label"]
+    assert HotelDetail.model_validate(compact).evidence_deferred
     loaded = client.get(path + "/facts/" + fact["id"] + "/evidence").json()
     assert loaded["fact"]["evidence"][0]["inputs"] == fact["evidence"][0]["inputs"]
+    assert loaded["fact"]["evidence"][0]["limitations"] == fact["evidence"][0]["limitations"]
+    assert loaded["fact"]["evidence"][0]["artifact"] == fact["evidence"][0]["artifact"]
     assert loaded["claims"][0]["observed_at"] and loaded["claims"][0]["valid_until"]
     assert loaded["claims"][0]["source"] == "geo_engine"
     assert client.get("/api/hotels/test-2/facts/" + fact["id"] + "/evidence").status_code == 404
@@ -92,3 +99,18 @@ def test_similarity_keeps_requested_month_for_additional_must(client, repo):  # 
     assert result["parsed"]["similar_to"] == "test-2" and result["parsed"]["similar_to_name"] == "Synthetic 2"
     assert result["parsed"]["clarifications"] == ["Уточните месяц поездки"]
     assert [hit["hotel"]["id"] for hit in result["results"]] == ["test-hotel"]
+
+
+def test_compact_keeps_exact_sunset_geometry_in_verdicts(client, repo):  # noqa: F811
+    from backend.tests.test_search import fact
+    row = fact('test-hotel', 'sunset_view', {'available': True, 'azimuth_deg': 300}, side='N', low=1, high=5, month=9)
+    row.evidence[0].inputs = {'facade_azimuth_deg': 345, 'window_half_angle_deg': 75, 'raw_array': [42]*1000}
+    repo.upsert('facts', row.model_dump(mode='json'))
+    query = {'text': '', 'month': 9, 'must': [{'characteristic_id': 'sunset_view', 'label': 'Закат', 'field': 'available', 'op': 'eq', 'value': True}]}
+    path = '/api/hotels/test-hotel/evaluate'
+    full = client.post(path, json=query).json()
+    compact = client.post(path+'?compact=true', json=query).json()
+    assert compact['verdicts'] == full['verdicts']
+    assert compact['disappointments'] == full['disappointments']
+    projected = next(f for f in compact['facts'] if f['id'] == row.id)
+    assert projected['evidence'][0]['inputs'] == {'facade_azimuth_deg': 345, 'window_half_angle_deg': 75}
