@@ -1,0 +1,46 @@
+id: green_nearby
+version: 1
+name_ru: Парк или сад рядом
+description: Расстояние по прямой до геометрии ближайшего картированного OSM парка
+  или сада. Не вид зелени из окна и не пеший маршрут; отсутствие объекта или тега
+  доступа сохраняет ограничения.
+category: Окружение
+synonyms:
+- парк рядом
+- сад рядом
+- зелень рядом
+- рядом с парком
+- сквер рядом
+- зелёная зона рядом
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+    distance_m:
+      type:
+      - number
+      - 'null'
+  additionalProperties: true
+methods:
+- tool: geo_trait
+  params:
+    kind: green_nearby
+  rationale: Расстояние по прямой до геометрии ближайшего картированного OSM парка
+    или сада. Не вид зелени из окна и не пеший маршрут; отсутствие объекта или тега
+    доступа сохраняет ограничения.
+ttl_days: 90
+change_triggers: []
+search:
+  kind: numeric
+  field: distance_m
+  default_op: lte
+  default_value: 500
+  explain_ok: Картированный парк или сад не дальше 500 м по прямой
+  explain_bad: Ближайший картированный парк или сад дальше 500 м по прямой
+  unit: м по прямой
+hotelier_answerable: false
+status: active
