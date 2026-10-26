@@ -1,7 +1,9 @@
 id: connectivity
 version: 1
 name_ru: Связь для работы
-description: Агрегированные тесты Ookla в районе, не Wi-Fi конкретного отеля
+description: Сведения OSM о сообщённом наличии интернета на объекте и агрегированные
+  тесты Ookla в районе. OSM не измеряет скорость или работоспособность сети; Ookla
+  не подтверждает Wi-Fi конкретного номера.
 category: Работа
 synonyms:
 - связь
@@ -18,11 +20,48 @@ value_schema:
       type:
       - boolean
       - 'null'
+    internet_access:
+      type:
+      - string
+      - 'null'
+      description: Исходное значение OSM internet_access без вывода о скорости
+    wifi_reported:
+      type:
+      - boolean
+      - 'null'
+      description: Сообщает ли OSM WLAN; неизвестный тип подключения остаётся null
+    fee:
+      type:
+      - string
+      - 'null'
+    download_mbps:
+      type:
+      - number
+      - 'null'
+      minimum: 0
+    upload_mbps:
+      type:
+      - number
+      - 'null'
+      minimum: 0
+    latency_ms:
+      type:
+      - number
+      - 'null'
+      minimum: 0
+    kind:
+      type: string
+    measurement:
+      type: boolean
+    statement:
+      type: string
   additionalProperties: true
 methods:
 - tool: connectivity
   params: {}
-  rationale: Агрегированные тесты Ookla в районе, не Wi-Fi конкретного отеля
+  rationale: Сведения OSM о сообщённом наличии интернета на объекте и агрегированные
+    тесты Ookla в районе. OSM не измеряет скорость или работоспособность сети; Ookla
+    не подтверждает Wi-Fi конкретного номера.
   when: null
 combine: null
 ttl_days: 180

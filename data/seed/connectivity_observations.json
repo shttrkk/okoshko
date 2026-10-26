@@ -1,0 +1,595 @@
+{
+  "method": "osm_property_internet_access_v1",
+  "records": [
+    {
+      "hotel_id": "osm-node-11637552371",
+      "hotel_name": "Родос",
+      "identity": {
+        "canonical_osm_id": "osm-node-11637552371",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-11637552371",
+      "osm_name": "Родос",
+      "raw_tags": {
+        "internet_access": "wlan"
+      },
+      "sha256": "ae27830dbff3e8fc089a11dea5b3feb9131041dda856af827108ce66866e4a0b",
+      "source_url": "https://www.openstreetmap.org/node/11637552371",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-node-11637558669",
+      "hotel_name": "Родос Лайт",
+      "identity": {
+        "canonical_osm_id": "osm-node-11637558669",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-11637558669",
+      "osm_name": "Родос Лайт",
+      "raw_tags": {
+        "internet_access": "wlan"
+      },
+      "sha256": "910b8737f3880ec8acb1c4ea9b3309c2482adf6fd5b6b79bdb17901bc7703ea4",
+      "source_url": "https://www.openstreetmap.org/node/11637558669",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-node-12749552601",
+      "hotel_name": "Marina Yacht by Stellar",
+      "identity": {
+        "canonical_osm_id": "osm-node-12749552601",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-12749552601",
+      "osm_name": "Marina Yacht by Stellar",
+      "raw_tags": {
+        "internet_access": "wlan"
+      },
+      "sha256": "df17eb573d1fa0f85da01604ffa88651f61f79d3e01da1c6cad197abea9bd9be",
+      "source_url": "https://www.openstreetmap.org/node/12749552601",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-node-12800893166",
+      "hotel_name": "Грей",
+      "identity": {
+        "canonical_osm_id": "osm-node-12800893166",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-12800893166",
+      "osm_name": "Грей",
+      "raw_tags": {
+        "internet_access": "yes",
+        "internet_access:fee": "no"
+      },
+      "sha256": "5efb83b192a6fffd0494d6dcffe6b456b15c6dddb671d81045dde708f613528e",
+      "source_url": "https://www.openstreetmap.org/node/12800893166",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-node-1323204199",
+      "hotel_name": "МИРИТ",
+      "identity": {
+        "canonical_osm_id": "osm-node-1323204199",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-1323204199",
+      "osm_name": "МИРИТ",
+      "raw_tags": {
+        "internet_access": "wlan"
+      },
+      "sha256": "84d45829b77622aef1eea57875d61cfa41e55512d4ff9b1a8c925f931d9a4cb5",
+      "source_url": "https://www.openstreetmap.org/node/1323204199",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-node-4118677615",
+      "hotel_name": "Shine",
+      "identity": {
+        "canonical_osm_id": "osm-node-4118677615",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-4118677615",
+      "osm_name": "Shine",
+      "raw_tags": {
+        "internet_access": "wlan"
+      },
+      "sha256": "55c03fd7169735aa7254cf748b5f4a6e9e1c9d1025931f0eac04cfebde14968a",
+      "source_url": "https://www.openstreetmap.org/node/4118677615",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-node-4370780891",
+      "hotel_name": "Family Park Hotel",
+      "identity": {
+        "canonical_osm_id": "osm-node-4370780891",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-4370780891",
+      "osm_name": "Family Park Hotel",
+      "raw_tags": {
+        "internet_access": "wlan"
+      },
+      "sha256": "3ec4293d9ea12ceb8542a20ffadc80c8132ec5b3ed73870e0caa9cb2f76ebdb9",
+      "source_url": "https://www.openstreetmap.org/node/4370780891",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-node-4393265790",
+      "hotel_name": "Отель «Империя»",
+      "identity": {
+        "canonical_osm_id": "osm-node-4393265790",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-4393265790",
+      "osm_name": "Отель «Империя»",
+      "raw_tags": {
+        "internet_access": "wlan"
+      },
+      "sha256": "0a44c95220078f43935aae32f96f59d88593bd490169abe63598644016fdcde4",
+      "source_url": "https://www.openstreetmap.org/node/4393265790",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-node-4398105389",
+      "hotel_name": "Романов",
+      "identity": {
+        "canonical_osm_id": "osm-node-4398105389",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-4398105389",
+      "osm_name": "Романов",
+      "raw_tags": {
+        "internet_access": "wlan"
+      },
+      "sha256": "f0290cfbf9a11a71e45cc88431d2b2d68c5b3b99e66d9fd1aa23d3d5c960c4c2",
+      "source_url": "https://www.openstreetmap.org/node/4398105389",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-node-4931886321",
+      "hotel_name": "Марина",
+      "identity": {
+        "canonical_osm_id": "osm-node-4931886321",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-4931886321",
+      "osm_name": "Марина",
+      "raw_tags": {
+        "internet_access": "wlan",
+        "internet_access:fee": "yes"
+      },
+      "sha256": "7c463ec8d17862e71d6ca5250af57929026014142d62671c6023833aa102d7bd",
+      "source_url": "https://www.openstreetmap.org/node/4931886321",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-node-4986725623",
+      "hotel_name": "Апартаменты в Маяке",
+      "identity": {
+        "canonical_osm_id": "osm-node-4986725623",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-4986725623",
+      "osm_name": "Апартаменты в Маяке",
+      "raw_tags": {
+        "internet_access": "wlan"
+      },
+      "sha256": "4b66350acc8c2e8b8c8340aa2e9c5153d76aa7a0b38d2753f5426b31701bd5d1",
+      "source_url": "https://www.openstreetmap.org/node/4986725623",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-node-6687342557",
+      "hotel_name": "Утомленные солнцем",
+      "identity": {
+        "canonical_osm_id": "osm-node-6687342557",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-6687342557",
+      "osm_name": "Утомленные солнцем",
+      "raw_tags": {
+        "internet_access": "wlan",
+        "internet_access:fee": "no"
+      },
+      "sha256": "1061e287db6138c39b12ec2448412a426f59c8bd39b6a2d1a5e9da27b3451cf0",
+      "source_url": "https://www.openstreetmap.org/node/6687342557",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-node-7115085741",
+      "hotel_name": "El Paraiso",
+      "identity": {
+        "canonical_osm_id": "osm-node-7115085741",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-7115085741",
+      "osm_name": "El Paraiso",
+      "raw_tags": {
+        "internet_access": "wlan"
+      },
+      "sha256": "7f3adc99b6b02ababe793d300a6b0c237a5b36f96adf42197c8f49f24698c355",
+      "source_url": "https://www.openstreetmap.org/node/7115085741",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-node-8872412718",
+      "hotel_name": "СПА-отель \"Грейс Горизонт\"",
+      "identity": {
+        "canonical_osm_id": "osm-node-8872412718",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-8872412718",
+      "osm_name": "СПА-отель \"Грейс Горизонт\"",
+      "raw_tags": {
+        "internet_access": "wlan"
+      },
+      "sha256": "1d77cc53e50995bd886a242c55b1e6b45480bc2e4d62b3c493492e008ac27cbf",
+      "source_url": "https://www.openstreetmap.org/node/8872412718",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-node-9908709817",
+      "hotel_name": "Отель Сочи Галерея Парк",
+      "identity": {
+        "canonical_osm_id": "osm-node-9908709817",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-node-9908709817",
+      "osm_name": "Отель Сочи Галерея Парк",
+      "raw_tags": {
+        "internet_access": "wlan"
+      },
+      "sha256": "8c61dcd4a5adf2d2d0a8ca51a3e39256f8970a6ac83d4accb763bccad169856f",
+      "source_url": "https://www.openstreetmap.org/node/9908709817",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-way-113588514",
+      "hotel_name": "Grace Времена года",
+      "identity": {
+        "canonical_osm_id": "osm-way-113588514",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-way-113588514",
+      "osm_name": "Grace Времена года",
+      "raw_tags": {
+        "internet_access": "wlan",
+        "internet_access:fee": "no"
+      },
+      "sha256": "1f787476b171deda180dcc35481b13cea7b699dc5c7ab071beecbf11fb0e9e58",
+      "source_url": "https://www.openstreetmap.org/way/113588514",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-way-201474330",
+      "hotel_name": "Brevis apartments",
+      "identity": {
+        "canonical_osm_id": "osm-way-201474330",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-way-201474330",
+      "osm_name": "Brevis apartments",
+      "raw_tags": {
+        "internet_access": "wlan",
+        "internet_access:fee": "no"
+      },
+      "sha256": "ba62694ac13d7956c8af6eb022dea78b71734fae8ec007d14c02fa58410b6843",
+      "source_url": "https://www.openstreetmap.org/way/201474330",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-way-201474331",
+      "hotel_name": "Mercure Sochi Centre",
+      "identity": {
+        "canonical_osm_id": "osm-way-201474331",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-way-201474331",
+      "osm_name": "Mercure Sochi Centre",
+      "raw_tags": {
+        "internet_access": "wlan"
+      },
+      "sha256": "9611a433bb639480dc0ba8026f3086d8e2883e1273f788ccbaca47a756b2af07",
+      "source_url": "https://www.openstreetmap.org/way/201474331",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-way-207579132",
+      "hotel_name": "Omega Sirius",
+      "identity": {
+        "canonical_osm_id": "osm-way-207579132",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-way-207579132",
+      "osm_name": "Omega Sirius",
+      "raw_tags": {
+        "internet_access": "wlan"
+      },
+      "sha256": "3b1449d3a27ca72c67800c4f58d6f83e2b67dbfbd59bc17948670909e827e5fd",
+      "source_url": "https://www.openstreetmap.org/way/207579132",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-way-209174465",
+      "hotel_name": "Blue Marine",
+      "identity": {
+        "canonical_property": {
+          "address": {
+            "addr:housenumber": "44",
+            "addr:street": "Тростниковая улица"
+          },
+          "footprint": {
+            "coordinates": [
+              [
+                [
+                  39.9604677,
+                  43.4110947
+                ],
+                [
+                  39.960514,
+                  43.4110888
+                ],
+                [
+                  39.9605311,
+                  43.4110968
+                ],
+                [
+                  39.960559,
+                  43.4110986
+                ],
+                [
+                  39.9605813,
+                  43.4110911
+                ],
+                [
+                  39.9605907,
+                  43.411079
+                ],
+                [
+                  39.9606347,
+                  43.4110734
+                ],
+                [
+                  39.9605957,
+                  43.4109122
+                ],
+                [
+                  39.9604656,
+                  43.4109289
+                ],
+                [
+                  39.9604712,
+                  43.410952
+                ],
+                [
+                  39.9604343,
+                  43.4109567
+                ],
+                [
+                  39.9604677,
+                  43.4110947
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          },
+          "lat": 43.41101505,
+          "lon": 39.96053450272791,
+          "name": "Blue Marine",
+          "osm_id": "osm-way-209174465",
+          "tourism": "hotel"
+        },
+        "kind": "reviewed_osm_alias",
+        "observation_property": {
+          "address": {
+            "addr:housenumber": "44",
+            "addr:street": "Тростниковая улица"
+          },
+          "footprint": null,
+          "lat": 43.4110295,
+          "lon": 39.9605409,
+          "name": "Blue Marine hotel",
+          "osm_id": "osm-node-4706161636",
+          "tourism": "hotel"
+        },
+        "pinned_source_record_id": "osm-node-4706161636",
+        "proof": {
+          "boundary_margin_m": 6.632543,
+          "minimum_margin_m": 1.0,
+          "normalized_names_equal": true,
+          "same_street_house_number": true,
+          "strict_contains_wgs84_and_utm": true
+        }
+      },
+      "osm_id": "osm-node-4706161636",
+      "osm_name": "Blue Marine hotel",
+      "raw_tags": {
+        "internet_access": "yes",
+        "internet_access:fee": "no"
+      },
+      "sha256": "df386451c8ea5844f53e8ed400cb1fb0ada0b3b8ccbd63eefae7f9a91cf8041a",
+      "source_url": "https://www.openstreetmap.org/node/4706161636",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-way-260646973",
+      "hotel_name": "Антика",
+      "identity": {
+        "canonical_property": {
+          "address": {
+            "addr:housenumber": "134/1",
+            "addr:street": "Виноградная улица"
+          },
+          "footprint": {
+            "coordinates": [
+              [
+                [
+                  39.7195028,
+                  43.6151774
+                ],
+                [
+                  39.7196304,
+                  43.6152373
+                ],
+                [
+                  39.7196523,
+                  43.6152128
+                ],
+                [
+                  39.7196787,
+                  43.6152252
+                ],
+                [
+                  39.7197083,
+                  43.6151922
+                ],
+                [
+                  39.7197267,
+                  43.6151892
+                ],
+                [
+                  39.7197567,
+                  43.6151571
+                ],
+                [
+                  39.7197578,
+                  43.6150938
+                ],
+                [
+                  39.7196203,
+                  43.6150318
+                ],
+                [
+                  39.7195745,
+                  43.6150575
+                ],
+                [
+                  39.7195008,
+                  43.6151397
+                ],
+                [
+                  39.7195259,
+                  43.6151515
+                ],
+                [
+                  39.7195028,
+                  43.6151774
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          },
+          "lat": 43.61511675,
+          "lon": 39.719639389004826,
+          "name": "Антика",
+          "osm_id": "osm-way-260646973",
+          "tourism": "hotel"
+        },
+        "kind": "reviewed_osm_alias",
+        "observation_property": {
+          "address": {
+            "addr:housenumber": "134/1",
+            "addr:street": "Виноградная улица"
+          },
+          "footprint": null,
+          "lat": 43.6151666,
+          "lon": 39.7195995,
+          "name": "Антика",
+          "osm_id": "osm-node-10967527654",
+          "tourism": "hotel"
+        },
+        "pinned_source_record_id": "osm-node-10967527654",
+        "proof": {
+          "boundary_margin_m": 5.242198,
+          "minimum_margin_m": 1.0,
+          "normalized_names_equal": true,
+          "same_street_house_number": true,
+          "strict_contains_wgs84_and_utm": true
+        }
+      },
+      "osm_id": "osm-node-10967527654",
+      "osm_name": "Антика",
+      "raw_tags": {
+        "internet_access": "wlan",
+        "internet_access:fee": "no"
+      },
+      "sha256": "ae8ad6a2f8a2c67f8f9dd1719e1de663d484c16328f4cc5a8e824d0d60e4c0f5",
+      "source_url": "https://www.openstreetmap.org/node/10967527654",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-way-502703777",
+      "hotel_name": "Роял Хилс на Мамайке",
+      "identity": {
+        "canonical_osm_id": "osm-way-502703777",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-way-502703777",
+      "osm_name": "Роял Хилс на Мамайке",
+      "raw_tags": {
+        "internet_access": "yes",
+        "internet_access:fee": "no"
+      },
+      "sha256": "6e6fad27ef685e5b1a09c0d0d4cf63bab3b77b4ae43f8a224510b34460afe37e",
+      "source_url": "https://www.openstreetmap.org/way/502703777",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-way-51764141",
+      "hotel_name": "Azimut Парк Отель Виноградная",
+      "identity": {
+        "canonical_osm_id": "osm-way-51764141",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-way-51764141",
+      "osm_name": "Azimut Парк Отель Виноградная",
+      "raw_tags": {
+        "internet_access": "wlan",
+        "internet_access:fee": "customers"
+      },
+      "sha256": "0b2b6bf5ad044febf0dcb0fba126c32d5c838ef3def8cc0be5cee3ccbcfb9735",
+      "source_url": "https://www.openstreetmap.org/way/51764141",
+      "tourism": "hotel"
+    },
+    {
+      "hotel_id": "osm-way-80192670",
+      "hotel_name": "Цитрус",
+      "identity": {
+        "canonical_osm_id": "osm-way-80192670",
+        "kind": "canonical_osm_hotel"
+      },
+      "osm_id": "osm-way-80192670",
+      "osm_name": "Цитрус",
+      "raw_tags": {
+        "internet_access": "yes"
+      },
+      "sha256": "c00467c8efff0190c50eb5b368a7e8e5edd7d7abf528d0d23e2548e7a6be79ab",
+      "source_url": "https://www.openstreetmap.org/way/80192670",
+      "tourism": "hotel"
+    }
+  ],
+  "rejected_aliases": [],
+  "selection": {
+    "aliases": "Pinned source record; same lodging type/name/address; strict interior with >1m margin in WGS84/UTM",
+    "canonical": "Exact canonical OSM hotel element ID, not a nearby building or cafe",
+    "hotel_portfolio_count": 250,
+    "missing_tags": "Unknown; not a negative service or throughput observation"
+  },
+  "source": {
+    "attribution": "© OpenStreetMap contributors; extract by Geofabrik",
+    "id": "osm_geofabrik",
+    "input_hashes": {
+      "hotels_json_sha256": "45cd3b05b6f5b0129864278b648ea4991e439593d0cd63a8a571388af0a1a6f6",
+      "raw_osm_hotels_sha256": "ce0b6a1d884c4fd9f0b1145a030a55c0cd4665d7e1dafd4bb4eda12cfa044925"
+    },
+    "license": "ODbL-1.0",
+    "name": "OpenStreetMap / Geofabrik South Federal District",
+    "observed_at": "2026-10-25T21:21:21Z",
+    "pbf_sha256": "f30952667b42e6c88a442c7570292bd70c29c83c4d4aae1fe68aad08ef00be0f",
+    "retrieved_at": "2026-10-26T12:16:08.470334+00:00",
+    "url": "https://download.geofabrik.de/russia/south-fed-district-261025.osm.pbf"
+  },
+  "synthetic": false,
+  "version": 1
+}
