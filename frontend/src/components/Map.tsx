@@ -802,6 +802,20 @@ export function TravelMap({
               </button>
             ))}
           </div>
+          {layers.includes("noise") && (
+            <div
+              className="map-noise-legend"
+              title="Цвет фасада по верхней границе приближённого диапазона, не измерение в номере"
+            >
+              <span>Наружный шум ночью · модель</span>
+              <div>
+                <i />
+                до 45 <i />
+                45–55 <i />
+                выше 55 дБ
+              </div>
+            </div>
+          )}
           <div className="map-controls">
             <button
               aria-label="Приблизить"

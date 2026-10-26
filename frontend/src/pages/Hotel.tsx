@@ -13,6 +13,7 @@ import {
 import { api, useResource } from "../api";
 import { useApp } from "../state";
 import { GeoModal, TravelMap } from "../components/Map";
+import { NearbyPhotos } from "../components/Photos";
 import {
   AskButton,
   BackLink,
@@ -212,6 +213,9 @@ export function HotelPage() {
                           <div>
                             <div className="fact-value">
                               <FactValue fact={f} />
+                              {f.characteristic_id === "nearby_photos" && (
+                                <NearbyPhotos value={f.value} />
+                              )}
                             </div>
                             <EvidenceButton fact={f} claims={d.claims} />
                             {f.synthetic && <Synthetic />}

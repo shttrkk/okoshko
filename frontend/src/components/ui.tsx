@@ -169,17 +169,25 @@ export function Modal({
     const previous = document.activeElement as HTMLElement | null;
     const old = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    ref.current?.focus();
+    const focusSelector =
+      'button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex="0"]';
+    (
+      ref.current?.querySelector<HTMLElement>(focusSelector) || ref.current
+    )?.focus();
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeRef.current();
       if (e.key === "Tab") {
-        const els = ref.current?.querySelectorAll<HTMLElement>(
-          'button,a,input,select,textarea,[tabindex="0"]',
-        );
+        const els = ref.current?.querySelectorAll<HTMLElement>(focusSelector);
         if (!els?.length) return;
         const first = els[0],
           last = els[els.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
+        if (
+          !ref.current?.contains(document.activeElement) ||
+          document.activeElement === ref.current
+        ) {
+          e.preventDefault();
+          (e.shiftKey ? last : first).focus();
+        } else if (e.shiftKey && document.activeElement === first) {
           e.preventDefault();
           last.focus();
         } else if (!e.shiftKey && document.activeElement === last) {
