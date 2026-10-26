@@ -1,217 +1,52 @@
-"""Foundation HTTP shell; stream S3 replaces the API fixture router."""
-
-from fastapi import FastAPI, HTTPException
+"""Same-origin API and SPA. Startup never downloads data or invokes an LLM."""
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend.contracts import (
-    Answer,
-    AnswerRequest,
-    AskRequest,
-    ChangeEvent,
-    ChangeRequest,
-    CharacteristicSpec,
-    CompileRequest,
-    ExpectationPassport,
-    Hotel,
-    HotelDetail,
-    LabelRequest,
-    LoginRequest,
-    PassportAction,
-    PassportCreate,
-    Question,
-    RunRequest,
-    SearchRequest,
-    SearchResult,
-)
+from backend.api.catalog import router as catalog_router
+from backend.api.catalog import runtime_dir
+from backend.api.hotelier import router as hotelier_router
+from backend.api.passports import router as passports_router
+from backend.api.runs import router as runs_router
+from backend.db.repository import get_repo
 from backend.settings import DATA, STATIC
 
 app = FastAPI(title="О!кно API", version="1.0.0", docs_url="/api/docs")
+app.include_router(catalog_router)
+app.include_router(hotelier_router)
+app.include_router(passports_router)
+app.include_router(runs_router)
+_REPO = Depends(get_repo)
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
+def health(repo=_REPO) -> dict[str, str]:
+    try:
+        if not repo.healthy() or not repo.all("hotels") or not repo.all("characteristics"):
+            raise HTTPException(503, "База данных и seed ещё не готовы")
+    except HTTPException:
+        raise
+    except Exception as error:
+        raise HTTPException(503, "База данных и seed ещё не готовы") from error
     return {"status": "ok"}
 
 
-@app.get("/api/status")
-def status() -> dict:
-    return {"name": "О!кно", "mode": "offline", "phase": "foundation", "version": "1.0.0"}
-
-
-@app.get("/api/hotels", response_model=list[Hotel])
-def hotels():
-    return []
-
-
-def pending():
-    raise HTTPException(501, "Ф0: маршрут зафиксирован контрактом, реализация в потоке S3")
-
-
-@app.post("/api/search", response_model=SearchResult)
-def search(body: SearchRequest):
-    return pending()
-
-
-@app.get("/api/hotels/{hotel_id}", response_model=HotelDetail)
-def hotel(hotel_id: str):
-    return pending()
-
-
-@app.get("/api/hotels/{hotel_id}/geo")
-def geo(hotel_id: str):
-    return pending()
-
-
-@app.get("/api/compare")
-def compare(ids: str):
-    return pending()
-
-
-@app.post("/api/hotelier/login")
-def login(body: LoginRequest):
-    return pending()
-
-
-@app.get("/api/hotelier/{hotel_id}")
-def cabinet(hotel_id: str):
-    return pending()
-
-
-@app.post("/api/questions", response_model=Question)
-def ask(body: AskRequest):
-    return pending()
-
-
-@app.post("/api/questions/{question_id}/answer", response_model=Answer)
-def answer(question_id: str, body: AnswerRequest):
-    return pending()
-
-
-@app.post("/api/questions/{question_id}/simulate", response_model=Answer)
-def simulate(question_id: str):
-    return pending()
-
-
-@app.post("/api/answers/{answer_id}/confirm", response_model=Answer)
-def confirm(answer_id: str):
-    return pending()
-
-
-@app.post("/api/passports", response_model=ExpectationPassport)
-def create_passport(body: PassportCreate):
-    return pending()
-
-
-@app.get("/api/passports", response_model=list[ExpectationPassport])
-def passports(hotel_id: str | None = None):
-    return pending()
-
-
-@app.get("/api/passports/{passport_id}", response_model=ExpectationPassport)
-def passport(passport_id: str):
-    return pending()
-
-
-@app.post("/api/passports/{passport_id}/action", response_model=ExpectationPassport)
-def passport_action(passport_id: str, body: PassportAction):
-    return pending()
-
-
-@app.get("/api/characteristics", response_model=list[CharacteristicSpec])
-def characteristics():
-    return []
-
-
-@app.post("/api/characteristics/compile")
-def compile_spec(body: CompileRequest):
-    return pending()
-
-
-@app.post("/api/characteristics/dry-run")
-def dry_run(body: CharacteristicSpec):
-    return pending()
-
-
-@app.post("/api/characteristics/publish")
-def publish(body: CharacteristicSpec):
-    return pending()
-
-
-@app.get("/api/runs")
-def runs():
-    return []
-
-
-@app.post("/api/runs")
-def run(body: RunRequest):
-    return pending()
-
-
-@app.get("/api/runs/{run_id}")
-def get_run(run_id: str):
-    return pending()
-
-
-@app.get("/api/runs/{run_id}/stream")
-def stream(run_id: str):
-    return pending()
-
-
-@app.get("/api/changes", response_model=list[ChangeEvent])
-def changes():
-    return []
-
-
-@app.post("/api/changes/simulate", response_model=ChangeEvent)
-def change(body: ChangeRequest):
-    return pending()
-
-
-@app.post("/api/changes/refresh")
-def refresh():
-    return pending()
-
-
-@app.get("/api/sources")
-def sources():
-    return []
-
-
-@app.get("/api/quality")
-def quality():
-    return {"status": "pending", "label_count": 0, "metrics": None}
-
-
-@app.get("/api/quality/label")
-def label_queue():
-    return []
-
-
-@app.post("/api/quality/label")
-def label(body: LabelRequest):
-    return pending()
-
-
-@app.get("/api/tools")
-def tools():
-    return []
-
-
-if DATA.exists():
-    app.mount("/data", StaticFiles(directory=DATA), name="data")
-if (STATIC / "assets").exists():
+# Explicit public directories: simulator profiles, prompts and caches stay private.
+for directory in ("seed", "geo", "tiles", "eval", "fixtures"):
+    if (DATA / directory).is_dir():
+        app.mount("/data/" + directory, StaticFiles(directory=DATA / directory), name="data-" + directory)
+app.mount("/data/runtime", StaticFiles(directory=runtime_dir(), check_dir=False), name="runtime")
+if (STATIC / "assets").is_dir():
     app.mount("/assets", StaticFiles(directory=STATIC / "assets"), name="assets")
 
 
 @app.get("/{path:path}", include_in_schema=False)
 def spa(path: str):
-    if path.startswith("api/"):
+    if path.startswith(("api/", "data/")):
         raise HTTPException(404)
     target = (STATIC / path).resolve()
     if target.is_relative_to(STATIC.resolve()) and target.is_file():
         return FileResponse(target)
-    if (STATIC / "index.html").exists():
+    if (STATIC / "index.html").is_file():
         return FileResponse(STATIC / "index.html")
-    return HTMLResponse("<html lang='ru'><title>О!кно</title><h1>О!кно</h1><p>Фундамент готов.</p></html>")
-
+    return HTMLResponse("<html lang='ru'><title>О!кно</title><h1>О!кно</h1><p>Демо-регион: Сочи</p></html>")
