@@ -17,13 +17,13 @@ docker compose up --build
 
 ## Зависимости и переменные окружения
 
-Docker Desktop/Engine + Compose ≥2.24. Рекомендовано 4 CPU, 8 ГБ RAM, 10 ГБ диска. В Docker: Postgres 17 + PostGIS 3.6 и Python 3.12/FastAPI, статический React/Vite/MapLibre. Все зависимости публичные и закреплены. Образ app на контрольной точке 26.10: 342 409 605 байт (327 MiB), linux/amd 64. Повторный старт с готовой БД — 16,5 с; фактическое время чистого клона с пустым кэшем будет записано после проверки. Контейнеры используют около 550 MiB RAM без браузера; рекомендованные 8 ГБ учитывают Docker Desktop и сборку.
+Docker Desktop/Engine + Compose ≥2.24. Рекомендовано 4 CPU, 8 ГБ RAM, 10 ГБ диска. В Docker: Postgres 17 + PostGIS 3.6 и Python 3.12/FastAPI, статический React/Vite/MapLibre. Все зависимости публичные и закреплены. Образ app на контрольной точке 26.10: 342 409 605 байт (327 MiB), linux/amd64. Повторный старт с готовой БД — 16,5 с; фактическое время чистого клона с пустым кэшем будет записано после проверки. Контейнеры используют около 550 MiB RAM без браузера; рекомендованные 8 ГБ учитывают Docker Desktop и сборку.
 
 | Переменная | Дефолт |
 |---|---|
 | APP_PORT | 8080 (внутри и снаружи фиксирован правилами) |
 | DB_URL | postgresql://okno:okno@db:5432/okno |
-| LLM_BASE_URL | https://api.openai.com/v 1 |
+| LLM_BASE_URL | https://api.openai.com/v1 |
 | LLM_API_KEY | пусто |
 | LLM_MODEL | пусто |
 | LLM_MODE | offline |

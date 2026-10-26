@@ -64,7 +64,7 @@ def main():
     destination = ROOT / "docs" / "audits"
     destination.mkdir(parents=True, exist_ok=True)
     locks = {"python": "backend/requirements.lock", "python-dev": "requirements-dev.lock",
-             "python-pipeline": "pipeline/requirements.lock"}
+             "python-pipeline": "pipeline/requirements.lock", "python-rebuild": "pipeline/rebuild.lock"}
     inputs = {name: ROOT / path for name, path in locks.items()}
     inputs["npm"] = ROOT / "frontend" / "package-lock.json"
     input_hashes = {name: sha256(path.read_bytes()).hexdigest() for name, path in inputs.items()}

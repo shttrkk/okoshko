@@ -36,9 +36,9 @@
 Статус (заполняет Codex): [x] принято 26.10 16:54 МСК
 
 - [x] Финальный geo snapshot 2379c02 включён в main коммитом 2abfd36; loader читает geo_claims.jsonl.gz автоматически.
-- [ ] Свежий стенд: сверка 250 отелей / 20 340 geo claims и make demo-check.
+- [x] Пустая изолированная БД:250/20 340geo,11/11demo-check PASS, Маша0.97s; docs/checks/demo_check_fresh_seed_20261026.json. Полный cleanclone ещёотдельно.
 - [ ] Masha acceptance: наружный шум имеет confidence 0.38; не повышаем его без evidence. Отдельно проверяем полный путь уточнения у явно помеченного симулятора.
-- [ ] Default-month chip: передано S6.
+- [x] Default-month chip:S6 e7da0d0, browser month12 PASS.
 - [x] STATUS обновлён по текущим интеграциям с фактическими проверками и оставшимися пунктами.
 - [ ] Компактные GeoJSON и git pack < 150 MiB до первого push.
-- [ ] S7 P1: SSRF boundary исправлена fbf997d (20 targeted tests), parser fixes готовы S4; POI/composite scopes и независимый retest в работе.
+- [x] Все4S7 P1 закрыты c504697:128tests+104subtests, SSRF18reject/0network, живойPOI2collect PASS.

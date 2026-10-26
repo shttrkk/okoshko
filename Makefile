@@ -1,6 +1,7 @@
 .PHONY: up down seed pipeline eval smoke demo-check test lint audit check demo-video contracts
 PYTHON ?= .venv/bin/python
 REGION ?= pipeline/regions/sochi.yaml
+PIPELINE_ARGS ?= --compact-geo
 
 up:
 	docker compose up --build -d
@@ -9,7 +10,8 @@ down:
 seed:
 	docker compose exec app python -m backend.seed
 pipeline:
-	REGION=$(REGION) $(PYTHON) -m pipeline.run
+	docker build --platform linux/amd64 -f Dockerfile.pipeline -t okno-pipeline .
+	docker run --rm --platform linux/amd64 --user "$$(id -u):$$(id -g)" --mount "type=bind,src=$$PWD/data,dst=/app/data" okno-pipeline --region "$(REGION)" $(PIPELINE_ARGS)
 eval:
 	$(PYTHON) -m scripts.evaluate
 smoke:

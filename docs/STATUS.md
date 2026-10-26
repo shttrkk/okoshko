@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 26.10.2026 17:28 МСК. Интегрированы API, поиск, кабинет, SPA и финальные 20 340 гео-claims. Пересборка стенда и demo-check — текущая P0. `[x]` означает проверено, не обещано.
+Обновлено: 26.10.2026 17:48 МСК. Интегрированы API, поиск, кабинет, SPA и финальные 20 340 гео-claims. Пересборка стенда и demo-check — текущая P0. `[x]` означает проверено, не обещано.
 
 ## Контрольные точки
 
@@ -99,3 +99,8 @@
 - 26.10 17:23 a64453e: materialization удаляет obsolete facts атомарно;6 дополнительныхofflineglyphfiles сохранены. c17821d: demo-check13negative boundarytests PASS; Makefile smoke теперь вызываетприёмку и сохраняетпаспортссинтетическимгостем. Search compact snapshot прогреваетсянастарте иобновляетсясразу послеAPI mutations (singleprocess). Frontend4a3ed86 интегрирован; browserrecordingвработе.
 
 - 26.10 17:28 свежаяизолированнаяБД обнаружила750SQLlookupsвPOIbootstrap; registryполучаетпредзагруженнуюкартуclaimsбезизмененияprovenance. Startupдалеемеряетсяснулевымитаблицами. RecoverInterrupted+60sFreshnessWatcher:12targetedtests PASS, архивныеисточникинеполучаютфиктивнуюсвежесть.
+
+- 26.10 17:41 пустаяБДokno_acceptance_fast: startup46s, Masha967.99mswall/892.12msAPI; все11demo-checkchecksPASS, evidenceгерояесть. Этоизолированныйfreshseed, ещёнеполныйcleancloneсprune. ОригинальныйdevDBсодержиттестовыеответы, егопродолжаемиспользоватьдлязаписивидео.
+- NPZ75c91a7:250outputs107.48→70.88MB, битовыемассивы/JSON/claims/inputhashбезизменений,21geotest+strictvalidationPASS. Изолированныйpipelineimage4750f2c45lockedpackages/audit0, readonlyofflinevalidation250/20 340PASS.
+
+- 26.10 17:48 интегрирован S5f3fb782:196tests+115subtestsPASS; однаbeach_walkсANDflags, stroller→no_stairs, реальныйBrevisсоstairsнеall; «рядом» получаетпорог, закатсбокуиscoreпонижен, округление≈мин/м. Liveafterrebuildещёвплане. Freshness/sourceageбезизменений. CascadeLOS84KBсозданизреальныхinputs, cachedsyntheticchange0.33s/59claims, SW3sea142°→116° — реальныйпересчётнадsyntheticдомом.

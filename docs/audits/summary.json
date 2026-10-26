@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-26T13:56:49.250478+00:00",
+  "generated_at": "2026-10-26T14:41:16.132866+00:00",
   "python_vulnerable_packages": 0,
   "python_locks": {
     "python": {
@@ -15,6 +15,11 @@
     "python-pipeline": {
       "path": "pipeline/requirements.lock",
       "sha256": "cc1ff8a2fe70e094a6042cf014a118b95c23b3c300b20301e55ce67091c1061a",
+      "vulnerable_packages": 0
+    },
+    "python-rebuild": {
+      "path": "pipeline/rebuild.lock",
+      "sha256": "fa6dd7af2e63bd07c1975e6932e35b4a1a4adc51a74d765eda4331ddf50fc22f",
       "vulnerable_packages": 0
     }
   },
@@ -41,6 +46,7 @@
     "python": 0,
     "python-dev": 0,
     "python-pipeline": 0,
+    "python-rebuild": 0,
     "npm": 0,
     "npm-full": 0
   },
@@ -50,6 +56,7 @@
     "/Users/shttrkk/ostrovok-hack/okno/.venv/bin/python -m pip_audit --require-hashes --disable-pip --strict -r backend/requirements.lock --format json --progress-spinner off",
     "/Users/shttrkk/ostrovok-hack/okno/.venv/bin/python -m pip_audit --require-hashes --disable-pip --strict -r requirements-dev.lock --format json --progress-spinner off",
     "/Users/shttrkk/ostrovok-hack/okno/.venv/bin/python -m pip_audit --require-hashes --disable-pip --strict -r pipeline/requirements.lock --format json --progress-spinner off",
+    "/Users/shttrkk/ostrovok-hack/okno/.venv/bin/python -m pip_audit --require-hashes --disable-pip --strict -r pipeline/rebuild.lock --format json --progress-spinner off",
     "npm audit --omit=dev --json",
     "npm audit --json"
   ]
