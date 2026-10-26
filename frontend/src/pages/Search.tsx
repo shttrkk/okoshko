@@ -662,6 +662,7 @@ function SearchCard({
             "Условия проверены по доступным фактам. Неизвестное требует уточнения."}
         </p>
         <VerdictList
+          compact
           verdicts={hit.verdicts}
           hotelId={hit.hotel.id}
           onEvidence={(v) => onEvidence(hit.hotel.id, v)}

@@ -337,6 +337,7 @@ function FactCard({
   hotelId,
   month,
   onEvidence,
+  canAsk,
 }: {
   id: string;
   name: string;
@@ -345,6 +346,7 @@ function FactCard({
   hotelId: string;
   month: number;
   onEvidence: (f: Fact) => void;
+  canAsk: boolean;
 }) {
   const shown = facts.filter(known);
   const rep = representative(facts);
@@ -394,7 +396,7 @@ function FactCard({
       <div className="fact-card-foot">
         <EvidenceButton fact={rep} claims={claims} />
         {shown.some((f) => f.synthetic) && <Synthetic />}
-        {(disputed || needsQuestion(rep)) && (
+        {canAsk && (disputed || needsQuestion(rep)) && (
           <AskButton hotelId={hotelId} characteristicId={id} compact />
         )}
       </div>
@@ -408,6 +410,7 @@ export function FactsPanel({
   hotelId,
   month,
   onEvidence,
+  hotelier = false,
 }: {
   facts: Fact[];
   claims: Claim[];
@@ -415,6 +418,8 @@ export function FactsPanel({
   hotelId: string;
   month: number;
   onEvidence: (f: Fact) => void;
+  /** The hotel's own cabinet: no "ask the hotel" actions. */
+  hotelier?: boolean;
 }) {
   const ids = [...new Set(facts.map((f) => f.characteristic_id))];
   const spec = (id: string) => specs.find((s) => s.id === id);
@@ -453,6 +458,7 @@ export function FactsPanel({
                   hotelId={hotelId}
                   month={month}
                   onEvidence={onEvidence}
+                  canAsk={!hotelier}
                 />
               ))}
           </div>
@@ -462,14 +468,17 @@ export function FactsPanel({
         <div className="fact-category unknown-facts">
           <h3>Пока неизвестно</h3>
           <p className="muted">
-            Открытых данных не хватило. «Неизвестно» — не значит «нет»: вопрос
-            уйдёт отелю, а ответ дополнит профиль для всех гостей.
+            {hotelier
+              ? "Этого нет в открытых данных. Ответ на вопрос из очереди выше заполнит профиль для всех гостей."
+              : "Открытых данных не хватило. «Неизвестно» — не значит «нет»: вопрос уйдёт отелю, а ответ дополнит профиль для всех гостей."}
           </p>
           <ul>
             {unknown.map((id) => (
               <li key={id}>
                 <span>{nameOf(id)}</span>
-                <AskButton hotelId={hotelId} characteristicId={id} compact />
+                {!hotelier && (
+                  <AskButton hotelId={hotelId} characteristicId={id} compact />
+                )}
               </li>
             ))}
           </ul>

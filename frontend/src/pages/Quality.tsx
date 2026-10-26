@@ -100,7 +100,7 @@ export function QualityPage() {
                   </small>
                 </div>
                 <div>
-                  <span>Море + закат в одном scope</span>
+                  <span>Море и закат из одного номера</span>
                   <strong>
                     {number(q.filter_comparison.search.compatible_supported)}
                   </strong>
@@ -144,9 +144,9 @@ export function QualityPage() {
                 {percent(
                   q.filter_comparison.settings.negative_confidence_floor,
                 )}
-                . Расстояние — по прямой в UTM 37N, не пеший маршрут. Только
-                nonsynthetic geo/open seed, без демонстрационных ответов и
-                нового дома.
+                . Расстояние до берега — по прямой, не пешим маршрутом.
+                Учитываются только расчёты по открытым данным, без
+                демонстрационных ответов отеля и сценария «новый дом».
               </p>
               <details>
                 <summary>
@@ -224,11 +224,11 @@ export function QualityPage() {
                   </table>
                 </div>
                 <p className="fine-print">
-                  Левые числа описывают только расположение доступных
-                  положительных расчётов; в непокрытых scope может оставаться
-                  unknown. Соседние строгие числа дополнительно требуют
-                  уверенных отрицательных значений в исключённых scope. Фасады
-                  модели не заменяют планировку номеров.
+                  Левые числа описывают только найденные положительные расчёты;
+                  там, где расчёта нет, значение остаётся неизвестным. Строгие
+                  числа справа дополнительно требуют уверенного «нет» для
+                  остальных сторон и этажей. Фасады модели не заменяют
+                  планировку номеров.
                 </p>
                 {q.filter_comparison.limitations.map((limitation) => (
                   <p className="fine-print" key={limitation}>
@@ -236,8 +236,8 @@ export function QualityPage() {
                   </p>
                 ))}
                 <p className="fine-print">
-                  Версия seed: {q.filter_comparison.seed_version}. Сформировано:{" "}
-                  {dateText(q.filter_comparison.generated_at)}.
+                  Версия данных: {q.filter_comparison.seed_version}.
+                  Сформировано: {dateText(q.filter_comparison.generated_at)}.
                 </p>
                 <code>{q.filter_comparison.settings.reproduce}</code>
                 <p>
@@ -285,13 +285,12 @@ export function QualityPage() {
                 </div>
               </div>
               <p className="fine-print">
-                Единица — materialized fact, отдельное значение для scope, а не
-                отель, claim или независимое наблюдение. Знаменатель доли:{" "}
-                {number(q.provenance.known)} известных актуальных значений;
-                фасады и месяцы учитываются отдельно. Mixed входит в synthetic
-                один раз и не выдаётся за независимое реальное подтверждение.
-                Значения без синтетики тоже могут быть модельными и требуют
-                проверки.
+                Единица счёта — отдельное значение характеристики для стороны,
+                этажа или месяца, а не отель. Знаменатель доли:{" "}
+                {number(q.provenance.known)} известных актуальных значений.
+                Смешанные значения считаются синтетическими и не выдаются за
+                реальное подтверждение. Значения без синтетики тоже бывают
+                модельными и требуют проверки.
               </p>
             </section>
           )}

@@ -27,7 +27,7 @@ import {
   Empty,
   ErrorState,
   EvidenceButton,
-  FactValue,
+  EvidenceModal,
   Loading,
   names,
   PageIntro,
@@ -35,16 +35,19 @@ import {
   Synthetic,
 } from "../components/ui";
 import { PassportView } from "./Booking";
+import { FactsPanel } from "../components/FactsPanel";
 import type {
   AgentRun,
   AgentStep,
   Answer,
   CompileResult,
   DryResult,
+  Fact,
   PublishResult,
 } from "../types";
 export function HotelierPage() {
-  const { hotels } = useApp();
+  const { hotels, specs } = useApp();
+  const [evidence, setEvidence] = useState<Fact | null>(null);
   const [token, setToken] = useState(
       sessionStorage.getItem("okno-token") || "",
     ),
@@ -532,20 +535,22 @@ export function HotelierPage() {
               </aside>
               <section className="hotelier-facts">
                 <h2>Что уже известно</h2>
-                {data.data.facts.map((f) => (
-                  <div className="fact-row" key={f.id}>
-                    <div>
-                      <h4>
-                        {names[f.characteristic_id] || f.characteristic_id}
-                      </h4>
-                      <small>{scopeText(f.scope)}</small>
-                    </div>
-                    <div>
-                      <FactValue fact={f} />
-                      <EvidenceButton fact={f} claims={data.data!.claims} />
-                    </div>
-                  </div>
-                ))}
+                <FactsPanel
+                  hotelier
+                  facts={data.data.facts}
+                  claims={data.data.claims}
+                  specs={specs.data || []}
+                  hotelId={hotelId}
+                  month={9}
+                  onEvidence={setEvidence}
+                />
+                {evidence && (
+                  <EvidenceModal
+                    fact={evidence}
+                    claims={data.data.claims}
+                    onClose={() => setEvidence(null)}
+                  />
+                )}
               </section>
             </div>
           )}

@@ -308,13 +308,16 @@ export function VerdictList({
   verdicts,
   hotelId,
   onEvidence,
+  compact = false,
 }: {
   verdicts: Verdict[];
   hotelId: string;
   onEvidence?: (v: Verdict) => void;
+  /** Search cards: the gist only; caveats live on the hotel page. */
+  compact?: boolean;
 }) {
   return (
-    <ul className="verdict-list">
+    <ul className={`verdict-list ${compact ? "compact" : ""}`}>
       {verdicts.map((v, i) => (
         <li key={`${v.characteristic_id}-${i}`}>
           <span
@@ -347,16 +350,18 @@ export function VerdictList({
               )}
               {v.synthetic && <Synthetic>Подтверждение · синтетика</Synthetic>}
               <span>{v.text}</span>
-              {v.caveat && (
+              {v.caveat && !compact && (
                 <small>{v.caveat.split(";")[0].slice(0, 220)}</small>
               )}
             </button>
-            {v.caveat && (v.caveat.includes(";") || v.caveat.length > 220) && (
-              <details className="verdict-caveats">
-                <summary>Все оговорки</summary>
-                <p>{v.caveat}</p>
-              </details>
-            )}
+            {!compact &&
+              v.caveat &&
+              (v.caveat.includes(";") || v.caveat.length > 220) && (
+                <details className="verdict-caveats">
+                  <summary>Все оговорки</summary>
+                  <p>{v.caveat}</p>
+                </details>
+              )}
             {v.status === "unknown" && (
               <AskButton
                 compact

@@ -6008,3 +6008,16 @@ pre {
 .compare-fact > small {
   font-size: 12px;
 }
+[data-theme="dark"] .matrix-legend i.high {
+  background: #b9603f;
+}
+[data-theme="dark"] .matrix-legend i.mid {
+  background: #7b4632;
+}
+
+.verdict-list.compact .verdict-text > span:last-of-type {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
