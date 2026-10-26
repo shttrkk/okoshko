@@ -26,6 +26,7 @@ import {
   HotelVisual,
   Loading,
   names,
+  needsQuestion,
   scopeText,
   Synthetic,
   VerdictList,
@@ -219,7 +220,7 @@ export function HotelPage() {
                             </div>
                             <EvidenceButton fact={f} claims={d.claims} />
                             {f.synthetic && <Synthetic />}
-                            {f.status === "unknown" && (
+                            {needsQuestion(f) && (
                               <AskButton
                                 hotelId={id}
                                 characteristicId={f.characteristic_id}

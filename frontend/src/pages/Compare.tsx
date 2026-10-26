@@ -11,6 +11,7 @@ import {
   FactValue,
   Loading,
   names,
+  needsQuestion,
   PageIntro,
   scopeText,
   Synthetic,
@@ -179,7 +180,7 @@ export function ComparePage() {
                                   </small>
                                   <small>{scopeText(f.scope)}</small>
                                   <EvidenceButton fact={f} claims={h.claims} />
-                                  {f.status === "unknown" && (
+                                  {needsQuestion(f) && (
                                     <AskButton
                                       compact
                                       hotelId={h.hotel.id}

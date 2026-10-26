@@ -72,6 +72,10 @@ export async function request<T>(
     );
   }
   if (!response.ok) {
+    if (auth && response.status === 401) {
+      sessionStorage.removeItem("okno-token");
+      window.dispatchEvent(new Event("okno-auth-expired"));
+    }
     const detail =
       data && typeof data === "object" && "detail" in data ? data.detail : null;
     throw new ApiError(

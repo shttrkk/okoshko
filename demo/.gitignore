@@ -1,0 +1,6 @@
+node_modules/
+recordings/
+*.mp4
+*.webm
+*.wav
+*.aac
