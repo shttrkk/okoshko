@@ -3471,6 +3471,35 @@
             ],
             "title": "Mode",
             "default": "offline"
+          },
+          "similar_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Similar To"
+          },
+          "similar_to_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Similar To Name"
+          },
+          "no_data": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array",
+            "title": "No Data"
           }
         },
         "additionalProperties": false,
@@ -3613,6 +3642,35 @@
             ],
             "title": "Mode",
             "default": "offline"
+          },
+          "similar_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Similar To"
+          },
+          "similar_to_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Similar To Name"
+          },
+          "no_data": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array",
+            "title": "No Data"
           }
         },
         "additionalProperties": false,
@@ -3840,7 +3898,8 @@
               "unknown",
               "disputed",
               "low_confidence",
-              "guest"
+              "guest",
+              "conflict"
             ],
             "title": "Reason",
             "default": "unknown"
@@ -4011,7 +4070,8 @@
             "enum": [
               "all",
               "almost",
-              "unknown"
+              "unknown",
+              "browse"
             ],
             "title": "Group"
           },
@@ -4214,6 +4274,17 @@
           "default_value": {
             "title": "Default Value",
             "default": true
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
           },
           "explain_ok": {
             "type": "string",

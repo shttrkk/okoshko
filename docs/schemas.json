@@ -1512,6 +1512,18 @@
         "default": true,
         "title": "Default Value"
       },
+      "unit": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Unit"
+      },
       "explain_ok": {
         "default": "Соответствует условию",
         "title": "Explain Ok",
@@ -1561,6 +1573,18 @@
           "default_value": {
             "default": true,
             "title": "Default Value"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Unit"
           },
           "explain_ok": {
             "default": "Соответствует условию",
@@ -1778,7 +1802,8 @@
           "unknown",
           "disputed",
           "low_confidence",
-          "guest"
+          "guest",
+          "conflict"
         ],
         "title": "Reason",
         "type": "string"
@@ -2645,6 +2670,37 @@
         ],
         "title": "Mode",
         "type": "string"
+      },
+      "similar_to": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Similar To"
+      },
+      "similar_to_name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Similar To Name"
+      },
+      "no_data": {
+        "items": {
+          "$ref": "#/$defs/Criterion"
+        },
+        "title": "No Data",
+        "type": "array"
       }
     },
     "required": [
@@ -2869,6 +2925,37 @@
             ],
             "title": "Mode",
             "type": "string"
+          },
+          "similar_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Similar To"
+          },
+          "similar_to_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Similar To Name"
+          },
+          "no_data": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data",
+            "type": "array"
           }
         },
         "required": [
@@ -3350,6 +3437,37 @@
             ],
             "title": "Mode",
             "type": "string"
+          },
+          "similar_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Similar To"
+          },
+          "similar_to_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Similar To Name"
+          },
+          "no_data": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data",
+            "type": "array"
           }
         },
         "required": [
@@ -3940,7 +4058,8 @@
         "enum": [
           "all",
           "almost",
-          "unknown"
+          "unknown",
+          "browse"
         ],
         "title": "Group",
         "type": "string"
@@ -4479,6 +4598,37 @@
             ],
             "title": "Mode",
             "type": "string"
+          },
+          "similar_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Similar To"
+          },
+          "similar_to_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Similar To Name"
+          },
+          "no_data": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data",
+            "type": "array"
           }
         },
         "required": [
@@ -4595,7 +4745,8 @@
             "enum": [
               "all",
               "almost",
-              "unknown"
+              "unknown",
+              "browse"
             ],
             "title": "Group",
             "type": "string"
@@ -5437,7 +5588,8 @@
               "unknown",
               "disputed",
               "low_confidence",
-              "guest"
+              "guest",
+              "conflict"
             ],
             "title": "Reason",
             "type": "string"
@@ -7077,6 +7229,37 @@
             ],
             "title": "Mode",
             "type": "string"
+          },
+          "similar_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Similar To"
+          },
+          "similar_to_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Similar To Name"
+          },
+          "no_data": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data",
+            "type": "array"
           }
         },
         "required": [
