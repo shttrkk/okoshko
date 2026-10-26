@@ -6,6 +6,8 @@ from backend.contracts import Fact, Scope
 
 
 def compatible_inputs(rows, names, month):
+    if not names:
+        return []
     groups = {name: [] for name in names}
     for row in rows:
         if row["characteristic_id"] not in groups:
@@ -42,7 +44,7 @@ def compatible_inputs(rows, names, month):
             continue
         # A general website claim that a view exists somewhere does not prove
         # the same view on a second observation's specific facade or floor.
-        if any(key in merged for key in ("facade", "room_type", "floor_min", "floor_max")) and any(
+        if any(
             fact.characteristic_id in {"sea_view", "sunset_view", "mountain_view"}
             and isinstance(fact.value, dict) and fact.value.get("available") is True
             and not any(key in scope for key in ("facade", "room_type", "floor_min", "floor_max"))

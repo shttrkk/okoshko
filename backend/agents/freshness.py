@@ -61,7 +61,7 @@ def durable_geo(result, data_dir: Path = DATA, runtime: Path = RUNTIME_DIR):
 
 
 def notify_passports(repo, hotel_id, before, after, change_id):
-    from backend.api.passports import _holds, scopes_compatible
+    from backend.api.passports import _all_hold, _stored_criteria, scopes_compatible
     before_by_id = {fact.id: fact for fact in before}
     changed = {fact.characteristic_id for fact in before + after
                if fact.characteristic_id in GEO_CHARACTERISTICS}
@@ -73,11 +73,12 @@ def notify_passports(repo, hotel_id, before, after, change_id):
             if item.characteristic_id not in changed or not item.critical:
                 continue
             old = [before_by_id[fid] for fid in item.fact_ids if fid in before_by_id]
+            criteria = _stored_criteria(repo.get("passport_items", item.id) or {})
             scopes = [item.scope, *[fact.scope for fact in old]]
             candidates = [fact for fact in after if fact.characteristic_id == item.characteristic_id
                           and scopes_compatible([item.scope, fact.scope])]
-            overlapping_negative = any(not _holds(fact) and any(scopes_compatible([scope, fact.scope]) for scope in scopes) for fact in candidates)
-            if not candidates or not any(_holds(fact) for fact in candidates) or overlapping_negative:
+            overlapping_negative = any(not _all_hold(fact, criteria) and any(scopes_compatible([scope, fact.scope]) for scope in scopes) for fact in candidates)
+            if not candidates or not any(_all_hold(fact, criteria) for fact in candidates) or overlapping_negative:
                 item.status = "at_risk"
                 item.response = "Синтетическая новая застройка изменила расчёт; требуется повторное подтверждение номера отельером."
                 impacted.append(item.id)

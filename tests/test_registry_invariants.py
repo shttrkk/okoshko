@@ -47,3 +47,13 @@ def test_repeat_poi_collect_supersedes_without_reusing_primary_key(tmp_path):
         assert second.observed_at == first.observed_at and second.valid_until == first.valid_until
         assert second_result.artifacts["cache_hit"] is True
         Claim.model_validate(second)
+
+
+def test_hotel_wide_view_existence_never_proves_composite_room():
+    rows = [fact("sea_view", "W"), fact("quiet_night", "W")]
+    for row in rows:
+        row["scope"] = {"type": "hotel"}
+    assert not compatible_inputs(rows, ["sea_view", "quiet_night"], 9)
+    assert not compatible_inputs(rows, [], 9)
+    result = Registry(ApiRepo())._derive(ToolContext(hotel_id="test-1", characteristic_id="quiet_sea", run_id="run"), ToolCall(tool="derive", params={"expr": "True"}))
+    assert not result.claims and result.warnings

@@ -351,3 +351,15 @@ def test_similarity_uses_weighted_facts_excludes_self_and_handles_missing_data(c
     assert hits[-1].group == "unknown"
     assert hits[0].score > hits[1].score > hits[2].score
     assert similar_hotels("missing-id", [hotel("ref")], facts, catalog) == []
+
+
+def test_all_must_accepts_supported_estimate_but_not_unknown_details(catalog):
+    query = ParsedQuery(text="known synthetic route", must=[Criterion(characteristic_id="beach_walk", label="Пляж", field="minutes", op="lte", value=10)])
+    [hit] = rank_hotels([hotel("a")], [fact("a", "beach_walk", {"available": True, "minutes": 8}, confidence=.66)], query, catalog)
+    assert hit.group == "all" and hit.verdicts[0].status == "partial"
+    assert hit.verdicts[0].confidence == .66 and "предварительно" in hit.summary
+    [low] = rank_hotels([hotel("a")], [fact("a", "beach_walk", {"available": True, "minutes": 8}, confidence=.38)], query, catalog)
+    assert low.group != "all"
+    pets = ParsedQuery(text="с собакой", must=[Criterion(characteristic_id="pets", label="Питомцы", field="available")], pet_weight_kg=20)
+    [incomplete] = rank_hotels([hotel("a")], [fact("a", "pets", {"available": True}, confidence=.85)], pets, catalog)
+    assert incomplete.group != "all"  # High confidence cannot fill missing weight/species.

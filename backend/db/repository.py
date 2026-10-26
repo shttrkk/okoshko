@@ -92,7 +92,16 @@ class Repository:
         query = sql.SQL("""INSERT INTO {} (id,payload) VALUES (%s,%s)
             ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload, updated_at=now()""").format(self.table(table))
         with psycopg.connect(self.db_url) as conn, conn.cursor() as cursor:
-            cursor.executemany(query, [(value["id"], Jsonb(value, dumps=dump_json)) for value in values])
+            if len(values) < 50:
+                cursor.executemany(query, [(value["id"], Jsonb(value, dumps=dump_json)) for value in values])
+            else:
+                # A single COPY and merge avoids tens of thousands of prepared
+                # statements during startup under amd64 emulation.
+                cursor.execute("CREATE TEMP TABLE batch_import(id text PRIMARY KEY,payload jsonb NOT NULL) ON COMMIT DROP")
+                with cursor.copy("COPY batch_import(id,payload) FROM STDIN") as copy:
+                    for value in values:
+                        copy.write_row((value["id"], dump_json(value)))
+                cursor.execute(sql.SQL("INSERT INTO {}(id,payload) SELECT id,payload FROM batch_import ON CONFLICT(id) DO UPDATE SET payload=EXCLUDED.payload,updated_at=now()").format(self.table(table)))
 
     def insert_claims(self, values: list[Claim | dict]) -> list[dict]:
         validated = [Claim.model_validate(value).model_dump(mode="json") for value in values]
