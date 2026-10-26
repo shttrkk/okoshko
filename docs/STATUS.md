@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 01:33 МСК. Дополнительные геопризнаки поставляются в seed и доступны в интерфейсе.
+Обновлено: 27.10.2026 01:58 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -129,3 +129,5 @@
 - После расширения данных compact Brevis вырос до 917 032 B (356 facts): цель <400 КБ временно не выполнена. Следующая итерация переносит повторяющиеся ограничения и artifact URI в ленивое evidence; полные источники сохраняются.
 
 - Расширенная compact карточка Brevis: 393762 B, 356 facts; JSON прошёл HotelDetail validation. Повторные limitations и пустые optional evidence поля догружаются, references и геометрические углы сохранены. Full pytest/Ruff/frontend lint, demo-check 13, browser smoke и 16 сценариев связей/выбора окна PASS.
+
+- 27.10.2026 01:58: fix(search): retain intervals and reject unsupported measurements; 645 passed, 1 warning, 125 subtests passed in 52.05s; Ruff и frontend lint PASS.

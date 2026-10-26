@@ -146,25 +146,30 @@ def _importance(text: str, start: int, end: int) -> tuple[bool, bool, bool]:
                        r'\s*(?:(?:в секунду|пешком)\s*)?(?:желатель\w*|необязатель\w*|не обязател\w*|по возможности|не принципиал\w*)')
     if re.match(numeric_postfix, after):
         soft = True
+    interval_postfix = (r'\s*(?:от\s*)?\d+(?:[.,]\d+)?\s*(?:до|по|[-–—])\s*\d+(?:[.,]\d+)?\s*'
+                        r'(?:мбит(?:/с)?|mbps|мб/с|гбит(?:/с)?|gbps|минут\w*|час\w*|км|метр\w*|м\b|дб|градус\w*|°\s*[cс]?)'
+                        r'\s*(?:желатель\w*|необязатель\w*|не обязател\w*|по возможности|не принципиал\w*)')
+    if re.match(interval_postfix, after):
+        soft = True
     if re.search(r'по возможности|желатель\w*|будет плюсом', text[start:end]):
         soft = True
     if re.search(r"(?:^|[,;])\s*можно(?: бы)?\s*$", before) and not re.search(r"\b(?:собак|кошк|котом|питом)\w*", text[start:end]):
         soft = True
-    negative = bool(re.search(r"(?:\bбез|\bне)\s*(?:вид\w*\s*(?:на\s*)?)?$", before[-35:]))
-    # Negated noise is a positive request for quiet; "не обязательно" is a preference.
-    if re.search(r"не обязател\w*\s*$", before) or re.match(r"без шума|не шумн", text[start:end]):
+    negation = re.search(r'(?P<words>(?:(?:\bбез|\bне)\s+)+)(?:вид\w*\s*(?:на\s*)?)?$', before[-60:])
+    negative = bool(negation and len(re.findall(r'\b(?:не|без)\b', negation['words'])) % 2)
+    if re.search(r'\bне\s+(?:хочу|хотим|нуж\w*)\s+(?:\w+\s+){0,2}без\s*(?:вид\w*\s*(?:на\s*)?)?$', before):
+        negative = False
+    # A qualifier such as "не обязательно" is a preference, not negation.
+    if re.search(r"не обязател\w*\s*$", before):
         negative = False
     return soft, negative, False
 
 
-def _numeric(text: str, start: int, end: int, field: str, default_op: str, default_value):
-    left, right = clause_bounds(text, start, end)
-    offset = max(left, start - 65)
-    window = text[offset:min(right, end + 90)]
+def _measurement_unit(field: str) -> str | None:
     distance = r'(?:километр\w*|км\b|метр\w*|м\b)'
     units = {
         'minutes': r'(?:мин(?:ут\w*)?|час\w*)',
-        'water_c': r'(?:°\s*[cс]?|градус\w*|[cс]\b)',
+        'water_c': r'(?:°\s*[cс]?(?!\s*[fф])|градус\w*|[cс]\b)',
         'download_mbps': r'(?:мбит(?:/с)?|mbps|мб/с|мегабит\w*|мегабайт(?:/с)?|гбит(?:/с)?|gbps|гигабит\w*)',
         'european_aqi': r'(?:aqi|единиц\w*)', 'night_db_max': r'дб',
         'parking_distance_m': distance, 'playground_distance_m': distance,
@@ -173,8 +178,33 @@ def _numeric(text: str, start: int, end: int, field: str, default_op: str, defau
     unit = units.get(field)
     if not unit and field not in {'available', 'windows', 'blackout', 'balcony', 'air_conditioning'}:
         unit = r'(?:час\w*|метр\w*|м\b|%|балл\w*|люкс\w*|км\b)'
+    return unit
+
+
+def _convert_measurement(number: str, unit: str, field: str) -> float:
+    value = float(number.replace(',', '.'))
+    if field == 'minutes' and unit.startswith('час'):
+        value *= 60
+    if field == 'download_mbps':
+        if unit.startswith('мегабайт'):
+            value *= 8
+        elif unit.startswith(('гбит', 'gbps', 'гигабит')):
+            value *= 1000
+    if (field.endswith('_distance_m') or field == 'distance_m') and unit.startswith(('км', 'километр')):
+        value *= 1000
+    return value
+
+
+def _numeric(text: str, start: int, end: int, field: str, default_op: str, default_value):
+    left, right = clause_bounds(text, start, end)
+    offset = max(left, start - 65)
+    window = text[offset:min(right, end + 90)]
+    unit = _measurement_unit(field)
     if not unit:
         return default_op, default_value
+    interval = _numeric_range(text, start, end, field)
+    if interval:
+        return interval[0] if default_op == 'gte' else interval[1]
     operators = r'не менее|не меньше|не ниже|не холоднее|не ближе|хотя бы|минимум|больше|выше|от|≥|>=|не более|не дальше|не дольше|не выше|не больше|не быстрее|максимум|менее|меньше|ниже|до|≤|<='
     pattern = r'(?<![-\w.,])(?P<op>' + operators + r')?\s*(?P<num>\d+(?:[.,]\d+)?)\s*(?P<unit>' + unit + ')'
     candidates = list(re.finditer(pattern, window))
@@ -203,18 +233,68 @@ def _numeric(text: str, start: int, end: int, field: str, default_op: str, defau
     op = 'gte' if found['op'] in {'не менее', 'не меньше', 'не ниже', 'не холоднее', 'не ближе', 'хотя бы', 'минимум', 'больше', 'выше', 'от', '≥', '>='} else default_op
     if found['op'] in {'не более', 'не дальше', 'не дольше', 'не выше', 'не больше', 'не быстрее', 'максимум', 'менее', 'меньше', 'ниже', 'до', '≤', '<='}:
         op = 'lte'
-    number = float(found['num'].replace(',', '.'))
-    if field == 'minutes' and found['unit'].startswith('час'):
-        number *= 60
-    if field == 'download_mbps':
-        if found['unit'].startswith('мегабайт'):
-            number *= 8
-        elif found['unit'].startswith(('гбит', 'gbps', 'гигабит')):
-            number *= 1000
-    if field.endswith('_distance_m') or field == 'distance_m':
-        if found['unit'].startswith(('км', 'километр')):
-            number *= 1000
-    return op, number
+    return op, _convert_measurement(found['num'], found['unit'], field)
+
+
+def _numeric_range(text: str, start: int, end: int, field: str) -> list[tuple[str, float]]:
+    """Read an explicit inclusive interval without inventing an absent endpoint."""
+    unit = _measurement_unit(field)
+    if not unit:
+        return []
+    left, right = clause_bounds(text, start, end)
+    pattern = (r'(?<![-\w.,])(?:от\s*)?(?P<low>\d+(?:[.,]\d+)?)\s*(?P<low_unit>' + unit + r')?\s*'
+               r'(?:до|по|[-–—])\s*(?P<high>\d+(?:[.,]\d+)?)\s*(?P<unit>' + unit + ')')
+    candidates = list(re.finditer(pattern, text[left:right]))
+    if not candidates:
+        return []
+
+    def gap(match):
+        return max(0, start-(left+match.end()), left+match.start()-end)
+
+    # Do not attach another named POI's interval to this condition.
+    anchors = [m for m in re.finditer(r'\b(?:аптек\w*|пляж\w*|мор[еяю]|морем|парковк\w*|площадк\w*|зарядк\w*)\b', text[left:right])
+               if not (left+m.start() < end and left+m.end() > start)]
+    candidates = [m for m in candidates if gap(m) <= 65 and not any(
+        max(0, anchor.start()-m.end(), m.start()-anchor.end()) < gap(m) for anchor in anchors)]
+    if not candidates:
+        return []
+    found = min(candidates, key=gap)
+    return [('gte', _convert_measurement(found['low'], found['low_unit'] or found['unit'], field)),
+            ('lte', _convert_measurement(found['high'], found['unit'], field))]
+
+
+def _unsupported_measurement(text: str, match, cid: str) -> tuple[str, str] | None:
+    unsupported = {
+        'car_access': r'мин(?:ут\w*)?|час\w*|секунд\w*|шаг\w*|остановк\w*|руб\w*|₽|мест\w*',
+        'family_nearby': r'мин(?:ут\w*)?|час\w*|секунд\w*|шаг\w*',
+        'beach_walk': r'шаг\w*|остановк\w*|секунд\w*',
+        'night_pharmacy': r'шаг\w*|остановк\w*|секунд\w*',
+        'connectivity': r'ггц\b|ghz\b|кбит(?:/с)?|kbps\b',
+        'climate': r'°\s*[fф]\b|фаренгейт\w*',
+    }.get(cid)
+    if not unsupported:
+        return None
+    left, right = clause_bounds(text, match.start(), match.end())
+    candidates = list(re.finditer(r'\d+(?:[.,]\d+)?\s*(?:' + unsupported + ')', text[left:right]))
+    if cid == 'climate' and re.search(r'фаренгейт\w*', text[left:right]):
+        candidates += list(re.finditer(r'\d+(?:[.,]\d+)?\s*градус\w*\s+по\s+фаренгейт\w*', text[left:right]))
+    anchors = [m for m in re.finditer(r'\b(?:аптек\w*|пляж\w*|мор[еяю]|морем|парковк\w*|площадк\w*|зарядк\w*)\b', text[left:right])
+               if not (left+m.start() < match.end() and left+m.end() > match.start())]
+    for candidate in candidates:
+        gap = max(0, match.start()-(left+candidate.end()), left+candidate.start()-match.end())
+        if gap > 50 or any(max(0, anchor.start()-candidate.end(), candidate.start()-anchor.end()) < gap for anchor in anchors):
+            continue
+        fragment = match[0] + ': ' + candidate[0]
+        if cid in {'car_access', 'family_nearby'}:
+            message = 'Эта единица для расстояния не поддерживается. Укажите метры или километры; время в расстояние не переводится.'
+        elif cid in {'beach_walk', 'night_pharmacy'}:
+            message = 'Укажите минуты, метры или километры. Шаги и остановки в расстояние не переводятся.'
+        elif cid == 'connectivity':
+            message = 'Эта единица связи пока не учитывается. Укажите скорость в Мбит/с.'
+        else:
+            message = 'Сейчас принимаем температуру воды в °C. Условие в другой температурной шкале не применяется.'
+        return fragment, message
+    return None
 
 
 def _nearby_intents(text: str) -> dict:
@@ -260,7 +340,7 @@ def _criterion_label(criterion: Criterion, fallback: str, unit: str | None = Non
 
 
 def _numeric_mentions(text: str, spec: CharacteristicSpec, matches: list,
-                      template: Criterion) -> list[tuple[bool, Criterion]]:
+                      template: Criterion, warnings: list[str]) -> list[tuple[bool, Criterion]]:
     """Retain explicit limits from every mention, with that mention's priority."""
     fields = {
         'quiet_night': [('night_db_max', 'lte')],
@@ -284,12 +364,16 @@ def _numeric_mentions(text: str, spec: CharacteristicSpec, matches: list,
         elif spec.id == 'family_nearby' and re.search(r'\bплощадк\w*', atom[0]):
             atom_fields = [('playground_distance_m', 'lte')]
         for field, default_op in atom_fields:
-            op, value = _numeric(text, atom.start(), atom.end(), field, default_op, None)
-            if value is None:
-                continue
-            criterion = template.model_copy(update={'field': field, 'op': op, 'value': value})
-            criterion.label = _criterion_label(criterion, spec.name_ru, spec.search.unit)
-            result.append((soft, criterion))
+            limits = _numeric_range(text, atom.start(), atom.end(), field)
+            if not limits:
+                op, value = _numeric(text, atom.start(), atom.end(), field, default_op, None)
+                limits = [(op, value)] if value is not None else []
+            elif limits[0][1] > limits[1][1]:
+                warnings.append('Минимальный порог выше максимального: «' + spec.name_ru + '». Уточните границы интервала.')
+            for op, value in limits:
+                criterion = template.model_copy(update={'field': field, 'op': op, 'value': value})
+                criterion.label = _criterion_label(criterion, spec.name_ru, spec.search.unit)
+                result.append((soft, criterion))
     return result
 
 
@@ -377,6 +461,17 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         if spec.id == 'pets' and invalid_pet_weight:
             continue
         matches = [m for m in matches if valid_intent_match(spec.id, text, m)]
+        supported_matches = []
+        for candidate in matches:
+            unsupported = _unsupported_measurement(text, candidate, spec.id)
+            if unsupported:
+                fragment, message = unsupported
+                parsed.unmapped.append(fragment)
+                warnings.append(message)
+                consumed.append((candidate.start(), candidate.end()))
+            else:
+                supported_matches.append(candidate)
+        matches = supported_matches
         if not matches:
             continue
         consumed.extend((m.start(), m.end()) for m in matches)
@@ -577,7 +672,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
                 extra = Criterion(characteristic_id=spec.id, label=spec.name_ru, field=atom_field, op=atom_op, value=atom_value)
                 extra.label = _criterion_label(extra, spec.name_ru, spec.search.unit)
                 (parsed.nice if atom_soft else parsed.must).append(extra)
-        for atom_soft, extra in _numeric_mentions(text, spec, matches, criterion):
+        for atom_soft, extra in _numeric_mentions(text, spec, matches, criterion, warnings):
             (parsed.nice if atom_soft else parsed.must).append(extra)
         hard = [c for c in parsed.must if c.characteristic_id == spec.id]
         for boolean_field in {c.field for c in hard if isinstance(c.value, bool)}:
@@ -605,6 +700,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
     tokens = [word for word in re.findall(r"[а-яa-z][а-яa-z-]*", remaining) if len(word) > 2 and not re.fullmatch(ignored, word)]
     if tokens:
         parsed.unmapped.append(" ".join(dict.fromkeys(tokens)))
+    parsed.unmapped = list(dict.fromkeys(parsed.unmapped))
     parsed.clarifications = list(dict.fromkeys([*parsed.clarifications, *warnings]))[:2]
     if not parsed.must and not parsed.nice and not outside:
         parsed.clarifications.append("Что важнее для поездки: тишина, вид, дорога к морю или другие условия?")

@@ -276,6 +276,54 @@ def test_a_postfix_preference_can_follow_an_explicit_numeric_limit(catalog, text
     assert not parsed.must and len(parsed.nice) == 1
 
 
+@pytest.mark.parametrize(('text', 'field', 'minimum', 'maximum'), [
+    ('вода от 20 до 24 градусов в декабре', 'water_c', 20, 24),
+    ('вода 20–24 °C', 'water_c', 20, 24),
+    ('интернет от 50 до 100 Мбит/с', 'download_mbps', 50, 100),
+    ('до моря 5–10 минут', 'minutes', 5, 10),
+    ('парковка от 500 м до 1 км', 'parking_distance_m', 500, 1000),
+])
+def test_numeric_interval_retains_both_inclusive_bounds(catalog, text, field, minimum, maximum):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert {(c.field, c.op, c.value) for c in parsed.must} == {(field, 'gte', minimum), (field, 'lte', maximum)}
+
+
+def test_interval_postfix_preference_applies_to_both_bounds(catalog):
+    parsed = parse_query(SearchRequest(text='интернет от 50 до 100 Мбит/с желательно'), catalog)
+    assert not parsed.must
+    assert {(c.op, c.value) for c in parsed.nice} == {('gte', 50), ('lte', 100)}
+
+
+def test_reversed_interval_is_not_silently_swapped(catalog):
+    parsed = parse_query(SearchRequest(text='вода от 24 до 20 градусов'), catalog)
+    assert {(c.op, c.value) for c in parsed.must} == {('gte', 24), ('lte', 20)}
+    assert any('Минимальный порог выше' in message for message in parsed.clarifications)
+
+
+@pytest.mark.parametrize('text', ['не без вида на море', 'не хочу номер без вида на море'])
+def test_double_negation_does_not_invert_the_requested_sea_view(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert [(c.characteristic_id, c.value) for c in parsed.must] == [('sea_view', True)]
+
+
+def test_double_negation_of_a_noise_free_phrase_remains_negative_quiet(catalog):
+    parsed = parse_query(SearchRequest(text='не без шума'), catalog)
+    assert [(c.characteristic_id, c.value) for c in parsed.must] == [('quiet_night', False)]
+
+
+@pytest.mark.parametrize('text', ['парковка в трех минутах пешком', 'до пляжа 500 шагов',
+                                 'интернет 5 GHz', 'вода 80 °F'])
+def test_unsupported_measurement_does_not_turn_into_a_positive_default(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert not parsed.must and not parsed.nice
+    assert parsed.unmapped and parsed.clarifications
+
+
+def test_a_beach_time_does_not_become_an_unsupported_family_distance(catalog):
+    parsed = parse_query(SearchRequest(text='с ребенком рядом с морем 7 минут'), catalog)
+    assert {c.characteristic_id for c in parsed.must} == {'family_nearby', 'beach_walk'}
+
+
 def test_negative_corpus_false_criteria_rate_is_at_most_one_percent(catalog):
     rows = load_jsonl(ROOT/'data/eval/queries_negative.jsonl')
     false_queries = []
