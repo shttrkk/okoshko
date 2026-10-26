@@ -123,6 +123,8 @@ def test_explicit_changed_artifact_never_falls_back_to_clear_baseline(solar_arti
     assert all(c["evidence"][0]["artifact"].endswith("test-change-example.json") for c in result["claims"])
     missing = compute_trait(hotel, directory, "morning_sun", geo_artifact="/data/geo/test-change-missing.json")
     assert missing["claims"] == [] and missing["warnings"]
+    unsupported_rail = compute_trait(hotel, directory, "railway_noise", geo_artifact=changed)
+    assert unsupported_rail["claims"] == [] and unsupported_rail["warnings"]
     with pytest.raises(ValueError):
         compute_trait(hotel, directory, "morning_sun", geo_artifact=directory/"outside.json")
 
@@ -179,6 +181,23 @@ def test_beach_missing_surface_is_not_sand_and_green_uses_polygon_boundary(monke
     assert green["value"]["distance_m"] == 400
     assert green["value"]["available"] is True
     assert Claim.model_validate(known).evidence[0].inputs["tags"]["surface"] == "pebblestone"
+
+
+def test_beach_surface_uses_walk_destination_instead_of_mixing_beaches(monkeypatch, tmp_path):
+    hotel = {"id": "test", "lon": 39.72, "lat": 43.58}
+    x, y = TO_UTM.transform(hotel["lon"], hotel["lat"])
+    nearest = feature("sand", box(x+100, y-20, x+200, y+20), natural="beach", surface="sand")
+    routed = feature("pebbles", box(x+400, y-20, x+500, y+20), natural="beach", surface="pebblestone")
+    region = FakeRegion({"beaches": [nearest, routed]})
+    monkeypatch.setattr("geo.traits.get_region", lambda _: region)
+    geo = tmp_path/"geo"
+    geo.mkdir()
+    (geo/"test.json").write_text(json.dumps({"hotel_id": "test", "route_details": {"beach_id": "pebbles"}}))
+    value = compute_trait(hotel, tmp_path, "beach_surface")["claims"][0]["value"]
+    assert value["surface"] == "pebblestone" and value["beach_id"] == "pebbles"
+    assert value["selection_kind"] == "beach_walk_destination"
+    region.features["beaches"] = [nearest]
+    assert compute_trait(hotel, tmp_path, "beach_surface")["claims"] == []
 
 
 def test_railway_proxy_has_no_road_contribution_and_no_false_quiet(monkeypatch, tmp_path):

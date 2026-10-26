@@ -52,7 +52,9 @@ def materialize(data_dir: Path, output: Path, *, hotel_ids=None, characteristics
         for index, hotel in enumerate(hotels, 1):
             for cid in characteristics:
                 solar = cid in {"morning_sun", "evening_heat"}
-                if solar and hotel["id"] in active_geo and not active_geo[hotel["id"]]:
+                if cid == "railway_noise" and hotel["id"] in active_geo:
+                    result = {"claims": [], "warnings": ["Активное изменение требует нового расчёта железнодорожного экранирования"]}
+                elif solar and hotel["id"] in active_geo and not active_geo[hotel["id"]]:
                     result = {"claims": [], "warnings": ["Активное изменение без authoritative geo artifact; солнечное значение неизвестно"]}
                 else:
                     kwargs = {"geo_artifact": active_geo[hotel["id"]]} if solar and hotel["id"] in active_geo else {}
