@@ -1,4 +1,4 @@
-/** Real-browser, same-API recording. No response mocking or result substitution. */
+/** Real-browser, same-API recording. No application/API response mocking or result substitution. */
 import { createRequire } from "node:module";
 import { existsSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -359,7 +359,7 @@ async function main() {
           await app.getByRole("dialog").innerText(),
           /Следующая проверка \/ TTL/,
         );
-        if (!fast) await sleep(2300);
+        if (!fast) await sleep(3500);
         await app.getByRole("button", { name: "Закрыть", exact: true }).click();
         await app.getByTestId("show-calculation").click();
         if (facade) await app.getByTestId("geo-facade").selectOption(facade);
@@ -458,7 +458,7 @@ async function main() {
           ),
         );
         await app.getByTestId("answer-fields").scrollIntoViewIfNeeded();
-        if (!fast) await sleep(2000);
+        if (!fast) await sleep(5000);
         const confirmed = await response<Answer>(
           `/api/answers/${answer.id}/confirm`,
           () => app.getByTestId("answer-confirm").click(),
@@ -483,7 +483,7 @@ async function main() {
         );
         assert.equal(passport.status, "confirmed");
         assert.equal(passport.room_number, roomNumber);
-        await card.scrollIntoViewIfNeeded();
+        await card.locator(".passport-status").scrollIntoViewIfNeeded();
       },
     );
     await stage(
@@ -514,6 +514,7 @@ async function main() {
         );
         assert.equal(compiled.spec.id, "morning_swim");
         await app.locator(".compiled-spec").scrollIntoViewIfNeeded();
+        if (!fast) await sleep(2000);
         const dry = await response<DryResult>(
           "/api/characteristics/dry-run",
           () => app.getByTestId("studio-dry-run").click(),
@@ -526,6 +527,7 @@ async function main() {
           warnings: result.warnings,
         }));
         await app.locator(".dry-results").scrollIntoViewIfNeeded();
+        if (!fast) await sleep(2500);
         if (checkOnly) return;
         published = await response<PublishResult>(
           "/api/characteristics/publish",
@@ -598,7 +600,7 @@ async function main() {
             .nth(1)
             .waitFor({ timeout: 30000 });
           await app.locator(".change-map-pair").scrollIntoViewIfNeeded();
-          if (!fast) await sleep(1800);
+          if (!fast) await sleep(5000);
           await navigate(
             `/booking/${encodeURIComponent(hero.id)}?passport=${passport!.id}`,
           );
