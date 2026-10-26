@@ -45,7 +45,16 @@ def start(body: RunRequest, background_tasks: BackgroundTasks, repo=_REPO):
 def runs(repo=_REPO, _user=_OPTIONAL_AUTH):
     visible = [row for row in repo.all("agent_runs") if row.get("kind") != "interview"
                or _user is not None and _user.permits(row.get("hotel_id"))]
-    return sorted(visible, key=lambda row: row.get("started_at", ""), reverse=True)[:50]
+    ordered = sorted(visible, key=lambda row: row.get("started_at", ""), reverse=True)
+    latest = ordered[:50]
+    # Frequent searches must not push the latest collection, backfill or refresh out of the agent page.
+    shown = {row["id"] for row in latest}
+    for kind in ("collect", "backfill", "refresh", "compile_spec", "interview"):
+        newest = next((row for row in ordered if row.get("kind") == kind), None)
+        if newest and newest["id"] not in shown:
+            latest.append(newest)
+            shown.add(newest["id"])
+    return latest
 
 
 @router.get("/runs/{run_id}", response_model=AgentRun)

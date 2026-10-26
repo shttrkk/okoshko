@@ -108,6 +108,23 @@ def load_seed(data_dir: Path = DATA):
     if get_repo().count("hotels"):
         bootstrap_poi(get_repo(),data_dir)
         logging.info("Resolver materialized %s", resolve_all(get_repo()))
+        seed_collect_run(get_repo())
+
+
+# A real, completed collection trace on first start, so the agent page is not empty.
+# The hotel has a website/geo contradiction, so the trace shows the dispute and the question.
+SEED_COLLECT_HOTEL = "osm-node-13825400642"
+
+
+def seed_collect_run(repo, hotel_id: str = SEED_COLLECT_HOTEL):
+    if repo.get("hotels", hotel_id) is None:
+        return None
+    if any(run.get("kind") == "collect" and run.get("status") == "completed" for run in repo.all("agent_runs")):
+        return None
+    from backend.agents.orchestrator import collect_hotel
+    run = collect_hotel(hotel_id, repo, trigger="seed")
+    logging.info("Seed collection trace %s: %s steps for %s", run.id, len(run.steps), hotel_id)
+    return run
 
 
 POI_DEFAULT_KINDS = {"night_pharmacy": "pharmacy", "family_nearby": "family", "car_access": "car"}

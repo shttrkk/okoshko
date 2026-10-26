@@ -330,7 +330,8 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
                 opposite = computed_ids if supporting & general_ids else general_ids
                 fact.conflicting_claim_ids = sorted(set(fact.conflicting_claim_ids) | opposite)
         ids = sorted(general_ids | computed_ids)
-        conflicts.append(Conflict(id=CONTRADICTION_PREFIX + stable_id("contradiction", hotel_id, characteristic_id, ids),
+        # Stable per hotel and characteristic: re-collecting the same evidence keeps one conflict and one question.
+        conflicts.append(Conflict(id=CONTRADICTION_PREFIX + stable_id("contradiction", hotel_id, characteristic_id),
                                   hotel_id=hotel_id, characteristic_id=characteristic_id, claim_ids=ids, kind="value", status="open",
                                   synthetic=any(claim.synthetic for claim in [*general, *computed]),
                                   resolution_note=contradiction_note(characteristic_id, general, computed)))
