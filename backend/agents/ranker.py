@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 from backend.agents.explainer import disappointments_from_assessment, room_from_assessment, verdict
-from backend.agents.query_match import assess_hotel
+from backend.agents.query_match import assess_hotel, fresh
 from backend.contracts import CharacteristicSpec, Fact, Hotel, ParsedQuery, SearchHit
 
 
@@ -15,6 +15,8 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
     by_hotel = defaultdict(list)
     for fact in facts:
         by_hotel[fact.hotel_id].append(fact)
+    if not parsed.must and not parsed.nice:
+        return browse_hotels(hotels, by_hotel, specs)
     ranked = []
     criteria = [*parsed.must, *parsed.nice]
     must_total = len(parsed.must)
@@ -48,6 +50,21 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
         ranked.append((tier, satisfied, score, hotel.id, hit))
     ranked.sort(key=lambda row: (-row[0], -row[1], -row[2], row[3]))
     return [row[-1] for row in ranked]
+
+
+BROWSE_SUMMARY = "Условия запроса не распознаны: это не подбор, а обзор отелей региона. Сначала отели с наибольшим числом проверенных характеристик."
+
+
+def browse_hotels(hotels: list[Hotel], by_hotel: dict, specs: list[CharacteristicSpec]) -> list[SearchHit]:
+    """No recognized conditions: never claim a match; order by verified coverage."""
+    active = {spec.id for spec in specs}
+    rows = []
+    for hotel in hotels:
+        known = {fact.characteristic_id for fact in by_hotel[hotel.id] if fact.characteristic_id in active and fresh(fact)}
+        score = round(100 * len(known) / len(active), 2) if active else 0
+        rows.append((-score, hotel.id, SearchHit(hotel=hotel, score=score, group="browse",
+                                                 summary=f"{BROWSE_SUMMARY} Проверено характеристик: {len(known)} из {len(active)}.")))
+    return [row[-1] for row in sorted(rows, key=lambda row: row[:2])]
 
 
 def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],

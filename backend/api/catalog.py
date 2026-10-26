@@ -199,6 +199,10 @@ def search(body: SearchRequest, repo=_REPO):
                 hits = similar_hotels(reference.id, candidates, facts, specs)
             else:
                 hits = rank_hotels(hotel_rows, facts, parsed, specs)
+                if not parsed.must and not parsed.nice:
+                    browse = ("Не нашли в запросе условий из каталога, поэтому показываем обзор отелей без подбора. "
+                              "Опишите, что важно: тишина, вид на море или закат, дорога к пляжу, парковка, «в гуще событий».")
+                    parsed.clarifications = list(dict.fromkeys([browse, *[c for c in parsed.clarifications if not c.startswith("Что важнее")]]))[:2]
         trace.step("search", "decision", "Ранжирование по фактам", output={"total": len(hits), "hotel_ids": [hit.hotel.id for hit in hits[:body.limit]]},
                    rationale="Обязательные условия проверены для совместимой стороны и этажей; неизвестное не засчитано как выполненное")
         trace.finish()

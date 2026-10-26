@@ -336,7 +336,7 @@ class Hotel(Model):
 class SearchHit(Model):
     hotel: Hotel
     score: float
-    group: Literal["all", "almost", "unknown"]
+    group: Literal["all", "almost", "unknown", "browse"]
     must_satisfied: int = 0
     must_total: int = 0
     verdicts: list[CriterionVerdict] = Field(default_factory=list)
