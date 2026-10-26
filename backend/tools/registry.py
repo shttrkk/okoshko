@@ -30,7 +30,7 @@ def feature_index(data_dir: str, name: str):
         try:
             geometry = shape(feature["geometry"])
             if not geometry.is_empty:
-                geometries.append(geometry)
+                geometries.append(transform(TO_UTM.transform, geometry))
                 selected.append(feature)
         except (ValueError, TypeError):
             continue
@@ -117,9 +117,9 @@ class Registry:
         metric_center = transform(TO_UTM.transform,center)
         radius = call.params.get("radius_m",1200)
         candidates = []
-        for index in tree.query(center.buffer(radius/75000)):
+        for index in tree.query(metric_center.buffer(radius)):
             index = int(index)
-            distance = transform(TO_UTM.transform,geometries[index]).distance(metric_center)
+            distance = geometries[index].distance(metric_center)
             if distance<=radius:
                 candidates.append((distance,features[index]))
         candidates.sort(key=lambda item:item[0])
