@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 01:13 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 01:14 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -119,3 +119,5 @@
 - 27.10.2026 01:11: feat(frontend): connect hotel facts maps and related profiles; 624 passed, 1 warning, 125 subtests passed in 48.77s; Ruff и frontend lint PASS.
 
 - 27.10.2026 01:13: feat(frontend): explore scoped room models without changing trip requirements; 624 passed, 1 warning, 125 subtests passed in 31.80s; Ruff и frontend lint PASS.
+
+- 27.10.2026 01:14: test(search): freeze independently authored external intent cases; 624 passed, 1 warning, 125 subtests passed in 45.32s; Ruff и frontend lint PASS.
