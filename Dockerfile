@@ -13,8 +13,8 @@ COPY backend/requirements.lock /tmp/requirements.lock
 RUN /venv/bin/pip install --only-binary=:all: --require-hashes -r /tmp/requirements.lock
 
 FROM python:3.12.15-slim-bookworm AS runtime
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PATH=/venv/bin:$PATH STATIC_DIR=/app/static NUMBA_CACHE_DIR=/tmp/numba
-RUN useradd --system --uid 10001 --create-home app
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PATH=/venv/bin:$PATH STATIC_DIR=/app/static NUMBA_CACHE_DIR=/tmp/numba RUNTIME_DIR=/app/runtime
+RUN useradd --system --uid 10001 --create-home app && mkdir -p /app/runtime/geo && chown -R 10001:10001 /app/runtime
 WORKDIR /app
 COPY --from=python-build /venv /venv
 COPY backend/ backend/

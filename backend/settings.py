@@ -6,4 +6,5 @@ DATA = ROOT / "data"
 DB_URL = os.getenv("DB_URL", "postgresql://okno:okno@localhost:5432/okno")
 LLM_MODE = os.getenv("LLM_MODE", "offline")
 STATIC = Path(os.getenv("STATIC_DIR", str(ROOT / "frontend" / "dist")))
+RUNTIME_DIR = Path(os.getenv("RUNTIME_DIR", str(ROOT / "runtime")))
 

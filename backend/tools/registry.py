@@ -87,7 +87,7 @@ class Registry:
         latest = {}
         for record in records:
             claim = Claim.model_validate(record)
-            if claim.id in superseded or claim.synthetic or allowed and claim.source not in allowed or claim.valid_until<=datetime.now(UTC):
+            if claim.id in superseded or allowed and claim.source not in allowed or claim.valid_until<=datetime.now(UTC):
                 continue
             if claim.scope.month and claim.scope.month!=context.month:
                 continue

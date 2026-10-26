@@ -8,11 +8,11 @@ from backend.tools.registry import Registry
 from backend.tracing import Trace
 
 
-def collect_hotel(hotel_id: str, repo, characteristic_ids=None, *, trigger="user", data_dir=None):
+def collect_hotel(hotel_id: str, repo, characteristic_ids=None, *, trigger="user", data_dir=None, trace=None):
     hotel = repo.get("hotels",hotel_id)
     if hotel is None:
         raise ValueError("Отель не найден")
-    trace = Trace(repo,"collect",hotel_id=hotel_id,trigger=trigger)
+    trace = trace or Trace(repo,"collect",hotel_id=hotel_id,trigger=trigger)
     registry = Registry(repo,**({"data_dir":data_dir} if data_dir else {}))
     specs = [CharacteristicSpec.model_validate(value) for value in repo.all("characteristics") if value.get("status","active")=="active" and (not characteristic_ids or value["id"] in characteristic_ids)]
     try:
