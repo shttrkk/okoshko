@@ -1,0 +1,219 @@
+"""Russian intent extraction against the current characteristic catalogue.
+
+The deterministic path is deliberately small and inspectable. Optional structured
+LLM extraction may add language coverage, but cannot add catalogue IDs or facts.
+"""
+from __future__ import annotations
+
+import json
+import re
+from datetime import date
+
+from backend.contracts import CharacteristicSpec, Criterion, ParsedQuery, Scope, SearchRequest
+
+MONTHS = ("январ", "феврал", "март", "апрел", "ма[йяе]", "июн", "июл", "август", "сентябр", "октябр", "ноябр", "декабр")
+SIDE_PATTERNS = {
+    "NW": r"северо[ -]?запад", "NE": r"северо[ -]?восточ",
+    "SW": r"юго[ -]?запад", "SE": r"юго[ -]?восточ",
+    "W": r"запад", "E": r"восточ", "N": r"север", "S": r"южн|на юг\b",
+}
+RULES = {
+    "quiet_night": r"\bтих\w*|\bтишин\w*|выспаться|сплю чутко|чутк\w* сон|без шума|не шумн\w*",
+    "sunset_view": r"\bзакат\w*",
+    "sea_view": r"(?:вид\w* (?:на |из окна на )?море|море из окна|морск\w* вид)",
+    "mountain_view": r"\bгор(?:ы|ный|ного|ным|ам|ами)\b|вид\w* на гор\w*",
+    "beach_walk": r"(?:недалеко|близко|рядом) (?:с |от |до )?(?:моря|морем|пляжа)|до (?:моря|пляжа)|пешком (?:к морю|до моря)|пляж\w* (?:за|в|не дальше)",
+    "pets": r"\bсобак\w*|\bкошк\w*|\bкотом\b|\bпитом\w*|\bлабрадор\w*|\bживотн\w*",
+    "family_nearby": r"\bдет(?:и|ьми|ей)\b|\bребен\w*|\bмалыш\w*|\bколяск\w*|\bплощадк\w*",
+    "connectivity": r"\bинтернет\w*|\bwi[ -]?fi\b|\bудален\w*|\bработать\b|\bсвязь\b|\bвидеозвон\w*",
+    "soundproofing": r"\bшумоизоляц\w*|двойн\w* ок\w*|\bблэкаут\w*|плотн\w* штор\w*|\bкондиционер\w*",
+    "room_orientation": r"высок\w* этаж\w*|\bбалкон\w*|(?:запад|восточ|север|южн)\w* сторон\w*",
+    "climate": r"тепл\w* (?:вода|воды|море)|\bкупаться\b|\bпогод\w*|\bвода\b.*?(?:градус|°)|вод\w* (?:от|не ниже|не холоднее|выше)",
+    "car_access": r"\bпарков\w*|на машине|\bподъезд\w*|\bэлектромобил\w*|\bзарядк\w*",
+    "night_pharmacy": r"\bаптек\w*",
+}
+OUTSIDE = r"москв\w*|саратов\w*|санкт[ -]?петербург\w*|петербург\w*|спб|казан[ьиь]\w*|анап\w*|геленджик\w*|краснодар\w*|стамбул\w*|париж\w*|дуба[ий]\w*|калининград\w*|екатеринбург\w*|новосибирск\w*|ялт\w*|туапсе|крым\w*|ростов\w*|нижн\w* новгород\w*|самар\w*|твер[ьиь]\w*|минск\w*|батум\w*|красн\w* полян\w*"
+SOFT = r"желатель\w*|хорошо бы|по возможности|необязатель\w*|не обязател\w*|можно(?: бы)?|не принципиаль\w*"
+HARD = r"(?<!не )обязатель\w*|только|важн\w*|нуж(?:ен|на|но|ны)|долж\w*|необходим\w*"
+
+
+def normalized(text: str) -> str:
+    return text.casefold().replace("ё", "е")
+
+
+def _phrase_pattern(phrase: str) -> str:
+    # Inflect long Russian words, retaining short words to avoid false positives.
+    endings = r"(?:иями|ами|ого|ему|ому|ыми|ими|ая|яя|ое|ее|ые|ий|ый|ой|ам|ям|ах|ях|ом|ем|ов|ев|ы|и|а|я|у|ю|е|о)$"
+    words = re.findall(r"[\w]+", normalized(phrase))
+    pieces = []
+    for word in words:
+        stem = re.sub(endings, "", word) if len(word) > 4 else word
+        pieces.append(re.escape(stem) + (r"\w*" if len(word) > 4 and len(stem) >= 3 else ""))
+    return r"\b" + r"[\s-]+".join(pieces) + r"\b" if pieces else r"(?!)"
+
+
+def _dates(text: str, request: SearchRequest) -> tuple[date | None, date | None, int, list[str]]:
+    dates = []
+    warnings = []
+    for match in re.finditer(r"\b(\d{4})-(\d{2})-(\d{2})\b|\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b", text):
+        parts = match.groups()
+        try:
+            dates.append(date(int(parts[0] or parts[5]), int(parts[1] or parts[4]), int(parts[2] or parts[3])))
+        except ValueError:
+            warnings.append("Проверьте даты поездки: такой даты в календаре нет.")
+    month = next((i for i, stem in enumerate(MONTHS, 1) if re.search(r"\b" + stem, text)), 9)
+    natural = re.search(r"\b(\d{1,2})\s*(?:[-–—]\s*(\d{1,2})\s*)?(" + "|".join(MONTHS) + r")\w*(?:\s+(20\d{2}))?", text)
+    if natural and not dates:
+        try:
+            dates = [date(int(natural[4] or date.today().year), month, int(natural[1]))]
+            if natural[2]:
+                dates.append(date(dates[0].year, month, int(natural[2])))
+        except ValueError:
+            warnings.append("Проверьте даты поездки: такой даты в календаре нет.")
+    check_in = request.check_in or (dates[0] if dates else None)
+    check_out = request.check_out or (dates[1] if len(dates) > 1 else None)
+    if check_in:
+        month = check_in.month
+    if check_in and check_out and check_out <= check_in:
+        warnings.append("Дата выезда должна быть позже даты заезда.")
+        check_out = None
+    return check_in, check_out, month, warnings
+
+
+def _importance(text: str, start: int, end: int) -> tuple[bool, bool, bool]:
+    left = max([m.end() for m in re.finditer(r"[,;.!?]|\bно\b|\bа\b", text[:start])], default=0)
+    right = next((end + m.start() for m in re.finditer(r"[,;.!?]|\bно\b|\bа\b", text[end:])), len(text))
+    before, after = text[left:start], text[end:right]
+    if re.search(r"не (?:нуж\w*|интерес\w*|треб\w*)\s*(?:мне\s*)?(?:вид\w*\s*(?:на\s*)?)?$", before) or re.match(r"\s*(?:мне )?не (?:важ\w*|нуж\w*)", after):
+        return False, False, True
+    markers = [(m.start(), True) for m in re.finditer(SOFT, before)] + [(m.start(), False) for m in re.finditer(HARD, before)]
+    soft = max(markers, default=(-1, False))[1]
+    if re.match(r"\s*(?:необязатель\w*|не обязател\w*|желатель\w*)", after):
+        soft = True
+    negative = bool(re.search(r"(?:\bбез|\bне)\s*(?:вид\w*\s*(?:на\s*)?)?$", before[-35:]))
+    # Negated noise is a positive request for quiet; "не обязательно" is a preference.
+    if re.search(r"не обязател\w*\s*$", before) or re.match(r"без шума|не шумн", text[start:end]):
+        negative = False
+    return soft, negative, False
+
+
+def _numeric(text: str, start: int, end: int, field: str, default_op: str, default_value):
+    window = text[max(0, start - 50):min(len(text), end + 70)]
+    units = {"minutes": r"мин(?:ут\w*)?", "water_c": r"(?:°\s*с?|градус\w*)", "download_mbps": r"(?:мбит(?:/с)?|mbps|мб/с)", "european_aqi": r"(?:aqi|единиц\w*)"}
+    unit = units.get(field)
+    if not unit:
+        return default_op, default_value
+    found = re.search(r"(?P<op>не менее|не ниже|не холоднее|больше|выше|от|≥|>=|не более|не дальше|не дольше|не выше|не больше|максимум|до|≤|<=)?\s*(?P<num>\d+(?:[.,]\d+)?)\s*" + unit, window)
+    if found:
+        op = "gte" if found["op"] in {"не менее", "не ниже", "не холоднее", "больше", "выше", "от", "≥", ">="} else default_op
+        if found["op"] in {"не более", "не дальше", "не дольше", "не выше", "не больше", "максимум", "до", "≤", "<="}:
+            op = "lte"
+        return op, float(found["num"].replace(",", "."))
+    return default_op, default_value
+
+
+def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> ParsedQuery:
+    text = normalized(request.text)
+    check_in, check_out, month, warnings = _dates(text, request)
+    parsed = ParsedQuery(text=request.text, check_in=check_in, check_out=check_out, month=month, clarifications=warnings[:2])
+    outside = list(re.finditer(r"\b(?:" + OUTSIDE + r")\b", text))
+    outside = [m for m in outside if not re.search(r"(?:из|от|вылет из)\s+$", text[max(0, m.start()-15):m.start()])]
+    if outside:
+        parsed.unmapped.append("region_out_of_scope")
+        parsed.clarifications = ["Сейчас данные собраны для Сочи (центр, Адлер и Сириус). Укажите этот регион; для другого города нужен отдельный сбор данных."]
+    facade_match = next(((side, re.search(pattern, text)) for side, pattern in SIDE_PATTERNS.items() if re.search(pattern, text)), None)
+    if facade_match:
+        parsed.facade = facade_match[0]
+    floor = re.search(r"(?:с|от|не ниже)\s*(\d{1,2})(?:\s*[-–]?(?:го|ого))?\s*(?:этажа?|эт\b)|\b(\d{1,2})\s*\+\s*этаж", text)
+    exact_floor = re.search(r"на\s+(\d{1,2})(?:[- ]?(?:м|ом))?\s*этаже", text)
+    if floor or exact_floor:
+        parsed.min_floor = int((floor[1] or floor[2]) if floor else exact_floor[1]) or None
+    weight = re.search(r"(?:собак\w*|питом\w*|лабрадор\w*|кошк\w*)[^,;.]{0,35}?(\d+(?:[.,]\d+)?)\s*кг", text)
+    if weight and float(weight[1].replace(",", ".")) <= 100:
+        parsed.pet_weight_kg = float(weight[1].replace(",", "."))
+    parsed.persona = next((name for name, pattern in [
+        ("семья с детьми", r"дет(?:и|ьми|ей)|ребен|коляск|малыш"),
+        ("путешествие с питомцем", RULES["pets"]), ("удалённая работа", RULES["connectivity"]),
+        ("чуткий сон", RULES["quiet_night"]), ("романтическая поездка", r"годовщин|романти|двоих|пары")]
+        if re.search(pattern, text)), None)
+    consumed = []
+    for spec in catalog:
+        if spec.status != "active":
+            continue
+        matches = [m for phrase in [spec.name_ru, *spec.synonyms] for m in re.finditer(_phrase_pattern(phrase), text)]
+        if spec.id in RULES:
+            matches += list(re.finditer(RULES[spec.id], text))
+        if spec.id == "room_orientation" and (facade_match or parsed.min_floor):
+            matches += [facade_match[1]] if facade_match else [floor or exact_floor]
+        if not matches:
+            continue
+        # Longest phrase is most useful for negation ("без вида на море").
+        match = min(matches, key=lambda m: (m.start(), -(m.end()-m.start())))
+        consumed.extend((m.start(), m.end()) for m in matches)
+        soft, negative, skip = _importance(text, match.start(), match.end())
+        if skip:
+            continue
+        field, op, value = spec.search.field, spec.search.default_op, spec.search.default_value
+        op, value = _numeric(text, match.start(), match.end(), field, op, value)
+        if negative and isinstance(value, bool):
+            value = not value
+        if spec.id == "soundproofing":
+            if re.search(r"двойн\w* ок", text):
+                field, value = "windows", "double"
+            elif re.search(r"блэкаут|плотн\w* штор", text):
+                field, value = "blackout", not negative
+            elif re.search(r"кондиционер", text):
+                field, value = "air_conditioning", not negative
+        if spec.id == "room_orientation" and re.search(r"балкон", text):
+            field, value = "balcony", not negative
+        scope = None
+        if spec.scope != "hotel" and (parsed.facade or parsed.min_floor):
+            scope = Scope(facade=parsed.facade, floor_min=parsed.min_floor,
+                          floor_max=parsed.min_floor if exact_floor else None)
+        (parsed.nice if soft else parsed.must).append(Criterion(characteristic_id=spec.id, label=spec.name_ru, field=field, op=op, value=value, scope=scope))
+    residual = list(text)
+    for start, end in consumed:
+        residual[start:end] = " " * (end-start)
+    remaining = "".join(residual)
+    remaining = re.sub(r"\b(?:" + OUTSIDE + "|" + "|".join(MONTHS) + r")\w*\b", " ", remaining)
+    ignored = r"сочи|адлер\w*|сириус\w*|имеретин\w*|центр\w*|номер\w*|отел\w*|гостиниц\w*|вид\w*|сторон\w*|этаж\w*|окн\w*|ноч\w*|днем|летом|утром|пешком|мин\w*|кг|градус\w*|мбит|мб|с|в|во|на|за|к|от|до|и|но|а|не|без|для|из|по|у|со|же|бы|или|нам|мне|мы|я|нас|над|около|это|его|ее|их|чтобы|где|ищу|найти|хочу|хотим|нуж\w*|важ\w*|обязатель\w*|желатель\w*|необязатель\w*|возможности|хорошо|только|более|менее|ниже|выше|дальше|больше|дольше|максимум|сентябр\w*|пожалуйста|спасибо|ехать|едем|еду|отдых\w*|поездк\w*|пару|двоих|пары|романти\w*|годовщин\w*|муж\w*|жена|спит|сплю|чутко|чуткий|требуется|разрешен\w*|принима\w*|допуска\w*|принципиаль\w*|размер\w*|вес\w*|был\w*|будет|есть|быть|метр\w*|море|моря|пляж\w*|вод\w*|тепл\w*"
+    tokens = [word for word in re.findall(r"[а-яa-z][а-яa-z-]*", remaining) if not re.fullmatch(ignored, word)]
+    if tokens:
+        parsed.unmapped.append(" ".join(dict.fromkeys(tokens)))
+    if not parsed.must and not parsed.nice and not outside:
+        parsed.clarifications.append("Что важнее для поездки: тишина, вид, дорога к морю или другие условия?")
+    if re.search(r"высок\w* этаж", text) and not parsed.min_floor:
+        parsed.clarifications.append("Какой минимальный этаж вам подходит?")
+    if parsed.unmapped and not outside and len(parsed.clarifications) < 2:
+        parsed.clarifications.append("Не удалось сопоставить с каталогом: " + parsed.unmapped[-1] + ". Уточните, что здесь обязательно.")
+    parsed.clarifications = list(dict.fromkeys(parsed.clarifications))[:2]
+    return parsed
+
+
+def parse_query(request: SearchRequest, catalog: list[CharacteristicSpec], llm=None) -> ParsedQuery:
+    """Extract catalogue-backed conditions; offline and user-edited chips are first class."""
+    baseline = _fallback(request, catalog)
+    if request.parsed:
+        result = request.parsed.model_copy(deep=True)
+        result.text = request.text or result.text
+        if request.check_in:
+            result.check_in, result.month = request.check_in, request.check_in.month
+        if request.check_out:
+            result.check_out = request.check_out
+    elif llm is not None and "region_out_of_scope" not in baseline.unmapped:
+        result, mode = llm.structured(ParsedQuery, [
+            {"role": "system", "content": "Разбери русский запрос только по каталогу. Прямые требования обязательны; желательно — nice. Не выдумывай данные отелей. Сохрани отрицания, числа, даты и неизвестные слова. Не более двух уточнений. Каталог: " + json.dumps([{ "id": s.id, "name": s.name_ru, "synonyms": s.synonyms, "search": s.search.model_dump()} for s in catalog if s.status == "active"], ensure_ascii=False)},
+            {"role": "user", "content": request.text}], fallback=lambda: baseline, task="parse_query", budget_s=2.2)
+        result.mode = mode
+        result.text = request.text
+    else:
+        result = baseline
+    active = {s.id for s in catalog if s.status == "active"}
+    for group in (result.must, result.nice):
+        invalid = [c for c in group if c.characteristic_id not in active]
+        result.unmapped.extend(c.label for c in invalid)
+        group[:] = [c for c in group if c.characteristic_id in active]
+    if "region_out_of_scope" in baseline.unmapped:
+        result.unmapped = list(dict.fromkeys([*result.unmapped, "region_out_of_scope"]))
+        result.clarifications = baseline.clarifications
+    return result
