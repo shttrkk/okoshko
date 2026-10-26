@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import json
 from datetime import date, datetime
-from functools import lru_cache
+from functools import lru_cache, wraps
+from threading import RLock
 from typing import Any
 
 import psycopg
@@ -26,9 +27,29 @@ def dump_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, default=lambda obj: obj.isoformat() if isinstance(obj, date | datetime) else str(obj))
 
 
+def serialized_write(function):
+    @wraps(function)
+    def wrapped(self, *args, **kwargs):
+        with self._search_lock:
+            return function(self, *args, **kwargs)
+    return wrapped
+
+
 class Repository:
     def __init__(self, db_url: str = DB_URL):
         self.db_url = db_url
+        self._search_snapshot = None
+        self._search_lock = RLock()
+
+    def _update_search(self, values: list[dict], *, hotel_ids: list[str] | None = None):
+        with self._search_lock:
+            if self._search_snapshot is None:
+                return
+            snapshot = {key: value for key, value in self._search_snapshot.items()
+                        if hotel_ids is None or value["hotel_id"] not in hotel_ids}
+            for value in values:
+                snapshot[value["id"]] = {**value, "evidence": [{key: field for key, field in evidence.items() if key not in {"inputs", "output"}} for evidence in value.get("evidence", [])]}
+            self._search_snapshot = snapshot
 
     @staticmethod
     def table(name: str) -> sql.Identifier:
@@ -71,6 +92,7 @@ class Repository:
             conn.execute(query, (value["id"], Jsonb(value, dumps=dump_json)))
         return value
 
+    @serialized_write
     def upsert(self, table: str, value: dict) -> dict:
         if table == "claims":
             raise ValueError("Claims are append-only; use add_claim")
@@ -78,12 +100,15 @@ class Repository:
             ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload, updated_at=now()""").format(self.table(table))
         with psycopg.connect(self.db_url) as conn:
             conn.execute(query, (value["id"], Jsonb(value, dumps=dump_json)))
+        if table == "facts":
+            self._update_search([value])
         return value
 
     def add_claim(self, claim: Claim | dict) -> dict:
         value = claim.model_dump(mode="json") if isinstance(claim, Claim) else claim
         return self.insert("claims", value)
 
+    @serialized_write
     def upsert_many(self, table: str, values: list[dict]) -> None:
         if not values:
             return
@@ -102,6 +127,8 @@ class Repository:
                     for value in values:
                         copy.write_row((value["id"], dump_json(value)))
                 cursor.execute(sql.SQL("INSERT INTO {}(id,payload) SELECT id,payload FROM batch_import ON CONFLICT(id) DO UPDATE SET payload=EXCLUDED.payload,updated_at=now()").format(self.table(table)))
+        if table == "facts":
+            self._update_search(values)
 
     def insert_claims(self, values: list[Claim | dict]) -> list[dict]:
         validated = [Claim.model_validate(value).model_dump(mode="json") for value in values]
@@ -110,13 +137,16 @@ class Repository:
                                [(value["id"], Jsonb(value)) for value in validated])
         return validated
 
+    @serialized_write
     def replace_facts(self, hotel_id: str, values: list[dict]) -> None:
         # Atomic materialized-view replacement removes obsolete floor-range keys.
         with psycopg.connect(self.db_url) as conn, conn.cursor() as cursor:
             cursor.execute("DELETE FROM facts WHERE payload->>'hotel_id'=%s",(hotel_id,))
             cursor.executemany("INSERT INTO facts(id,payload) VALUES(%s,%s)",
                                [(value["id"],Jsonb(value,dumps=dump_json)) for value in values])
+        self._update_search(values, hotel_ids=[hotel_id])
 
+    @serialized_write
     def replace_materialized_facts(self, hotel_ids: list[str], values: list[dict]) -> None:
         with psycopg.connect(self.db_url) as conn, conn.cursor() as cursor:
             cursor.execute("CREATE TEMP TABLE resolved_import(id text PRIMARY KEY,payload jsonb NOT NULL) ON COMMIT DROP")
@@ -125,6 +155,7 @@ class Repository:
                     copy.write_row((value["id"], dump_json(value)))
             cursor.execute("DELETE FROM facts WHERE payload->>'hotel_id'=ANY(%s)", (hotel_ids,))
             cursor.execute("INSERT INTO facts(id,payload) SELECT id,payload FROM resolved_import")
+        self._update_search(values, hotel_ids=hotel_ids)
 
     def count(self, table: str) -> int:
         with psycopg.connect(self.db_url) as conn:
@@ -136,19 +167,17 @@ class Repository:
 
     def search_facts(self, characteristic_ids: list[str] | None = None, month: int | None = None) -> list[dict]:
         # Keep evidence references, quotes and limitations; omit repeated raw calculation payloads.
-        predicates, params = [], []
-        if characteristic_ids is not None:
-            predicates.append("payload->>'characteristic_id'=ANY(%s)")
-            params.append(characteristic_ids)
-        if month is not None:
-            predicates.append("(payload#>>'{scope,month}' IS NULL OR (payload#>>'{scope,month}')::int=%s)")
-            params.append(month)
-        where = " AND ".join(predicates) if predicates else "true"
         query = """SELECT (payload-'evidence') || jsonb_build_object('evidence', COALESCE(
             (SELECT jsonb_agg(evidence-'inputs'-'output') FROM jsonb_array_elements(payload->'evidence') evidence),
-            '[]'::jsonb)) FROM facts WHERE """+where
-        with psycopg.connect(self.db_url) as conn:
-            return [row[0] for row in conn.execute(query,params)]
+            '[]'::jsonb)) FROM facts"""
+        with self._search_lock:
+            if self._search_snapshot is None:
+                with psycopg.connect(self.db_url) as conn:
+                    self._search_snapshot = {row[0]["id"]: row[0] for row in conn.execute(query)}
+            snapshot = self._search_snapshot
+        ids = set(characteristic_ids) if characteristic_ids is not None else None
+        return [row for row in snapshot.values() if (ids is None or row["characteristic_id"] in ids)
+                and (month is None or row.get("scope", {}).get("month") in {None, month})]
 
 
 @lru_cache

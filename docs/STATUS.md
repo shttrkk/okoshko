@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 26.10.2026 17:14 МСК. Интегрированы API, поиск, кабинет, SPA и финальные 20 340 гео-claims. Пересборка стенда и demo-check — текущая P0. `[x]` означает проверено, не обещано.
+Обновлено: 26.10.2026 17:23 МСК. Интегрированы API, поиск, кабинет, SPA и финальные 20 340 гео-claims. Пересборка стенда и demo-check — текущая P0. `[x]` означает проверено, не обещано.
 
 ## Контрольные точки
 
@@ -95,3 +95,5 @@
 - 26.10 17:08 compact697b15a: GeoJSON58 264 156→7 272 848bytes, дублиCSV−7 815 034bytes. Geo21tests, pipeline.validate, strict compute_validate250/20 340 PASS у потока. Все250 geoJSON snapshots и6 logicalinputhash побайтно прежние; cached change0.46s. Интегрирован gzip HTTP/helper; общий retest ниже.
 
 - 26.10 17:14 main2b82451: full pytest190passed+115subtests, ruff PASS; fresh startup16.5s послеbatchCOPY. Masha3all/1.38s, synthetic markers провереныS6. S7 c504697:4/4P1closed,128tests+104subtests, SSRF18reject/network0, живойPOI2collect PASS. Acceptance покаFAIL: одиночныйзамер2.85s истарыеобщиеfacts вdevDB; исправляетсяатомарнаязаменаматериализации. GeoJSON178.37MiBpack послеgc >150, делаемсверкуreachablemain иархив старыхветок.
+
+- 26.10 17:23 a64453e: materialization удаляет obsolete facts атомарно;6 дополнительныхofflineglyphfiles сохранены. c17821d: demo-check13negative boundarytests PASS; Makefile smoke теперь вызываетприёмку и сохраняетпаспортссинтетическимгостем. Search compact snapshot прогреваетсянастарте иобновляетсясразу послеAPI mutations (singleprocess). Frontend4a3ed86 интегрирован; browserrecordingвработе.

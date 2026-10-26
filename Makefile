@@ -1,4 +1,4 @@
-.PHONY: up down seed pipeline eval smoke test lint audit check demo-video contracts
+.PHONY: up down seed pipeline eval smoke demo-check test lint audit check demo-video contracts
 PYTHON ?= .venv/bin/python
 REGION ?= pipeline/regions/sochi.yaml
 
@@ -14,6 +14,9 @@ eval:
 	$(PYTHON) -m scripts.evaluate
 smoke:
 	$(PYTHON) scripts/smoke.py
+	$(MAKE) demo-check
+demo-check:
+	$(PYTHON) scripts/demo_check.py
 test:
 	$(PYTHON) -m pytest -q
 lint:
@@ -21,7 +24,7 @@ lint:
 	cd frontend && npm run lint
 audit:
 	$(PYTHON) -m scripts.audit
-check: lint test smoke
+check: lint test audit smoke
 demo-video:
 	cd frontend && npm run demo-video
 contracts:

@@ -5,6 +5,7 @@ import uvicorn
 from alembic import command
 from alembic.config import Config
 
+from backend.db.repository import get_repo
 from backend.seed import load_seed
 from backend.settings import ROOT
 
@@ -20,7 +21,8 @@ def migrate():
 def main():
     migrate()
     load_seed()
-    logging.info("О!кно foundation ready, LLM_MODE=%s", os.getenv("LLM_MODE", "offline"))
+    get_repo().search_facts()
+    logging.info("О!кно ready; local search snapshot primed, LLM_MODE=%s", os.getenv("LLM_MODE", "offline"))
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8080, access_log=True)
 
 
