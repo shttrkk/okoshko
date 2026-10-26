@@ -9,7 +9,10 @@ import json
 import re
 from datetime import date
 
+from backend.agents.query_rules import validate_query_plan
 from backend.contracts import CharacteristicSpec, Criterion, ParsedQuery, Scope, SearchRequest
+from backend.llm.client import UnsafeOutput
+from backend.security import contains_runtime_secret
 from backend.tools.registry import EV_CHARGING_NEAR_M
 
 MONTHS = ("январ", "феврал", "март", "апрел", "ма[йяе]", "июн", "июл", "август", "сентябр", "октябр", "ноябр", "декабр")
@@ -38,7 +41,7 @@ RULES = {
 AWAY = r"(?:подальше|вдали|далеко|подальш\w*)\s+от\s+$"
 CALM_VENUES_MAX = 10
 OUTSIDE = r"москв\w*|саратов\w*|санкт[ -]?петербург\w*|петербург\w*|спб|казан[ьиь]\w*|анап\w*|геленджик\w*|краснодар\w*|стамбул\w*|париж\w*|дуба[ий]\w*|калининград\w*|екатеринбург\w*|новосибирск\w*|ялт\w*|туапсе|крым\w*|ростов\w*|нижн\w* новгород\w*|самар\w*|твер[ьиь]\w*|минск\w*|батум\w*|красн\w* полян\w*|воронеж\w*|волгоград\w*|омск\w*|томск\w*|перм[ьиь]\w*|уф[аеуы]\w*|челябинск\w*|красноярск\w*|тюмен[ьиь]\w*|иркутск\w*|хабаровск\w*|владивосток\w*|сургут\w*|сочи-парк|тбилиси|ереван\w*|ташкент\w*|белград\w*|антал[ьи]\w*|бишкек\w*|алмат[ыи]|астан\w*|псков\w*|суздал\w*|ярославл\w*|костром\w*|владимир\w*|иванов\w*|смоленск\w*|брянск\w*|ор[её]л\w*|курск\w*|белгород\w*|рязан\w*|тул[аеуы]\w*|тамбов\w*|липецк\w*|пенза|пензе|ижевск\w*|киров\w*|чебоксар\w*|саранск\w*|йошкар\w*|ульяновск\w*|оренбург\w*|барнаул\w*|кемеров\w*|новокузнецк\w*|абакан\w*|чита|чите|улан-удэ|якутск\w*|магадан\w*|мурманск\w*|архангельск\w*|петрозаводск\w*|вологд\w*|сыктывкар\w*|грозн\w*|махачкал\w*|владикавказ\w*|ставропол\w*|пятигорск\w*|кисловодск\w*|ессентук\w*|нальчик\w*|майкоп\w*"
-SOFT = r"желатель\w*|хорошо бы|по возможности|необязатель\w*|не обязател\w*|можно(?: бы)?|не принципиаль\w*"
+SOFT = r"желатель\w*|хорошо бы|по возможности|необязатель\w*|не обязател\w*|не принципиал\w*|будет плюсом"
 HARD = r"(?<!не )обязатель\w*|только|важн\w*|нуж(?:ен|на|но|ны)|долж\w*|необходим\w*"
 NEARBY = {
     "beach_walk": (r"\b(?:пляж\w*|мор[еяю]|морем)\b", "minutes", 10, "До пляжа", "мин пешком"),
@@ -106,11 +109,13 @@ def _importance(text: str, start: int, end: int) -> tuple[bool, bool, bool]:
     left = max([m.end() for m in re.finditer(r"[,;.!?]|\bно\b|\bа\b", text[:start])], default=0)
     right = next((end + m.start() for m in re.finditer(r"[,;.!?]|\bно\b|\bа\b", text[end:])), len(text))
     before, after = text[left:start], text[end:right]
-    if re.search(r"не (?:нуж\w*|интерес\w*|треб\w*)\s*(?:мне\s*)?(?:вид\w*\s*(?:на\s*)?)?$", before) or re.match(r"\s*(?:мне )?не (?:важ\w*|нуж\w*)", after):
+    if re.search(r"\bне (?:нуж\w*|важ\w*|интерес\w*|треб\w*)\s*(?:мне\s*)?(?:вид\w*\s*(?:на\s*)?)?$", before) or re.match(r"\s*(?:мне )?не (?:важ\w*|нуж\w*|интерес\w*|треб\w*)", after):
         return False, False, True
     markers = [(m.start(), True) for m in re.finditer(SOFT, before)] + [(m.start(), False) for m in re.finditer(HARD, before)]
     soft = max(markers, default=(-1, False))[1]
-    if re.match(r"\s*(?:[а-яa-z]+\s+){0,3}?(?:необязатель\w*|не обязател\w*|желатель\w*)", after):
+    if re.match(r"\s*(?:необязатель\w*|не обязател\w*|желатель\w*|по возможности|не принципиал\w*|(?:будет )?плюсом)", after):
+        soft = True
+    if re.search(r"(?:^|[,;])\s*можно(?: бы)?\s*$", before) and not re.search(r"\b(?:собак|кошк|котом|питом)\w*", text[start:end]):
         soft = True
     negative = bool(re.search(r"(?:\bбез|\bне)\s*(?:вид\w*\s*(?:на\s*)?)?$", before[-35:]))
     # Negated noise is a positive request for quiet; "не обязательно" is a preference.
@@ -219,10 +224,13 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             matches += [facade_match[1]] if facade_match else [floor_match]
         if not matches:
             continue
+        consumed.extend((m.start(), m.end()) for m in matches)
+        matches = [m for m in matches if not _importance(text, m.start(), m.end())[2]]
+        if not matches:
+            continue
         # Longest phrase is most useful for negation ("без вида на море").
         match = min(matches, key=lambda m: (m.start(), -(m.end()-m.start())))
         positions[spec.id] = match.start()
-        consumed.extend((m.start(), m.end()) for m in matches)
         soft, negative, skip = _importance(text, match.start(), match.end())
         if skip:
             continue
@@ -350,23 +358,38 @@ def parse_query(request: SearchRequest, catalog: list[CharacteristicSpec], llm=N
         if request.check_out:
             result.check_out = request.check_out
     elif llm is not None and "region_out_of_scope" not in baseline.unmapped:
-        result, mode = llm.structured(ParsedQuery, [
+        class QueryPlan(ParsedQuery):
+            def grounded(self):
+                # Check the original decoded provider fields before normalization
+                # can discard text; escaped protected values must still be caught.
+                if contains_runtime_secret(self.model_dump(mode='json'), (getattr(llm, 'api_key', ''),)):
+                    raise UnsafeOutput('Query plan contains a protected value')
+                validated = validate_query_plan(self, baseline, catalog)
+                for field in type(self).model_fields:
+                    setattr(self, field, getattr(validated, field))
+                return self
+
+            @classmethod
+            def model_validate_json(cls, json_data, **kwargs):
+                # Semantic refusal is outside Pydantic's ValueError wrapping:
+                # UnsafeOutput must stop transport retries and JSON repair.
+                return super().model_validate_json(json_data, **kwargs).grounded()
+
+            @classmethod
+            def model_validate(cls, obj, **kwargs):
+                return super().model_validate(obj, **kwargs).grounded()
+
+        result, mode = llm.structured(QueryPlan, [
             {"role": "system", "content": "Разбери русский запрос только по каталогу. Прямые требования обязательны; желательно — nice. Не выдумывай данные отелей. Сохрани отрицания, числа, даты и неизвестные слова. Не более двух уточнений. Каталог: " + json.dumps([{ "id": s.id, "name": s.name_ru, "synonyms": s.synonyms, "search": s.search.model_dump()} for s in catalog if s.status == "active"], ensure_ascii=False)},
-            {"role": "user", "content": request.text}], fallback=lambda: baseline, task="parse_query", budget_s=2.2)
+            {"role": "user", "content": request.text}], fallback=lambda: baseline.model_dump(), task="parse_query", budget_s=2.2)
+        try:
+            # Custom local clients must obey the same boundary as the transport.
+            if not isinstance(result, QueryPlan):
+                result = validate_query_plan(result, baseline, catalog)
+        except UnsafeOutput:
+            result, mode = baseline, 'offline'
         result.mode = mode
         result.text = request.text
-        # A provider may add catalogue-backed interpretations, but cannot erase
-        # locally recognized negations, numeric limits, room scope or route flags.
-        recognized = {criterion.characteristic_id for criterion in baseline.must + baseline.nice}
-        result.must = [criterion for criterion in result.must if criterion.characteristic_id not in recognized] + baseline.must
-        result.nice = [criterion for criterion in result.nice if criterion.characteristic_id not in recognized] + baseline.nice
-        for field in ("facade", "min_floor", "pet_weight_kg"):
-            if getattr(baseline, field) is not None:
-                setattr(result, field, getattr(baseline, field))
-        result.check_in, result.check_out = baseline.check_in, baseline.check_out
-        result.month = baseline.month
-        result.unmapped = list(dict.fromkeys([*baseline.unmapped, *result.unmapped]))
-        result.clarifications = list(dict.fromkeys([*baseline.clarifications, *result.clarifications]))[:2]
     else:
         result = baseline
     active = {s.id for s in catalog if s.status == "active"}
