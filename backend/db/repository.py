@@ -1,0 +1,95 @@
+"""Small synchronous PostgreSQL repository shared by independent agent modules."""
+from __future__ import annotations
+
+import json
+from datetime import date, datetime
+from functools import lru_cache
+from typing import Any
+
+import psycopg
+from psycopg import sql
+from psycopg.types.json import Jsonb
+
+from backend.contracts import Claim
+from backend.settings import DB_URL
+
+TABLES = frozenset({
+    "regions", "sources", "hotels", "hotel_facades", "room_types", "buildings",
+    "osm_features", "characteristics", "characteristic_versions", "agent_runs",
+    "agent_steps", "claims", "facts", "conflicts", "questions", "answers",
+    "change_events", "jobs", "tool_cache", "llm_cache", "search_queries",
+    "eval_labels", "eval_results", "expectation_passports", "passport_items",
+})
+
+
+def dump_json(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, default=lambda obj: obj.isoformat() if isinstance(obj, date | datetime) else str(obj))
+
+
+class Repository:
+    def __init__(self, db_url: str = DB_URL):
+        self.db_url = db_url
+
+    @staticmethod
+    def table(name: str) -> sql.Identifier:
+        if name not in TABLES:
+            raise ValueError(f"Unknown table: {name}")
+        return sql.Identifier(name)
+
+    def all(self, table: str) -> list[dict]:
+        query = sql.SQL("SELECT payload FROM {} ORDER BY created_at, id").format(self.table(table))
+        with psycopg.connect(self.db_url) as conn:
+            return [row[0] for row in conn.execute(query)]
+
+    def get(self, table: str, id: str) -> dict | None:
+        query = sql.SQL("SELECT payload FROM {} WHERE id=%s").format(self.table(table))
+        with psycopg.connect(self.db_url) as conn:
+            row = conn.execute(query, (id,)).fetchone()
+            return row[0] if row else None
+
+    def find(self, table: str, **equal) -> list[dict]:
+        predicates = []
+        params = []
+        for key, value in equal.items():
+            predicates.append(sql.SQL("payload->%s = %s"))
+            params.extend([key, Jsonb(value, dumps=dump_json)])
+        where = sql.SQL(" AND ").join(predicates) if predicates else sql.SQL("true")
+        query = sql.SQL("SELECT payload FROM {} WHERE {} ORDER BY created_at, id").format(self.table(table), where)
+        with psycopg.connect(self.db_url) as conn:
+            return [row[0] for row in conn.execute(query, params)]
+
+    def insert(self, table: str, value: dict) -> dict:
+        table_sql = self.table(table)
+        if table == "claims":
+            value = Claim.model_validate(value).model_dump(mode="json")
+        query = sql.SQL("INSERT INTO {} (id,payload) VALUES (%s,%s)").format(table_sql)
+        with psycopg.connect(self.db_url) as conn:
+            conn.execute(query, (value["id"], Jsonb(value, dumps=dump_json)))
+        return value
+
+    def upsert(self, table: str, value: dict) -> dict:
+        if table == "claims":
+            raise ValueError("Claims are append-only; use add_claim")
+        query = sql.SQL("""INSERT INTO {} (id,payload) VALUES (%s,%s)
+            ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload, updated_at=now()""").format(self.table(table))
+        with psycopg.connect(self.db_url) as conn:
+            conn.execute(query, (value["id"], Jsonb(value, dumps=dump_json)))
+        return value
+
+    def add_claim(self, claim: Claim | dict) -> dict:
+        value = claim.model_dump(mode="json") if isinstance(claim, Claim) else claim
+        return self.insert("claims", value)
+
+    def count(self, table: str) -> int:
+        with psycopg.connect(self.db_url) as conn:
+            return conn.execute(sql.SQL("SELECT count(*) FROM {}").format(self.table(table))).fetchone()[0]
+
+    def healthy(self) -> bool:
+        with psycopg.connect(self.db_url, connect_timeout=3) as conn:
+            return conn.execute("SELECT 1").fetchone()[0] == 1
+
+
+@lru_cache
+def get_repo() -> Repository:
+    return Repository()
+
