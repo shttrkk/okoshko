@@ -1,4 +1,4 @@
-"""Read-only REVIEW003 acceptance over HTTP; never creates demo hotel claims.
+"""Read-only synthetic-demo acceptance over HTTP; never creates demo hotel claims.
 
 POST /api/search is the public search API and may append its ordinary trace log.
 No simulator, confirmation, booking, change or administrative action is called.
@@ -345,7 +345,7 @@ class Runner:
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="Read-only REVIEW003 synthetic-demo acceptance")
+    parser = argparse.ArgumentParser(description="Read-only synthetic-demo acceptance")
     parser.add_argument("--url", default=os.getenv("OKNO_URL", "http://localhost:8080"))
     parser.add_argument("--report", type=Path, default=Path(os.getenv("OKNO_DEMO_REPORT", "/tmp/okno-demo-check.json")))
     args = parser.parse_args(argv)
