@@ -83,3 +83,12 @@ def test_similarity_keeps_requested_month_for_additional_must(client, repo):  # 
     assert response.status_code == 200, response.text
     assert calls == [(None, None)]
     assert [hit["hotel"]["id"] for hit in response.json()["results"]] == ["test-hotel"]
+    edited = response.json()["parsed"]
+    edited["similar_to_name"] = "untrusted display name"
+    edited["clarifications"] = ["Уточните месяц поездки"]
+    repeated = client.post("/api/search", json={"parsed": edited})
+    assert repeated.status_code == 200, repeated.text
+    result = repeated.json()
+    assert result["parsed"]["similar_to"] == "test-2" and result["parsed"]["similar_to_name"] == "Synthetic 2"
+    assert result["parsed"]["clarifications"] == ["Уточните месяц поездки"]
+    assert [hit["hotel"]["id"] for hit in result["results"]] == ["test-hotel"]

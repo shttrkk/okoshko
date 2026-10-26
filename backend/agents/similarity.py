@@ -11,6 +11,17 @@ from backend.contracts import CharacteristicSpec, CriterionVerdict, Fact, Hotel,
 WEIGHTS = {"sea_view": 2, "sunset_view": 2, "quiet_night": 2, "beach_walk": 2,
            "soundproofing": 1.5, "pets": 1.5, "connectivity": 1.5, "nightlife": 1.5}
 SCALES = {"minutes": 20, "download_mbps": 100, "water_c": 15, "european_aqi": 80, "venues_500m": 60}
+UNITS = {"minutes": "мин", "return_minutes": "мин", "download_mbps": "Мбит/с", "upload_mbps": "Мбит/с",
+         "water_c": "°C", "air_c": "°C", "european_aqi": "AQI", "venues_500m": "заведений"}
+
+
+def _profile_value(value, field: str, unit: str | None) -> str:
+    if isinstance(value, bool):
+        return "да" if value else "нет"
+    if isinstance(value, int | float):
+        suffix = unit or UNITS.get(field)
+        return f"{value:g}".replace(".", ",") + (" " + suffix if suffix else "")
+    return str(value)
 
 
 def _fingerprint(facts: list[Fact], specs: list[CharacteristicSpec]) -> dict:
@@ -51,6 +62,7 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
         candidates = [hotel for hotel in candidates if not parsed.must or constrained[hotel.id].group == "all"]
     fields = {s.id: s.search.field for s in specs}
     labels = {s.id: s.name_ru for s in specs}
+    units = {s.id: s.search.unit for s in specs}
     scored = []
     for hotel in candidates:
         fingerprint = _fingerprint(by_hotel[hotel.id], specs)
@@ -80,6 +92,9 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
         hit.summary = f"Сходство профиля {hit.score:g}/100: сопоставлены {shared} из {len(reference)} характеристик за сентябрь; учитывается уверенность. Это не гарантия выполнения одного набора условий в одном номере."
         if constraint and parsed.must:
             hit.summary += f" Дополнительные обязательные условия: {hit.must_satisfied} из {hit.must_total}."
+        if any(item[2].synthetic for item in reference.values()) or any(row[5].synthetic for row in comparisons):
+            hit.summary += " В сравнении есть синтетические факты."
+            hit.disappointments.append("Часть сравнения профилей основана на синтетических фактах симулятора, а не на подтверждении реального отеля.")
         scored.append((hit, comparisons, constraint))
     scored.sort(key=lambda item: (-item[0].score, item[0].hotel.id))
     for index, (hit, comparisons, constraint) in enumerate(scored):
@@ -88,22 +103,32 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
         if constraint:
             hit.verdicts = constraint.verdicts
             hit.room_recommendation = constraint.room_recommendation
-            hit.disappointments = constraint.disappointments
+            hit.disappointments = list(dict.fromkeys([*hit.disappointments, *constraint.disappointments]))
         else:
             hit.room_recommendation = "Сходство относится к профилю отеля; сторону, этаж и доступность номера уточните отдельно."
         # Profile comparisons are independent characteristics, not an invented
         # conjunction of views, noise and routes in one room.
-        for _, cid, closeness, left, right, fact in sorted(comparisons, key=lambda row: (-row[0], row[1]))[:3]:
-            text = f"{labels[cid]}: {'совпадает' if closeness == 1 else 'близкое значение' if closeness >= .7 else 'различается'} с выбранным отелем"
-            if not isinstance(left, bool):
-                text += f" ({right:g} против {left:g})" if isinstance(left, int | float) and isinstance(right, int | float) else f" ({right} против {left})"
-            text += f"; уверенность {fact.confidence:.0%}."
+        matches = sorted((row for row in comparisons if row[3] == row[4]), key=lambda row: (-row[0], row[1]))[:3]
+        differences = sorted((row for row in comparisons if row[3] != row[4]
+                              and _profile_value(row[3], fields[row[1]], units[row[1]]) != _profile_value(row[4], fields[row[1]], units[row[1]])),
+                             key=lambda row: (-WEIGHTS.get(row[1], 1)*min(reference[row[1]][1], row[5].confidence)*(1-row[2]), row[1]))[:2]
+        for _, cid, closeness, left, right, fact in [*matches, *differences]:
+            left_text = _profile_value(left, fields[cid], units[cid])
+            right_text = _profile_value(right, fields[cid], units[cid])
+            if left == right:
+                text = f"Совпадает «{labels[cid]}»: {right_text} у обоих"
+            else:
+                text = f"Отличается «{labels[cid]}»: здесь {right_text}, у выбранного отеля {left_text}"
+            text += f"; уверенность фактов {fact.confidence:.0%} / {reference[cid][1]:.0%}."
+            synthetic = fact.synthetic or reference[cid][2].synthetic
+            if synthetic:
+                text += " В сравнении есть синтетический факт."
             hit.similarity_reasons.append(text)
             if not any(v.characteristic_id == cid for v in hit.verdicts):
                 hit.verdicts.append(CriterionVerdict(characteristic_id=cid, label=labels[cid],
                                                     status="yes" if closeness == 1 else "partial", symbol="✓" if closeness == 1 else "≈",
                                                     text=text, confidence=fact.confidence, fact_ids=[fact.id],
-                                                    evidence_refs=[e.id for e in fact.evidence], synthetic=fact.synthetic))
+                                                    evidence_refs=[e.id for e in fact.evidence], synthetic=synthetic))
         from backend.agents.ranker import relative_reason
         hit.why_not_higher = [relative_reason(hit, other[0]) for other in scored[max(0, index-3):index]]
     return [item[0] for item in scored]

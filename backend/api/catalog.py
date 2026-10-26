@@ -221,7 +221,8 @@ def search(body: SearchRequest, repo=_REPO):
             hits = []
         else:
             hotel_rows = [Hotel.model_validate(row) for row in repo.all("hotels")]
-            reference = Hotel.model_validate(required(repo, "hotels", body.similar_to, "Отель")) if body.similar_to else None
+            reference_id = body.similar_to or (body.parsed.similar_to if body.parsed else None)
+            reference = Hotel.model_validate(required(repo, "hotels", reference_id, "Отель")) if reference_id else None
             if reference is None and not body.parsed:
                 from backend.agents.similarity import reference_hotel
                 reference, ambiguous = reference_hotel(body.text, hotel_rows)
@@ -233,7 +234,8 @@ def search(body: SearchRequest, repo=_REPO):
                 from backend.agents.similarity import only_reference_phrase
                 parsed.unmapped = [fragment for fragment in parsed.unmapped if not only_reference_phrase(fragment, reference.name)]
                 if not parsed.unmapped:
-                    parsed.clarifications = []
+                    parsed.clarifications = [message for message in parsed.clarifications if not message.startswith(
+                        ("Что важнее для поездки:", "Не удалось сопоставить с каталогом:"))]
             ids = None if reference else sorted({criterion.characteristic_id for criterion in [*parsed.must, *parsed.nice]} | {"beach_walk"})
             # Similarity uses a September profile; explicit extra conditions
             # still require their requested month, rather than September data.

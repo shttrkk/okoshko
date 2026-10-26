@@ -49,3 +49,44 @@ def test_numeric_margin_prefers_robust_fit_without_promoting_disputed_data(catal
     assert [hit.group for hit in hits] == ["all", "all", "unknown"]
     assert hits[-1].verdicts[0].disputed and hits[-1].verdicts[0].status == "unknown"
     assert all(0 <= hit.score <= 100 for hit in hits)
+
+
+def test_similarity_reasons_compare_the_reference_and_show_real_differences(catalog):  # noqa: F811
+    hotels = [hotel(name) for name in ["reference", "nearer-profile", "different-profile"]]
+    facts = []
+    for name, minutes, aqi in [("reference", 5, 5), ("nearer-profile", 6, 5), ("different-profile", 12, 25)]:
+        facts.extend([fact(name, "beach_walk", {"minutes": minutes}), fact(name, "air_quality", {"european_aqi": aqi})])
+        for cid in ["sea_view", "quiet_night", "mountain_view"]:
+            facts.append(fact(name, cid, {"available": True}, side="W", low=1, high=5))
+    hits = similar_hotels("reference", hotels, facts, catalog)
+    assert [hit.hotel.id for hit in hits] == ["nearer-profile", "different-profile"]
+    reasons = hits[1].similarity_reasons
+    assert len([text for text in reasons if text.startswith("Совпадает")]) == 3
+    differences = [text for text in reasons if text.startswith("Отличается")]
+    assert len(differences) == 2
+    assert any("здесь 12 мин, у выбранного отеля 5 мин" in text for text in differences)
+    assert any("здесь 25 AQI, у выбранного отеля 5 AQI" in text for text in differences)
+    assert all("6 мин" not in text for text in differences)
+    assert "не гарантия" in hits[1].summary
+    assert len(hits[1].verdicts) == 5 and all(v.fact_ids and v.evidence_refs for v in hits[1].verdicts)
+
+
+def test_missing_profile_data_is_not_described_as_an_observed_difference(catalog):  # noqa: F811
+    hotels = [hotel("reference"), hotel("sparse")]
+    facts = [fact("reference", "sea_view", {"available": True}, side="W", low=1),
+             fact("reference", "air_quality", {"european_aqi": 15}),
+             fact("sparse", "sea_view", {"available": True}, side="W", low=1)]
+    [hit] = similar_hotels("reference", hotels, facts, catalog)
+    assert len(hit.similarity_reasons) == 1
+    assert hit.similarity_reasons[0].startswith("Совпадает")
+
+
+def test_synthetic_reference_is_disclosed_even_with_real_candidate_facts(catalog):  # noqa: F811
+    hotels = [hotel("reference"), hotel("candidate")]
+    facts = [fact("reference", "sea_view", {"available": True}, side="W", low=1, synthetic=True),
+             fact("candidate", "sea_view", {"available": True}, side="W", low=1)]
+    [hit] = similar_hotels("reference", hotels, facts, catalog)
+    assert "синтетические факты" in hit.summary
+    assert hit.verdicts[0].synthetic
+    assert any("синтетическ" in reason for reason in hit.similarity_reasons)
+    assert any("синтетическ" in warning for warning in hit.disappointments)
