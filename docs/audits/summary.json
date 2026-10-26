@@ -1,0 +1,19 @@
+{
+  "generated_at": "2026-10-26T12:41:12.316405+00:00",
+  "python_vulnerable_packages": 0,
+  "npm_production": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "scanner_errors": false,
+  "passed": true,
+  "policy": "Python: resolve every reported vulnerability; npm production: no High/Critical. Scanner failure blocks.",
+  "commands": [
+    "pip-audit --require-hashes -r backend/requirements.lock -f json",
+    "npm audit --omit=dev --json"
+  ]
+}

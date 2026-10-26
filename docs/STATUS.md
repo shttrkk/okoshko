@@ -79,3 +79,9 @@
 - Первая волна: S1 скачал Geofabrik 2026-10-25, Overture 264 исходных lodging records и Copernicus tiles; сбор и проверка ещё идут.
 
 - 26.10 15:22 внешний P1 REVIEW_001_region прочитан и принят; точные bbox A/B переданы всем активным потокам. Исполнение/финальный manifest ещё проверяются.
+
+- 26.10 REVIEW002 принят: Actions только workflow_dispatch; make check/audit и README блоки добавлены. Первый audit выявил Starlette и MapLibre/React Router advisories; исправления внесены, повтор проверяется.
+- 26.10 S6 первый UI commit aa3a346 интегрирован:12 маршрутов, build/lint PASS у потока, npm production audit0 у потока. Backend функциональные маршруты ещё интегрируются.
+- 26.10 S2 core интегрирован,23 теста суммарно PASS. P1 гео-исправления и backfill250 ещё в работе.
+
+- 26.10 15:41 повторный make audit PASS: Python0, npm production0, scanner_errors=false; docs/audits/*.json. Новые Python версии прошли23 tests.

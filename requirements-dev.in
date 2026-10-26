@@ -5,3 +5,4 @@ pip-tools==7.4.1
 
 pip==24.0
 setuptools==75.1.0
+pip-audit==2.9.0
