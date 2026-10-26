@@ -1,0 +1,38 @@
+id: room_orientation
+version: 1
+name_ru: Сторона и этаж номера
+description: Сторона и этаж номера — подтверждённые данные с указанием источника и
+  ограничений
+category: Номер
+synonyms:
+- высокий этаж
+- западная сторона
+- балкон
+- номер на запад
+scope: room_type
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+  additionalProperties: true
+methods:
+- tool: hotelier_ask
+  params: {}
+  rationale: Сторона и этаж номера — подтверждённые данные с указанием источника и
+    ограничений
+  when: null
+combine: null
+ttl_days: 180
+change_triggers: []
+search:
+  kind: boolean
+  field: available
+  default_op: eq
+  default_value: true
+  explain_ok: Сторона и этаж номера — условие выполнено
+  explain_bad: Сторона и этаж номера — условие не выполняется
+hotelier_answerable: true
+status: active

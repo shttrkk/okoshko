@@ -1,0 +1,34 @@
+id: nearby_photos
+version: 1
+name_ru: Фото рядом
+description: Фото рядом — подтверждённые данные с указанием источника и ограничений
+category: Окружение
+synonyms:
+- фото вокруг
+- фото рядом
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+  additionalProperties: true
+methods:
+- tool: photos_nearby
+  params: {}
+  rationale: Фото рядом — подтверждённые данные с указанием источника и ограничений
+  when: null
+combine: null
+ttl_days: 180
+change_triggers: []
+search:
+  kind: boolean
+  field: available
+  default_op: eq
+  default_value: true
+  explain_ok: Фото рядом — условие выполнено
+  explain_bad: Фото рядом — условие не выполняется
+hotelier_answerable: false
+status: active

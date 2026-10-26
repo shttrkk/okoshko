@@ -1,0 +1,35 @@
+id: building_history
+version: 1
+name_ru: История здания
+description: История здания — подтверждённые данные с указанием источника и ограничений
+category: Окружение
+synonyms:
+- история
+- особняк
+- историческое здание
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+  additionalProperties: true
+methods:
+- tool: wikidata_lookup
+  params: {}
+  rationale: История здания — подтверждённые данные с указанием источника и ограничений
+  when: null
+combine: null
+ttl_days: 180
+change_triggers: []
+search:
+  kind: boolean
+  field: available
+  default_op: eq
+  default_value: true
+  explain_ok: История здания — условие выполнено
+  explain_bad: История здания — условие не выполняется
+hotelier_answerable: false
+status: active

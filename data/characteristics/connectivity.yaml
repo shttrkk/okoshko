@@ -1,0 +1,38 @@
+id: connectivity
+version: 1
+name_ru: Связь для работы
+description: Агрегированные тесты Ookla в районе, не Wi-Fi конкретного отеля
+category: Работа
+synonyms:
+- связь
+- интернет
+- удалёнка
+- работать
+- 4g
+- 5g
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+  additionalProperties: true
+methods:
+- tool: connectivity
+  params: {}
+  rationale: Агрегированные тесты Ookla в районе, не Wi-Fi конкретного отеля
+  when: null
+combine: null
+ttl_days: 180
+change_triggers: []
+search:
+  kind: numeric
+  field: download_mbps
+  default_op: gte
+  default_value: 30
+  explain_ok: Связь для работы — условие выполнено
+  explain_bad: Связь для работы — условие не выполняется
+hotelier_answerable: false
+status: active

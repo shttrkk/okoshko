@@ -80,6 +80,23 @@ class Repository:
         value = claim.model_dump(mode="json") if isinstance(claim, Claim) else claim
         return self.insert("claims", value)
 
+    def upsert_many(self, table: str, values: list[dict]) -> None:
+        if not values:
+            return
+        if table == "claims":
+            raise ValueError("Claims are append-only")
+        query = sql.SQL("""INSERT INTO {} (id,payload) VALUES (%s,%s)
+            ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload, updated_at=now()""").format(self.table(table))
+        with psycopg.connect(self.db_url) as conn, conn.cursor() as cursor:
+            cursor.executemany(query, [(value["id"], Jsonb(value, dumps=dump_json)) for value in values])
+
+    def insert_claims(self, values: list[Claim | dict]) -> list[dict]:
+        validated = [Claim.model_validate(value).model_dump(mode="json") for value in values]
+        with psycopg.connect(self.db_url) as conn, conn.cursor() as cursor:
+            cursor.executemany("INSERT INTO claims(id,payload) VALUES(%s,%s)",
+                               [(value["id"], Jsonb(value)) for value in validated])
+        return validated
+
     def count(self, table: str) -> int:
         with psycopg.connect(self.db_url) as conn:
             return conn.execute(sql.SQL("SELECT count(*) FROM {}").format(self.table(table))).fetchone()[0]

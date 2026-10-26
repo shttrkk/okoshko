@@ -1,0 +1,38 @@
+id: sea_view
+version: 1
+name_ru: Вид на море
+description: Вид на море — подтверждённые данные с указанием источника и ограничений
+category: Вид
+synonyms:
+- море из окна
+- вид на море
+- морской вид
+scope: floor_range
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+  additionalProperties: true
+methods:
+- tool: viewshed_facade
+  params:
+    target: sea
+  rationale: Вид на море — подтверждённые данные с указанием источника и ограничений
+  when: null
+combine: null
+ttl_days: 180
+change_triggers:
+- kind: building_change
+  radius_m: 2000
+search:
+  kind: boolean
+  field: available
+  default_op: eq
+  default_value: true
+  explain_ok: Вид на море — условие выполнено
+  explain_bad: Вид на море — условие не выполняется
+hotelier_answerable: true
+status: active

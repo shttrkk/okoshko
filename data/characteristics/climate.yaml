@@ -1,0 +1,36 @@
+id: climate
+version: 1
+name_ru: Климат и вода
+description: Климат и вода — подтверждённые данные с указанием источника и ограничений
+category: Сезон
+synonyms:
+- тёплая вода
+- теплое море
+- купаться
+- погода
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+  additionalProperties: true
+methods:
+- tool: climate
+  params: {}
+  rationale: Климат и вода — подтверждённые данные с указанием источника и ограничений
+  when: null
+combine: null
+ttl_days: 365
+change_triggers: []
+search:
+  kind: numeric
+  field: water_c
+  default_op: gte
+  default_value: 20
+  explain_ok: Климат и вода — условие выполнено
+  explain_bad: Климат и вода — условие не выполняется
+hotelier_answerable: false
+status: active

@@ -1,0 +1,38 @@
+id: mountain_view
+version: 1
+name_ru: Вид на горы
+description: Вид на горы — подтверждённые данные с указанием источника и ограничений
+category: Вид
+synonyms:
+- горы
+- вид на горы
+- горный пейзаж
+scope: floor_range
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+  additionalProperties: true
+methods:
+- tool: viewshed_facade
+  params:
+    target: mountains
+  rationale: Вид на горы — подтверждённые данные с указанием источника и ограничений
+  when: null
+combine: null
+ttl_days: 180
+change_triggers:
+- kind: building_change
+  radius_m: 2000
+search:
+  kind: boolean
+  field: available
+  default_op: eq
+  default_value: true
+  explain_ok: Вид на горы — условие выполнено
+  explain_bad: Вид на горы — условие не выполняется
+hotelier_answerable: false
+status: active

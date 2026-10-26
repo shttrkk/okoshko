@@ -1,0 +1,37 @@
+id: soundproofing
+version: 1
+name_ru: Шумоизоляция и окна
+description: Шумоизоляция и окна — подтверждённые данные с указанием источника и ограничений
+category: Сон
+synonyms:
+- шумоизоляция
+- двойные окна
+- плотные шторы
+- блэкаут
+- кондиционер
+scope: room_type
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+  additionalProperties: true
+methods:
+- tool: hotelier_ask
+  params: {}
+  rationale: Шумоизоляция и окна — подтверждённые данные с указанием источника и ограничений
+  when: null
+combine: null
+ttl_days: 180
+change_triggers: []
+search:
+  kind: boolean
+  field: available
+  default_op: eq
+  default_value: true
+  explain_ok: Шумоизоляция и окна — условие выполнено
+  explain_bad: Шумоизоляция и окна — условие не выполняется
+hotelier_answerable: true
+status: active

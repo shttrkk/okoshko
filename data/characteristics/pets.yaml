@@ -1,0 +1,37 @@
+id: pets
+version: 1
+name_ru: С питомцем
+description: С питомцем — подтверждённые данные с указанием источника и ограничений
+category: Доступ
+synonyms:
+- с собакой
+- питомец
+- с кошкой
+- лабрадор
+- животные
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+  additionalProperties: true
+methods:
+- tool: hotelier_ask
+  params: {}
+  rationale: С питомцем — подтверждённые данные с указанием источника и ограничений
+  when: null
+combine: null
+ttl_days: 90
+change_triggers: []
+search:
+  kind: boolean
+  field: available
+  default_op: eq
+  default_value: true
+  explain_ok: С питомцем — условие выполнено
+  explain_bad: С питомцем — условие не выполняется
+hotelier_answerable: true
+status: active
