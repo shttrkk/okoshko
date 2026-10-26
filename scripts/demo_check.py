@@ -38,7 +38,8 @@ def number(value) -> bool:
 
 def expected_ids(result: dict, expected: list[str]):
     parsed = result.get("parsed", {})
-    actual = {row.get("characteristic_id") for row in [*parsed.get("must", []), *parsed.get("nice", [])]}
+    # Recognized conditions without regional data are reported in parsed.no_data, not dropped.
+    actual = {row.get("characteristic_id") for row in [*parsed.get("must", []), *parsed.get("nice", []), *parsed.get("no_data", [])]}
     require(set(expected) <= actual, f"Parser missing {sorted(set(expected)-actual)}; recognized={sorted(actual)}")
 
 
@@ -93,6 +94,7 @@ def validate_persona(result: dict, spec: dict) -> dict:
     require(len(meaningful) >= spec["minimum_meaningful_results"], f"{spec['id']}: only {len(meaningful)} meaningful cards, expected >={spec['minimum_meaningful_results']}")
     return {"query": spec["text"], "meaningful_count": len(meaningful), "sample_hotel_ids": [h["hotel"]["id"] for h in meaningful[:3]],
             "recognized_ids": sorted({c["characteristic_id"] for c in [*result["parsed"].get("must", []), *result["parsed"].get("nice", [])]}),
+            "no_data_ids": sorted({c["characteristic_id"] for c in result["parsed"].get("no_data", [])}),
             "unmapped": result["parsed"].get("unmapped", []), "clarifications": result["parsed"].get("clarifications", []), "limitation": spec.get("limitation")}
 
 

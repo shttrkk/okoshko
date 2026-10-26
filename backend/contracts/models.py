@@ -267,6 +267,8 @@ class ParsedQuery(Model):
     mode: Mode = "offline"
     similar_to: str | None = None
     similar_to_name: str | None = None
+    # Recognized conditions without any data in the demo region; not used for ranking.
+    no_data: list[Criterion] = Field(default_factory=list)
 
 
 class SearchRequest(Model):

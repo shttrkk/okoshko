@@ -24,6 +24,7 @@ from backend.contracts import (
     now,
     uid,
 )
+from backend.coverage import region_coverage
 from backend.db.repository import get_repo
 from backend.llm.client import LLMClient
 from backend.settings import DATA
@@ -104,8 +105,13 @@ def detail(hotel_id: str, repo, *, text: str = "", month: int | None = None, par
 def status(repo=_REPO):
     manifest_path = DATA / "seed" / "manifest.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
+    hotel_count = len(repo.all("hotels"))
+    specs = catalog(repo)
+    rows = repo.search_facts() if hasattr(repo, "search_facts") else repo.all("facts")
+    coverage = region_coverage(rows, specs, hotel_count)
     return {"name": "О!кно", "mode": LLMClient(repo).mode, "version": "1.0.0",
-            "hotel_count": len(repo.all("hotels")), "characteristic_count": len(catalog(repo)),
+            "hotel_count": hotel_count, "characteristic_count": len(specs),
+            "region_coverage": coverage, "no_data_characteristics": sorted(cid for cid, row in coverage.items() if row["status"] == "no_data"),
             "seed_version": manifest.get("seed_version", manifest.get("generated_at", "unknown")),
             "region_name": "Сочи: центр + Адлер–Имеретинка"}
 
@@ -176,6 +182,16 @@ def search(body: SearchRequest, repo=_REPO):
                                          if parsed.must or parsed.nice else [])
             ids = None if reference else sorted({criterion.characteristic_id for criterion in [*parsed.must, *parsed.nice]} | {"beach_walk"})
             rows = repo.search_facts(ids, 9 if reference else parsed.month) if hasattr(repo, "search_facts") else repo.all("facts")
+            if reference is None:
+                coverage = region_coverage(rows, [spec for spec in specs if spec.id in set(ids)], len(hotel_rows))
+                missing = [c for c in [*parsed.must, *parsed.nice] if coverage.get(c.characteristic_id, {}).get("status") == "no_data"]
+                if missing:
+                    parsed.no_data = missing
+                    parsed.must = [c for c in parsed.must if c not in missing]
+                    parsed.nice = [c for c in parsed.nice if c not in missing]
+                    labels = ", ".join(dict.fromkeys("«" + c.label + "»" for c in missing))
+                    parsed.clarifications = [f"В демо-регионе нет данных: {labels}. Это условие не учитывается в выдаче.",
+                                             *parsed.clarifications][:2]
             facts = [Fact.model_validate(row) for row in rows]
             if reference is not None:
                 # Buildings of one complex share a name; they are not "similar" discoveries.
