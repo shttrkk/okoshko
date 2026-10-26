@@ -221,7 +221,7 @@ export function BookingPage() {
           ? criteria.map((c, index) => ({
               id: crypto.randomUUID(),
               characteristic_id: c.characteristic_id,
-              text: `${c.label}${typeof c.value === "number" ? ` ${c.op === "lte" ? "≤" : c.op === "gte" ? "≥" : "="} ${c.value}${c.characteristic_id === "beach_walk" ? " мин" : ""}` : c.value === false ? ": нет" : ""}`,
+              text: `${c.label}${typeof c.value === "number" && !/[≤≥=]\s*-?\d/.test(c.label) ? ` ${c.op === "lte" ? "≤" : c.op === "gte" ? "≥" : "="} ${c.value.toLocaleString("ru-RU")}${c.field === "minutes" ? " мин" : c.field === "water_c" ? " °C" : c.field?.endsWith("_m") ? " м" : ""}` : c.value === false ? ": нет" : ""}`,
               critical: index < (parsed?.must.length || 0),
               scope: c.scope || { type: "hotel" },
               fact_ids:

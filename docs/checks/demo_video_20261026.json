@@ -1,0 +1,208 @@
+{
+  "started_at": "2026-10-26T15:42:38.882Z",
+  "base": "http://localhost:8080",
+  "check_only": false,
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "hero": {
+    "id": "osm-node-11866202895",
+    "name": "Cascade",
+    "facade": "SW",
+    "floor": 3,
+    "synthetic_quiet": true
+  },
+  "initial_status": {
+    "name": "О!кно",
+    "mode": "offline",
+    "version": "1.0.0",
+    "hotel_count": 250,
+    "characteristic_count": 16,
+    "seed_version": "sochi-2026-10-26-ab-v2",
+    "region_name": "Сочи: центр + Адлер–Имеретинка"
+  },
+  "initial_search_ms": 628.7375840001914,
+  "stages": [
+    {
+      "scene": 1,
+      "title": "Три пожелания вместо четырнадцати вкладок",
+      "started_seconds": 0.011,
+      "duration_seconds": 6.001
+    },
+    {
+      "scene": 2,
+      "title": "Важное стало проверяемыми условиями",
+      "started_seconds": 6.088,
+      "duration_seconds": 20
+    },
+    {
+      "scene": 3,
+      "title": "Да, но — с нужной стороны и этажа",
+      "started_seconds": 26.188,
+      "duration_seconds": 24.001
+    },
+    {
+      "scene": 4,
+      "title": "Неизвестное — вопрос, а не «нет»",
+      "started_seconds": 50.264,
+      "duration_seconds": 12.002
+    },
+    {
+      "scene": 5,
+      "title": "Пожелания не потеряются в комментарии",
+      "started_seconds": 62.323,
+      "duration_seconds": 8.001
+    },
+    {
+      "scene": 6,
+      "title": "Отель отвечает один раз — по полям",
+      "started_seconds": 70.369,
+      "duration_seconds": 22
+    },
+    {
+      "scene": 7,
+      "title": "Договорились о конкретном номере",
+      "started_seconds": 92.417,
+      "duration_seconds": 5.001
+    },
+    {
+      "scene": 8,
+      "title": "Новый смысл — через спецификацию",
+      "started_seconds": 97.465,
+      "duration_seconds": 17.659
+    },
+    {
+      "scene": 9,
+      "title": "У каждого факта есть путь",
+      "started_seconds": 115.399,
+      "duration_seconds": 10.001
+    },
+    {
+      "scene": 10,
+      "title": "Мир меняется — паспорт предупреждает",
+      "started_seconds": 125.485,
+      "duration_seconds": 32.329
+    },
+    {
+      "scene": 11,
+      "title": "250 отелей. Проверяемые основания.",
+      "started_seconds": 173.266,
+      "duration_seconds": 18.609
+    }
+  ],
+  "question_id": "312a075c9373c2aba5d69911dc8905d2",
+  "passport_mode": "preliminary_without_dates",
+  "passport_id": "3f6b1b8b-daa0-4072-be72-71db0cace6bf",
+  "answer_claim_count": 1,
+  "dry_run": [
+    {
+      "hotel_id": "osm-node-10058556917",
+      "claims": 1,
+      "warnings": []
+    },
+    {
+      "hotel_id": "osm-node-10118233110",
+      "claims": 0,
+      "warnings": [
+        "Недостаточно совместимых свежих входных фактов; общий номер не подтверждён"
+      ]
+    },
+    {
+      "hotel_id": "osm-node-10574252909",
+      "claims": 1,
+      "warnings": []
+    }
+  ],
+  "backfill_run_id": "08508096-70a5-46aa-93ff-f048f60b6436",
+  "visible_backfill_progress": "1",
+  "agent_run_id": "6aa28b05-3e0e-4779-ae2a-97fed6a242df",
+  "agent_visible_steps": 1,
+  "change_id": "9847f2b9cdd12ba63ca70b0e52f2feaa",
+  "notifications": 5,
+  "final_status": {
+    "name": "О!кно",
+    "mode": "offline",
+    "version": "1.0.0",
+    "hotel_count": 250,
+    "characteristic_count": 17,
+    "seed_version": "sochi-2026-10-26-ab-v2",
+    "region_name": "Сочи: центр + Адлер–Имеретинка"
+  },
+  "quality": {
+    "coverage": {
+      "known_pairs": 2311,
+      "total_pairs": 4250,
+      "ratio": 0.5437647058823529
+    },
+    "manual_label_count": 0,
+    "parser_accuracy": null,
+    "ndcg_at_5": null
+  },
+  "status": "passed",
+  "elapsed_seconds": 192.645,
+  "browser_errors": [],
+  "failed_requests": [],
+  "blocked_external": [],
+  "raw_video": "/Users/shttrkk/ostrovok-hack/okno-wt-frontend/demo/recordings/2026-10-26T15-42-35-628Z/okno-demo-source.webm",
+  "completed_backfill": {
+    "run_id": "08508096-70a5-46aa-93ff-f048f60b6436",
+    "status": "completed",
+    "processed": 250,
+    "total": 250,
+    "step_count": 251
+  },
+  "capture_warning": "Error: Recording exceeded its 176-second scene budget; source WebM retained.",
+  "encoding": {
+    "source_duration_seconds": 200.48,
+    "playback_speed": 1.1,
+    "final_hold_seconds": 8,
+    "cuts": [
+      {
+        "start_seconds": 188,
+        "end_seconds": 200.48,
+        "reason": "Quality page loading. The real completed scene-11 UI screenshot is held for 8 seconds afterwards."
+      }
+    ],
+    "caption_recovery": "Only the 112px recording-caption strip was restored from the real scene PNGs because this Chrome screencast clipped its bottom inset. Product content above y=968 is untouched.",
+    "caption_timing_ratio": 1.0406706636559473,
+    "note": "Complete source retained. Product actions play 10% faster; only the tail of quality loading is removed and followed by the actual completed UI screenshot, held as a freeze frame."
+  },
+  "video": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "width": 1920,
+        "height": 1080,
+        "r_frame_rate": "30/1"
+      }
+    ],
+    "format": {
+      "duration": "178.900000",
+      "size": "10205367"
+    }
+  },
+  "mp4": "/Users/shttrkk/ostrovok-hack/okno-wt-frontend/demo/okno-demo.mp4",
+  "final_agent_run": {
+    "status": "completed",
+    "steps": 35,
+    "error": null
+  },
+  "quality_snapshot_note": "The report quality object was fetched immediately before navigating to the quality UI while backfill was still running; the later real UI screenshot can show a slightly newer coverage snapshot.",
+  "sha256": {
+    "mp4": "799f458eba9779d1944646a7cf603e7edaccfe6b6194135095fa2f6da32707ef",
+    "raw": "afe0a37186811c647ff85ce99dcd8eded2c101672c8654498eca03cda9d7e29b"
+  },
+  "script_commit": "cd82a4f",
+  "visual_review": {
+    "checked_frames_seconds": [
+      45,
+      133,
+      143,
+      175
+    ],
+    "result": "pass",
+    "final_quality_frame": "Actual completed UI screenshot held 8 seconds"
+  }
+}
