@@ -1,0 +1,204 @@
+version: 1
+label_type: synthetic_persona_queries
+methodology: >-
+  Авторские примеры запросов пяти исследовательских персон и дополнительных
+  граничных случаев. Ожидаемые условия заданы вручную для проверки parser;
+  это не пользовательские логи, не ручная разметка реальных отелей и не nDCG.
+  Оценки релевантности отелей в этом файле отсутствуют.
+queries:
+  - id: anniversary_demo
+    persona: Маша — годовщина и чуткий сон
+    text: тихий номер с видом на закат недалеко от моря
+    expected:
+      must:
+        - {id: quiet_night, value: true}
+        - {id: sunset_view, value: true}
+        - {id: beach_walk, field: minutes, op: lte, value: 10}
+      must_count: 3
+      unmapped: []
+  - id: anniversary_september
+    persona: Маша — годовщина и чуткий сон
+    text: Сочи, 14–21 сентября 2027, обязательно закат, желательно вид на море
+    expected:
+      must: [{id: sunset_view, value: true}]
+      nice: [{id: sea_view, value: true}]
+      month: 9
+      check_in: '2027-09-14'
+      check_out: '2027-09-21'
+  - id: sleep_priority
+    persona: Маша — годовщина и чуткий сон
+    text: Обязательно тихо, закат не обязателен
+    expected:
+      must: [{id: quiet_night, value: true}]
+      nice: [{id: sunset_view, value: true}]
+  - id: no_view_requirement
+    persona: Маша — годовщина и чуткий сон
+    text: не нужен вид на море, обязательно тихо
+    expected:
+      must: [{id: quiet_night, value: true}]
+      absent: [sea_view]
+  - id: no_noise
+    persona: Маша — годовщина и чуткий сон
+    text: не шумный номер, двойные окна
+    expected:
+      must: [{id: quiet_night, value: true}, {id: soundproofing, field: windows, value: double}]
+  - id: sleep_blackout
+    persona: Маша — годовщина и чуткий сон
+    text: шумоизоляция, желательно плотные шторы
+    expected:
+      must: [{id: soundproofing}]
+      nice: [{id: soundproofing, field: blackout, value: true}]
+  - id: family_stroller
+    persona: Анна — семья с коляской
+    text: с детьми и коляской, до пляжа не более 7 минут
+    expected:
+      must: [{id: family_nearby, value: true}, {id: beach_walk, value: 7, op: lte}]
+  - id: family_pharmacy
+    persona: Анна — семья с коляской
+    text: нужна круглосуточная аптека, желательно детская площадка
+    expected:
+      must: [{id: night_pharmacy, value: true}]
+      nice: [{id: family_nearby, value: true}]
+  - id: family_warm_water
+    persona: Анна — семья с коляской
+    text: с ребенком, вода не ниже 23 градусов в июне
+    expected:
+      must: [{id: family_nearby}, {id: climate, field: water_c, op: gte, value: 23}]
+      month: 6
+  - id: family_balcony
+    persona: Анна — семья с коляской
+    text: с детьми, желательно балкон
+    expected:
+      must: [{id: family_nearby}]
+      nice: [{id: room_orientation, field: balcony, value: true}]
+  - id: family_eight_minutes
+    persona: Анна — семья с коляской
+    text: в Адлере рядом с морем, до пляжа 8 минут
+    expected:
+      must: [{id: beach_walk, value: 8, op: lte}]
+      no_region_warning: true
+  - id: remote_fifty
+    persona: Илья — удалённая работа
+    text: интернет от 50 Мбит/с, желательно тихий номер
+    expected:
+      must: [{id: connectivity, field: download_mbps, op: gte, value: 50}]
+      nice: [{id: quiet_night}]
+  - id: remote_beach
+    persona: Илья — удалённая работа
+    text: работать у моря, до пляжа не дальше 12 минут
+    expected:
+      must: [{id: connectivity}, {id: beach_walk, op: lte, value: 12}]
+  - id: remote_video
+    persona: Илья — удалённая работа
+    text: нужны видеозвонки, желательно вид на горы
+    expected:
+      must: [{id: connectivity}]
+      nice: [{id: mountain_view, value: true}]
+  - id: remote_windows
+    persona: Илья — удалённая работа
+    text: двойные окна и кондиционер, интернет
+    expected:
+      must: [{id: soundproofing, field: windows, value: double}, {id: soundproofing, field: air_conditioning, value: true}, {id: connectivity}]
+  - id: dog_car
+    persona: Олег — на машине с собакой
+    text: с собакой 18 кг на машине в сентябре
+    expected:
+      must: [{id: pets, value: true}, {id: car_access, value: true}]
+      pet_weight_kg: 18
+      month: 9
+  - id: dog_labrador
+    persona: Олег — на машине с собакой
+    text: лабрадор 32 кг, нужна парковка
+    expected:
+      must: [{id: pets}, {id: car_access}]
+      pet_weight_kg: 32
+  - id: dog_small
+    persona: Олег — на машине с собакой
+    text: с собакой весом 7,5 кг, желательно закат
+    expected:
+      must: [{id: pets, value: true}]
+      nice: [{id: sunset_view}]
+      pet_weight_kg: 7.5
+  - id: cat_car
+    persona: Олег — на машине с питомцем
+    text: с кошкой 4 кг, на машине
+    expected:
+      must: [{id: pets, value: true}, {id: car_access}]
+      pet_weight_kg: 4
+  - id: electric_car
+    persona: Олег — на машине с собакой
+    text: электромобиль, нужна зарядка, с собакой
+    expected:
+      must: [{id: car_access}, {id: pets}]
+  - id: culture_history
+    persona: Лена — прогулки и впечатления
+    text: историческое здание и фото вокруг, желательно вид на горы
+    expected:
+      must: [{id: building_history}, {id: nearby_photos}]
+      nice: [{id: mountain_view}]
+  - id: culture_air
+    persona: Лена — прогулки и впечатления
+    text: чистый воздух, вид на горы в октябре
+    expected:
+      must: [{id: air_quality, field: european_aqi, op: lte, value: 40}, {id: mountain_view}]
+      month: 10
+  - id: culture_west_floor
+    persona: Лена — прогулки и впечатления
+    text: вид на море с 5-го этажа, западная сторона
+    expected:
+      must: [{id: sea_view}, {id: room_orientation}]
+      facade: W
+      min_floor: 5
+  - id: culture_sunset_winter
+    persona: Лена — прогулки и впечатления
+    text: закат из окна в декабре
+    expected:
+      must: [{id: sunset_view}]
+      month: 12
+  - id: explicit_negative
+    persona: Граничный случай — отрицание
+    text: без вида на море, без собак
+    expected:
+      must: [{id: sea_view, value: false}, {id: pets, value: false}]
+  - id: unknown_spa
+    persona: Граничный случай — вне каталога
+    text: тихий атмосферный отель со спа
+    expected:
+      must: [{id: quiet_night}]
+      unmapped_contains: [атмосферный, спа]
+  - id: outside_moscow
+    persona: Граничный случай — другой город
+    text: в Москве тихий номер с видом на закат
+    expected:
+      region_out_of_scope: true
+  - id: outside_saratov
+    persona: Граничный случай — другой город
+    text: Саратов, с детьми и коляской
+    expected:
+      region_out_of_scope: true
+  - id: sirius_supported
+    persona: Граничный случай — деморегион
+    text: В Сириусе с собакой, до пляжа 10 минут
+    expected:
+      must: [{id: pets}, {id: beach_walk, value: 10}]
+      no_region_warning: true
+  - id: origin_city
+    persona: Граничный случай — город отправления
+    text: Едем из Москвы в Сочи, нужен тихий номер
+    expected:
+      must: [{id: quiet_night}]
+      no_region_warning: true
+  - id: explicit_dates
+    persona: Граничный случай — даты
+    text: тихо с 2027-07-03 до 2027-07-10
+    expected:
+      must: [{id: quiet_night}]
+      month: 7
+      check_in: '2027-07-03'
+      check_out: '2027-07-10'
+  - id: high_floor_ambiguous
+    persona: Граничный случай — неоднозначность
+    text: высокий этаж, красивый вид
+    expected:
+      must: [{id: room_orientation}]
+      clarification_contains: минимальный этаж

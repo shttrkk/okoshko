@@ -125,13 +125,20 @@ def _compare(actual, criterion: Criterion) -> bool | None:
 
 def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_name: str) -> Match:
     if not fresh(fact):
-        reason = "Данные устарели; нужно перепроверить" if fact.status == "stale" or fact.valid_until else "Данные неизвестны или оспариваются"
+        reason = "Данные оспариваются" if fact.status == "disputed" else "Данные неизвестны" if fact.status == "unknown" else "Данные устарели; нужно перепроверить"
         return Match(facts=[fact], reason=reason)
     if not fact.evidence or not fact.supporting_claim_ids:
         return Match(facts=[fact], reason="Нет цепочки подтверждающих источников")
     actual = value_at(fact, field_name)
     value = fact.value if isinstance(fact.value, dict) else {}
     result = _compare(actual, criterion)
+    scope = scope_values(fact)
+    if fact.scope.month and value.get("month") and fact.scope.month != value["month"]:
+        return Match(facts=[fact], reason="Месяц значения расходится с областью действия факта", value=actual)
+    if fact.scope.facade and value.get("facade") and fact.scope.facade != value["facade"]:
+        return Match(facts=[fact], reason="Сторона в значении расходится с областью действия факта", value=actual)
+    if fact.characteristic_id == "climate" and not scope.get("month"):
+        return Match(facts=[fact], reason="Не указан месяц климатических данных", value=actual)
     if result is None and value.get("available") is False and criterion.value is not False:
         result = False
     if fact.characteristic_id in MONTHLY and value.get("months") and parsed.month not in value["months"]:
@@ -157,6 +164,10 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
         if fact.characteristic_id == "soundproofing" and field_name == "available" and any(value.get(k) is not None for k in ("windows", "blackout", "air_conditioning")):
             return Match("partial", [fact], "Есть сведения об окнах, но шумоизоляция не подтверждена", actual)
         return Match(facts=[fact], reason="Нужное поле не подтверждено", value=actual)
+    if result and criterion.characteristic_id in {"sea_view", "sunset_view", "mountain_view"} and not any(
+        scope.get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type")
+    ):
+        return Match("partial", [fact], "Общее заявление о виде не подтверждает сторону и этаж конкретного номера", actual)
     if result and (fact.confidence < TRUSTED_CONFIDENCE or incomplete):
         return Match("partial", [fact], "Есть предварительные данные; нужно уточнить ограничения" if incomplete else "Предварительная оценка с низкой уверенностью", actual)
     if not result and fact.confidence < TRUSTED_CONFIDENCE:
@@ -234,6 +245,6 @@ def assess_hotel(facts: list[Fact], parsed: ParsedQuery, specs: list[Characteris
         return yes, progress, utility, -item.context.floor
     best = max(candidates, key=key, default=Assessment(RoomContext(month=parsed.month), []))
     best.alternatives = {i: list({f.id: f for f in fs}.values()) for i, fs in alternatives.items()}
-    best.scope_conflict = bool(parsed.must) and len(alternatives) == len(parsed.must) and not any(
-        all(m.status in {"yes", "partial"} for m in c.matches[:len(parsed.must)]) for c in candidates)
+    best.scope_conflict = len(alternatives) >= 2 and not any(
+        all(c.matches[i].status in {"yes", "partial"} for i in alternatives) for c in candidates)
     return best

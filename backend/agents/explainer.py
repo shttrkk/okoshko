@@ -131,14 +131,17 @@ def _default_query(facts: list[Fact]) -> ParsedQuery:
 def room_from_assessment(assessment: Assessment, parsed: ParsedQuery) -> str:
     if assessment.scope_conflict:
         return "Один номер со всеми обязательными условиями не подтверждён: подходящие данные относятся к разным сторонам, этажам или типам номера. Уточните компромисс у отеля."
+    if any(m.status == "no" for m in assessment.matches[:len(parsed.must)]):
+        return "Номер со всеми обязательными условиями не найден в имеющихся данных. Уточните у отеля альтернативный номер или измените условие."
     relevant = assessment.matches[:len(parsed.must)] or assessment.matches
     supported = [f for m in relevant if m.status in {"yes", "partial"} for f in m.facts]
     scoped = [scope_values(f) for f in supported if any(scope_values(f).get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type"))]
     if not scoped:
         return "Уточните сторону, этаж и доступность конкретного номера у отеля."
     context = assessment.context
-    low = max([s.get("floor_min", 1) for s in scoped] + [parsed.min_floor or 1])
-    highs = [s["floor_max"] for s in scoped if s.get("floor_max")]
+    requested = [c.scope.model_dump(exclude_none=True) for c in parsed.must if c.scope]
+    low = max([s.get("floor_min", 1) for s in [*scoped, *requested]] + [parsed.min_floor or 1])
+    highs = [s["floor_max"] for s in [*scoped, *requested] if s.get("floor_max")]
     high = min(highs) if highs else None
     parts = []
     if context.facade:
