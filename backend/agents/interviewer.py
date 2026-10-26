@@ -6,11 +6,51 @@ from threading import RLock
 
 from psycopg.errors import UniqueViolation
 
-from backend.contracts import Question
+from backend.contracts import Question, Scope
 
 _LOCK = RLock()
 LABELS = {"soundproofing": "шумоизоляция, окна, blackout и кондиционер", "room_orientation": "сторона, этажи и номера с балконом", "pets": "правила размещения с питомцами", "sunset_view": "закат из окна", "sea_view": "вид на море", "quiet_night": "тишина ночью", "mountain_view": "вид на горы"}
 IMPACT = {"soundproofing": 1., "room_orientation": 1., "pets": .85, "sunset_view": .95, "quiet_night": 1., "sea_view": .9}
+SIDES = {"N": "север", "NE": "северо-восток", "E": "восток", "SE": "юго-восток", "S": "юг", "SW": "юго-запад", "W": "запад", "NW": "северо-запад"}
+MONTHS = ("январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь")
+_SCOPE_MARKER = "\nГость просит уточнить модельный срез: "
+
+
+class QuestionScopeLimit(ValueError):
+    """The pending question is full; a ninth scope must not replace an old one."""
+
+
+def _with_requested_scope(question: Question, scope: Scope | None) -> tuple[Question, bool]:
+    if scope is None:
+        return question, False
+    scope = Scope.model_validate(scope)
+    meaning = scope.model_dump(exclude={"type"}, exclude_none=True)
+    if not meaning or any(existing.model_dump(exclude={"type"}, exclude_none=True) == meaning for existing in question.requested_scopes):
+        return question, False
+    if len(question.requested_scopes) >= 8:
+        raise QuestionScopeLimit("В одном вопросе можно уточнить не более 8 разных срезов. Новый срез не добавлен.")
+    result = question.model_copy(deep=True)
+    result.requested_scopes.append(scope.model_copy(deep=True))
+    descriptions = []
+    for requested in result.requested_scopes:
+        parts = [SIDES[requested.facade]] if requested.facade else []
+        low, high = requested.floor_min, requested.floor_max
+        if low is not None and high is not None:
+            parts.append(f"{low}-й этаж" if low == high else f"этажи {low}–{high}")
+        elif low is not None:
+            parts.append(f"с {low}-го этажа")
+        elif high is not None:
+            parts.append(f"до {high}-го этажа")
+        if requested.month:
+            parts.append(MONTHS[requested.month-1])
+        if requested.room_type:
+            parts.append("указанный тип номера")
+        descriptions.append(", ".join(parts))
+    note = (_SCOPE_MARKER + " / ".join(descriptions) + ". Это запрос на уточнение модели, не подтверждение существования номера или окна. "
+            "Укажите в ответе сторону, этаж, месяц и ограничения своими словами; одного «Да» недостаточно.")
+    result.text = result.text.split(_SCOPE_MARKER, 1)[0] + note
+    result.hypothesis = (result.hypothesis or "").split(_SCOPE_MARKER, 1)[0] + note
+    return result, True
 
 
 def stable_id(*parts: object) -> str:
@@ -44,7 +84,8 @@ def _build_question(hotel_id: str, cid: str, facts: list[dict], *, reason="unkno
                     demand_estimate=demand, demand_synthetic=False)
 
 
-def create_question(hotel_id: str, characteristic_id: str, repo, *, reason="guest", demand: dict | None = None) -> Question:
+def create_question(hotel_id: str, characteristic_id: str, repo, *, reason="guest", demand: dict | None = None,
+                    scope: Scope | None = None) -> Question:
     """One pending question per hotel/characteristic, including concurrent retries."""
     from backend.agents.demand import search_demand
     demand = demand if demand is not None else search_demand(repo, hotel_id)["shown_with"]
@@ -53,13 +94,22 @@ def create_question(hotel_id: str, characteristic_id: str, repo, *, reason="gues
                     if characteristic_id in value.get("characteristic_ids", [])]
         pending = next((value for value in previous if value.get("status") == "pending"), None)
         if pending:
-            return Question.model_validate(pending)
+            question, changed = _with_requested_scope(Question.model_validate(pending), scope)
+            if changed:
+                repo.upsert("questions", question.model_dump(mode="json"))
+            return question
         question = _build_question(hotel_id, characteristic_id, repo.find("facts", hotel_id=hotel_id), reason=reason,
                                    ordinal=len(previous), demand=demand.get(characteristic_id, 0))
+        question, _ = _with_requested_scope(question, scope)
         try:
             repo.insert("questions", question.model_dump(mode="json"))
         except UniqueViolation:
-            return Question.model_validate(repo.get("questions", question.id))
+            winner = Question.model_validate(repo.get("questions", question.id))
+            if winner.status != "pending":
+                return create_question(hotel_id, characteristic_id, repo, reason=reason, demand=demand, scope=scope)
+            question, changed = _with_requested_scope(winner, scope)
+            if changed:
+                repo.upsert("questions", question.model_dump(mode="json"))
         return question
 
 

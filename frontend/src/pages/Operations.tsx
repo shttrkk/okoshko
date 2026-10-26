@@ -327,6 +327,23 @@ export function HotelierPage() {
                         </span>
                         {question.hypothesis && <p>{question.hypothesis}</p>}
                         <h3 data-testid="hotelier-question">{question.text}</h3>
+                        {!!question.requested_scopes?.length && (
+                          <div data-testid="hotelier-requested-scopes">
+                            <p className="muted small">
+                              Запрошенные уточнения:
+                            </p>
+                            <ul>
+                              {question.requested_scopes.map((scope, index) => (
+                                <li key={index}>{scopeText(scope)}</li>
+                              ))}
+                            </ul>
+                            <p className="fine-print">
+                              Это пожелания гостей, а не подтверждение номера,
+                              окна или наличия мест. Уточните только известные
+                              вам условия.
+                            </p>
+                          </div>
+                        )}
                       </div>
                       <div className="question-impact">
                         <Sparkles size={17} />

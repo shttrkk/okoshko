@@ -24,6 +24,7 @@ import type {
   Question,
   SearchRequest,
   SearchResult,
+  Scope,
   Source,
   Spec,
   Status,
@@ -269,8 +270,12 @@ export const api = {
       : request<{ hotels: HotelDetail[]; characteristics: Spec[] }>(
           `/api/compare?ids=${ids.map(id).join(",")}&compact=true`,
         ),
-  ask: (hotel_id: string, characteristic_id: string) =>
-    request<Question>("/api/questions", { hotel_id, characteristic_id }),
+  ask: (hotel_id: string, characteristic_id: string, scope?: Scope) =>
+    request<Question>("/api/questions", {
+      hotel_id,
+      characteristic_id,
+      ...(scope ? { scope } : {}),
+    }),
   login: (username: string, password: string) =>
     request<{
       token: string;

@@ -97,11 +97,19 @@ def cabinet(hotel_id: str, repo=_REPO, _user=_AUTH):
 
 @router.post("/questions", response_model=Question)
 def ask(request: AskRequest, repo=_REPO):
+    from backend.agents.interviewer import QuestionScopeLimit
+
     _get(repo, "hotels", request.hotel_id, "Отель")
     spec = _get(repo, "characteristics", request.characteristic_id, "Характеристика")
     if not spec.get("hotelier_answerable", True):
         raise HTTPException(422, "Характеристика не предусматривает вопрос отельеру")
-    return create_question(request.hotel_id, request.characteristic_id, repo)
+    try:
+        # A scope aggregation must not overwrite a question concurrently closed
+        # by confirm_answer. Both public paths observe the same lock ordering.
+        with _CONFIRM_LOCK:
+            return create_question(request.hotel_id, request.characteristic_id, repo, scope=request.scope)
+    except QuestionScopeLimit as error:
+        raise HTTPException(409, str(error)) from error
 
 
 def _save_preview(answer: Answer, question: Question, repo) -> Answer:

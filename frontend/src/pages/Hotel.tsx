@@ -27,10 +27,11 @@ import {
   EvidenceModal,
   HotelVisual,
   Loading,
+  scopeText,
   Synthetic,
   VerdictList,
 } from "../components/ui";
-import type { Fact, Hotel, SearchHit, Verdict } from "../types";
+import type { Fact, Hotel, Scope, SearchHit, Verdict } from "../types";
 import "../night-details.css";
 const conflictStatus: Record<string, string> = {
   asked: "Спросили отель",
@@ -38,6 +39,17 @@ const conflictStatus: Record<string, string> = {
   auto_resolved: "Разобрано автоматически",
   resolved: "Разрешён",
 };
+const roomQuestionTraits = new Set([
+  "sea_view",
+  "sunset_view",
+  "mountain_view",
+  "quiet_night",
+  "soundproofing",
+  "room_orientation",
+  "morning_sun",
+  "evening_heat",
+  "railway_noise",
+]);
 const normalizedName = (name: string) =>
   name
     .toLocaleLowerCase("ru")
@@ -197,6 +209,34 @@ export function HotelPage() {
   );
   const currentEvidence = currentFact(evidence);
   const activeRoomSlice = roomSlice?.hotelId === id ? roomSlice.slice : null;
+  const questionScope = (
+    characteristicId: string,
+    fact?: Fact,
+    slice: RoomSlice | null = activeRoomSlice,
+  ): Scope | undefined => {
+    const propertyScope = specs.data?.find(
+      (spec) => spec.id === characteristicId,
+    )?.scope;
+    if (
+      propertyScope === "hotel" ||
+      (!propertyScope && !roomQuestionTraits.has(characteristicId))
+    )
+      return undefined;
+    if (slice)
+      return {
+        type: "floor_range",
+        facade: slice.facade,
+        floor_min: slice.floor,
+        floor_max: slice.floor,
+        month: slice.month,
+      };
+    return selectedFact?.characteristic_id === characteristicId
+      ? selectedFact.scope
+      : fact?.scope;
+  };
+  const panoramaCharacteristic =
+    selectedFact?.characteristic_id || "room_orientation";
+  const panoramaScope = questionScope(panoramaCharacteristic);
   const hasRoomRays =
     activeRoomSlice &&
     geo.view_cones?.features.some(
@@ -343,6 +383,12 @@ export function HotelPage() {
                     </p>
                   )}
                   <div className="hotel-map-context-actions">
+                    <AskButton
+                      hotelId={id}
+                      characteristicId="room_orientation"
+                      scope={questionScope("room_orientation")}
+                      compact
+                    />
                     <button
                       className="text-button small"
                       onClick={() =>
@@ -411,6 +457,7 @@ export function HotelPage() {
                     <AskButton
                       hotelId={id}
                       characteristicId={selectedFact.characteristic_id}
+                      scope={questionScope(selectedFact.characteristic_id)}
                       compact
                     />
                     <button
@@ -439,6 +486,14 @@ export function HotelPage() {
                   <VerdictList
                     verdicts={verdicts}
                     hotelId={id}
+                    questionScope={(verdict) =>
+                      questionScope(
+                        verdict.characteristic_id,
+                        d.facts.find((fact) =>
+                          verdict.fact_ids.includes(fact.id),
+                        ),
+                      )
+                    }
                     {...{ onFocusFact: focusVerdict }}
                     onEvidence={(v) => {
                       const fact =
@@ -502,6 +557,9 @@ export function HotelPage() {
                   }}
                   onEvidence={setEvidence}
                   onPanorama={setPanorama}
+                  questionScope={(characteristicId, slice) =>
+                    questionScope(characteristicId, undefined, slice)
+                  }
                 />
               )}
               <section className="disappointments-section section-block">
@@ -546,6 +604,7 @@ export function HotelPage() {
                     hotelId={id}
                     month={parsed?.month || 9}
                     onEvidence={setEvidence}
+                    questionScope={questionScope}
                     onPanorama={setPanorama}
                     onShowOnMap={(fact) => focusFact(fact, "map")}
                     selectedTrait={selectedFact?.characteristic_id}
@@ -673,11 +732,19 @@ export function HotelPage() {
                     Уличная панорама не подтверждает условия номера. Уточните их
                     у отеля.
                   </p>
+                  {panoramaScope && (
+                    <p
+                      className="muted small"
+                      data-testid="panorama-question-scope"
+                    >
+                      Пожелание к окну: {scopeText(panoramaScope)}. Это не
+                      подтверждение номера или наличия мест.
+                    </p>
+                  )}
                   <AskButton
                     hotelId={id}
-                    characteristicId={
-                      selectedFact?.characteristic_id || "room_orientation"
-                    }
+                    characteristicId={panoramaCharacteristic}
+                    scope={panoramaScope}
                     compact
                   />
                 </div>

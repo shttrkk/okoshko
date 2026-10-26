@@ -29,6 +29,9 @@ HOTELIER_VALUE_FIELDS = {
     "mountain_view": {"available", "facade", "min_floor"},
     "beach_walk": {"available", "minutes", "distance_m", "has_steps"},
 }
+MONTH_PATTERNS = (r"январ(?:ь|я|е|ю|ем)", r"феврал(?:ь|я|е|ю|ем)", r"март(?:а|е|у|ом)?", r"апрел(?:ь|я|е|ю|ем)",
+                  r"ма[йяею]|маем", r"июн(?:ь|я|е|ю|ем)", r"июл(?:ь|я|е|ю|ем)", r"август(?:а|е|у|ом)?",
+                  r"сентябр(?:ь|я|е|ю|ем)", r"октябр(?:ь|я|е|ю|ем)", r"ноябр(?:ь|я|е|ю|ем)", r"декабр(?:ь|я|е|ю|ем)")
 
 
 class _ProposedUpdate(BaseModel):
@@ -161,9 +164,24 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
     updates: list[FieldUpdate] = []
     unknown: set[str] = set()
     clarifications: list[str] = []
+    normalized = raw.lower().replace("ё", "е")
+    months = {index+1 for index, pattern in enumerate(MONTH_PATTERNS) if re.search(r"\b(?:"+pattern+r")\b", normalized)}
+    open_period = (r"\b(?:летом|зимой|весной|осенью|летн\w*|зимн\w*|весенн\w*|осенн\w*|сезон\w*)\b|"
+                   r"\b(?:с|до|по|после|начиная\s+с)\s+(?:(?:начала|конца|середины)\s+)?(?:"+"|".join(MONTH_PATTERNS)+r")\b|"
+                   r"\b(?:в|во)\s+(?:(?:первой|второй)\s+)?(?:начале|конце|середине|половине)\s+(?:"+"|".join(MONTH_PATTERNS)+r")\b|"
+                   r"\b\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?(?!\d)(?!\s*(?:кг|килограмм\w*|руб\w*|₽|мин\w*|метр\w*|м\b))|"
+                   r"\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}-?м\s+месяц\w*")
+    if len(months) > 1 or re.search(open_period, normalized):
+        return Answer(question_id=question.id, raw_text=raw, synthetic=synthetic,
+                      unknown_fields=question.characteristic_ids,
+                      needs_clarification="Уточните один календарный месяц и отдельный ответ для него; период не будет превращён в утверждение на весь год.")
+    month = next(iter(months), None)
 
     def add(cid: str, value: dict, quote: str, scope: Scope | None = None):
         scope = scope or Scope()
+        if month is not None:
+            scope = scope.model_copy(update={"month": month})
+            quote = raw  # The evidence quote must include the explicit month.
         prior = next((u for u in updates if u.characteristic_id == cid and u.scope == scope), None)
         if prior:
             contradictory = [key for key in value if key in prior.value and prior.value[key] != value[key]
@@ -180,14 +198,14 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
         elif cid not in unknown:
             updates.append(FieldUpdate(characteristic_id=cid, scope=scope, value=value, quote=quote))
 
-    normalized = raw.lower().replace("ё", "е")
     quick = normalized.strip().strip(".! ")
     if quick in {"не знаю", "частично", "затрудняюсь ответить"}:
         return Answer(question_id=question.id, raw_text=raw, synthetic=synthetic,
                       unknown_fields=question.characteristic_ids,
                       needs_clarification="Уточните конкретные номера, условия и ограничения; неизвестное останется неизвестным.")
     if quick in {"да", "нет"}:
-        if len(question.characteristic_ids) == 1 and question.characteristic_ids[0] in {"pets", "sea_view", "sunset_view", "mountain_view", "quiet_night"} and not question.hypothesis:
+        if (len(question.characteristic_ids) == 1 and question.characteristic_ids[0] in {"pets", "sea_view", "sunset_view", "mountain_view", "quiet_night"}
+                and not question.hypothesis and not question.requested_scopes):
             add(question.characteristic_ids[0], {"available": quick == "да"}, raw)
         else:
             unknown.update(question.characteristic_ids)
@@ -198,7 +216,8 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
         side = _side(low)
         low_floor, high_floor, invalid_floor = _floor(low)
         scope = Scope(type="floor_range" if low_floor else "facade", facade=side,
-                      floor_min=low_floor, floor_max=high_floor) if side and not invalid_floor else Scope()
+                      floor_min=low_floor, floor_max=high_floor) if side and not invalid_floor else Scope(
+                          floor_min=low_floor, floor_max=high_floor) if not invalid_floor else Scope()
         if invalid_floor:
             unknown.add("room_orientation")
             clarifications.append("Укажите этажи от 1 до 100 и возрастающий диапазон.")

@@ -262,29 +262,50 @@ export function Modal({
 export function AskButton({
   hotelId,
   characteristicId,
+  scope,
   compact = false,
 }: {
   hotelId: string;
   characteristicId: string;
+  scope?: Scope;
   compact?: boolean;
 }) {
-  const [busy, setBusy] = useState(false),
-    [sent, setSent] = useState(false),
-    [error, setError] = useState<Error | null>(null);
+  const key = JSON.stringify([
+    hotelId,
+    characteristicId,
+    scope
+      ? [
+          scope.type,
+          scope.facade ?? null,
+          scope.floor_min ?? null,
+          scope.floor_max ?? null,
+          scope.room_type ?? null,
+          scope.month ?? null,
+        ]
+      : null,
+  ]);
+  const [requestState, setRequestState] = useState<{
+    key: string;
+    status: "sending" | "sent" | "error";
+    error?: Error;
+  } | null>(null);
+  const current = requestState?.key === key ? requestState : null;
+  const busy = current?.status === "sending";
+  const sent = current?.status === "sent";
+  const error = current?.error;
   const { toast } = useApp();
   const ask = async () => {
-    setBusy(true);
-    setError(null);
+    setRequestState({ key, status: "sending" });
     try {
-      await api.ask(hotelId, characteristicId);
-      setSent(true);
-      toast(
-        "Вопрос добавлен в кабинет отельера. Ответ дополнит профиль отеля.",
+      await api.ask(hotelId, characteristicId, scope);
+      setRequestState((old) =>
+        old?.key === key ? { key, status: "sent" } : old,
       );
+      toast("Уточнение добавлено к вопросу в кабинете");
     } catch (e) {
-      setError(e as Error);
-    } finally {
-      setBusy(false);
+      setRequestState((old) =>
+        old?.key === key ? { key, status: "error", error: e as Error } : old,
+      );
     }
   };
   return (
@@ -302,7 +323,7 @@ export function AskButton({
         ) : (
           <MessageCircle size={14} />
         )}{" "}
-        {sent ? "Вопрос отправлен" : compact ? "Спросить" : "Спросить отель"}
+        {sent ? "Добавлено к вопросу" : compact ? "Спросить" : "Спросить отель"}
       </button>
       {error && (
         <span role="alert" className="inline-error">
@@ -317,12 +338,14 @@ export function VerdictList({
   hotelId,
   onEvidence,
   onFocusFact,
+  questionScope,
   compact = false,
 }: {
   verdicts: Verdict[];
   hotelId: string;
   onEvidence?: (v: Verdict) => void;
   onFocusFact?: (v: Verdict) => void;
+  questionScope?: (v: Verdict) => Scope | undefined;
   /** Search cards: the gist only; caveats live on the hotel page. */
   compact?: boolean;
 }) {
@@ -387,6 +410,7 @@ export function VerdictList({
                 compact
                 hotelId={hotelId}
                 characteristicId={v.characteristic_id}
+                scope={questionScope?.(v)}
               />
             )}
           </div>

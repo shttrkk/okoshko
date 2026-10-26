@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 03:32 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 03:37 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -165,3 +165,5 @@
 - 27.10.2026 03:28: feat(data): add offline OSM property internet observations; 932 passed, 1 warning, 125 subtests passed in 53.89s; Ruff и frontend lint PASS.
 
 - 27.10.2026 03:32: fix(frontend): refresh open fact views after data changes; 993 passed, 1 warning, 125 subtests passed in 57.71s; Ruff и frontend lint PASS.
+
+- 27.10.2026 03:37: feat(frontend): keep selected room scope in hotel questions; 1017 passed, 1 warning, 125 subtests passed in 51.27s; Ruff и frontend lint PASS.

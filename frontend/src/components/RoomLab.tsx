@@ -7,6 +7,7 @@ import type {
   Geo,
   HotelDetail,
   ParsedQuery,
+  Scope,
   Side,
 } from "../types";
 import { MONTHS, MONTHS_IN, pct, SIDE_ORDER, SIDES } from "./facts";
@@ -281,6 +282,7 @@ export function RoomLab({
   onEvidence,
   onPanorama,
   mapActive,
+  questionScope,
 }: {
   detail: HotelDetail;
   geo: Geo;
@@ -289,6 +291,10 @@ export function RoomLab({
   onEvidence: (fact: Fact) => void;
   onPanorama: (side: string) => void;
   mapActive: boolean;
+  questionScope?: (
+    characteristicId: string,
+    slice: RoomSlice,
+  ) => Scope | undefined;
 }) {
   const facades = SIDE_ORDER.filter((side) =>
     geo.facades?.some((facade) => facade.code === side),
@@ -623,6 +629,9 @@ export function RoomLab({
                         <VerdictList
                           hotelId={detail.hotel.id}
                           verdicts={evaluated.verdicts}
+                          questionScope={(verdict) =>
+                            questionScope?.(verdict.characteristic_id, slice)
+                          }
                           onEvidence={(verdict) => {
                             const fact = evaluated.facts.find((entry) =>
                               verdict.fact_ids.includes(entry.id),

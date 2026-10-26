@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Eye, MapPin } from "lucide-react";
 import { record } from "../api";
-import type { Claim, Fact } from "../types";
+import type { Claim, Fact, Scope } from "../types";
 import { NearbyPhotos } from "./Photos";
 import {
   AskButton,
@@ -501,6 +501,7 @@ function FactCard({
   onPanorama,
   onShowOnMap,
   selectedTrait,
+  questionScope,
 }: {
   id: string;
   name: string;
@@ -513,6 +514,7 @@ function FactCard({
   onPanorama?: (side: string) => void;
   onShowOnMap?: (fact: Fact) => void;
   selectedTrait?: string;
+  questionScope?: (characteristicId: string, fact?: Fact) => Scope | undefined;
 }) {
   const shown = facts.filter(known);
   const rep = representative(facts, month);
@@ -588,7 +590,12 @@ function FactCard({
             needsQuestion(rep) ||
             SOLAR.has(id) ||
             id === "railway_noise") && (
-            <AskButton hotelId={hotelId} characteristicId={id} compact />
+            <AskButton
+              hotelId={hotelId}
+              characteristicId={id}
+              scope={questionScope?.(id, rep)}
+              compact
+            />
           )}
         {onPanorama &&
           VIEWS.has(id) &&
@@ -647,6 +654,7 @@ export function FactsPanel({
   onPanorama,
   onShowOnMap,
   selectedTrait,
+  questionScope,
 }: {
   facts: Fact[];
   claims: Claim[];
@@ -661,6 +669,7 @@ export function FactsPanel({
   /** Focus a characteristic and its actual scope on the hotel map. */
   onShowOnMap?: (fact: Fact) => void;
   selectedTrait?: string;
+  questionScope?: (characteristicId: string, fact?: Fact) => Scope | undefined;
 }) {
   const ids = [...new Set(facts.map((f) => f.characteristic_id))];
   const spec = (id: string) => specs.find((s) => s.id === id);
@@ -704,6 +713,7 @@ export function FactsPanel({
                   onPanorama={onPanorama}
                   onShowOnMap={onShowOnMap}
                   selectedTrait={selectedTrait}
+                  questionScope={questionScope}
                 />
               ))}
           </div>
@@ -728,7 +738,12 @@ export function FactsPanel({
               >
                 <span>{nameOf(id)}</span>
                 {!hotelier && (
-                  <AskButton hotelId={hotelId} characteristicId={id} compact />
+                  <AskButton
+                    hotelId={hotelId}
+                    characteristicId={id}
+                    scope={questionScope?.(id)}
+                    compact
+                  />
                 )}
               </li>
             ))}
