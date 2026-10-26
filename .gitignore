@@ -24,3 +24,11 @@ playwright-report/
 .DS_Store
 *.egg-info/
 
+
+# Local planning material; full Git history is intentionally retained.
+/AGENTS.md
+/docs/SOLUTION_BLUEPRINT.md
+/docs/reviews/
+/docs/materials/
+/docs/research/
+/docs/RULES.md

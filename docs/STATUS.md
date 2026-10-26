@@ -67,7 +67,7 @@
 - Второй регион интегрирован c7c8ba3/f721305: Геленджик, 30 объектов, 2 376 geo +418 open claims, 14 стадий/1 140,93 с. Geo 373,25 с; warm mean 11,795 с/отель; lifetime RSS 1,81 GB. Sochi seed/geo/tiles не изменялись; readonly/network-none validation обоих регионов PASS.
 - Требуется повтор clean clone: без .env, новый project/пустые volumes, Docker-only PATH, prune, smoke/demo-check/browser. Предыдущий прогон был с .env.example→.env.
 - pytest-cov и make demo-voice интегрированы; 85% line coverage без кода тестов. README provenance обновляется. Голос и публичные URL предоставляет владелец позже; плейсхолдеры сохраняются.
-- Перед финальной упаковкой рабочие reviews/Telegram/blueprint будут убраны из tracked tree с сохранением полной git-истории. Сейчас канал ревью остаётся доступным.
+- Рабочие reviews/Telegram/blueprint/research/AGENTS исключены из tracked tree и build context. Локальные ignored copies и внешний архив okno-working-docs/20261026 сохранены; полная git-история не переписана. Канал новых локальных ревью остаётся доступным.
 - Ручная разметка отсутствует; nDCG и полевая точность не придуманы. Реальный независимый третий тип конфликта высот не подтверждён.
 
 ## Последние интеграции
@@ -77,3 +77,5 @@
 - 26.10 20:12: main 3293368: tenant auth, live-mock injection guards, private Changes projections; Quality model baseline/provenance; timed VOICEOVER и lossless mix helper; frontend XSS regression.
 
 - 26.10 20:20: c7c8ba3/f721305, Геленджик — перенос pipeline и реальные resource measurements. Root Ruff и оба dry-run PASS.
+
+- 26.10 20:25: рабочие материалы архивированы вне product и убраны из tracked tree; нейтральные PRODUCT/ARCHITECTURE/CONTRACTS остаются.

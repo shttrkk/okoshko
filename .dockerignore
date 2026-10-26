@@ -11,3 +11,13 @@ research_notes
 .env.*
 !.env.example
 
+
+runtime
+.venv-pipeline
+.coverage
+AGENTS.md
+docs/SOLUTION_BLUEPRINT.md
+docs/reviews
+docs/materials
+docs/research
+docs/RULES.md
