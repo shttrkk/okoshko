@@ -618,6 +618,7 @@ export function TravelMap({
     mapRef = useRef<LibreMap | null>(null),
     markers = useRef<maplibregl.Marker[]>([]);
   const [ready, setReady] = useState(false),
+    [rendered, setRendered] = useState(false),
     [error, setError] = useState(""),
     [base, setBase] = useState("Загружаем локальную карту"),
     [layers, setLayers] = useState(["view", "noise", "route", "sun"]),
@@ -640,6 +641,7 @@ export function TravelMap({
     }
     let disposed = false;
     setError("");
+    setRendered(false);
     setBase("Загружаем локальную карту");
     const dark = theme === "dark";
     let map: LibreMap;
@@ -672,11 +674,19 @@ export function TravelMap({
     map.on("error", () => {
       /* A missing optional local layer must not hide valid map data. */
     });
+    map.on("idle", () => {
+      if (
+        !disposed &&
+        (map.getSource("city") || map.getSource("fallback-buildings"))
+      )
+        setRendered(true);
+    });
     map.on("load", async () => {
       try {
         const label = await attachBaseMap(map, dark, () => disposed);
         if (disposed) return;
         setBase(label);
+        setRendered(false);
         setReady(true);
       } catch {
         if (!disposed)
@@ -781,7 +791,9 @@ export function TravelMap({
     <div
       className={`travel-map ${hero ? "hero-map" : ""} ${large ? "large-map" : ""}`}
       data-testid="travel-map"
-      data-map-status={error ? "error" : ready ? "ready" : "loading"}
+      data-map-status={
+        error ? "error" : ready && rendered ? "ready" : "loading"
+      }
       data-map-source={base}
     >
       <div className="map-canvas" ref={container} />
@@ -977,7 +989,12 @@ export function GeoModal({
       <div className="geo-controls">
         <label>
           Фасад
-          <select value={facade} onChange={(e) => setFacade(e.target.value)}>
+          <select
+            aria-label="Фасад"
+            data-testid="geo-facade"
+            value={facade}
+            onChange={(e) => setFacade(e.target.value)}
+          >
             {geo.facades?.map((f) => (
               <option key={f.code}>{f.code}</option>
             ))}
@@ -988,6 +1005,8 @@ export function GeoModal({
           Этаж
           <input
             type="number"
+            aria-label="Этаж"
+            data-testid="geo-floor"
             min="1"
             max={geo.floors?.modeled_count || hotel.floors || 100}
             value={floor}
@@ -997,6 +1016,8 @@ export function GeoModal({
         <label>
           Месяц
           <select
+            aria-label="Месяц расчёта"
+            data-testid="geo-month"
             value={month}
             onChange={(e) => setMonth(Number(e.target.value))}
           >

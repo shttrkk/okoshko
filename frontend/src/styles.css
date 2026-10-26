@@ -5423,3 +5423,23 @@ pre {
     grid-column: 1/-1;
   }
 }
+.verdict-caveats {
+  margin-top: 3px;
+}
+.verdict-caveats summary {
+  display: inline-block;
+  font-size: 8px;
+  padding: 3px 0;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.verdict-caveats p {
+  font-size: 9px;
+  color: var(--muted);
+  line-height: 1.8;
+  margin: 8px 0;
+}
+.comparison-table td > .text-button {
+  font-size: 8px;
+}
