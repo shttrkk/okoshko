@@ -1,19 +1,15 @@
 """Local demo hotelier cabinet and the preview → confirm evidence boundary."""
 from __future__ import annotations
 
-import hashlib
-import hmac
-import secrets
-import time
 from datetime import timedelta
 from threading import RLock
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from jsonschema import SchemaError, ValidationError
 from psycopg.errors import UniqueViolation
 from referencing.exceptions import Unresolvable
 
-from backend.agents.answer_parser import parse_answer
+from backend.agents.answer_parser import HOTELIER_VALUE_FIELDS, parse_answer
 from backend.agents.interviewer import create_question, generate_questions, stable_id
 from backend.agents.resolver import resolve_hotel
 from backend.contracts import (
@@ -32,26 +28,20 @@ from backend.contracts import (
 from backend.contracts.validation import validate_value
 from backend.db.repository import get_repo
 from backend.llm.client import LLMClient
+from backend.security import (
+    SESSION_COOKIE,
+    SESSION_SECONDS,
+    Principal,
+    authenticate,
+    authorize_hotel,
+    issue_token,
+    require_hotelier,
+)
 from backend.sim.hotelier import simulate_answer
 
 router = APIRouter(prefix="/api", tags=["hotelier"])
-_SESSION_KEY = secrets.token_bytes(32)
 _CONFIRM_LOCK = RLock()
 _REPO = Depends(get_repo)
-
-
-def require_hotelier(authorization: str | None = Header(default=None)) -> str:
-    try:
-        scheme, token = (authorization or "").split(" ", 1)
-        username, expires, nonce, signature = token.split(".")
-        payload = f"{username}.{expires}.{nonce}"
-        expected = hmac.new(_SESSION_KEY, payload.encode(), hashlib.sha256).hexdigest()
-        valid = scheme.lower() == "bearer" and username == "hotelier" and int(expires) > time.time() and hmac.compare_digest(signature, expected)
-    except (ValueError, TypeError):
-        valid = False
-    if not valid:
-        raise HTTPException(401, "Войдите в демо-кабинет отельера", headers={"WWW-Authenticate": "Bearer"})
-    return "hotelier"
 
 
 _AUTH = Depends(require_hotelier)
@@ -65,16 +55,28 @@ def _get(repo, table: str, item_id: str, label: str):
 
 
 @router.post("/hotelier/login")
-def login(request: LoginRequest):
-    if not (hmac.compare_digest(request.username.encode(), b"hotelier") and hmac.compare_digest(request.password.encode(), b"hotelier123")):
-        raise HTTPException(401, "Неверный логин или пароль")
-    payload = f"hotelier.{int(time.time())+12*3600}.{secrets.token_hex(12)}"
-    signature = hmac.new(_SESSION_KEY, payload.encode(), hashlib.sha256).hexdigest()
-    return {"token": payload + "." + signature, "username": "hotelier", "synthetic": True}
+def login(request: LoginRequest, response: Response):
+    principal = authenticate(request.username, request.password)
+    token = issue_token(principal)
+    # EventSource cannot supply Bearer headers. The cookie is only sent to the
+    # read-only run routes; all other private endpoints still require Bearer.
+    response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_SECONDS, httponly=True,
+                        samesite="strict", path="/api/runs")
+    response.headers["Cache-Control"] = "no-store"
+    return {"token": token, "username": principal.username, "synthetic": True,
+            "role": principal.role, "hotel_ids": list(principal.hotel_ids)}
+
+
+@router.post("/hotelier/logout")
+def logout(response: Response):
+    response.delete_cookie(SESSION_COOKIE, path="/api/runs", httponly=True, samesite="strict")
+    response.headers["Cache-Control"] = "no-store"
+    return {"logged_out": True, "synthetic": True}
 
 
 @router.get("/hotelier/{hotel_id}")
 def cabinet(hotel_id: str, repo=_REPO, _user=_AUTH):
+    authorize_hotel(_user, hotel_id)
     hotel = _get(repo, "hotels", hotel_id, "Отель")
     facts = repo.find("facts", hotel_id=hotel_id)
     questions = generate_questions(hotel_id, repo)
@@ -114,27 +116,31 @@ def _save_preview(answer: Answer, question: Question, repo) -> Answer:
 @router.post("/questions/{question_id}/answer", response_model=Answer)
 def answer_question(question_id: str, request: AnswerRequest, repo=_REPO, _user=_AUTH):
     question = Question.model_validate(_get(repo, "questions", question_id, "Вопрос"))
+    authorize_hotel(_user, question.hotel_id)
     if question.status != "pending":
         raise HTTPException(409, "Вопрос уже закрыт; создайте новый вопрос для исправления")
     if request.confirm:
         raise HTTPException(422, "Сначала проверьте предпросмотр, затем подтвердите /api/answers/{id}/confirm")
-    answer = parse_answer(question, request.text, synthetic=request.synthetic, llm=LLMClient(repo))
+    answer = parse_answer(question, request.text, synthetic=_user.synthetic or request.synthetic, llm=LLMClient(repo))
     return _save_preview(answer, question, repo)
 
 
 @router.post("/questions/{question_id}/simulate", response_model=Answer)
 def simulate_question(question_id: str, repo=_REPO, _user=_AUTH):
     question = Question.model_validate(_get(repo, "questions", question_id, "Вопрос"))
+    authorize_hotel(_user, question.hotel_id)
     if question.status != "pending":
         raise HTTPException(409, "Вопрос уже закрыт")
     return _save_preview(simulate_answer(question, repo), question, repo)
 
 
-def confirm_answer(answer_id: str, repo) -> Answer:
+def confirm_answer(answer_id: str, repo, *, principal: Principal) -> Answer:
     """Deterministic claim IDs recover partial writes and make retries idempotent."""
     with _CONFIRM_LOCK:
         answer = Answer.model_validate(_get(repo, "answers", answer_id, "Ответ"))
         question = Question.model_validate(_get(repo, "questions", answer.question_id, "Вопрос"))
+        authorize_hotel(principal, question.hotel_id)
+        answer.synthetic = answer.synthetic or principal.synthetic
         if answer.confirmed:
             if question.status != "answered":
                 question.status = "answered"
@@ -142,9 +148,15 @@ def confirm_answer(answer_id: str, repo) -> Answer:
             return answer
         if not answer.updates:
             raise HTTPException(422, "В ответе нет подтверждаемых значений; требуется уточнение")
+        expected = parse_answer(question, answer.raw_text, synthetic=answer.synthetic)
+        if [update.model_dump(mode="json") for update in answer.updates] != [update.model_dump(mode="json") for update in expected.updates]:
+            raise HTTPException(422, "Предпросмотр не соответствует проверяемым цитатам; создайте новый ответ")
         # Validate the entire preview before the first durable claim write.
         specs = {}
         for update in answer.updates:
+            fields = HOTELIER_VALUE_FIELDS.get(update.characteristic_id)
+            if not fields or not isinstance(update.value, dict) or set(update.value) - fields:
+                raise HTTPException(422, "Неподдерживаемые поля ответа отельера")
             spec = _get(repo, "characteristics", update.characteristic_id, "Характеристика")
             try:
                 validate_value(update.value, spec["value_schema"])
@@ -182,7 +194,7 @@ def confirm_answer(answer_id: str, repo) -> Answer:
             spec = specs[update.characteristic_id]
             claim = Claim(id=claim_id, hotel_id=question.hotel_id, characteristic_id=update.characteristic_id,
                           spec_version=spec.get("version", 1), scope=update.scope, value=update.value,
-                          source=source_id, method="hotelier_answer@1", evidence=[evidence], confidence=min(update.confidence, .85),
+                          source=source_id, method="hotelier_answer@1", evidence=[evidence], confidence=.85,
                           observed_at=at, valid_until=at+timedelta(days=spec.get("ttl_days", 180)),
                           supersedes=prior[0]["id"] if prior else None, synthetic=answer.synthetic)
             try:
@@ -211,4 +223,4 @@ def confirm_answer(answer_id: str, repo) -> Answer:
 
 @router.post("/answers/{answer_id}/confirm", response_model=Answer)
 def confirm(answer_id: str, repo=_REPO, _user=_AUTH):
-    return confirm_answer(answer_id, repo)
+    return confirm_answer(answer_id, repo, principal=_user)

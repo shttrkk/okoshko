@@ -322,6 +322,18 @@ def parse_query(request: SearchRequest, catalog: list[CharacteristicSpec], llm=N
             {"role": "user", "content": request.text}], fallback=lambda: baseline, task="parse_query", budget_s=2.2)
         result.mode = mode
         result.text = request.text
+        # A provider may add catalogue-backed interpretations, but cannot erase
+        # locally recognized negations, numeric limits, room scope or route flags.
+        recognized = {criterion.characteristic_id for criterion in baseline.must + baseline.nice}
+        result.must = [criterion for criterion in result.must if criterion.characteristic_id not in recognized] + baseline.must
+        result.nice = [criterion for criterion in result.nice if criterion.characteristic_id not in recognized] + baseline.nice
+        for field in ("facade", "min_floor", "pet_weight_kg"):
+            if getattr(baseline, field) is not None:
+                setattr(result, field, getattr(baseline, field))
+        result.check_in, result.check_out = baseline.check_in, baseline.check_out
+        result.month = baseline.month
+        result.unmapped = list(dict.fromkeys([*baseline.unmapped, *result.unmapped]))
+        result.clarifications = list(dict.fromkeys([*baseline.clarifications, *result.clarifications]))[:2]
     else:
         result = baseline
     active = {s.id for s in catalog if s.status == "active"}

@@ -16,9 +16,14 @@ import httpx
 from pydantic import BaseModel, ValidationError
 
 from backend.contracts import Mode
+from backend.security import contains_runtime_secret
 
 T = TypeVar("T", bound=BaseModel)
 logger = logging.getLogger(__name__)
+
+
+class UnsafeOutput(ValueError):
+    """Provider output must not be returned, cached or sent to JSON repair."""
 
 
 class LLMClient:
@@ -48,8 +53,10 @@ class LLMClient:
             cached = self.repo.get("llm_cache", key)
             if cached:
                 try:
-                    return output_model.model_validate(cached["value"]), "cache"
-                except (KeyError, ValidationError):
+                    value = output_model.model_validate(cached["value"])
+                    self._check_output(value)
+                    return value, "cache"
+                except (KeyError, ValidationError, UnsafeOutput):
                     logger.warning("Discarding invalid LLM cache entry for task %s", task)
         if self.mode == "live":
             deadline = time.monotonic() + budget_s
@@ -76,14 +83,15 @@ class LLMClient:
                             logger.warning("LLM task %s unavailable (HTTP %s); deterministic fallback", task, response.status_code)
                             break
                         response.raise_for_status()
-                        message = response.json()["choices"][0]["message"]
-                        if message.get("refusal"):
-                            break
-                        last_content = message.get("content") or ""
+                        last_content = self._message_content(response.json())
                         value = self._parse(output_model, last_content)
                         self._save(key, value, task)
                         return value, "live"
-                    except (httpx.HTTPError, ValidationError, json.JSONDecodeError, KeyError, IndexError, ValueError):
+                    except UnsafeOutput:
+                        last_content = None
+                        logger.info("LLM task %s output rejected by security boundary", task)
+                        break
+                    except (httpx.HTTPError, ValidationError, json.JSONDecodeError, KeyError, IndexError, ValueError, TypeError):
                         logger.info("LLM task %s mode %s not validated", task, mode)
                 # One bounded repair, only if a model actually returned malformed JSON.
                 remaining = deadline - time.monotonic()
@@ -93,19 +101,37 @@ class LLMClient:
                             json={"model": self.model, "messages": [system, {"role": "user", "content": "Repair this JSON without adding information: " + last_content}], "max_tokens": 2500},
                             headers={"Authorization": "Bearer " + self.api_key}, timeout=min(self.timeout, remaining))
                         response.raise_for_status()
-                        value = self._parse(output_model, response.json()["choices"][0]["message"]["content"])
+                        value = self._parse(output_model, self._message_content(response.json()))
                         self._save(key, value, task)
                         return value, "live"
-                    except (httpx.HTTPError, ValidationError, json.JSONDecodeError, KeyError, IndexError, ValueError):
+                    except (httpx.HTTPError, ValidationError, json.JSONDecodeError, KeyError, IndexError, ValueError, TypeError):
                         logger.info("LLM repair did not validate for %s", task)
-        return output_model.model_validate(fallback()), "offline"
+        value = output_model.model_validate(fallback())
+        self._check_output(value)
+        return value, "offline"
 
-    @staticmethod
-    def _parse(output_model: type[T], content: str) -> T:
+    def _message_content(self, payload) -> str:
+        message = payload["choices"][0]["message"]
+        if not isinstance(message, dict) or message.get("refusal") or "tool_calls" in message or "function_call" in message:
+            raise UnsafeOutput("Provider actions are not accepted")
+        content = message.get("content")
+        if not isinstance(content, str) or len(content) > 100_000:
+            raise UnsafeOutput("Provider text is not bounded JSON")
+        if contains_runtime_secret(content, (self.api_key,)):
+            raise UnsafeOutput("Provider output contains a protected value")
+        return content
+
+    def _check_output(self, value: BaseModel):
+        if contains_runtime_secret(value.model_dump(mode="json"), (self.api_key,)):
+            raise UnsafeOutput("Validated output contains a protected value")
+
+    def _parse(self, output_model: type[T], content: str) -> T:
         text = content.strip()
         if text.startswith("```"):
             text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-        return output_model.model_validate_json(text)
+        value = output_model.model_validate_json(text)
+        self._check_output(value)
+        return value
 
     def _save(self, key: str, value: BaseModel, task: str):
         if self.repo:

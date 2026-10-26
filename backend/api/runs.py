@@ -5,16 +5,18 @@ import asyncio
 import json
 import logging
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from backend.api.catalog import required
 from backend.contracts import AgentRun, RunRequest
 from backend.db.repository import get_repo
+from backend.security import authorize_hotel, optional_principal
 from backend.tracing import Trace
 
 router = APIRouter(prefix="/api", tags=["runs"])
 _REPO = Depends(get_repo)
+_OPTIONAL_AUTH = Depends(optional_principal)
 logger = logging.getLogger(__name__)
 
 
@@ -40,20 +42,32 @@ def start(body: RunRequest, background_tasks: BackgroundTasks, repo=_REPO):
 
 
 @router.get("/runs", response_model=list[AgentRun])
-def runs(repo=_REPO):
-    return sorted(repo.all("agent_runs"), key=lambda row: row.get("started_at", ""), reverse=True)[:50]
+def runs(repo=_REPO, _user=_OPTIONAL_AUTH):
+    visible = [row for row in repo.all("agent_runs") if row.get("kind") != "interview"
+               or _user is not None and _user.permits(row.get("hotel_id"))]
+    return sorted(visible, key=lambda row: row.get("started_at", ""), reverse=True)[:50]
 
 
 @router.get("/runs/{run_id}", response_model=AgentRun)
-def run(run_id: str, repo=_REPO):
+def run(run_id: str, repo=_REPO, _user=_OPTIONAL_AUTH):
+    return _read_run(run_id, repo, _user)
+
+
+def _read_run(run_id, repo, principal):
     value = required(repo, "agent_runs", run_id, "Прогон")
-    value["steps"] = sorted(repo.find("agent_steps", run_id=run_id), key=lambda row: row["seq"])
+    if value.get("kind") == "interview":
+        if principal is None:
+            raise HTTPException(401, "Войдите в демо-кабинет отельера", headers={"WWW-Authenticate": "Bearer"})
+        authorize_hotel(principal, value.get("hotel_id"))
+    steps = repo.find("agent_steps", run_id=run_id) or value.get("steps", [])
+    value["steps"] = sorted(steps, key=lambda row: row["seq"])
     return value
 
 
 @router.get("/runs/{run_id}/stream")
-def stream(run_id: str, request: Request, repo=_REPO, last_event_id: str | None = Header(default=None)):
-    required(repo, "agent_runs", run_id, "Прогон")
+def stream(run_id: str, request: Request, repo=_REPO, last_event_id: str | None = Header(default=None),
+           _user=_OPTIONAL_AUTH):
+    _read_run(run_id, repo, _user)
 
     async def events():
         sent = set()
@@ -61,7 +75,7 @@ def stream(run_id: str, request: Request, repo=_REPO, last_event_id: str | None 
         while True:
             if await request.is_disconnected():
                 return
-            value = await asyncio.to_thread(run, run_id, repo)
+            value = await asyncio.to_thread(_read_run, run_id, repo, _user)
             steps = value.get("steps", [])
             if resume:
                 previous = next((step["seq"] for step in steps if step["id"] == resume), None)

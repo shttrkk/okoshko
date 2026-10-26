@@ -18,6 +18,7 @@ from backend.contracts import (
     Scope,
 )
 from backend.db.repository import get_repo
+from backend.security import DEMO_ADMIN
 from backend.tests.test_hotelier import MemoryRepo
 
 
@@ -67,7 +68,7 @@ class PassportTests(unittest.TestCase):
         self.fact("quiet_night", facade="E", floor_min=5)
         passport = self.create([PassportItem(characteristic_id="sunset_view", text="Закат"), PassportItem(characteristic_id="quiet_night", text="Тишина")])
         self.assertEqual(passport.status, "alternative")
-        updated = passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo)
+        updated = passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo, principal=DEMO_ADMIN)
         self.assertEqual(updated.status, "alternative")
         self.assertIsNone(updated.room_number)
         self.assertTrue(all(item.status == "alternative" for item in updated.items))
@@ -75,7 +76,7 @@ class PassportTests(unittest.TestCase):
     def test_confirm_incompatible_floors_offers_alternative(self):
         passport = self.create([PassportItem(characteristic_id="sunset_view", text="Высоко", scope=Scope(floor_min=5)),
                                 PassportItem(characteristic_id="quiet_night", text="Низко", scope=Scope(floor_max=3))])
-        updated = passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo)
+        updated = passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo, principal=DEMO_ADMIN)
         self.assertNotEqual(updated.status, "confirmed")
 
     def test_compatible_fact_alternative_is_selected(self):
@@ -85,7 +86,7 @@ class PassportTests(unittest.TestCase):
         passport = self.create([PassportItem(characteristic_id="sunset_view", text="Закат"), PassportItem(characteristic_id="quiet_night", text="Тишина")])
         self.assertEqual(passport.status, "sent")
         self.assertEqual(passport.items[1].fact_ids, [west_quiet.id])
-        updated = passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo)
+        updated = passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo, principal=DEMO_ADMIN)
         self.assertEqual(updated.status, "confirmed")
         self.assertEqual(updated.room_number, "512")
         self.assertTrue(updated.synthetic_booking)
@@ -93,28 +94,28 @@ class PassportTests(unittest.TestCase):
     def test_optional_conflict_does_not_prevent_critical_confirmation(self):
         passport = self.create([PassportItem(characteristic_id="sunset_view", text="Закат", scope=Scope(type="facade", facade="W")),
                                 PassportItem(characteristic_id="quiet_night", text="Желательно тихо", critical=False, scope=Scope(type="facade", facade="E"))])
-        updated = passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo)
+        updated = passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo, principal=DEMO_ADMIN)
         self.assertEqual(updated.status, "confirmed")
         self.assertNotEqual(updated.items[1].status, "confirmed")
 
     def test_room_number_not_in_known_room_mapping_cannot_confirm(self):
         self.fact("room_orientation", facade="W", value={"available": True, "rooms": ["501", "502"]})
         passport = self.create([PassportItem(characteristic_id="room_orientation", text="На запад")])
-        updated = passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo)
+        updated = passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo, principal=DEMO_ADMIN)
         self.assertEqual(updated.status, "at_risk")
         self.assertIsNone(updated.room_number)
 
     def test_known_negative_cannot_be_confirmed(self):
         self.fact("pets", value={"available": False})
         passport = self.create([PassportItem(characteristic_id="pets", text="С собакой")])
-        updated = passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo)
+        updated = passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo, principal=DEMO_ADMIN)
         self.assertEqual(updated.status, "at_risk")
 
     def test_confirm_retry_does_not_duplicate_timeline_notifications(self):
         passport = self.create([PassportItem(characteristic_id="pets", text="С собакой")])
         request = PassportAction(action="confirm", room_number="512")
-        first = passport_action(passport.id, request, self.repo)
-        second = passport_action(passport.id, request, self.repo)
+        first = passport_action(passport.id, request, self.repo, principal=DEMO_ADMIN)
+        second = passport_action(passport.id, request, self.repo, principal=DEMO_ADMIN)
         self.assertEqual(first.model_dump(), second.model_dump())
 
     def test_alternative_and_feedback_are_local_and_demo_labeled(self):
@@ -122,13 +123,13 @@ class PassportTests(unittest.TestCase):
         self.repo.insert("sources", {"id": "hotelier_simulator", "alpha": 7, "beta": 3})
         self.fact("pets", evidence=[Evidence(kind="simulation", label="Demo", source_ids=["hotelier_simulator"], quote="С собакой можно")])
         passport = self.create([PassportItem(characteristic_id="pets", text="С собакой")])
-        alternative = passport_action(passport.id, PassportAction(action="alternative", text="Номер 501 с доплатой"), self.repo)
+        alternative = passport_action(passport.id, PassportAction(action="alternative", text="Номер 501 с доплатой"), self.repo, principal=DEMO_ADMIN)
         self.assertEqual(alternative.status, "alternative")
         request = PassportAction(action="feedback", matched=False, text="Не совпало")
-        feedback = passport_action(passport.id, request, self.repo)
+        feedback = passport_action(passport.id, request, self.repo, principal=DEMO_ADMIN)
         self.assertEqual(self.repo.get("sources", "hotelier_simulator")["beta"], 4)
         self.assertIn("DEMO", self.repo.get("sources", "hotelier_simulator")["notes"])
-        passport_action(passport.id, request, self.repo)
+        passport_action(passport.id, request, self.repo, principal=DEMO_ADMIN)
         self.assertEqual(self.repo.get("sources", "hotelier_simulator")["beta"], 4)
         self.assertTrue(all(notification["channel"] == "local" for notification in feedback.notifications))
 
@@ -169,7 +170,7 @@ class EditedPassportCriteriaTests(unittest.TestCase):
         return passport, self.repo.get("passport_items", passport.items[0].id)
 
     def confirm(self, passport):
-        return passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo)
+        return passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo, principal=DEMO_ADMIN)
 
     def test_explicit_item_retains_numeric_criterion_and_guest_edits(self):
         self.fact("beach_walk", value={"available": True, "minutes": 30})
@@ -367,7 +368,7 @@ class PassportRouteConstraintTests(unittest.TestCase):
         return fact, passport
 
     def confirm(self, passport):
-        return passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo)
+        return passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo, principal=DEMO_ADMIN)
 
     def test_stairs_true_or_missing_cannot_be_confirmed(self):
         cases = [({"available": True, "minutes": 7, "has_steps": True}, "declined"),
@@ -453,7 +454,7 @@ class PassportEvidenceDatesTests(unittest.TestCase):
             items=[PassportItem(characteristic_id="beach_walk", text="До 10 минут без лестниц", scope=scope, critical=critical)]), self.repo)
 
     def confirm(self, passport):
-        return passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo)
+        return passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo, principal=DEMO_ADMIN)
 
     def assert_review(self, passport):
         self.assertEqual(passport.status, "at_risk")
