@@ -3,6 +3,7 @@
 **/node_modules
 frontend/dist
 data/raw
+data/derived_traits
 demo
 tests
 research_notes

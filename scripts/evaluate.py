@@ -29,7 +29,9 @@ def main():
         from backend.agents.resolver import resolve_claims
         from backend.contracts import CharacteristicSpec, Claim
         claims = defaultdict(list)
-        for path in [data/"seed/open_claims.jsonl.gz", data/"geo/geo_claims.jsonl.gz", data/"seed/demo_hotelier_claims.jsonl", data/"eval/website_claims.jsonl"]:
+        for path in [data/"seed/open_claims.jsonl.gz", data/"geo/geo_claims.jsonl.gz",
+                     data/"seed/geo_trait_claims.jsonl.gz", data/"seed/demo_hotelier_claims.jsonl",
+                     data/"eval/website_claims.jsonl"]:
             if not path.is_file():
                 continue
             opener = gzip.open if path.suffix == ".gz" else open

@@ -13,6 +13,7 @@ htmlcov/
 node_modules/
 frontend/dist/
 data/raw/
+data/derived_traits/
 *.osm.pbf
 *.tif
 *.tiff

@@ -165,28 +165,54 @@ class Registry:
         return ToolResult(warnings=["Свойство требует ответа отельера; вопрос формируется Interviewer"])
 
     def _geo_trait(self, context, call):
+        from geo.runtime_cache import input_digest
+        from geo.traits import METHODS, compute_trait
+
         kind = call.params["kind"]
         hotel = self.repo.get("hotels", context.hotel_id)
         if hotel is None:
             return ToolResult(warnings=["Отель не найден"])
         changes = [event for event in self.repo.all("change_events")
                    if context.hotel_id in event.get("affected_hotel_ids", [])]
-        if changes and kind in {"morning_sun", "evening_heat", "railway_noise"}:
+        changes.sort(key=lambda event: event.get("detected_at", ""), reverse=True)
+        geometry_sensitive = kind in {"morning_sun", "evening_heat", "railway_noise"}
+        artifact = changes[0].get("payload", {}).get("geo_artifact") if changes and geometry_sensitive else None
+        if changes and geometry_sensitive and (not artifact or kind == "railway_noise"):
             return ToolResult(warnings=["Геометрия здания изменилась; дополнительный признак требует расчёта по актуальному артефакту"])
         existing = self.repo.find("claims", hotel_id=context.hotel_id, characteristic_id=context.characteristic_id)
         superseded = {item for row in existing for item in [row.get("supersedes"), *row.get("supersedes_ids", [])] if item}
         cached = [Claim.model_validate(row) for row in existing
-                  if row["id"] not in superseded and row.get("source") == "geo_engine"
+                  if row["id"] not in superseded and row.get("source") == "geo_engine" and row.get("method") == METHODS[kind]
                   and datetime.fromisoformat(row["valid_until"].replace("Z", "+00:00")) > datetime.now(UTC)
-                  and row.get("scope", {}).get("month") in {None, context.month}]
+                  and row.get("scope", {}).get("month") in {None, context.month}
+                  and (not artifact or any(e.get("artifact") == artifact for e in row.get("evidence", [])))]
+        digests = {}
+        def current_inputs(claim):
+            for evidence in claim.evidence:
+                for reference, expected in evidence.inputs.get("input_sha256", {}).items():
+                    if not reference.startswith("/data/"):
+                        return False
+                    if reference not in digests:
+                        path = (self.data_dir.parent / "runtime" / reference.removeprefix("/data/runtime/")
+                                if reference.startswith("/data/runtime/") else self.data_dir / reference.removeprefix("/data/"))
+                        try:
+                            digests[reference] = input_digest(path)
+                        except OSError:
+                            return False
+                    if digests[reference] != expected:
+                        return False
+            return True
+        if cached and not all(current_inputs(claim) for claim in cached):
+            cached = []
         if cached:
             return ToolResult(claims=[claim.model_copy(update={"id": uid(), "run_id": context.run_id,
                               "supersedes": claim.id, "supersedes_ids": []}) for claim in cached], artifacts={"cache_hit": True})
         try:
-            from geo.traits import compute_trait
-        except ImportError:
-            return ToolResult(warnings=["Локальный расчёт признака пока не подготовлен"])
-        result = compute_trait(hotel, self.data_dir, kind, month=context.month)
+            result = compute_trait(hotel, self.data_dir, kind, month=context.month, geo_artifact=artifact)
+        except (OSError, ValueError, KeyError):
+            return ToolResult(warnings=["Не удалось проверить локальные входы расчёта; значение остаётся неизвестным"])
+        previous = [row["id"] for row in existing if row.get("source") == "geo_engine"
+                    and row.get("scope", {}).get("month") in {None, context.month}]
         claims = []
         for row in result["claims"]:
             claim = Claim.model_validate(row)
@@ -194,8 +220,8 @@ class Registry:
                 identity = hashlib.sha256((claim.id + context.characteristic_id).encode()).hexdigest()[:32]
                 claim = claim.model_copy(update={"id": "trait-" + identity, "characteristic_id": context.characteristic_id})
             if self.repo.get("claims", claim.id) is not None:
-                claim = claim.model_copy(update={"id": uid(), "supersedes": claim.id, "supersedes_ids": []})
-            claims.append(claim.model_copy(update={"run_id": context.run_id}))
+                claim = claim.model_copy(update={"id": uid(), "supersedes": claim.id})
+            claims.append(claim.model_copy(update={"run_id": context.run_id, "supersedes_ids": previous}))
         return ToolResult(claims=claims, warnings=result["warnings"], artifacts=result["artifacts"])
 
     def _poi(self, context, call):

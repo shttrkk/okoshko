@@ -24,7 +24,7 @@ HERO = "osm-node-10058556917"
 STAGES = (
     "fetch_osm", "fetch_overture", "merge_hotels", "fetch_dem", "build_dsm",
     "fetch_open", "fetch_ookla", "fetch_tiles", "export_seed", "compute_views", "compact_geo",
-    "compute_runtime_cache", "compact_seed", "validate", "compute_validate",
+    "compute_runtime_cache", "compute_traits", "compact_seed", "validate", "compute_validate",
 )
 DEPENDENCIES = {
     "fetch_osm": (), "fetch_overture": ("fetch_osm",), "merge_hotels": ("fetch_overture",),
@@ -33,10 +33,11 @@ DEPENDENCIES = {
     "export_seed": ("fetch_dem", "fetch_open", "fetch_ookla", "fetch_tiles"),
     "compute_views": ("build_dsm", "export_seed"), "compact_geo": ("compute_views",),
     "compute_runtime_cache": ("compute_views",),
-    "compact_seed": ("export_seed", "compute_runtime_cache"), "validate": ("compact_seed",),
+    "compute_traits": ("compute_runtime_cache",),
+    "compact_seed": ("export_seed", "compute_runtime_cache", "compute_traits"), "validate": ("compact_seed",),
     "compute_validate": ("validate", "compute_views", "compute_runtime_cache"),
 }
-CACHED_STAGES = ("build_dsm", "compute_views", "compact_geo", "compute_runtime_cache", "compact_seed", "validate", "compute_validate")
+CACHED_STAGES = ("build_dsm", "compute_views", "compact_geo", "compute_runtime_cache", "compute_traits", "compact_seed", "validate", "compute_validate")
 
 
 def dem_paths(config):
@@ -180,6 +181,16 @@ def execute_stage(name, args, config):
             if hotel["id"] in requested:
                 print(json.dumps({"runtime_cache": str(module.build_cache(hotel, region, GEO)), "hotel_id": hotel["id"]}), flush=True)
         validate_caches(values, required=requested)
+    elif name == "compute_traits":
+        from pipeline.compute_traits import materialize
+        output = DATA / "derived_traits"
+        report = materialize(DATA, output)
+        ledger = DATA / "seed" / "geo_trait_claims.jsonl.gz"
+        (output / "geo_traits.jsonl.gz").replace(ledger)
+        summary = {key: value for key, value in report.items() if key != "warnings"}
+        summary["warning_counts"] = {key: len(values) for key, values in report["warnings"].items()}
+        summary["ledger"]["name"] = ledger.name
+        (DATA / "seed" / "geo_trait_manifest.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2)+"\n")
     elif name == "validate":
         hotels(config)
         validate_seed(read_only=args.validate_only)

@@ -1,0 +1,92 @@
+{
+  "authoritative_geo_overrides": {
+    "osm-way-53284165": "/data/geo/osm-way-53284165-change-000b84a5203a0b8afb52.json"
+  },
+  "counts": {
+    "accessible_route": {
+      "claims": 235,
+      "hotels_with_claims": 235,
+      "known_hotels": 0,
+      "known_hotels_confidence_ge_06": 0,
+      "positive_hotels": 0
+    },
+    "beach_surface": {
+      "claims": 250,
+      "hotels_with_claims": 250,
+      "known_hotels": 152,
+      "known_hotels_confidence_ge_06": 152,
+      "positive_hotels": 152
+    },
+    "evening_heat": {
+      "claims": 15403,
+      "hotels_with_claims": 199,
+      "known_hotels": 199,
+      "known_hotels_confidence_ge_06": 0,
+      "positive_hotels": 155
+    },
+    "green_nearby": {
+      "claims": 250,
+      "hotels_with_claims": 250,
+      "known_hotels": 229,
+      "known_hotels_confidence_ge_06": 229,
+      "positive_hotels": 229
+    },
+    "morning_sun": {
+      "claims": 13987,
+      "hotels_with_claims": 199,
+      "known_hotels": 199,
+      "known_hotels_confidence_ge_06": 0,
+      "positive_hotels": 152
+    },
+    "railway_noise": {
+      "claims": 335,
+      "hotels_with_claims": 73,
+      "known_hotels": 73,
+      "known_hotels_confidence_ge_06": 0,
+      "positive_hotels": 0
+    }
+  },
+  "coverage_definition": "At least one known trait value in any facade/floor/month; not same-room fulfilment or ground-truth accuracy",
+  "generated_at": "2026-10-26T21:59:51.724886+00:00",
+  "hotels": 250,
+  "ledger": {
+    "bytes": 3748065,
+    "name": "geo_trait_claims.jsonl.gz",
+    "sha256": "a4872caeb53061e20e0b4b9fb6483b311d1a7e4ee470a91763bf2916113fb32b"
+  },
+  "limitations": [
+    "No new hotel/floor identities; no existing seed or NPZ changed",
+    "Solar and noise are model proxies with reduced confidence",
+    "Missing OSM surface/accessibility tags remain unknown"
+  ],
+  "methods": {
+    "accessible_route": "osm_route_accessibility_v1",
+    "beach_surface": "osm_beach_surface_v2",
+    "evening_heat": "astral_evening_exposure_proxy_v2",
+    "green_nearby": "osm_green_geometry_distance_v1",
+    "morning_sun": "astral_morning_horizon_proxy_v2",
+    "railway_noise": "outdoor_rail_noise_proxy_v1"
+  },
+  "months": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+  ],
+  "version": 1,
+  "warning_counts": {
+    "accessible_route": 15,
+    "evening_heat": 51,
+    "morning_sun": 51,
+    "railway_noise": 177
+  },
+  "reproduce": "make pipeline (compute_traits stage); or python -m pipeline.compute_traits --output runtime/traits"
+}

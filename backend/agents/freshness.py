@@ -5,7 +5,7 @@ import hashlib
 import json
 import shutil
 import threading
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from backend.agents.resolver import resolve_hotel
@@ -13,6 +13,7 @@ from backend.contracts import (
     ChangeEvent,
     CharacteristicSpec,
     Claim,
+    Evidence,
     ExpectationPassport,
     Fact,
     ToolContext,
@@ -25,6 +26,36 @@ from backend.tracing import Trace
 _LOCK = threading.RLock()
 DEMO_HOTEL = "osm-node-10058556917"
 GEO_CHARACTERISTICS = {"sea_view", "sunset_view", "mountain_view", "quiet_night", "beach_walk"}
+GEOMETRY_DEPENDENTS = {"morning_sun", "evening_heat", "railway_noise"}
+
+
+def invalidate_geometry_dependents(old_claims: list[dict], artifact: str, run_id: str, change_id: str) -> list[Claim]:
+    """Retire model values from another geometry; never infer their replacements."""
+    superseded = {item for row in old_claims for item in [row.get("supersedes"), *row.get("supersedes_ids", [])] if item}
+    groups = {}
+    for row in old_claims:
+        if row["id"] in superseded or row.get("source") != "geo_engine" or row.get("characteristic_id") not in GEOMETRY_DEPENDENTS:
+            continue
+        # The shipped variant is copied to runtime without changing its geometry.
+        # Preserve already-calculated values belonging to that exact variant.
+        if any(Path(e.get("artifact") or "").name == Path(artifact).name for e in row.get("evidence", [])):
+            continue
+        key = (row["characteristic_id"], json.dumps(row.get("scope", {}), sort_keys=True))
+        groups.setdefault(key, []).append(row)
+    observed = now()
+    claims = []
+    for (cid, _), rows in groups.items():
+        identity = hashlib.sha256(json.dumps([change_id, cid, rows[0].get("scope"), artifact], sort_keys=True).encode()).hexdigest()
+        evidence = Evidence(id="ev-invalidate-"+identity, kind="simulation", label="Новая геометрия требует отдельного пересчёта",
+                            source_ids=sorted({sid for row in rows for e in row.get("evidence", []) for sid in e.get("source_ids", [])}) or ["geo_engine"],
+                            artifact=artifact, inputs={"previous_claim_ids": [row["id"] for row in rows], "change_id": change_id},
+                            limitations=["Синтетическое изменение здания; старое значение не относится к новой геометрии",
+                                         "Замена значения неизвестным не является отрицательным результатом расчёта"])
+        claims.append(Claim(id="geo-invalidate-"+identity, hotel_id=rows[0]["hotel_id"], characteristic_id=cid,
+                            scope=rows[0].get("scope", {}), value=None, source="geo_engine", method="geometry_dependency_invalidation_v1",
+                            evidence=[evidence], confidence=0, observed_at=observed, valid_until=observed+timedelta(days=90),
+                            supersedes_ids=[row["id"] for row in rows], run_id=run_id, synthetic=True))
+    return claims
 
 
 def unchanged_geo_inputs(claims, data_dir):
@@ -140,6 +171,7 @@ def apply_change(repo, hotel_id: str, fixture: dict, result: dict, trace: Trace,
             claims.append(claim)
     if not claims:
         raise ValueError("Геосервис не смог пересчитать затронутые характеристики; событие не опубликовано")
+    claims.extend(invalidate_geometry_dependents(old_claims, result["geo"]["artifact"], trace.run.id, change_id))
     repo.insert_claims(claims)
     after = resolve_hotel(hotel_id, repo)
     notifications = notify_passports(repo, hotel_id, before, after, change_id)
@@ -147,8 +179,8 @@ def apply_change(repo, hotel_id: str, fixture: dict, result: dict, trace: Trace,
                         geometry=fixture["geometry"], payload={"hotel_id": hotel_id, "fixture": fixture, "run_id": trace.run.id,
                         "scenario": "new_building_fixture_v1", "geo_artifact": result["geo"]["artifact"], "seeded": seeded,
                         "claim_ids": [claim.id for claim in claims]}, affected_hotel_ids=[hotel_id],
-                        before=[fact for fact in before if fact.characteristic_id in GEO_CHARACTERISTICS],
-                        after=[fact for fact in after if fact.characteristic_id in GEO_CHARACTERISTICS], notifications=notifications)
+                        before=[fact for fact in before if fact.characteristic_id in GEO_CHARACTERISTICS | GEOMETRY_DEPENDENTS],
+                        after=[fact for fact in after if fact.characteristic_id in GEO_CHARACTERISTICS | GEOMETRY_DEPENDENTS], notifications=notifications)
     artifact = result["geo"]["artifact"]
     if artifact.startswith("/data/runtime/geo/"):
         # Persist the final claims, including supersession and run provenance, in the same artifact.

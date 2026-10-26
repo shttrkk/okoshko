@@ -90,7 +90,9 @@ def load_seed(data_dir: Path = DATA):
                             attribution="Официальные сайты отелей: точный URL у каждой цитаты",observed_at=now(),retrieved_at=now(),
                             notes="Слабые метки с проверкой robots.txt. Не доказательство реального вида из каждого номера; не используются для оценки самих себя",alpha=5.5,beta=4.5)
             conn.execute("INSERT INTO sources(id,payload) VALUES(%s,%s) ON CONFLICT(id) DO NOTHING",(source.id,Jsonb(source.model_dump(mode="json"))))
-        for path in (data_dir/"seed"/"open_claims.jsonl.gz", data_dir/"geo"/"geo_claims.jsonl.gz", data_dir/"eval"/"website_claims.jsonl", data_dir/"seed"/"demo_hotelier_claims.jsonl"):
+        for path in (data_dir/"seed"/"open_claims.jsonl.gz", data_dir/"geo"/"geo_claims.jsonl.gz",
+                     data_dir/"seed"/"geo_trait_claims.jsonl.gz", data_dir/"eval"/"website_claims.jsonl",
+                     data_dir/"seed"/"demo_hotelier_claims.jsonl"):
             if path.exists():
                 count = seed_claims(conn, path, known_hotels)
                 logging.info("Seed evidence ledger %s: %s claims", path.name, count)

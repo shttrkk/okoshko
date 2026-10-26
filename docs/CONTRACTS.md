@@ -185,3 +185,10 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
 `HotelDetail` имеет необязательные флаги `evidence_deferred` и `geometry_deferred` (по умолчанию false). Они отличают компактную проекцию от отсутствующих данных. Компактный профиль сохраняет ID, значения, scope, confidence, статус, supporting/conflicting claim IDs и короткие ссылки evidence; полные inputs/output и claims загружаются отдельно. `FactEvidence` возвращает полный `fact` и его `claims`; hotel_id и принадлежность fact проверяются вместе. Геометрия имеет отдельный маршрут `/api/hotels/{id}/geo`. Полная проекция по умолчанию сохраняет совместимость API.
 
 `SearchHit.why_not_higher` и `similarity_reasons` — списки коротких текстов, подкреплённых verdict/evidence ссылками. Неизвестные поля и неподтверждённые условия не становятся выполненными ради похожести.
+
+
+## Дополнительные геопризнаки
+
+`data/seed/geo_trait_claims.jsonl.gz` — append-only ledger типизированных Claim; манифест `geo_trait_manifest.json` фиксирует physical SHA-256, версии методов и покрытие. Источники — существующий Source registry, никаких новых runtime-загрузок. Solar v2 содержит `building_association` в evidence.inputs, условную привязку nearest_30m и пониженную confidence. Contiguous floor ranges сохраняют минимумы/максимумы минут и экспозиции; скаляр для поиска выбирается консервативно. Доступность маршрута nullable даже при известном отсутствии ступеней.
+
+После изменения геометрии старые morning_sun/evening_heat/railway_noise supersede новыми unknown claims, если они рассчитаны по другому варианту. Это не отрицательный результат и не новое реальное наблюдение: событие synthetic. Уже сохранённый расчёт того же именованного варианта сохраняется при его копировании в runtime. Tool Registry использует только текущую версию метода и authoritative artifact события; при необходимости пересчитывает солнце по нему. Неподдерживаемый новый расчёт железнодорожного экранирования остаётся unknown.

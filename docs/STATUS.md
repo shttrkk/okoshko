@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 01:14 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 01:33 МСК. Дополнительные геопризнаки поставляются в seed и доступны в интерфейсе.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -121,3 +121,9 @@
 - 27.10.2026 01:13: feat(frontend): explore scoped room models without changing trip requirements; 624 passed, 1 warning, 125 subtests passed in 31.80s; Ruff и frontend lint PASS.
 
 - 27.10.2026 01:14: test(search): freeze independently authored external intent cases; 624 passed, 1 warning, 125 subtests passed in 45.32s; Ruff и frontend lint PASS.
+
+- Дополнительный ledger: 30 460 claims / 3 748 065 B, 6 YAML, солнечные методы v2. Солнце — 199 объектов (198 non-synthetic + 1 synthetic), пляж с известной поверхностью — 152, парк/сад — 229, rail noise — 73. Wheelchair: 235 маршрутов с доказательствами, подтверждённых доступных маршрутов 0. Height additions 0, исходные NPZ и Hotel.floors сохранены. Перед публикацией выполняется полный набор проверок и пересборка.
+
+- Поставка дополнительного ledger прошла 629 tests + 125 subtests, Ruff и frontend lint; rebuild, demo-check 13 и browser smoke PASS. make eval: 53 838 известных facts, 143 synthetic (0,2656%), 40 слабых меток. Точность на поле не заявлена. Дополнительный Chrome-прогон связей и выбора окна PASS: 16 сценариев, без ошибок браузера.
+
+- После расширения данных compact Brevis вырос до 917 032 B (356 facts): цель <400 КБ временно не выполнена. Следующая итерация переносит повторяющиеся ограничения и artifact URI в ленивое evidence; полные источники сохраняются.

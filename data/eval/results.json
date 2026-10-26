@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-10-26T18:52:07.254358+00:00",
+  "generated_at": "2026-10-26T22:24:42.894658+00:00",
   "hotel_count": 250,
-  "characteristic_count": 17,
-  "fact_count": 26134,
+  "characteristic_count": 23,
+  "fact_count": 56888,
   "label_count": 40,
   "manual_label_count": 0,
   "coverage": {
-    "known_pairs": 1849,
-    "total_pairs": 4250,
-    "ratio": 0.4350588235294118
+    "known_pairs": 2699,
+    "total_pairs": 5750,
+    "ratio": 0.4693913043478261
   },
-  "synthetic_fact_count": 10,
+  "synthetic_fact_count": 143,
   "question_share": 0.0,
   "label_groups": {
     "weak_website": {
@@ -133,12 +133,12 @@
   "ndcg_at_5": null,
   "provenance": {
     "unit": "materialized_facts",
-    "known": 23732,
-    "non_synthetic": 23722,
-    "synthetic": 10,
+    "known": 53838,
+    "non_synthetic": 53695,
+    "synthetic": 143,
     "mixed": 3,
-    "unknown_stale_disputed": 2402,
-    "synthetic_share": 0.00042137198719029156
+    "unknown_stale_disputed": 3050,
+    "synthetic_share": 0.002656116497641071
   },
   "status": "measured",
   "limitations": [
