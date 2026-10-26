@@ -9,7 +9,15 @@ import {
   FlaskConical,
   RefreshCw,
 } from "lucide-react";
-import { api, dateText, record, request, textValue, useResource } from "../api";
+import {
+  api,
+  dateText,
+  readHotelierSession,
+  record,
+  request,
+  textValue,
+  useResource,
+} from "../api";
 import { useApp } from "../state";
 import { TravelMap } from "../components/Map";
 import {
@@ -765,13 +773,29 @@ function FactSnapshot({ facts }: { facts: Fact[] }) {
 export function ChangesPage() {
   const changes = useResource(api.changes),
     { hotels, toast } = useApp();
-  const [hotelId, setHotelId] = useState(""),
+  const [session, setSession] = useState(readHotelierSession),
+    [hotelId, setHotelId] = useState(""),
     [busy, setBusy] = useState(""),
     [error, setError] = useState<Error | null>(null),
     [selected, setSelected] = useState<ChangeEvent | null>(null);
   useEffect(() => {
     if (!hotelId && hotels.data?.[0]) setHotelId(hotels.data[0].id);
   }, [hotels.data, hotelId]);
+  const canAdminister = session?.role === "demo_admin";
+  useEffect(() => {
+    const changed = () => {
+      setSession(readHotelierSession());
+      setSelected(null);
+      changes.setData(null);
+      changes.reload();
+    };
+    window.addEventListener("okno-auth-expired", changed);
+    window.addEventListener("okno-auth-changed", changed);
+    return () => {
+      window.removeEventListener("okno-auth-expired", changed);
+      window.removeEventListener("okno-auth-changed", changed);
+    };
+  }, [changes.reload, changes.setData]);
   const simulate = async () => {
     setBusy("simulate");
     setError(null);
@@ -799,6 +823,10 @@ export function ChangesPage() {
     }
   };
   const current = selected || changes.data?.[0];
+  const notificationCount =
+    typeof current?.payload.notification_count === "number"
+      ? current.payload.notification_count
+      : current?.notifications.length || 0;
   const hotel = hotels.data?.find(
     (h) => h.id === current?.affected_hotel_ids[0],
   );
@@ -843,6 +871,23 @@ export function ChangesPage() {
         Повторная проверка по сроку и событиям. Если факт меняется, затронутый
         паспорт получает уведомление.
       </PageIntro>
+      {!canAdminister && (
+        <div className="limitations" data-testid="changes-auth-prompt">
+          <p>
+            Просмотр изменений открыт всем. Запуск пересчёта и синтетического
+            события доступен только демо-администратору.
+          </p>
+          <Link className="text-button" to="/hotelier">
+            Войти в кабинет администратора <ArrowRight size={14} />
+          </Link>
+          {session?.role === "hotelier" && (
+            <p className="fine-print">
+              Текущий кабинет управляет только своими отелями; роль
+              администратора эта сессия не предоставляет.
+            </p>
+          )}
+        </div>
+      )}
       <section className="change-simulator">
         <div>
           <Synthetic>Симуляция · синтетика</Synthetic>
@@ -869,7 +914,7 @@ export function ChangesPage() {
           </select>
           <button
             className="button primary"
-            disabled={!!busy || !hotelId}
+            disabled={!!busy || !hotelId || !canAdminister}
             onClick={simulate}
             data-testid="simulate-change"
           >
@@ -880,7 +925,11 @@ export function ChangesPage() {
       </section>
       <div className="operations-toolbar">
         <span className="eyebrow">ЛЕНТА АКТУАЛИЗАЦИИ</span>
-        <button className="text-button" disabled={!!busy} onClick={refresh}>
+        <button
+          className="text-button"
+          disabled={!!busy || !canAdminister}
+          onClick={refresh}
+        >
           <RefreshCw size={14} />
           Перепроверить истёкшие TTL
         </button>
@@ -972,7 +1021,7 @@ export function ChangesPage() {
                 </section>
               </div>
               <div className="notifications">
-                <h3>Кого уведомили</h3>
+                <h3>Локальные уведомления: {number(notificationCount)}</h3>
                 {current.notifications.length ? (
                   current.notifications.map((n, i) => (
                     <div key={i}>
@@ -988,7 +1037,9 @@ export function ChangesPage() {
                   ))
                 ) : (
                   <p className="muted">
-                    API не сообщил о затронутых паспортах.
+                    {notificationCount > 0
+                      ? "Уведомления созданы. Детали и ссылки на паспорта видны только в авторизованном кабинете с доступом к соответствующему отелю."
+                      : "API не сообщил о затронутых паспортах."}
                   </p>
                 )}
               </div>

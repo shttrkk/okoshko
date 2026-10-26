@@ -24,6 +24,27 @@ import type {
   QualityReport,
 } from "./types";
 
+export interface HotelierSession {
+  role: "demo_admin" | "hotelier";
+  hotel_ids: string[];
+}
+export function readHotelierSession(): HotelierSession | null {
+  if (!sessionStorage.getItem("okno-token")) return null;
+  try {
+    const value = JSON.parse(
+      sessionStorage.getItem("okno-hotelier-session") || "null",
+    );
+    return value &&
+      ["demo_admin", "hotelier"].includes(value.role) &&
+      Array.isArray(value.hotel_ids) &&
+      value.hotel_ids.every((id: unknown) => typeof id === "string")
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -75,6 +96,7 @@ export async function request<T>(
   if (!response.ok) {
     if (auth && response.status === 401) {
       sessionStorage.removeItem("okno-token");
+      sessionStorage.removeItem("okno-hotelier-session");
       window.dispatchEvent(new Event("okno-auth-expired"));
     }
     const detail =
@@ -119,6 +141,11 @@ export const api = {
       role?: "demo_admin" | "hotelier";
       hotel_ids?: string[];
     }>("/api/hotelier/login", { username, password }),
+  logout: () =>
+    request<{ logged_out: boolean; synthetic: boolean }>(
+      "/api/hotelier/logout",
+      {},
+    ),
   hotelier: (hotelId: string) =>
     request<HotelierData>(
       `/api/hotelier/${id(hotelId)}`,
@@ -186,11 +213,22 @@ export const api = {
   run: (runId: string) => request<AgentRun>(`/api/runs/${id(runId)}`),
   startRun: (hotel_id: string) =>
     request<AgentRun>("/api/runs", { hotel_id, characteristic_ids: [] }),
-  changes: () => request<ChangeEvent[]>("/api/changes"),
+  changes: () =>
+    request<ChangeEvent[]>("/api/changes", undefined, undefined, true),
   simulateChange: (hotel_id?: string) =>
-    request<ChangeEvent>("/api/changes/simulate", hotel_id ? { hotel_id } : {}),
+    request<ChangeEvent>(
+      "/api/changes/simulate",
+      hotel_id ? { hotel_id } : {},
+      undefined,
+      true,
+    ),
   refresh: () =>
-    request<{ processed: number; run_id: string }>("/api/changes/refresh", {}),
+    request<{ processed: number; run_id: string }>(
+      "/api/changes/refresh",
+      {},
+      undefined,
+      true,
+    ),
   sources: () => request<Source[]>("/api/sources"),
   quality: () => request<QualityReport>("/api/quality"),
   labels: () => request<LabelTarget[]>("/api/quality/label"),

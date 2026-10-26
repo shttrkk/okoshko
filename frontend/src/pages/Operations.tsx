@@ -15,7 +15,13 @@ import {
   Sparkles,
   Upload,
 } from "lucide-react";
-import { api, dateText, record, useResource } from "../api";
+import {
+  api,
+  dateText,
+  readHotelierSession,
+  record,
+  useResource,
+} from "../api";
 import { useApp } from "../state";
 import {
   Empty,
@@ -42,6 +48,7 @@ export function HotelierPage() {
   const [token, setToken] = useState(
       sessionStorage.getItem("okno-token") || "",
     ),
+    [session, setSession] = useState(readHotelierSession),
     [username, setUsername] = useState("hotelier"),
     [password, setPassword] = useState("hotelier123"),
     [hotelId, setHotelId] = useState(""),
@@ -50,12 +57,19 @@ export function HotelierPage() {
     [error, setError] = useState<Error | null>(null),
     [text, setText] = useState(""),
     [preview, setPreview] = useState<Answer | null>(null);
+  const allowedHotels =
+    session?.role === "hotelier"
+      ? hotels.data?.filter((hotel) => session.hotel_ids.includes(hotel.id))
+      : hotels.data;
   useEffect(() => {
-    if (!hotelId && hotels.data?.[0]) setHotelId(hotels.data[0].id);
-  }, [hotels.data, hotelId]);
+    if (!allowedHotels?.some((hotel) => hotel.id === hotelId)) {
+      setHotelId(allowedHotels?.[0]?.id || "");
+    }
+  }, [hotels.data, hotelId, session]);
   useEffect(() => {
     const expired = () => {
       setToken("");
+      setSession(null);
       setPreview(null);
       setError(new Error("Сессия демо-кабинета завершилась. Войдите снова."));
     };
@@ -77,9 +91,44 @@ export function HotelierPage() {
     try {
       const r = await api.login(username, password);
       sessionStorage.setItem("okno-token", r.token);
+      if (r.role && r.hotel_ids) {
+        sessionStorage.setItem(
+          "okno-hotelier-session",
+          JSON.stringify({ role: r.role, hotel_ids: r.hotel_ids }),
+        );
+      } else sessionStorage.removeItem("okno-hotelier-session");
+      const nextSession = readHotelierSession();
+      setSession(nextSession);
+      if (nextSession?.role === "hotelier")
+        setHotelId(nextSession.hotel_ids[0] || "");
       setToken(r.token);
+      window.dispatchEvent(new Event("okno-auth-changed"));
     } catch (e) {
       setError(e as Error);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const logout = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.logout();
+      sessionStorage.removeItem("okno-token");
+      sessionStorage.removeItem("okno-hotelier-session");
+      setToken("");
+      setSession(null);
+      setPreview(null);
+      setText("");
+      setQuestionId("");
+      data.setData(null);
+      window.dispatchEvent(new Event("okno-auth-changed"));
+    } catch (e) {
+      setError(
+        new Error(
+          `Не удалось завершить сессию на сервере. Вход остаётся активным: ${(e as Error).message}`,
+        ),
+      );
     } finally {
       setBusy(false);
     }
@@ -192,20 +241,14 @@ export function HotelierPage() {
                 }}
                 data-testid="hotelier-hotel"
               >
-                {hotels.data?.map((h) => (
+                {allowedHotels?.map((h) => (
                   <option key={h.id} value={h.id}>
                     {h.name}
                   </option>
                 ))}
               </select>
             </label>
-            <button
-              className="text-button"
-              onClick={() => {
-                sessionStorage.removeItem("okno-token");
-                setToken("");
-              }}
-            >
+            <button className="text-button" onClick={logout} disabled={busy}>
               <LogOut size={15} />
               Выйти
             </button>
