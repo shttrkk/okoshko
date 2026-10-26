@@ -278,3 +278,75 @@ class EditedPassportCriteriaTests(unittest.TestCase):
         stored["criterion"] = criterion.model_dump(mode="json")
         self.repo.upsert("passport_items", stored)
         self.assertEqual(self.confirm(passport).status, "at_risk")
+
+
+class SyntheticDialogueFixtureTests(unittest.TestCase):
+    def load_fixture(self):
+        import json
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[2]
+        envelope = json.loads((root / "data/seed/demo_hotelier_dialogues.json").read_text())
+        profiles = json.loads((root / "data/hotelier_profiles/pets_dialogue_profiles.json").read_text())
+        return envelope, profiles
+
+    def test_completed_fixture_is_parser_generated_and_has_no_orphans(self):
+        from data.hotelier_profiles.build_dialogues import validate
+
+        envelope, profiles = self.load_fixture()
+        report = validate(envelope, profiles)
+        self.assertEqual(report["completed_hotels"], 7)
+        self.assertEqual(report["pending_live_hotels"], 2)
+        self.assertEqual(report["orphan_records"], 0)
+        self.assertEqual(report["claims"], 7)
+
+    def test_missing_message_and_real_source_substitution_are_rejected(self):
+        from data.hotelier_profiles.build_dialogues import validate
+
+        for defect in ("message", "source"):
+            with self.subTest(defect=defect):
+                envelope, profiles = self.load_fixture()
+                if defect == "message":
+                    envelope["claims"][0]["evidence"][0]["message_id"] = "missing-answer"
+                else:
+                    envelope["claims"][0]["synthetic"] = False
+                    envelope["claims"][0]["source"] = "hotelier"
+                with self.assertRaises(AssertionError):
+                    validate(envelope, profiles)
+
+    def test_pending_live_preview_and_confirm_use_the_actual_api(self):
+        envelope, profiles = self.load_fixture()
+        repo = MemoryRepo()
+        import json
+        from pathlib import Path
+
+        hotels = {h["id"]: h for h in json.loads((Path(__file__).resolve().parents[2] / "data/seed/hotels.json").read_text())}
+        pending = [q for q in envelope["questions"] if q["status"] == "pending"]
+        for question in pending:
+            repo.upsert("hotels", hotels[question["hotel_id"]])
+            repo.insert("questions", question)
+        app = FastAPI()
+        app.include_router(hotelier_router)
+        app.dependency_overrides[get_repo] = lambda: repo
+        client = TestClient(app)
+        token = client.post("/api/hotelier/login", json={"username": "hotelier", "password": "hotelier123"}).json()["token"]
+        auth = {"Authorization": "Bearer " + token}
+        answers = []
+        for question in pending:
+            result = client.post(f'/api/questions/{question["id"]}/simulate', headers=auth, json={})
+            self.assertEqual(result.status_code, 200, result.text)
+            preview = result.json()
+            self.assertTrue(preview["synthetic"])
+            self.assertFalse(preview["confirmed"])
+            self.assertEqual(repo.all("claims"), [])
+            expected = next(p for p in profiles["live_profiles"] if p["hotel_id"] == question["hotel_id"])
+            self.assertEqual(preview["raw_text"], expected["answers"]["pets"])
+            answers.append(preview)
+        for answer in answers:
+            result = client.post(f'/api/answers/{answer["id"]}/confirm', headers=auth, json={})
+            self.assertEqual(result.status_code, 200, result.text)
+            self.assertTrue(result.json()["confirmed"])
+        self.assertEqual(len(repo.all("claims")), 2)
+        self.assertTrue(all(c["source"] == "hotelier_simulator" and c["synthetic"] for c in repo.all("claims")))
+        pets_facts = repo.find("facts", characteristic_id="pets")
+        self.assertTrue(all(f["status"] == "computed" and f["synthetic"] for f in pets_facts))

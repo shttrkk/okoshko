@@ -1,0 +1,2801 @@
+{
+  "agent_runs": [
+    {
+      "characteristic_id": "pets",
+      "error": null,
+      "finished_at": "2026-10-26T14:44:57.306889Z",
+      "hotel_id": "osm-node-11866202895",
+      "id": "a1a76eaf13c0655c4a68c7da89ba6681",
+      "kind": "interview",
+      "llm_mode": "offline",
+      "started_at": "2026-10-26T14:44:57.286704Z",
+      "status": "completed",
+      "steps": [
+        {
+          "agent": "interviewer",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "b09ac7e221559ff0218bd0a102f271ec",
+          "input": {
+            "scenario_id": "review004-pets-dialogues-v1",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Синтетический вопрос о питомцах",
+          "output": {
+            "question_id": "0d425f2004c3447cb7399979705eb0c0",
+            "synthetic": true
+          },
+          "rationale": "Вымышленная политика пока не получена в demo-сценарии",
+          "run_id": "a1a76eaf13c0655c4a68c7da89ba6681",
+          "seq": 0,
+          "type": "decision"
+        },
+        {
+          "agent": "answer_parser",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "ca052162592b1dd57d15c0d6051428c4",
+          "input": {
+            "answer_id": "d41d00565994b07935caca6b6f8adec4",
+            "question_id": "0d425f2004c3447cb7399979705eb0c0",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Ответ симулятора разобран на поля с цитатами",
+          "output": {
+            "synthetic": true,
+            "unknown_fields": [],
+            "updates": [
+              {
+                "characteristic_id": "pets",
+                "confidence": 0.85,
+                "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 30 кг за 1000 рублей за ночь",
+                "scope": {
+                  "facade": null,
+                  "floor_max": null,
+                  "floor_min": null,
+                  "month": null,
+                  "room_type": null,
+                  "type": "hotel"
+                },
+                "value": {
+                  "available": true,
+                  "fee_rub_night": 1000.0,
+                  "max_weight_kg": 30.0,
+                  "species": [
+                    "cat",
+                    "dog"
+                  ]
+                }
+              }
+            ]
+          },
+          "rationale": "Запущен существующий parse_answer без LLM и без предположений о реальной гостинице",
+          "run_id": "a1a76eaf13c0655c4a68c7da89ba6681",
+          "seq": 1,
+          "type": "extraction"
+        },
+        {
+          "agent": "hotelier_simulator",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "24821cd19c234dd5ef217dd784964f4f",
+          "input": {
+            "answer_id": "d41d00565994b07935caca6b6f8adec4",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Синтетический предпросмотр: claims ещё не созданы",
+          "output": {
+            "confirmed": false,
+            "created_claim_ids": [],
+            "synthetic": true
+          },
+          "rationale": "Создание claim требует отдельного подтверждения",
+          "run_id": "a1a76eaf13c0655c4a68c7da89ba6681",
+          "seq": 2,
+          "type": "preview"
+        },
+        {
+          "agent": "resolver",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.306902Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [
+            "23e406890769624b513a69248a1e3be1"
+          ],
+          "id": "a3aa1b283c316953fbb8368f250fd022",
+          "input": {
+            "answer_id": "d41d00565994b07935caca6b6f8adec4",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Ответ симулятора подтверждён",
+          "output": {
+            "created_claim_ids": [
+              "cde702725a88b6b951b16865e0efc7c6"
+            ],
+            "display_status": "Ответ симулятора подтверждён",
+            "fact_status": "computed",
+            "synthetic": true
+          },
+          "rationale": "Демо-подтверждение создало synthetic claims; это не реальное подтверждение гостиницы",
+          "run_id": "a1a76eaf13c0655c4a68c7da89ba6681",
+          "seq": 3,
+          "type": "confirmation"
+        }
+      ],
+      "trigger": "synthetic_demo_dialogue"
+    },
+    {
+      "characteristic_id": "pets",
+      "error": null,
+      "finished_at": "2026-10-26T14:44:57.308446Z",
+      "hotel_id": "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+      "id": "b707c8f1d2bdde33dff3d765f7548cb8",
+      "kind": "interview",
+      "llm_mode": "offline",
+      "started_at": "2026-10-26T14:44:57.286704Z",
+      "status": "completed",
+      "steps": [
+        {
+          "agent": "interviewer",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "ed6bdbf66524a9a483f8958b53d9cb0b",
+          "input": {
+            "scenario_id": "review004-pets-dialogues-v1",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Синтетический вопрос о питомцах",
+          "output": {
+            "question_id": "a54a2506efd4645510b964ea4df42a47",
+            "synthetic": true
+          },
+          "rationale": "Вымышленная политика пока не получена в demo-сценарии",
+          "run_id": "b707c8f1d2bdde33dff3d765f7548cb8",
+          "seq": 0,
+          "type": "decision"
+        },
+        {
+          "agent": "answer_parser",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "c7c7add5785f68fde516dc1789823a64",
+          "input": {
+            "answer_id": "e5805874daed1114198c2a52d2636436",
+            "question_id": "a54a2506efd4645510b964ea4df42a47",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Ответ симулятора разобран на поля с цитатами",
+          "output": {
+            "synthetic": true,
+            "unknown_fields": [],
+            "updates": [
+              {
+                "characteristic_id": "pets",
+                "confidence": 0.85,
+                "quote": "Синтетический ответ для демонстрации: принимаем собак до 35 кг за 500 рублей за ночь",
+                "scope": {
+                  "facade": null,
+                  "floor_max": null,
+                  "floor_min": null,
+                  "month": null,
+                  "room_type": null,
+                  "type": "hotel"
+                },
+                "value": {
+                  "available": true,
+                  "fee_rub_night": 500.0,
+                  "max_weight_kg": 35.0,
+                  "species": [
+                    "dog"
+                  ]
+                }
+              }
+            ]
+          },
+          "rationale": "Запущен существующий parse_answer без LLM и без предположений о реальной гостинице",
+          "run_id": "b707c8f1d2bdde33dff3d765f7548cb8",
+          "seq": 1,
+          "type": "extraction"
+        },
+        {
+          "agent": "hotelier_simulator",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "c9ca027756f3cb3a0b31a92985ec8578",
+          "input": {
+            "answer_id": "e5805874daed1114198c2a52d2636436",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Синтетический предпросмотр: claims ещё не созданы",
+          "output": {
+            "confirmed": false,
+            "created_claim_ids": [],
+            "synthetic": true
+          },
+          "rationale": "Создание claim требует отдельного подтверждения",
+          "run_id": "b707c8f1d2bdde33dff3d765f7548cb8",
+          "seq": 2,
+          "type": "preview"
+        },
+        {
+          "agent": "resolver",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.308453Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [
+            "dffa2ae0b7fa6d666366f21e10d96464"
+          ],
+          "id": "2b3558accaa14ff9bd7a2fbe37753675",
+          "input": {
+            "answer_id": "e5805874daed1114198c2a52d2636436",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Ответ симулятора подтверждён",
+          "output": {
+            "created_claim_ids": [
+              "7038c34295382f62df867fa45c0c0f21"
+            ],
+            "display_status": "Ответ симулятора подтверждён",
+            "fact_status": "computed",
+            "synthetic": true
+          },
+          "rationale": "Демо-подтверждение создало synthetic claims; это не реальное подтверждение гостиницы",
+          "run_id": "b707c8f1d2bdde33dff3d765f7548cb8",
+          "seq": 3,
+          "type": "confirmation"
+        }
+      ],
+      "trigger": "synthetic_demo_dialogue"
+    },
+    {
+      "characteristic_id": "pets",
+      "error": null,
+      "finished_at": "2026-10-26T14:44:57.310056Z",
+      "hotel_id": "osm-way-201474330",
+      "id": "932f41cd998422ca2ac6ca808b937efa",
+      "kind": "interview",
+      "llm_mode": "offline",
+      "started_at": "2026-10-26T14:44:57.286704Z",
+      "status": "completed",
+      "steps": [
+        {
+          "agent": "interviewer",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "6feaa3278907903489c2c065f8959c44",
+          "input": {
+            "scenario_id": "review004-pets-dialogues-v1",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Синтетический вопрос о питомцах",
+          "output": {
+            "question_id": "6f82c04cdcaf4d8aebf50c63fb794fe4",
+            "synthetic": true
+          },
+          "rationale": "Вымышленная политика пока не получена в demo-сценарии",
+          "run_id": "932f41cd998422ca2ac6ca808b937efa",
+          "seq": 0,
+          "type": "decision"
+        },
+        {
+          "agent": "answer_parser",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "71f57416846051335fed8ea78e3060ea",
+          "input": {
+            "answer_id": "caea5b37da6e0b030ebdecd2fdd4bd86",
+            "question_id": "6f82c04cdcaf4d8aebf50c63fb794fe4",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Ответ симулятора разобран на поля с цитатами",
+          "output": {
+            "synthetic": true,
+            "unknown_fields": [],
+            "updates": [
+              {
+                "characteristic_id": "pets",
+                "confidence": 0.85,
+                "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 40 кг за 0 рублей за ночь",
+                "scope": {
+                  "facade": null,
+                  "floor_max": null,
+                  "floor_min": null,
+                  "month": null,
+                  "room_type": null,
+                  "type": "hotel"
+                },
+                "value": {
+                  "available": true,
+                  "fee_rub_night": 0.0,
+                  "max_weight_kg": 40.0,
+                  "species": [
+                    "cat",
+                    "dog"
+                  ]
+                }
+              }
+            ]
+          },
+          "rationale": "Запущен существующий parse_answer без LLM и без предположений о реальной гостинице",
+          "run_id": "932f41cd998422ca2ac6ca808b937efa",
+          "seq": 1,
+          "type": "extraction"
+        },
+        {
+          "agent": "hotelier_simulator",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "ea27134ca2c40dd78b35091738a26037",
+          "input": {
+            "answer_id": "caea5b37da6e0b030ebdecd2fdd4bd86",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Синтетический предпросмотр: claims ещё не созданы",
+          "output": {
+            "confirmed": false,
+            "created_claim_ids": [],
+            "synthetic": true
+          },
+          "rationale": "Создание claim требует отдельного подтверждения",
+          "run_id": "932f41cd998422ca2ac6ca808b937efa",
+          "seq": 2,
+          "type": "preview"
+        },
+        {
+          "agent": "resolver",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.310063Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [
+            "83d98b9f51e4308f0e51b053d0ca8718"
+          ],
+          "id": "a7d8c45cacdb4f2edfdd05bfc1641ce9",
+          "input": {
+            "answer_id": "caea5b37da6e0b030ebdecd2fdd4bd86",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Ответ симулятора подтверждён",
+          "output": {
+            "created_claim_ids": [
+              "5bccbbc60ebbdb357051051ac4ccc94e"
+            ],
+            "display_status": "Ответ симулятора подтверждён",
+            "fact_status": "computed",
+            "synthetic": true
+          },
+          "rationale": "Демо-подтверждение создало synthetic claims; это не реальное подтверждение гостиницы",
+          "run_id": "932f41cd998422ca2ac6ca808b937efa",
+          "seq": 3,
+          "type": "confirmation"
+        }
+      ],
+      "trigger": "synthetic_demo_dialogue"
+    },
+    {
+      "characteristic_id": "pets",
+      "error": null,
+      "finished_at": "2026-10-26T14:44:57.311746Z",
+      "hotel_id": "osm-way-80192670",
+      "id": "5ce72a9da75ae01a6f3415ddd0e0e2ae",
+      "kind": "interview",
+      "llm_mode": "offline",
+      "started_at": "2026-10-26T14:44:57.286704Z",
+      "status": "completed",
+      "steps": [
+        {
+          "agent": "interviewer",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "b6c70262f9f96cd931b3f6d82ed10097",
+          "input": {
+            "scenario_id": "review004-pets-dialogues-v1",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Синтетический вопрос о питомцах",
+          "output": {
+            "question_id": "6af65ac971b25192b273a97c57753c2c",
+            "synthetic": true
+          },
+          "rationale": "Вымышленная политика пока не получена в demo-сценарии",
+          "run_id": "5ce72a9da75ae01a6f3415ddd0e0e2ae",
+          "seq": 0,
+          "type": "decision"
+        },
+        {
+          "agent": "answer_parser",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "f141e477eb0e74a9a9ed88d8bc181fae",
+          "input": {
+            "answer_id": "d861d0c4fce40edeee7b1e01c56b8b20",
+            "question_id": "6af65ac971b25192b273a97c57753c2c",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Ответ симулятора разобран на поля с цитатами",
+          "output": {
+            "synthetic": true,
+            "unknown_fields": [],
+            "updates": [
+              {
+                "characteristic_id": "pets",
+                "confidence": 0.85,
+                "quote": "Синтетический ответ для демонстрации: принимаем собак до 50 кг за 800 рублей за ночь",
+                "scope": {
+                  "facade": null,
+                  "floor_max": null,
+                  "floor_min": null,
+                  "month": null,
+                  "room_type": null,
+                  "type": "hotel"
+                },
+                "value": {
+                  "available": true,
+                  "fee_rub_night": 800.0,
+                  "max_weight_kg": 50.0,
+                  "species": [
+                    "dog"
+                  ]
+                }
+              }
+            ]
+          },
+          "rationale": "Запущен существующий parse_answer без LLM и без предположений о реальной гостинице",
+          "run_id": "5ce72a9da75ae01a6f3415ddd0e0e2ae",
+          "seq": 1,
+          "type": "extraction"
+        },
+        {
+          "agent": "hotelier_simulator",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "109e97405d572adc31487affb9b4ad55",
+          "input": {
+            "answer_id": "d861d0c4fce40edeee7b1e01c56b8b20",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Синтетический предпросмотр: claims ещё не созданы",
+          "output": {
+            "confirmed": false,
+            "created_claim_ids": [],
+            "synthetic": true
+          },
+          "rationale": "Создание claim требует отдельного подтверждения",
+          "run_id": "5ce72a9da75ae01a6f3415ddd0e0e2ae",
+          "seq": 2,
+          "type": "preview"
+        },
+        {
+          "agent": "resolver",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.311754Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [
+            "eac1c128ba7316975ddfda411b70d13c"
+          ],
+          "id": "c49b7a0fecd792d98af26d073d51a6a7",
+          "input": {
+            "answer_id": "d861d0c4fce40edeee7b1e01c56b8b20",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Ответ симулятора подтверждён",
+          "output": {
+            "created_claim_ids": [
+              "77cfa71a6ea61fcc3b88088b0d2d1485"
+            ],
+            "display_status": "Ответ симулятора подтверждён",
+            "fact_status": "computed",
+            "synthetic": true
+          },
+          "rationale": "Демо-подтверждение создало synthetic claims; это не реальное подтверждение гостиницы",
+          "run_id": "5ce72a9da75ae01a6f3415ddd0e0e2ae",
+          "seq": 3,
+          "type": "confirmation"
+        }
+      ],
+      "trigger": "synthetic_demo_dialogue"
+    },
+    {
+      "characteristic_id": "pets",
+      "error": null,
+      "finished_at": "2026-10-26T14:44:57.313502Z",
+      "hotel_id": "osm-node-8975796817",
+      "id": "0dc365667c93954e4307523bec3a37b4",
+      "kind": "interview",
+      "llm_mode": "offline",
+      "started_at": "2026-10-26T14:44:57.286704Z",
+      "status": "completed",
+      "steps": [
+        {
+          "agent": "interviewer",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "bfe5994431e16c0e476d9f035ce2abde",
+          "input": {
+            "scenario_id": "review004-pets-dialogues-v1",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Синтетический вопрос о питомцах",
+          "output": {
+            "question_id": "a9f6025eca3169865dc70253e798e671",
+            "synthetic": true
+          },
+          "rationale": "Вымышленная политика пока не получена в demo-сценарии",
+          "run_id": "0dc365667c93954e4307523bec3a37b4",
+          "seq": 0,
+          "type": "decision"
+        },
+        {
+          "agent": "answer_parser",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "0905d402d1ef7fdc75acd266310daa54",
+          "input": {
+            "answer_id": "baf5ff2c2fa24c172580f025efc08a51",
+            "question_id": "a9f6025eca3169865dc70253e798e671",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Ответ симулятора разобран на поля с цитатами",
+          "output": {
+            "synthetic": true,
+            "unknown_fields": [],
+            "updates": [
+              {
+                "characteristic_id": "pets",
+                "confidence": 0.85,
+                "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 30 кг за 1200 рублей за ночь",
+                "scope": {
+                  "facade": null,
+                  "floor_max": null,
+                  "floor_min": null,
+                  "month": null,
+                  "room_type": null,
+                  "type": "hotel"
+                },
+                "value": {
+                  "available": true,
+                  "fee_rub_night": 1200.0,
+                  "max_weight_kg": 30.0,
+                  "species": [
+                    "cat",
+                    "dog"
+                  ]
+                }
+              }
+            ]
+          },
+          "rationale": "Запущен существующий parse_answer без LLM и без предположений о реальной гостинице",
+          "run_id": "0dc365667c93954e4307523bec3a37b4",
+          "seq": 1,
+          "type": "extraction"
+        },
+        {
+          "agent": "hotelier_simulator",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "40133bcd7cea65088ee37135945a624d",
+          "input": {
+            "answer_id": "baf5ff2c2fa24c172580f025efc08a51",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Синтетический предпросмотр: claims ещё не созданы",
+          "output": {
+            "confirmed": false,
+            "created_claim_ids": [],
+            "synthetic": true
+          },
+          "rationale": "Создание claim требует отдельного подтверждения",
+          "run_id": "0dc365667c93954e4307523bec3a37b4",
+          "seq": 2,
+          "type": "preview"
+        },
+        {
+          "agent": "resolver",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.313510Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [
+            "e9546ec2e50b8b078a924e2177dee4fa"
+          ],
+          "id": "7a45c683825b48f084f91461310230e0",
+          "input": {
+            "answer_id": "baf5ff2c2fa24c172580f025efc08a51",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Ответ симулятора подтверждён",
+          "output": {
+            "created_claim_ids": [
+              "41b300d258061b117a58d56d88126a97"
+            ],
+            "display_status": "Ответ симулятора подтверждён",
+            "fact_status": "computed",
+            "synthetic": true
+          },
+          "rationale": "Демо-подтверждение создало synthetic claims; это не реальное подтверждение гостиницы",
+          "run_id": "0dc365667c93954e4307523bec3a37b4",
+          "seq": 3,
+          "type": "confirmation"
+        }
+      ],
+      "trigger": "synthetic_demo_dialogue"
+    },
+    {
+      "characteristic_id": "pets",
+      "error": null,
+      "finished_at": "2026-10-26T14:44:57.315333Z",
+      "hotel_id": "osm-way-53292016",
+      "id": "8eb787def5a58d14eded03af274b114b",
+      "kind": "interview",
+      "llm_mode": "offline",
+      "started_at": "2026-10-26T14:44:57.286704Z",
+      "status": "completed",
+      "steps": [
+        {
+          "agent": "interviewer",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "26945954ecb4af919ab1e8446b9cb8c1",
+          "input": {
+            "scenario_id": "review004-pets-dialogues-v1",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Синтетический вопрос о питомцах",
+          "output": {
+            "question_id": "bd0d3e05af1e627bfcfed79b3cbd503d",
+            "synthetic": true
+          },
+          "rationale": "Вымышленная политика пока не получена в demo-сценарии",
+          "run_id": "8eb787def5a58d14eded03af274b114b",
+          "seq": 0,
+          "type": "decision"
+        },
+        {
+          "agent": "answer_parser",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "b83d752a51f43aee1891b25471076286",
+          "input": {
+            "answer_id": "48b1f1b7a032a5464d7476e96361aab1",
+            "question_id": "bd0d3e05af1e627bfcfed79b3cbd503d",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Ответ симулятора разобран на поля с цитатами",
+          "output": {
+            "synthetic": true,
+            "unknown_fields": [],
+            "updates": [
+              {
+                "characteristic_id": "pets",
+                "confidence": 0.85,
+                "quote": "Синтетический ответ для демонстрации: принимаем собак до 45 кг за 700 рублей за ночь",
+                "scope": {
+                  "facade": null,
+                  "floor_max": null,
+                  "floor_min": null,
+                  "month": null,
+                  "room_type": null,
+                  "type": "hotel"
+                },
+                "value": {
+                  "available": true,
+                  "fee_rub_night": 700.0,
+                  "max_weight_kg": 45.0,
+                  "species": [
+                    "dog"
+                  ]
+                }
+              }
+            ]
+          },
+          "rationale": "Запущен существующий parse_answer без LLM и без предположений о реальной гостинице",
+          "run_id": "8eb787def5a58d14eded03af274b114b",
+          "seq": 1,
+          "type": "extraction"
+        },
+        {
+          "agent": "hotelier_simulator",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "d930d456dbb3ff69d107f89911f7ba2d",
+          "input": {
+            "answer_id": "48b1f1b7a032a5464d7476e96361aab1",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Синтетический предпросмотр: claims ещё не созданы",
+          "output": {
+            "confirmed": false,
+            "created_claim_ids": [],
+            "synthetic": true
+          },
+          "rationale": "Создание claim требует отдельного подтверждения",
+          "run_id": "8eb787def5a58d14eded03af274b114b",
+          "seq": 2,
+          "type": "preview"
+        },
+        {
+          "agent": "resolver",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.315338Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [
+            "b0b818636ead5c83714b20b681b5ce20"
+          ],
+          "id": "730c64338bace84bec845b7a580d96b5",
+          "input": {
+            "answer_id": "48b1f1b7a032a5464d7476e96361aab1",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Ответ симулятора подтверждён",
+          "output": {
+            "created_claim_ids": [
+              "eece6a9da318bf1f53b2d96b49371bb9"
+            ],
+            "display_status": "Ответ симулятора подтверждён",
+            "fact_status": "computed",
+            "synthetic": true
+          },
+          "rationale": "Демо-подтверждение создало synthetic claims; это не реальное подтверждение гостиницы",
+          "run_id": "8eb787def5a58d14eded03af274b114b",
+          "seq": 3,
+          "type": "confirmation"
+        }
+      ],
+      "trigger": "synthetic_demo_dialogue"
+    },
+    {
+      "characteristic_id": "pets",
+      "error": null,
+      "finished_at": "2026-10-26T14:44:57.317274Z",
+      "hotel_id": "osm-way-53284165",
+      "id": "b622bd60afb676661de60c84c1878023",
+      "kind": "interview",
+      "llm_mode": "offline",
+      "started_at": "2026-10-26T14:44:57.286704Z",
+      "status": "completed",
+      "steps": [
+        {
+          "agent": "interviewer",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "a002b268c433eb568aef337bbc1dbfb4",
+          "input": {
+            "scenario_id": "review004-pets-dialogues-v1",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Синтетический вопрос о питомцах",
+          "output": {
+            "question_id": "f9caa02834085049022d0723899d9d1e",
+            "synthetic": true
+          },
+          "rationale": "Вымышленная политика пока не получена в demo-сценарии",
+          "run_id": "b622bd60afb676661de60c84c1878023",
+          "seq": 0,
+          "type": "decision"
+        },
+        {
+          "agent": "answer_parser",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "009cebde0fabd50c97e9e3ad0ef400c7",
+          "input": {
+            "answer_id": "0ac5629128591db0b02fed1d09d6d92c",
+            "question_id": "f9caa02834085049022d0723899d9d1e",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Ответ симулятора разобран на поля с цитатами",
+          "output": {
+            "synthetic": true,
+            "unknown_fields": [],
+            "updates": [
+              {
+                "characteristic_id": "pets",
+                "confidence": 0.85,
+                "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 60 кг за 0 рублей за ночь",
+                "scope": {
+                  "facade": null,
+                  "floor_max": null,
+                  "floor_min": null,
+                  "month": null,
+                  "room_type": null,
+                  "type": "hotel"
+                },
+                "value": {
+                  "available": true,
+                  "fee_rub_night": 0.0,
+                  "max_weight_kg": 60.0,
+                  "species": [
+                    "cat",
+                    "dog"
+                  ]
+                }
+              }
+            ]
+          },
+          "rationale": "Запущен существующий parse_answer без LLM и без предположений о реальной гостинице",
+          "run_id": "b622bd60afb676661de60c84c1878023",
+          "seq": 1,
+          "type": "extraction"
+        },
+        {
+          "agent": "hotelier_simulator",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.286704Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [],
+          "id": "6c6387f0d75ad42b98c9dda40e95aa44",
+          "input": {
+            "answer_id": "0ac5629128591db0b02fed1d09d6d92c",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Синтетический предпросмотр: claims ещё не созданы",
+          "output": {
+            "confirmed": false,
+            "created_claim_ids": [],
+            "synthetic": true
+          },
+          "rationale": "Создание claim требует отдельного подтверждения",
+          "run_id": "b622bd60afb676661de60c84c1878023",
+          "seq": 2,
+          "type": "preview"
+        },
+        {
+          "agent": "resolver",
+          "cache_hit": false,
+          "created_at": "2026-10-26T14:44:57.317283Z",
+          "duration_ms": 0.0,
+          "error": null,
+          "evidence_refs": [
+            "bb834695a55a7c99a0b4cda30361a752"
+          ],
+          "id": "cb6ee2016a6ca176a1c7730972630218",
+          "input": {
+            "answer_id": "0ac5629128591db0b02fed1d09d6d92c",
+            "synthetic": true
+          },
+          "mode": "offline",
+          "name": "Ответ симулятора подтверждён",
+          "output": {
+            "created_claim_ids": [
+              "0c19da756b28f7cc34f2b6a05f7bc7b8"
+            ],
+            "display_status": "Ответ симулятора подтверждён",
+            "fact_status": "computed",
+            "synthetic": true
+          },
+          "rationale": "Демо-подтверждение создало synthetic claims; это не реальное подтверждение гостиницы",
+          "run_id": "b622bd60afb676661de60c84c1878023",
+          "seq": 3,
+          "type": "confirmation"
+        }
+      ],
+      "trigger": "synthetic_demo_dialogue"
+    }
+  ],
+  "agent_steps": [
+    {
+      "agent": "interviewer",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "b09ac7e221559ff0218bd0a102f271ec",
+      "input": {
+        "scenario_id": "review004-pets-dialogues-v1",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Синтетический вопрос о питомцах",
+      "output": {
+        "question_id": "0d425f2004c3447cb7399979705eb0c0",
+        "synthetic": true
+      },
+      "rationale": "Вымышленная политика пока не получена в demo-сценарии",
+      "run_id": "a1a76eaf13c0655c4a68c7da89ba6681",
+      "seq": 0,
+      "type": "decision"
+    },
+    {
+      "agent": "answer_parser",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "ca052162592b1dd57d15c0d6051428c4",
+      "input": {
+        "answer_id": "d41d00565994b07935caca6b6f8adec4",
+        "question_id": "0d425f2004c3447cb7399979705eb0c0",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Ответ симулятора разобран на поля с цитатами",
+      "output": {
+        "synthetic": true,
+        "unknown_fields": [],
+        "updates": [
+          {
+            "characteristic_id": "pets",
+            "confidence": 0.85,
+            "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 30 кг за 1000 рублей за ночь",
+            "scope": {
+              "facade": null,
+              "floor_max": null,
+              "floor_min": null,
+              "month": null,
+              "room_type": null,
+              "type": "hotel"
+            },
+            "value": {
+              "available": true,
+              "fee_rub_night": 1000.0,
+              "max_weight_kg": 30.0,
+              "species": [
+                "cat",
+                "dog"
+              ]
+            }
+          }
+        ]
+      },
+      "rationale": "Запущен существующий parse_answer без LLM и без предположений о реальной гостинице",
+      "run_id": "a1a76eaf13c0655c4a68c7da89ba6681",
+      "seq": 1,
+      "type": "extraction"
+    },
+    {
+      "agent": "hotelier_simulator",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "24821cd19c234dd5ef217dd784964f4f",
+      "input": {
+        "answer_id": "d41d00565994b07935caca6b6f8adec4",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Синтетический предпросмотр: claims ещё не созданы",
+      "output": {
+        "confirmed": false,
+        "created_claim_ids": [],
+        "synthetic": true
+      },
+      "rationale": "Создание claim требует отдельного подтверждения",
+      "run_id": "a1a76eaf13c0655c4a68c7da89ba6681",
+      "seq": 2,
+      "type": "preview"
+    },
+    {
+      "agent": "resolver",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.306902Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [
+        "23e406890769624b513a69248a1e3be1"
+      ],
+      "id": "a3aa1b283c316953fbb8368f250fd022",
+      "input": {
+        "answer_id": "d41d00565994b07935caca6b6f8adec4",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Ответ симулятора подтверждён",
+      "output": {
+        "created_claim_ids": [
+          "cde702725a88b6b951b16865e0efc7c6"
+        ],
+        "display_status": "Ответ симулятора подтверждён",
+        "fact_status": "computed",
+        "synthetic": true
+      },
+      "rationale": "Демо-подтверждение создало synthetic claims; это не реальное подтверждение гостиницы",
+      "run_id": "a1a76eaf13c0655c4a68c7da89ba6681",
+      "seq": 3,
+      "type": "confirmation"
+    },
+    {
+      "agent": "interviewer",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "ed6bdbf66524a9a483f8958b53d9cb0b",
+      "input": {
+        "scenario_id": "review004-pets-dialogues-v1",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Синтетический вопрос о питомцах",
+      "output": {
+        "question_id": "a54a2506efd4645510b964ea4df42a47",
+        "synthetic": true
+      },
+      "rationale": "Вымышленная политика пока не получена в demo-сценарии",
+      "run_id": "b707c8f1d2bdde33dff3d765f7548cb8",
+      "seq": 0,
+      "type": "decision"
+    },
+    {
+      "agent": "answer_parser",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "c7c7add5785f68fde516dc1789823a64",
+      "input": {
+        "answer_id": "e5805874daed1114198c2a52d2636436",
+        "question_id": "a54a2506efd4645510b964ea4df42a47",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Ответ симулятора разобран на поля с цитатами",
+      "output": {
+        "synthetic": true,
+        "unknown_fields": [],
+        "updates": [
+          {
+            "characteristic_id": "pets",
+            "confidence": 0.85,
+            "quote": "Синтетический ответ для демонстрации: принимаем собак до 35 кг за 500 рублей за ночь",
+            "scope": {
+              "facade": null,
+              "floor_max": null,
+              "floor_min": null,
+              "month": null,
+              "room_type": null,
+              "type": "hotel"
+            },
+            "value": {
+              "available": true,
+              "fee_rub_night": 500.0,
+              "max_weight_kg": 35.0,
+              "species": [
+                "dog"
+              ]
+            }
+          }
+        ]
+      },
+      "rationale": "Запущен существующий parse_answer без LLM и без предположений о реальной гостинице",
+      "run_id": "b707c8f1d2bdde33dff3d765f7548cb8",
+      "seq": 1,
+      "type": "extraction"
+    },
+    {
+      "agent": "hotelier_simulator",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "c9ca027756f3cb3a0b31a92985ec8578",
+      "input": {
+        "answer_id": "e5805874daed1114198c2a52d2636436",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Синтетический предпросмотр: claims ещё не созданы",
+      "output": {
+        "confirmed": false,
+        "created_claim_ids": [],
+        "synthetic": true
+      },
+      "rationale": "Создание claim требует отдельного подтверждения",
+      "run_id": "b707c8f1d2bdde33dff3d765f7548cb8",
+      "seq": 2,
+      "type": "preview"
+    },
+    {
+      "agent": "resolver",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.308453Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [
+        "dffa2ae0b7fa6d666366f21e10d96464"
+      ],
+      "id": "2b3558accaa14ff9bd7a2fbe37753675",
+      "input": {
+        "answer_id": "e5805874daed1114198c2a52d2636436",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Ответ симулятора подтверждён",
+      "output": {
+        "created_claim_ids": [
+          "7038c34295382f62df867fa45c0c0f21"
+        ],
+        "display_status": "Ответ симулятора подтверждён",
+        "fact_status": "computed",
+        "synthetic": true
+      },
+      "rationale": "Демо-подтверждение создало synthetic claims; это не реальное подтверждение гостиницы",
+      "run_id": "b707c8f1d2bdde33dff3d765f7548cb8",
+      "seq": 3,
+      "type": "confirmation"
+    },
+    {
+      "agent": "interviewer",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "6feaa3278907903489c2c065f8959c44",
+      "input": {
+        "scenario_id": "review004-pets-dialogues-v1",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Синтетический вопрос о питомцах",
+      "output": {
+        "question_id": "6f82c04cdcaf4d8aebf50c63fb794fe4",
+        "synthetic": true
+      },
+      "rationale": "Вымышленная политика пока не получена в demo-сценарии",
+      "run_id": "932f41cd998422ca2ac6ca808b937efa",
+      "seq": 0,
+      "type": "decision"
+    },
+    {
+      "agent": "answer_parser",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "71f57416846051335fed8ea78e3060ea",
+      "input": {
+        "answer_id": "caea5b37da6e0b030ebdecd2fdd4bd86",
+        "question_id": "6f82c04cdcaf4d8aebf50c63fb794fe4",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Ответ симулятора разобран на поля с цитатами",
+      "output": {
+        "synthetic": true,
+        "unknown_fields": [],
+        "updates": [
+          {
+            "characteristic_id": "pets",
+            "confidence": 0.85,
+            "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 40 кг за 0 рублей за ночь",
+            "scope": {
+              "facade": null,
+              "floor_max": null,
+              "floor_min": null,
+              "month": null,
+              "room_type": null,
+              "type": "hotel"
+            },
+            "value": {
+              "available": true,
+              "fee_rub_night": 0.0,
+              "max_weight_kg": 40.0,
+              "species": [
+                "cat",
+                "dog"
+              ]
+            }
+          }
+        ]
+      },
+      "rationale": "Запущен существующий parse_answer без LLM и без предположений о реальной гостинице",
+      "run_id": "932f41cd998422ca2ac6ca808b937efa",
+      "seq": 1,
+      "type": "extraction"
+    },
+    {
+      "agent": "hotelier_simulator",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "ea27134ca2c40dd78b35091738a26037",
+      "input": {
+        "answer_id": "caea5b37da6e0b030ebdecd2fdd4bd86",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Синтетический предпросмотр: claims ещё не созданы",
+      "output": {
+        "confirmed": false,
+        "created_claim_ids": [],
+        "synthetic": true
+      },
+      "rationale": "Создание claim требует отдельного подтверждения",
+      "run_id": "932f41cd998422ca2ac6ca808b937efa",
+      "seq": 2,
+      "type": "preview"
+    },
+    {
+      "agent": "resolver",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.310063Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [
+        "83d98b9f51e4308f0e51b053d0ca8718"
+      ],
+      "id": "a7d8c45cacdb4f2edfdd05bfc1641ce9",
+      "input": {
+        "answer_id": "caea5b37da6e0b030ebdecd2fdd4bd86",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Ответ симулятора подтверждён",
+      "output": {
+        "created_claim_ids": [
+          "5bccbbc60ebbdb357051051ac4ccc94e"
+        ],
+        "display_status": "Ответ симулятора подтверждён",
+        "fact_status": "computed",
+        "synthetic": true
+      },
+      "rationale": "Демо-подтверждение создало synthetic claims; это не реальное подтверждение гостиницы",
+      "run_id": "932f41cd998422ca2ac6ca808b937efa",
+      "seq": 3,
+      "type": "confirmation"
+    },
+    {
+      "agent": "interviewer",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "b6c70262f9f96cd931b3f6d82ed10097",
+      "input": {
+        "scenario_id": "review004-pets-dialogues-v1",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Синтетический вопрос о питомцах",
+      "output": {
+        "question_id": "6af65ac971b25192b273a97c57753c2c",
+        "synthetic": true
+      },
+      "rationale": "Вымышленная политика пока не получена в demo-сценарии",
+      "run_id": "5ce72a9da75ae01a6f3415ddd0e0e2ae",
+      "seq": 0,
+      "type": "decision"
+    },
+    {
+      "agent": "answer_parser",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "f141e477eb0e74a9a9ed88d8bc181fae",
+      "input": {
+        "answer_id": "d861d0c4fce40edeee7b1e01c56b8b20",
+        "question_id": "6af65ac971b25192b273a97c57753c2c",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Ответ симулятора разобран на поля с цитатами",
+      "output": {
+        "synthetic": true,
+        "unknown_fields": [],
+        "updates": [
+          {
+            "characteristic_id": "pets",
+            "confidence": 0.85,
+            "quote": "Синтетический ответ для демонстрации: принимаем собак до 50 кг за 800 рублей за ночь",
+            "scope": {
+              "facade": null,
+              "floor_max": null,
+              "floor_min": null,
+              "month": null,
+              "room_type": null,
+              "type": "hotel"
+            },
+            "value": {
+              "available": true,
+              "fee_rub_night": 800.0,
+              "max_weight_kg": 50.0,
+              "species": [
+                "dog"
+              ]
+            }
+          }
+        ]
+      },
+      "rationale": "Запущен существующий parse_answer без LLM и без предположений о реальной гостинице",
+      "run_id": "5ce72a9da75ae01a6f3415ddd0e0e2ae",
+      "seq": 1,
+      "type": "extraction"
+    },
+    {
+      "agent": "hotelier_simulator",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "109e97405d572adc31487affb9b4ad55",
+      "input": {
+        "answer_id": "d861d0c4fce40edeee7b1e01c56b8b20",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Синтетический предпросмотр: claims ещё не созданы",
+      "output": {
+        "confirmed": false,
+        "created_claim_ids": [],
+        "synthetic": true
+      },
+      "rationale": "Создание claim требует отдельного подтверждения",
+      "run_id": "5ce72a9da75ae01a6f3415ddd0e0e2ae",
+      "seq": 2,
+      "type": "preview"
+    },
+    {
+      "agent": "resolver",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.311754Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [
+        "eac1c128ba7316975ddfda411b70d13c"
+      ],
+      "id": "c49b7a0fecd792d98af26d073d51a6a7",
+      "input": {
+        "answer_id": "d861d0c4fce40edeee7b1e01c56b8b20",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Ответ симулятора подтверждён",
+      "output": {
+        "created_claim_ids": [
+          "77cfa71a6ea61fcc3b88088b0d2d1485"
+        ],
+        "display_status": "Ответ симулятора подтверждён",
+        "fact_status": "computed",
+        "synthetic": true
+      },
+      "rationale": "Демо-подтверждение создало synthetic claims; это не реальное подтверждение гостиницы",
+      "run_id": "5ce72a9da75ae01a6f3415ddd0e0e2ae",
+      "seq": 3,
+      "type": "confirmation"
+    },
+    {
+      "agent": "interviewer",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "bfe5994431e16c0e476d9f035ce2abde",
+      "input": {
+        "scenario_id": "review004-pets-dialogues-v1",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Синтетический вопрос о питомцах",
+      "output": {
+        "question_id": "a9f6025eca3169865dc70253e798e671",
+        "synthetic": true
+      },
+      "rationale": "Вымышленная политика пока не получена в demo-сценарии",
+      "run_id": "0dc365667c93954e4307523bec3a37b4",
+      "seq": 0,
+      "type": "decision"
+    },
+    {
+      "agent": "answer_parser",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "0905d402d1ef7fdc75acd266310daa54",
+      "input": {
+        "answer_id": "baf5ff2c2fa24c172580f025efc08a51",
+        "question_id": "a9f6025eca3169865dc70253e798e671",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Ответ симулятора разобран на поля с цитатами",
+      "output": {
+        "synthetic": true,
+        "unknown_fields": [],
+        "updates": [
+          {
+            "characteristic_id": "pets",
+            "confidence": 0.85,
+            "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 30 кг за 1200 рублей за ночь",
+            "scope": {
+              "facade": null,
+              "floor_max": null,
+              "floor_min": null,
+              "month": null,
+              "room_type": null,
+              "type": "hotel"
+            },
+            "value": {
+              "available": true,
+              "fee_rub_night": 1200.0,
+              "max_weight_kg": 30.0,
+              "species": [
+                "cat",
+                "dog"
+              ]
+            }
+          }
+        ]
+      },
+      "rationale": "Запущен существующий parse_answer без LLM и без предположений о реальной гостинице",
+      "run_id": "0dc365667c93954e4307523bec3a37b4",
+      "seq": 1,
+      "type": "extraction"
+    },
+    {
+      "agent": "hotelier_simulator",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "40133bcd7cea65088ee37135945a624d",
+      "input": {
+        "answer_id": "baf5ff2c2fa24c172580f025efc08a51",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Синтетический предпросмотр: claims ещё не созданы",
+      "output": {
+        "confirmed": false,
+        "created_claim_ids": [],
+        "synthetic": true
+      },
+      "rationale": "Создание claim требует отдельного подтверждения",
+      "run_id": "0dc365667c93954e4307523bec3a37b4",
+      "seq": 2,
+      "type": "preview"
+    },
+    {
+      "agent": "resolver",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.313510Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [
+        "e9546ec2e50b8b078a924e2177dee4fa"
+      ],
+      "id": "7a45c683825b48f084f91461310230e0",
+      "input": {
+        "answer_id": "baf5ff2c2fa24c172580f025efc08a51",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Ответ симулятора подтверждён",
+      "output": {
+        "created_claim_ids": [
+          "41b300d258061b117a58d56d88126a97"
+        ],
+        "display_status": "Ответ симулятора подтверждён",
+        "fact_status": "computed",
+        "synthetic": true
+      },
+      "rationale": "Демо-подтверждение создало synthetic claims; это не реальное подтверждение гостиницы",
+      "run_id": "0dc365667c93954e4307523bec3a37b4",
+      "seq": 3,
+      "type": "confirmation"
+    },
+    {
+      "agent": "interviewer",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "26945954ecb4af919ab1e8446b9cb8c1",
+      "input": {
+        "scenario_id": "review004-pets-dialogues-v1",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Синтетический вопрос о питомцах",
+      "output": {
+        "question_id": "bd0d3e05af1e627bfcfed79b3cbd503d",
+        "synthetic": true
+      },
+      "rationale": "Вымышленная политика пока не получена в demo-сценарии",
+      "run_id": "8eb787def5a58d14eded03af274b114b",
+      "seq": 0,
+      "type": "decision"
+    },
+    {
+      "agent": "answer_parser",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "b83d752a51f43aee1891b25471076286",
+      "input": {
+        "answer_id": "48b1f1b7a032a5464d7476e96361aab1",
+        "question_id": "bd0d3e05af1e627bfcfed79b3cbd503d",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Ответ симулятора разобран на поля с цитатами",
+      "output": {
+        "synthetic": true,
+        "unknown_fields": [],
+        "updates": [
+          {
+            "characteristic_id": "pets",
+            "confidence": 0.85,
+            "quote": "Синтетический ответ для демонстрации: принимаем собак до 45 кг за 700 рублей за ночь",
+            "scope": {
+              "facade": null,
+              "floor_max": null,
+              "floor_min": null,
+              "month": null,
+              "room_type": null,
+              "type": "hotel"
+            },
+            "value": {
+              "available": true,
+              "fee_rub_night": 700.0,
+              "max_weight_kg": 45.0,
+              "species": [
+                "dog"
+              ]
+            }
+          }
+        ]
+      },
+      "rationale": "Запущен существующий parse_answer без LLM и без предположений о реальной гостинице",
+      "run_id": "8eb787def5a58d14eded03af274b114b",
+      "seq": 1,
+      "type": "extraction"
+    },
+    {
+      "agent": "hotelier_simulator",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "d930d456dbb3ff69d107f89911f7ba2d",
+      "input": {
+        "answer_id": "48b1f1b7a032a5464d7476e96361aab1",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Синтетический предпросмотр: claims ещё не созданы",
+      "output": {
+        "confirmed": false,
+        "created_claim_ids": [],
+        "synthetic": true
+      },
+      "rationale": "Создание claim требует отдельного подтверждения",
+      "run_id": "8eb787def5a58d14eded03af274b114b",
+      "seq": 2,
+      "type": "preview"
+    },
+    {
+      "agent": "resolver",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.315338Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [
+        "b0b818636ead5c83714b20b681b5ce20"
+      ],
+      "id": "730c64338bace84bec845b7a580d96b5",
+      "input": {
+        "answer_id": "48b1f1b7a032a5464d7476e96361aab1",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Ответ симулятора подтверждён",
+      "output": {
+        "created_claim_ids": [
+          "eece6a9da318bf1f53b2d96b49371bb9"
+        ],
+        "display_status": "Ответ симулятора подтверждён",
+        "fact_status": "computed",
+        "synthetic": true
+      },
+      "rationale": "Демо-подтверждение создало synthetic claims; это не реальное подтверждение гостиницы",
+      "run_id": "8eb787def5a58d14eded03af274b114b",
+      "seq": 3,
+      "type": "confirmation"
+    },
+    {
+      "agent": "interviewer",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "a002b268c433eb568aef337bbc1dbfb4",
+      "input": {
+        "scenario_id": "review004-pets-dialogues-v1",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Синтетический вопрос о питомцах",
+      "output": {
+        "question_id": "f9caa02834085049022d0723899d9d1e",
+        "synthetic": true
+      },
+      "rationale": "Вымышленная политика пока не получена в demo-сценарии",
+      "run_id": "b622bd60afb676661de60c84c1878023",
+      "seq": 0,
+      "type": "decision"
+    },
+    {
+      "agent": "answer_parser",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "009cebde0fabd50c97e9e3ad0ef400c7",
+      "input": {
+        "answer_id": "0ac5629128591db0b02fed1d09d6d92c",
+        "question_id": "f9caa02834085049022d0723899d9d1e",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Ответ симулятора разобран на поля с цитатами",
+      "output": {
+        "synthetic": true,
+        "unknown_fields": [],
+        "updates": [
+          {
+            "characteristic_id": "pets",
+            "confidence": 0.85,
+            "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 60 кг за 0 рублей за ночь",
+            "scope": {
+              "facade": null,
+              "floor_max": null,
+              "floor_min": null,
+              "month": null,
+              "room_type": null,
+              "type": "hotel"
+            },
+            "value": {
+              "available": true,
+              "fee_rub_night": 0.0,
+              "max_weight_kg": 60.0,
+              "species": [
+                "cat",
+                "dog"
+              ]
+            }
+          }
+        ]
+      },
+      "rationale": "Запущен существующий parse_answer без LLM и без предположений о реальной гостинице",
+      "run_id": "b622bd60afb676661de60c84c1878023",
+      "seq": 1,
+      "type": "extraction"
+    },
+    {
+      "agent": "hotelier_simulator",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [],
+      "id": "6c6387f0d75ad42b98c9dda40e95aa44",
+      "input": {
+        "answer_id": "0ac5629128591db0b02fed1d09d6d92c",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Синтетический предпросмотр: claims ещё не созданы",
+      "output": {
+        "confirmed": false,
+        "created_claim_ids": [],
+        "synthetic": true
+      },
+      "rationale": "Создание claim требует отдельного подтверждения",
+      "run_id": "b622bd60afb676661de60c84c1878023",
+      "seq": 2,
+      "type": "preview"
+    },
+    {
+      "agent": "resolver",
+      "cache_hit": false,
+      "created_at": "2026-10-26T14:44:57.317283Z",
+      "duration_ms": 0.0,
+      "error": null,
+      "evidence_refs": [
+        "bb834695a55a7c99a0b4cda30361a752"
+      ],
+      "id": "cb6ee2016a6ca176a1c7730972630218",
+      "input": {
+        "answer_id": "0ac5629128591db0b02fed1d09d6d92c",
+        "synthetic": true
+      },
+      "mode": "offline",
+      "name": "Ответ симулятора подтверждён",
+      "output": {
+        "created_claim_ids": [
+          "0c19da756b28f7cc34f2b6a05f7bc7b8"
+        ],
+        "display_status": "Ответ симулятора подтверждён",
+        "fact_status": "computed",
+        "synthetic": true
+      },
+      "rationale": "Демо-подтверждение создало synthetic claims; это не реальное подтверждение гостиницы",
+      "run_id": "b622bd60afb676661de60c84c1878023",
+      "seq": 3,
+      "type": "confirmation"
+    }
+  ],
+  "answers": [
+    {
+      "confirmed": true,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "created_claim_ids": [
+        "cde702725a88b6b951b16865e0efc7c6"
+      ],
+      "id": "d41d00565994b07935caca6b6f8adec4",
+      "needs_clarification": null,
+      "parser": "offline",
+      "question_id": "0d425f2004c3447cb7399979705eb0c0",
+      "raw_text": "Синтетический ответ для демонстрации: принимаем собак и кошек до 30 кг за 1000 рублей за ночь.",
+      "synthetic": true,
+      "unknown_fields": [],
+      "updates": [
+        {
+          "characteristic_id": "pets",
+          "confidence": 0.85,
+          "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 30 кг за 1000 рублей за ночь",
+          "scope": {
+            "facade": null,
+            "floor_max": null,
+            "floor_min": null,
+            "month": null,
+            "room_type": null,
+            "type": "hotel"
+          },
+          "value": {
+            "available": true,
+            "fee_rub_night": 1000.0,
+            "max_weight_kg": 30.0,
+            "species": [
+              "cat",
+              "dog"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "confirmed": true,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "created_claim_ids": [
+        "7038c34295382f62df867fa45c0c0f21"
+      ],
+      "id": "e5805874daed1114198c2a52d2636436",
+      "needs_clarification": null,
+      "parser": "offline",
+      "question_id": "a54a2506efd4645510b964ea4df42a47",
+      "raw_text": "Синтетический ответ для демонстрации: принимаем собак до 35 кг за 500 рублей за ночь.",
+      "synthetic": true,
+      "unknown_fields": [],
+      "updates": [
+        {
+          "characteristic_id": "pets",
+          "confidence": 0.85,
+          "quote": "Синтетический ответ для демонстрации: принимаем собак до 35 кг за 500 рублей за ночь",
+          "scope": {
+            "facade": null,
+            "floor_max": null,
+            "floor_min": null,
+            "month": null,
+            "room_type": null,
+            "type": "hotel"
+          },
+          "value": {
+            "available": true,
+            "fee_rub_night": 500.0,
+            "max_weight_kg": 35.0,
+            "species": [
+              "dog"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "confirmed": true,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "created_claim_ids": [
+        "5bccbbc60ebbdb357051051ac4ccc94e"
+      ],
+      "id": "caea5b37da6e0b030ebdecd2fdd4bd86",
+      "needs_clarification": null,
+      "parser": "offline",
+      "question_id": "6f82c04cdcaf4d8aebf50c63fb794fe4",
+      "raw_text": "Синтетический ответ для демонстрации: принимаем собак и кошек до 40 кг за 0 рублей за ночь.",
+      "synthetic": true,
+      "unknown_fields": [],
+      "updates": [
+        {
+          "characteristic_id": "pets",
+          "confidence": 0.85,
+          "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 40 кг за 0 рублей за ночь",
+          "scope": {
+            "facade": null,
+            "floor_max": null,
+            "floor_min": null,
+            "month": null,
+            "room_type": null,
+            "type": "hotel"
+          },
+          "value": {
+            "available": true,
+            "fee_rub_night": 0.0,
+            "max_weight_kg": 40.0,
+            "species": [
+              "cat",
+              "dog"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "confirmed": true,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "created_claim_ids": [
+        "77cfa71a6ea61fcc3b88088b0d2d1485"
+      ],
+      "id": "d861d0c4fce40edeee7b1e01c56b8b20",
+      "needs_clarification": null,
+      "parser": "offline",
+      "question_id": "6af65ac971b25192b273a97c57753c2c",
+      "raw_text": "Синтетический ответ для демонстрации: принимаем собак до 50 кг за 800 рублей за ночь.",
+      "synthetic": true,
+      "unknown_fields": [],
+      "updates": [
+        {
+          "characteristic_id": "pets",
+          "confidence": 0.85,
+          "quote": "Синтетический ответ для демонстрации: принимаем собак до 50 кг за 800 рублей за ночь",
+          "scope": {
+            "facade": null,
+            "floor_max": null,
+            "floor_min": null,
+            "month": null,
+            "room_type": null,
+            "type": "hotel"
+          },
+          "value": {
+            "available": true,
+            "fee_rub_night": 800.0,
+            "max_weight_kg": 50.0,
+            "species": [
+              "dog"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "confirmed": true,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "created_claim_ids": [
+        "41b300d258061b117a58d56d88126a97"
+      ],
+      "id": "baf5ff2c2fa24c172580f025efc08a51",
+      "needs_clarification": null,
+      "parser": "offline",
+      "question_id": "a9f6025eca3169865dc70253e798e671",
+      "raw_text": "Синтетический ответ для демонстрации: принимаем собак и кошек до 30 кг за 1200 рублей за ночь.",
+      "synthetic": true,
+      "unknown_fields": [],
+      "updates": [
+        {
+          "characteristic_id": "pets",
+          "confidence": 0.85,
+          "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 30 кг за 1200 рублей за ночь",
+          "scope": {
+            "facade": null,
+            "floor_max": null,
+            "floor_min": null,
+            "month": null,
+            "room_type": null,
+            "type": "hotel"
+          },
+          "value": {
+            "available": true,
+            "fee_rub_night": 1200.0,
+            "max_weight_kg": 30.0,
+            "species": [
+              "cat",
+              "dog"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "confirmed": true,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "created_claim_ids": [
+        "eece6a9da318bf1f53b2d96b49371bb9"
+      ],
+      "id": "48b1f1b7a032a5464d7476e96361aab1",
+      "needs_clarification": null,
+      "parser": "offline",
+      "question_id": "bd0d3e05af1e627bfcfed79b3cbd503d",
+      "raw_text": "Синтетический ответ для демонстрации: принимаем собак до 45 кг за 700 рублей за ночь.",
+      "synthetic": true,
+      "unknown_fields": [],
+      "updates": [
+        {
+          "characteristic_id": "pets",
+          "confidence": 0.85,
+          "quote": "Синтетический ответ для демонстрации: принимаем собак до 45 кг за 700 рублей за ночь",
+          "scope": {
+            "facade": null,
+            "floor_max": null,
+            "floor_min": null,
+            "month": null,
+            "room_type": null,
+            "type": "hotel"
+          },
+          "value": {
+            "available": true,
+            "fee_rub_night": 700.0,
+            "max_weight_kg": 45.0,
+            "species": [
+              "dog"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "confirmed": true,
+      "created_at": "2026-10-26T14:44:57.286704Z",
+      "created_claim_ids": [
+        "0c19da756b28f7cc34f2b6a05f7bc7b8"
+      ],
+      "id": "0ac5629128591db0b02fed1d09d6d92c",
+      "needs_clarification": null,
+      "parser": "offline",
+      "question_id": "f9caa02834085049022d0723899d9d1e",
+      "raw_text": "Синтетический ответ для демонстрации: принимаем собак и кошек до 60 кг за 0 рублей за ночь.",
+      "synthetic": true,
+      "unknown_fields": [],
+      "updates": [
+        {
+          "characteristic_id": "pets",
+          "confidence": 0.85,
+          "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 60 кг за 0 рублей за ночь",
+          "scope": {
+            "facade": null,
+            "floor_max": null,
+            "floor_min": null,
+            "month": null,
+            "room_type": null,
+            "type": "hotel"
+          },
+          "value": {
+            "available": true,
+            "fee_rub_night": 0.0,
+            "max_weight_kg": 60.0,
+            "species": [
+              "cat",
+              "dog"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "claims": [
+    {
+      "characteristic_id": "pets",
+      "confidence": 0.85,
+      "evidence": [
+        {
+          "artifact": "/data/seed/demo_hotelier_dialogues.json",
+          "id": "23e406890769624b513a69248a1e3be1",
+          "inputs": {
+            "answer_id": "d41d00565994b07935caca6b6f8adec4",
+            "question_id": "0d425f2004c3447cb7399979705eb0c0",
+            "raw_text": "Синтетический ответ для демонстрации: принимаем собак и кошек до 30 кг за 1000 рублей за ночь.",
+            "scenario_id": "review004-pets-dialogues-v1",
+            "synthetic": true
+          },
+          "kind": "simulation",
+          "label": "Ответ симулятора подтверждён: вымышленная политика для demo",
+          "limitations": [
+            "Все политики для питомцев предписаны как вымышленная demo truth, не установлены для реальных гостиниц.",
+            "Рядом найденная парковка проверяется отдельным реальным POI-расчётом; собственная парковка и въезд здесь не утверждаются.",
+            "Wi-Fi, геовиды и измерения шума в этих диалогах не создаются.",
+            "Ответ симулятора подтверждён; реального подтверждения гостиницы нет."
+          ],
+          "message_id": "d41d00565994b07935caca6b6f8adec4",
+          "output": {
+            "characteristic_id": "pets",
+            "value": {
+              "available": true,
+              "fee_rub_night": 1000.0,
+              "max_weight_kg": 30.0,
+              "species": [
+                "cat",
+                "dog"
+              ]
+            }
+          },
+          "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 30 кг за 1000 рублей за ночь",
+          "source_ids": [
+            "hotelier_simulator"
+          ],
+          "url": null
+        }
+      ],
+      "hotel_id": "osm-node-11866202895",
+      "id": "cde702725a88b6b951b16865e0efc7c6",
+      "method": "hotelier_answer@1",
+      "observed_at": "2026-10-26T14:44:57.286704Z",
+      "run_id": "a1a76eaf13c0655c4a68c7da89ba6681",
+      "scope": {
+        "facade": null,
+        "floor_max": null,
+        "floor_min": null,
+        "month": null,
+        "room_type": null,
+        "type": "hotel"
+      },
+      "source": "hotelier_simulator",
+      "spec_version": 1,
+      "supersedes": null,
+      "supersedes_ids": [],
+      "synthetic": true,
+      "unit": null,
+      "valid_until": "2027-01-24T14:44:57.286704Z",
+      "value": {
+        "available": true,
+        "fee_rub_night": 1000.0,
+        "max_weight_kg": 30.0,
+        "species": [
+          "cat",
+          "dog"
+        ]
+      }
+    },
+    {
+      "characteristic_id": "pets",
+      "confidence": 0.85,
+      "evidence": [
+        {
+          "artifact": "/data/seed/demo_hotelier_dialogues.json",
+          "id": "dffa2ae0b7fa6d666366f21e10d96464",
+          "inputs": {
+            "answer_id": "e5805874daed1114198c2a52d2636436",
+            "question_id": "a54a2506efd4645510b964ea4df42a47",
+            "raw_text": "Синтетический ответ для демонстрации: принимаем собак до 35 кг за 500 рублей за ночь.",
+            "scenario_id": "review004-pets-dialogues-v1",
+            "synthetic": true
+          },
+          "kind": "simulation",
+          "label": "Ответ симулятора подтверждён: вымышленная политика для demo",
+          "limitations": [
+            "Все политики для питомцев предписаны как вымышленная demo truth, не установлены для реальных гостиниц.",
+            "Рядом найденная парковка проверяется отдельным реальным POI-расчётом; собственная парковка и въезд здесь не утверждаются.",
+            "Wi-Fi, геовиды и измерения шума в этих диалогах не создаются.",
+            "Ответ симулятора подтверждён; реального подтверждения гостиницы нет."
+          ],
+          "message_id": "e5805874daed1114198c2a52d2636436",
+          "output": {
+            "characteristic_id": "pets",
+            "value": {
+              "available": true,
+              "fee_rub_night": 500.0,
+              "max_weight_kg": 35.0,
+              "species": [
+                "dog"
+              ]
+            }
+          },
+          "quote": "Синтетический ответ для демонстрации: принимаем собак до 35 кг за 500 рублей за ночь",
+          "source_ids": [
+            "hotelier_simulator"
+          ],
+          "url": null
+        }
+      ],
+      "hotel_id": "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+      "id": "7038c34295382f62df867fa45c0c0f21",
+      "method": "hotelier_answer@1",
+      "observed_at": "2026-10-26T14:44:57.286704Z",
+      "run_id": "b707c8f1d2bdde33dff3d765f7548cb8",
+      "scope": {
+        "facade": null,
+        "floor_max": null,
+        "floor_min": null,
+        "month": null,
+        "room_type": null,
+        "type": "hotel"
+      },
+      "source": "hotelier_simulator",
+      "spec_version": 1,
+      "supersedes": null,
+      "supersedes_ids": [],
+      "synthetic": true,
+      "unit": null,
+      "valid_until": "2027-01-24T14:44:57.286704Z",
+      "value": {
+        "available": true,
+        "fee_rub_night": 500.0,
+        "max_weight_kg": 35.0,
+        "species": [
+          "dog"
+        ]
+      }
+    },
+    {
+      "characteristic_id": "pets",
+      "confidence": 0.85,
+      "evidence": [
+        {
+          "artifact": "/data/seed/demo_hotelier_dialogues.json",
+          "id": "83d98b9f51e4308f0e51b053d0ca8718",
+          "inputs": {
+            "answer_id": "caea5b37da6e0b030ebdecd2fdd4bd86",
+            "question_id": "6f82c04cdcaf4d8aebf50c63fb794fe4",
+            "raw_text": "Синтетический ответ для демонстрации: принимаем собак и кошек до 40 кг за 0 рублей за ночь.",
+            "scenario_id": "review004-pets-dialogues-v1",
+            "synthetic": true
+          },
+          "kind": "simulation",
+          "label": "Ответ симулятора подтверждён: вымышленная политика для demo",
+          "limitations": [
+            "Все политики для питомцев предписаны как вымышленная demo truth, не установлены для реальных гостиниц.",
+            "Рядом найденная парковка проверяется отдельным реальным POI-расчётом; собственная парковка и въезд здесь не утверждаются.",
+            "Wi-Fi, геовиды и измерения шума в этих диалогах не создаются.",
+            "Ответ симулятора подтверждён; реального подтверждения гостиницы нет."
+          ],
+          "message_id": "caea5b37da6e0b030ebdecd2fdd4bd86",
+          "output": {
+            "characteristic_id": "pets",
+            "value": {
+              "available": true,
+              "fee_rub_night": 0.0,
+              "max_weight_kg": 40.0,
+              "species": [
+                "cat",
+                "dog"
+              ]
+            }
+          },
+          "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 40 кг за 0 рублей за ночь",
+          "source_ids": [
+            "hotelier_simulator"
+          ],
+          "url": null
+        }
+      ],
+      "hotel_id": "osm-way-201474330",
+      "id": "5bccbbc60ebbdb357051051ac4ccc94e",
+      "method": "hotelier_answer@1",
+      "observed_at": "2026-10-26T14:44:57.286704Z",
+      "run_id": "932f41cd998422ca2ac6ca808b937efa",
+      "scope": {
+        "facade": null,
+        "floor_max": null,
+        "floor_min": null,
+        "month": null,
+        "room_type": null,
+        "type": "hotel"
+      },
+      "source": "hotelier_simulator",
+      "spec_version": 1,
+      "supersedes": null,
+      "supersedes_ids": [],
+      "synthetic": true,
+      "unit": null,
+      "valid_until": "2027-01-24T14:44:57.286704Z",
+      "value": {
+        "available": true,
+        "fee_rub_night": 0.0,
+        "max_weight_kg": 40.0,
+        "species": [
+          "cat",
+          "dog"
+        ]
+      }
+    },
+    {
+      "characteristic_id": "pets",
+      "confidence": 0.85,
+      "evidence": [
+        {
+          "artifact": "/data/seed/demo_hotelier_dialogues.json",
+          "id": "eac1c128ba7316975ddfda411b70d13c",
+          "inputs": {
+            "answer_id": "d861d0c4fce40edeee7b1e01c56b8b20",
+            "question_id": "6af65ac971b25192b273a97c57753c2c",
+            "raw_text": "Синтетический ответ для демонстрации: принимаем собак до 50 кг за 800 рублей за ночь.",
+            "scenario_id": "review004-pets-dialogues-v1",
+            "synthetic": true
+          },
+          "kind": "simulation",
+          "label": "Ответ симулятора подтверждён: вымышленная политика для demo",
+          "limitations": [
+            "Все политики для питомцев предписаны как вымышленная demo truth, не установлены для реальных гостиниц.",
+            "Рядом найденная парковка проверяется отдельным реальным POI-расчётом; собственная парковка и въезд здесь не утверждаются.",
+            "Wi-Fi, геовиды и измерения шума в этих диалогах не создаются.",
+            "Ответ симулятора подтверждён; реального подтверждения гостиницы нет."
+          ],
+          "message_id": "d861d0c4fce40edeee7b1e01c56b8b20",
+          "output": {
+            "characteristic_id": "pets",
+            "value": {
+              "available": true,
+              "fee_rub_night": 800.0,
+              "max_weight_kg": 50.0,
+              "species": [
+                "dog"
+              ]
+            }
+          },
+          "quote": "Синтетический ответ для демонстрации: принимаем собак до 50 кг за 800 рублей за ночь",
+          "source_ids": [
+            "hotelier_simulator"
+          ],
+          "url": null
+        }
+      ],
+      "hotel_id": "osm-way-80192670",
+      "id": "77cfa71a6ea61fcc3b88088b0d2d1485",
+      "method": "hotelier_answer@1",
+      "observed_at": "2026-10-26T14:44:57.286704Z",
+      "run_id": "5ce72a9da75ae01a6f3415ddd0e0e2ae",
+      "scope": {
+        "facade": null,
+        "floor_max": null,
+        "floor_min": null,
+        "month": null,
+        "room_type": null,
+        "type": "hotel"
+      },
+      "source": "hotelier_simulator",
+      "spec_version": 1,
+      "supersedes": null,
+      "supersedes_ids": [],
+      "synthetic": true,
+      "unit": null,
+      "valid_until": "2027-01-24T14:44:57.286704Z",
+      "value": {
+        "available": true,
+        "fee_rub_night": 800.0,
+        "max_weight_kg": 50.0,
+        "species": [
+          "dog"
+        ]
+      }
+    },
+    {
+      "characteristic_id": "pets",
+      "confidence": 0.85,
+      "evidence": [
+        {
+          "artifact": "/data/seed/demo_hotelier_dialogues.json",
+          "id": "e9546ec2e50b8b078a924e2177dee4fa",
+          "inputs": {
+            "answer_id": "baf5ff2c2fa24c172580f025efc08a51",
+            "question_id": "a9f6025eca3169865dc70253e798e671",
+            "raw_text": "Синтетический ответ для демонстрации: принимаем собак и кошек до 30 кг за 1200 рублей за ночь.",
+            "scenario_id": "review004-pets-dialogues-v1",
+            "synthetic": true
+          },
+          "kind": "simulation",
+          "label": "Ответ симулятора подтверждён: вымышленная политика для demo",
+          "limitations": [
+            "Все политики для питомцев предписаны как вымышленная demo truth, не установлены для реальных гостиниц.",
+            "Рядом найденная парковка проверяется отдельным реальным POI-расчётом; собственная парковка и въезд здесь не утверждаются.",
+            "Wi-Fi, геовиды и измерения шума в этих диалогах не создаются.",
+            "Ответ симулятора подтверждён; реального подтверждения гостиницы нет."
+          ],
+          "message_id": "baf5ff2c2fa24c172580f025efc08a51",
+          "output": {
+            "characteristic_id": "pets",
+            "value": {
+              "available": true,
+              "fee_rub_night": 1200.0,
+              "max_weight_kg": 30.0,
+              "species": [
+                "cat",
+                "dog"
+              ]
+            }
+          },
+          "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 30 кг за 1200 рублей за ночь",
+          "source_ids": [
+            "hotelier_simulator"
+          ],
+          "url": null
+        }
+      ],
+      "hotel_id": "osm-node-8975796817",
+      "id": "41b300d258061b117a58d56d88126a97",
+      "method": "hotelier_answer@1",
+      "observed_at": "2026-10-26T14:44:57.286704Z",
+      "run_id": "0dc365667c93954e4307523bec3a37b4",
+      "scope": {
+        "facade": null,
+        "floor_max": null,
+        "floor_min": null,
+        "month": null,
+        "room_type": null,
+        "type": "hotel"
+      },
+      "source": "hotelier_simulator",
+      "spec_version": 1,
+      "supersedes": null,
+      "supersedes_ids": [],
+      "synthetic": true,
+      "unit": null,
+      "valid_until": "2027-01-24T14:44:57.286704Z",
+      "value": {
+        "available": true,
+        "fee_rub_night": 1200.0,
+        "max_weight_kg": 30.0,
+        "species": [
+          "cat",
+          "dog"
+        ]
+      }
+    },
+    {
+      "characteristic_id": "pets",
+      "confidence": 0.85,
+      "evidence": [
+        {
+          "artifact": "/data/seed/demo_hotelier_dialogues.json",
+          "id": "b0b818636ead5c83714b20b681b5ce20",
+          "inputs": {
+            "answer_id": "48b1f1b7a032a5464d7476e96361aab1",
+            "question_id": "bd0d3e05af1e627bfcfed79b3cbd503d",
+            "raw_text": "Синтетический ответ для демонстрации: принимаем собак до 45 кг за 700 рублей за ночь.",
+            "scenario_id": "review004-pets-dialogues-v1",
+            "synthetic": true
+          },
+          "kind": "simulation",
+          "label": "Ответ симулятора подтверждён: вымышленная политика для demo",
+          "limitations": [
+            "Все политики для питомцев предписаны как вымышленная demo truth, не установлены для реальных гостиниц.",
+            "Рядом найденная парковка проверяется отдельным реальным POI-расчётом; собственная парковка и въезд здесь не утверждаются.",
+            "Wi-Fi, геовиды и измерения шума в этих диалогах не создаются.",
+            "Ответ симулятора подтверждён; реального подтверждения гостиницы нет."
+          ],
+          "message_id": "48b1f1b7a032a5464d7476e96361aab1",
+          "output": {
+            "characteristic_id": "pets",
+            "value": {
+              "available": true,
+              "fee_rub_night": 700.0,
+              "max_weight_kg": 45.0,
+              "species": [
+                "dog"
+              ]
+            }
+          },
+          "quote": "Синтетический ответ для демонстрации: принимаем собак до 45 кг за 700 рублей за ночь",
+          "source_ids": [
+            "hotelier_simulator"
+          ],
+          "url": null
+        }
+      ],
+      "hotel_id": "osm-way-53292016",
+      "id": "eece6a9da318bf1f53b2d96b49371bb9",
+      "method": "hotelier_answer@1",
+      "observed_at": "2026-10-26T14:44:57.286704Z",
+      "run_id": "8eb787def5a58d14eded03af274b114b",
+      "scope": {
+        "facade": null,
+        "floor_max": null,
+        "floor_min": null,
+        "month": null,
+        "room_type": null,
+        "type": "hotel"
+      },
+      "source": "hotelier_simulator",
+      "spec_version": 1,
+      "supersedes": null,
+      "supersedes_ids": [],
+      "synthetic": true,
+      "unit": null,
+      "valid_until": "2027-01-24T14:44:57.286704Z",
+      "value": {
+        "available": true,
+        "fee_rub_night": 700.0,
+        "max_weight_kg": 45.0,
+        "species": [
+          "dog"
+        ]
+      }
+    },
+    {
+      "characteristic_id": "pets",
+      "confidence": 0.85,
+      "evidence": [
+        {
+          "artifact": "/data/seed/demo_hotelier_dialogues.json",
+          "id": "bb834695a55a7c99a0b4cda30361a752",
+          "inputs": {
+            "answer_id": "0ac5629128591db0b02fed1d09d6d92c",
+            "question_id": "f9caa02834085049022d0723899d9d1e",
+            "raw_text": "Синтетический ответ для демонстрации: принимаем собак и кошек до 60 кг за 0 рублей за ночь.",
+            "scenario_id": "review004-pets-dialogues-v1",
+            "synthetic": true
+          },
+          "kind": "simulation",
+          "label": "Ответ симулятора подтверждён: вымышленная политика для demo",
+          "limitations": [
+            "Все политики для питомцев предписаны как вымышленная demo truth, не установлены для реальных гостиниц.",
+            "Рядом найденная парковка проверяется отдельным реальным POI-расчётом; собственная парковка и въезд здесь не утверждаются.",
+            "Wi-Fi, геовиды и измерения шума в этих диалогах не создаются.",
+            "Ответ симулятора подтверждён; реального подтверждения гостиницы нет."
+          ],
+          "message_id": "0ac5629128591db0b02fed1d09d6d92c",
+          "output": {
+            "characteristic_id": "pets",
+            "value": {
+              "available": true,
+              "fee_rub_night": 0.0,
+              "max_weight_kg": 60.0,
+              "species": [
+                "cat",
+                "dog"
+              ]
+            }
+          },
+          "quote": "Синтетический ответ для демонстрации: принимаем собак и кошек до 60 кг за 0 рублей за ночь",
+          "source_ids": [
+            "hotelier_simulator"
+          ],
+          "url": null
+        }
+      ],
+      "hotel_id": "osm-way-53284165",
+      "id": "0c19da756b28f7cc34f2b6a05f7bc7b8",
+      "method": "hotelier_answer@1",
+      "observed_at": "2026-10-26T14:44:57.286704Z",
+      "run_id": "b622bd60afb676661de60c84c1878023",
+      "scope": {
+        "facade": null,
+        "floor_max": null,
+        "floor_min": null,
+        "month": null,
+        "room_type": null,
+        "type": "hotel"
+      },
+      "source": "hotelier_simulator",
+      "spec_version": 1,
+      "supersedes": null,
+      "supersedes_ids": [],
+      "synthetic": true,
+      "unit": null,
+      "valid_until": "2027-01-24T14:44:57.286704Z",
+      "value": {
+        "available": true,
+        "fee_rub_night": 0.0,
+        "max_weight_kg": 60.0,
+        "species": [
+          "cat",
+          "dog"
+        ]
+      }
+    }
+  ],
+  "questions": [
+    {
+      "asked_at": "2026-10-26T14:44:57.286704Z",
+      "characteristic_ids": [
+        "pets"
+      ],
+      "demand_estimate": 100,
+      "demand_synthetic": true,
+      "evidence_refs": [],
+      "hotel_id": "osm-node-11866202895",
+      "hypothesis": null,
+      "id": "0d425f2004c3447cb7399979705eb0c0",
+      "options": [
+        "Да",
+        "Нет",
+        "Частично",
+        "Не знаю"
+      ],
+      "priority": 100.0,
+      "reason": "guest",
+      "status": "answered",
+      "text": "Синтетический демо-вопрос: каких питомцев принимаете, до какого веса и за какую доплату за ночь?"
+    },
+    {
+      "asked_at": "2026-10-26T14:44:57.286704Z",
+      "characteristic_ids": [
+        "pets"
+      ],
+      "demand_estimate": 100,
+      "demand_synthetic": true,
+      "evidence_refs": [],
+      "hotel_id": "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+      "hypothesis": null,
+      "id": "a54a2506efd4645510b964ea4df42a47",
+      "options": [
+        "Да",
+        "Нет",
+        "Частично",
+        "Не знаю"
+      ],
+      "priority": 100.0,
+      "reason": "guest",
+      "status": "answered",
+      "text": "Синтетический демо-вопрос: каких питомцев принимаете, до какого веса и за какую доплату за ночь?"
+    },
+    {
+      "asked_at": "2026-10-26T14:44:57.286704Z",
+      "characteristic_ids": [
+        "pets"
+      ],
+      "demand_estimate": 100,
+      "demand_synthetic": true,
+      "evidence_refs": [],
+      "hotel_id": "osm-way-201474330",
+      "hypothesis": null,
+      "id": "6f82c04cdcaf4d8aebf50c63fb794fe4",
+      "options": [
+        "Да",
+        "Нет",
+        "Частично",
+        "Не знаю"
+      ],
+      "priority": 100.0,
+      "reason": "guest",
+      "status": "answered",
+      "text": "Синтетический демо-вопрос: каких питомцев принимаете, до какого веса и за какую доплату за ночь?"
+    },
+    {
+      "asked_at": "2026-10-26T14:44:57.286704Z",
+      "characteristic_ids": [
+        "pets"
+      ],
+      "demand_estimate": 100,
+      "demand_synthetic": true,
+      "evidence_refs": [],
+      "hotel_id": "osm-way-80192670",
+      "hypothesis": null,
+      "id": "6af65ac971b25192b273a97c57753c2c",
+      "options": [
+        "Да",
+        "Нет",
+        "Частично",
+        "Не знаю"
+      ],
+      "priority": 100.0,
+      "reason": "guest",
+      "status": "answered",
+      "text": "Синтетический демо-вопрос: каких питомцев принимаете, до какого веса и за какую доплату за ночь?"
+    },
+    {
+      "asked_at": "2026-10-26T14:44:57.286704Z",
+      "characteristic_ids": [
+        "pets"
+      ],
+      "demand_estimate": 100,
+      "demand_synthetic": true,
+      "evidence_refs": [],
+      "hotel_id": "osm-node-8975796817",
+      "hypothesis": null,
+      "id": "a9f6025eca3169865dc70253e798e671",
+      "options": [
+        "Да",
+        "Нет",
+        "Частично",
+        "Не знаю"
+      ],
+      "priority": 100.0,
+      "reason": "guest",
+      "status": "answered",
+      "text": "Синтетический демо-вопрос: каких питомцев принимаете, до какого веса и за какую доплату за ночь?"
+    },
+    {
+      "asked_at": "2026-10-26T14:44:57.286704Z",
+      "characteristic_ids": [
+        "pets"
+      ],
+      "demand_estimate": 100,
+      "demand_synthetic": true,
+      "evidence_refs": [],
+      "hotel_id": "osm-way-53292016",
+      "hypothesis": null,
+      "id": "bd0d3e05af1e627bfcfed79b3cbd503d",
+      "options": [
+        "Да",
+        "Нет",
+        "Частично",
+        "Не знаю"
+      ],
+      "priority": 100.0,
+      "reason": "guest",
+      "status": "answered",
+      "text": "Синтетический демо-вопрос: каких питомцев принимаете, до какого веса и за какую доплату за ночь?"
+    },
+    {
+      "asked_at": "2026-10-26T14:44:57.286704Z",
+      "characteristic_ids": [
+        "pets"
+      ],
+      "demand_estimate": 100,
+      "demand_synthetic": true,
+      "evidence_refs": [],
+      "hotel_id": "osm-way-53284165",
+      "hypothesis": null,
+      "id": "f9caa02834085049022d0723899d9d1e",
+      "options": [
+        "Да",
+        "Нет",
+        "Частично",
+        "Не знаю"
+      ],
+      "priority": 100.0,
+      "reason": "guest",
+      "status": "answered",
+      "text": "Синтетический демо-вопрос: каких питомцев принимаете, до какого веса и за какую доплату за ночь?"
+    },
+    {
+      "asked_at": "2026-10-26T14:44:57.286704Z",
+      "characteristic_ids": [
+        "pets"
+      ],
+      "demand_estimate": 100,
+      "demand_synthetic": true,
+      "evidence_refs": [],
+      "hotel_id": "osm-node-10058556917",
+      "hypothesis": null,
+      "id": "01cdd785ea378a1fcc12e2916d699f7f",
+      "options": [
+        "Да",
+        "Нет",
+        "Частично",
+        "Не знаю"
+      ],
+      "priority": 1000.0,
+      "reason": "guest",
+      "status": "pending",
+      "text": "Живая синтетическая демонстрация: каких питомцев принимаете, до какого веса и за какую доплату? Нажмите «Симулировать», проверьте цитаты и подтвердите."
+    },
+    {
+      "asked_at": "2026-10-26T14:44:57.286704Z",
+      "characteristic_ids": [
+        "pets"
+      ],
+      "demand_estimate": 100,
+      "demand_synthetic": true,
+      "evidence_refs": [],
+      "hotel_id": "osm-node-10574252909",
+      "hypothesis": null,
+      "id": "cf4053724ad3a878cfda8c77485a638d",
+      "options": [
+        "Да",
+        "Нет",
+        "Частично",
+        "Не знаю"
+      ],
+      "priority": 1000.0,
+      "reason": "guest",
+      "status": "pending",
+      "text": "Живая синтетическая демонстрация: каких питомцев принимаете, до какого веса и за какую доплату? Нажмите «Симулировать», проверьте цитаты и подтвердите."
+    }
+  ],
+  "schema_version": 1,
+  "synthetic": true
+}

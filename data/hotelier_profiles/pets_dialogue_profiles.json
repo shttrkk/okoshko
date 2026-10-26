@@ -1,0 +1,183 @@
+{
+  "completed_profiles": [
+    {
+      "answers": {
+        "pets": "Синтетический ответ для демонстрации: принимаем собак и кошек до 30 кг за 1000 рублей за ночь."
+      },
+      "hotel_id": "osm-node-11866202895",
+      "name_for_identification": "Cascade",
+      "synthetic": true,
+      "truth": {
+        "pets": {
+          "available": true,
+          "fee_rub_night": 1000,
+          "max_weight_kg": 30,
+          "species": [
+            "cat",
+            "dog"
+          ]
+        }
+      }
+    },
+    {
+      "answers": {
+        "pets": "Синтетический ответ для демонстрации: принимаем собак до 35 кг за 500 рублей за ночь."
+      },
+      "hotel_id": "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+      "name_for_identification": "Приморская",
+      "synthetic": true,
+      "truth": {
+        "pets": {
+          "available": true,
+          "fee_rub_night": 500,
+          "max_weight_kg": 35,
+          "species": [
+            "dog"
+          ]
+        }
+      }
+    },
+    {
+      "answers": {
+        "pets": "Синтетический ответ для демонстрации: принимаем собак и кошек до 40 кг за 0 рублей за ночь."
+      },
+      "hotel_id": "osm-way-201474330",
+      "name_for_identification": "Brevis apartments",
+      "synthetic": true,
+      "truth": {
+        "pets": {
+          "available": true,
+          "fee_rub_night": 0,
+          "max_weight_kg": 40,
+          "species": [
+            "cat",
+            "dog"
+          ]
+        }
+      }
+    },
+    {
+      "answers": {
+        "pets": "Синтетический ответ для демонстрации: принимаем собак до 50 кг за 800 рублей за ночь."
+      },
+      "hotel_id": "osm-way-80192670",
+      "name_for_identification": "Цитрус",
+      "synthetic": true,
+      "truth": {
+        "pets": {
+          "available": true,
+          "fee_rub_night": 800,
+          "max_weight_kg": 50,
+          "species": [
+            "dog"
+          ]
+        }
+      }
+    },
+    {
+      "answers": {
+        "pets": "Синтетический ответ для демонстрации: принимаем собак и кошек до 30 кг за 1200 рублей за ночь."
+      },
+      "hotel_id": "osm-node-8975796817",
+      "name_for_identification": "Терминал Адлер",
+      "synthetic": true,
+      "truth": {
+        "pets": {
+          "available": true,
+          "fee_rub_night": 1200,
+          "max_weight_kg": 30,
+          "species": [
+            "cat",
+            "dog"
+          ]
+        }
+      }
+    },
+    {
+      "answers": {
+        "pets": "Синтетический ответ для демонстрации: принимаем собак до 45 кг за 700 рублей за ночь."
+      },
+      "hotel_id": "osm-way-53292016",
+      "name_for_identification": "Парадиз",
+      "synthetic": true,
+      "truth": {
+        "pets": {
+          "available": true,
+          "fee_rub_night": 700,
+          "max_weight_kg": 45,
+          "species": [
+            "dog"
+          ]
+        }
+      }
+    },
+    {
+      "answers": {
+        "pets": "Синтетический ответ для демонстрации: принимаем собак и кошек до 60 кг за 0 рублей за ночь."
+      },
+      "hotel_id": "osm-way-53284165",
+      "name_for_identification": "Империя",
+      "synthetic": true,
+      "truth": {
+        "pets": {
+          "available": true,
+          "fee_rub_night": 0,
+          "max_weight_kg": 60,
+          "species": [
+            "cat",
+            "dog"
+          ]
+        }
+      }
+    }
+  ],
+  "generated_at": "2026-10-26T14:44:56.952900+00:00",
+  "limitations": [
+    "Все политики для питомцев предписаны как вымышленная demo truth, не установлены для реальных гостиниц.",
+    "Рядом найденная парковка проверяется отдельным реальным POI-расчётом; собственная парковка и въезд здесь не утверждаются.",
+    "Wi-Fi, геовиды и измерения шума в этих диалогах не создаются."
+  ],
+  "live_profiles": [
+    {
+      "answers": {
+        "pets": "Принимаем собак и кошек до 30 кг за 1000 рублей за ночь."
+      },
+      "hotel_id": "osm-node-10058556917",
+      "name_for_identification": "Островок",
+      "purpose": "Pending live demo; no claim before explicit preview/confirm",
+      "simulator_profile_id": "demo-west",
+      "simulator_seed": 42,
+      "synthetic": true,
+      "truth": {
+        "pets": {
+          "available": true,
+          "fee_rub_night": 1000.0,
+          "max_weight_kg": 30.0,
+          "species": [
+            "cat",
+            "dog"
+          ]
+        }
+      }
+    },
+    {
+      "answers": {
+        "pets": "С питомцами нельзя."
+      },
+      "hotel_id": "osm-node-10574252909",
+      "name_for_identification": "Relax club exsclusive",
+      "purpose": "Pending live demo; no claim before explicit preview/confirm",
+      "simulator_profile_id": "demo-restricted",
+      "simulator_seed": 42,
+      "synthetic": true,
+      "truth": {
+        "pets": {
+          "available": false
+        }
+      }
+    }
+  ],
+  "scenario_id": "review004-pets-dialogues-v1",
+  "schema_version": 1,
+  "synthetic": true
+}
