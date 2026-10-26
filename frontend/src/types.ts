@@ -110,6 +110,7 @@ export interface Verdict {
   fact_ids: string[];
   evidence_refs: string[];
   caveat?: string | null;
+  synthetic?: boolean;
 }
 export interface SearchHit {
   hotel: Hotel;
@@ -351,11 +352,24 @@ export interface Geo {
   hotel_id?: string;
   center?: [number, number];
   building?: GeoJSON.Feature;
+  computed_at?: string;
+  artifact?: string;
+  floors?: { count?: number | null; modeled_count?: number };
   facades?: {
     code: string;
     azimuth_deg: number;
     geometry: GeoJSON.Geometry;
     min_floor_sea?: number | null;
+    min_floor_sea_p80?: number | null;
+    sea_probability_by_floor?: (number | null)[];
+    sea_width_by_floor?: (number | null)[];
+    sunset_by_month?: {
+      month: number;
+      date?: string;
+      azimuth_deg?: number;
+      available: (boolean | null)[];
+      visible_minutes: (number | null)[];
+    }[];
     min_floor_sunset?: number | null;
     night_db_min?: number | null;
     night_db_max?: number | null;
@@ -369,6 +383,7 @@ export interface Geo {
   }[];
   sun_paths?: {
     month: number;
+    date?: string;
     points: { azimuth_deg: number; elevation_deg: number }[];
   }[];
   view_cones?: GeoJSON.FeatureCollection;

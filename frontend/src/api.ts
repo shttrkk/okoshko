@@ -12,6 +12,7 @@ import type {
   LabelTarget,
   Passport,
   PassportCreate,
+  ParsedQuery,
   PublishResult,
   Question,
   SearchRequest,
@@ -89,13 +90,20 @@ export const api = {
   specs: () => request<Spec[]>("/api/characteristics"),
   search: (body: SearchRequest, signal?: AbortSignal) =>
     request<SearchResult>("/api/search", body, signal),
-  hotel: (hotelId: string) =>
-    request<HotelDetail>(`/api/hotels/${id(hotelId)}`),
+  hotel: (hotelId: string, parsed?: ParsedQuery | null) =>
+    parsed
+      ? request<HotelDetail>(`/api/hotels/${id(hotelId)}/evaluate`, parsed)
+      : request<HotelDetail>(`/api/hotels/${id(hotelId)}`),
   geo: (hotelId: string) => request<Geo>(`/api/hotels/${id(hotelId)}/geo`),
-  compare: (ids: string[]) =>
-    request<{ hotels: HotelDetail[]; characteristics: Spec[] }>(
-      `/api/compare?ids=${ids.map(id).join(",")}`,
-    ),
+  compare: (ids: string[], parsed?: ParsedQuery | null) =>
+    parsed
+      ? request<{ hotels: HotelDetail[]; characteristics: Spec[] }>(
+          "/api/compare",
+          { ids, parsed },
+        )
+      : request<{ hotels: HotelDetail[]; characteristics: Spec[] }>(
+          `/api/compare?ids=${ids.map(id).join(",")}`,
+        ),
   ask: (hotel_id: string, characteristic_id: string) =>
     request<Question>("/api/questions", { hotel_id, characteristic_id }),
   login: (username: string, password: string) =>

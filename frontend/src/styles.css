@@ -5206,3 +5206,138 @@ pre {
     animation-iteration-count: 1 !important;
   }
 }
+/* Keep numeric prompt controls legible beside the general form fields. */
+.criterion-chip .chip-threshold input {
+  width: 35px;
+  min-height: 22px;
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 10px;
+  line-height: 1.5;
+  appearance: textfield;
+}
+.criterion-chip .chip-threshold input::-webkit-inner-spin-button,
+.criterion-chip .chip-threshold input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+.switch-label > span {
+  pointer-events: none;
+}
+.question-select {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 9px;
+  color: var(--muted);
+  margin: 20px 0;
+}
+.question-select select {
+  width: 100%;
+  font-size: 11px;
+}
+.region-limit {
+  padding: 5px 20px 20px;
+}
+.synthetic-parser h3 {
+  font-size: 22px;
+  font-weight: 500;
+  margin: 18px 0;
+  letter-spacing: -0.6px;
+}
+.verdict-text > .badge.synthetic {
+  color: var(--yellow);
+  font-size: 7px;
+}
+.map-noise-legend {
+  position: absolute;
+  top: 110px;
+  left: 20px;
+  padding: 8px 11px;
+  border-radius: 3px;
+  background: var(--surface);
+  font-size: 7px;
+  box-shadow: var(--shadow);
+  color: var(--muted);
+}
+.map-noise-legend > span {
+  display: block;
+  font-size: 7px;
+  margin-bottom: 7px;
+}
+.map-noise-legend > div {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.map-noise-legend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4c9c7a;
+  display: inline-block;
+}
+.map-noise-legend i:nth-of-type(2) {
+  background: #e2a644;
+  margin-left: 3px;
+}
+.map-noise-legend i:nth-of-type(3) {
+  background: #d6624e;
+  margin-left: 3px;
+}
+.nearby-photos {
+  margin: 15px 0;
+}
+.nearby-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+.nearby-photo-grid figure {
+  margin: 0;
+  min-width: 0;
+}
+.nearby-photo-grid img {
+  height: 110px;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 3px;
+}
+.nearby-photo-grid figcaption {
+  margin-top: 7px;
+  font-size: 8px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.nearby-photo-grid figcaption a {
+  display: inline;
+}
+.nearby-photo-grid figcaption svg {
+  display: inline;
+}
+.nearby-photo-grid figcaption span {
+  display: block;
+  color: var(--muted);
+  font-size: 7px;
+  margin-top: 3px;
+}
+@media (max-width: 680px) {
+  .map-noise-legend {
+    left: 15px;
+    top: 108px;
+  }
+  .nearby-photo-grid {
+    grid-template-columns: 1fr;
+  }
+  .nearby-photo-grid img {
+    height: 140px;
+  }
+  .graph-legend > span:nth-child(4) {
+    color: #6b9d9e;
+  }
+}

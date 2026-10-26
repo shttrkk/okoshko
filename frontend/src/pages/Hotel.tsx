@@ -13,6 +13,7 @@ import {
 import { api, useResource } from "../api";
 import { useApp } from "../state";
 import { GeoModal, TravelMap } from "../components/Map";
+import { NearbyPhotos } from "../components/Photos";
 import {
   AskButton,
   BackLink,
@@ -32,19 +33,16 @@ import {
 import type { Fact } from "../types";
 export function HotelPage() {
   const { id = "" } = useParams();
-  const detail = useResource(() => api.hotel(id), [id]),
+  const { specs, parsed } = useApp();
+  const detail = useResource(() => api.hotel(id, parsed), [id, parsed]),
     geoResource = useResource(() => api.geo(id), [id]);
-  const { specs, searchResult, parsed } = useApp();
   const [showGeo, setShowGeo] = useState(false),
     [evidence, setEvidence] = useState<Fact | null>(null);
   const d = detail.data,
-    hit = searchResult?.results.find((r) => r.hotel.id === id),
     geo = geoResource.data || d?.geo || {};
-  const verdicts = hit?.verdicts.length ? hit.verdicts : d?.verdicts || [];
-  const disappointments = hit?.disappointments.length
-    ? hit.disappointments
-    : d?.disappointments || [];
-  const rec = hit?.room_recommendation || d?.room_recommendation;
+  const verdicts = d?.verdicts || [];
+  const disappointments = d?.disappointments || [];
+  const rec = d?.room_recommendation;
   const categories = [
     ...new Set(
       d?.facts.map(
@@ -215,6 +213,9 @@ export function HotelPage() {
                           <div>
                             <div className="fact-value">
                               <FactValue fact={f} />
+                              {f.characteristic_id === "nearby_photos" && (
+                                <NearbyPhotos value={f.value} />
+                              )}
                             </div>
                             <EvidenceButton fact={f} claims={d.claims} />
                             {f.synthetic && <Synthetic />}

@@ -190,7 +190,7 @@ export function BookingPage() {
   const { id = "" } = useParams();
   const [params, setParams] = useSearchParams();
   const { parsed, searchResult } = useApp();
-  const detail = useResource(() => api.hotel(id), [id]);
+  const detail = useResource(() => api.hotel(id, parsed), [id, parsed]);
   const existing = useResource(
     () =>
       params.get("passport")
@@ -215,10 +215,7 @@ export function BookingPage() {
           ? criteria.map((c, index) => ({
               id: crypto.randomUUID(),
               characteristic_id: c.characteristic_id,
-              text:
-                hit?.verdicts.find(
-                  (v) => v.characteristic_id === c.characteristic_id,
-                )?.text || c.label,
+              text: `${c.label}${typeof c.value === "number" ? ` ${c.op === "lte" ? "≤" : c.op === "gte" ? "≥" : "="} ${c.value}${c.characteristic_id === "beach_walk" ? " мин пешком" : ""}` : c.value === false ? ": нет" : ""}`,
               critical: index < (parsed?.must.length || 0),
               scope: c.scope || { type: "hotel" },
               fact_ids:
