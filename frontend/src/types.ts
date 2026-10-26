@@ -118,7 +118,7 @@ export interface Verdict {
 export interface SearchHit {
   hotel: Hotel;
   score: number;
-  group: "all" | "almost" | "unknown";
+  group: "all" | "almost" | "unknown" | "browse";
   must_satisfied: number;
   must_total: number;
   verdicts: Verdict[];

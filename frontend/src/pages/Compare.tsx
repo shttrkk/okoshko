@@ -8,14 +8,18 @@ import {
   Empty,
   ErrorState,
   EvidenceButton,
-  FactValue,
+  HotelVisual,
   Loading,
   names,
   needsQuestion,
   PageIntro,
-  scopeText,
   Synthetic,
 } from "../components/ui";
+import {
+  headline,
+  isKnownFact,
+  representative,
+} from "../components/FactsPanel";
 export function ComparePage() {
   const { compare, toggleCompare, parsed, hotels } = useApp();
   const [params, setParams] = useSearchParams(),
@@ -50,22 +54,20 @@ export function ComparePage() {
       y = priority.indexOf(b);
     return (x < 0 ? 999 : x) - (y < 0 ? 999 : y);
   });
+  const month = parsed?.month || 9;
+  const summaryKey = (
+    h: NonNullable<typeof d>["hotels"][number],
+    id: string,
+  ) => {
+    const facts = h.facts.filter((f) => f.characteristic_id === id);
+    const text = headline(id, facts, month);
+    return typeof text === "string"
+      ? text
+      : JSON.stringify(representative(facts)?.value ?? null);
+  };
   const rows = allIds.filter(
     (id) =>
-      !onlyDiff ||
-      new Set(
-        d?.hotels.map((h) =>
-          JSON.stringify(
-            h.facts
-              .filter((f) => f.characteristic_id === id)
-              .map((f) => ({
-                value: f.value,
-                scope: f.scope,
-                status: f.status,
-              })),
-          ),
-        ),
-      ).size > 1,
+      !onlyDiff || new Set(d?.hotels.map((h) => summaryKey(h, id))).size > 1,
   );
   return (
     <div className="page-container compare-page">
@@ -117,6 +119,10 @@ export function ComparePage() {
                     </th>
                     {d.hotels.map((h) => (
                       <th key={h.hotel.id}>
+                        <HotelVisual
+                          hotel={h.hotel}
+                          className="compare-visual"
+                        />
                         <div className="compare-hotel-head">
                           <span className="eyebrow">{h.hotel.address}</span>
                           <Link to={`/hotel/${h.hotel.id}`}>
@@ -151,44 +157,69 @@ export function ComparePage() {
                         const allFacts = h.facts.filter(
                           (f) => f.characteristic_id === id,
                         );
+                        const known = allFacts.filter(isKnownFact);
                         const verdict = h.verdicts.find(
                           (v) => v.characteristic_id === id,
                         );
-                        const selectedFacts = allFacts.filter((f) =>
-                          verdict?.fact_ids.includes(f.id),
-                        );
-                        const facts = selectedFacts.length
-                          ? selectedFacts
-                          : allFacts;
+                        const rep = allFacts.length
+                          ? representative(allFacts)
+                          : null;
                         return (
                           <td
                             className={
-                              verdict?.status === "yes" ? "compare-best" : ""
+                              verdict?.status === "yes"
+                                ? "compare-best"
+                                : verdict?.status === "no"
+                                  ? "compare-worst"
+                                  : ""
                             }
                             key={h.hotel.id}
                           >
-                            {facts.length ? (
-                              facts.map((f) => (
-                                <div className="compare-fact" key={f.id}>
-                                  <FactValue fact={f} />
-                                  {f.synthetic && (
-                                    <Synthetic>Синтетика</Synthetic>
+                            {verdict && (
+                              <p className="compare-verdict">
+                                <span
+                                  className={`verdict-symbol ${verdict.disputed ? "disputed" : verdict.status}`}
+                                >
+                                  {verdict.disputed ? "!" : verdict.symbol}
+                                </span>
+                                {verdict.text}
+                              </p>
+                            )}
+                            {known.length && rep ? (
+                              <div className="compare-fact">
+                                <p className="compare-summary">
+                                  {headline(id, allFacts, month)}
+                                </p>
+                                {known.some((f) => f.synthetic) && (
+                                  <Synthetic>Синтетика</Synthetic>
+                                )}
+                                <small>
+                                  Уверенность{" "}
+                                  {Math.round(
+                                    Math.max(
+                                      ...known.map((f) => f.confidence),
+                                    ) * 100,
                                   )}
-                                  <small>
-                                    Уверенность {Math.round(f.confidence * 100)}
-                                    %
-                                  </small>
-                                  <small>{scopeText(f.scope)}</small>
-                                  <EvidenceButton fact={f} claims={h.claims} />
-                                  {needsQuestion(f) && (
-                                    <AskButton
-                                      compact
-                                      hotelId={h.hotel.id}
-                                      characteristicId={id}
-                                    />
-                                  )}
-                                </div>
-                              ))
+                                  %
+                                </small>
+                                <EvidenceButton fact={rep} claims={h.claims} />
+                                {needsQuestion(rep) && (
+                                  <AskButton
+                                    compact
+                                    hotelId={h.hotel.id}
+                                    characteristicId={id}
+                                  />
+                                )}
+                                {known.length > 1 && (
+                                  <Link
+                                    className="text-button"
+                                    to={`/hotel/${h.hotel.id}`}
+                                  >
+                                    По сторонам и месяцам{" "}
+                                    <ArrowRight size={12} />
+                                  </Link>
+                                )}
+                              </div>
                             ) : (
                               <>
                                 <span className="unknown-text">
@@ -201,16 +232,6 @@ export function ComparePage() {
                                 />
                               </>
                             )}
-                            {selectedFacts.length > 0 &&
-                              allFacts.length > selectedFacts.length && (
-                                <Link
-                                  className="text-button"
-                                  to={`/hotel/${h.hotel.id}`}
-                                >
-                                  Другие стороны и этажи{" "}
-                                  <ArrowRight size={12} />
-                                </Link>
-                              )}
                           </td>
                         );
                       })}

@@ -1,6 +1,37 @@
 import { ExternalLink } from "lucide-react";
 import { record, useResource } from "../api";
 import type { Json } from "../types";
+export type HotelPhoto = {
+  kind: "building" | "official_site";
+  url: string;
+  local: boolean;
+  page_url?: string | null;
+  title?: string | null;
+  author?: string | null;
+  license?: string | null;
+  license_url?: string | null;
+  match?: string | null;
+};
+let hotelPhotoIndex: Promise<Record<string, HotelPhoto[]>> | null = null;
+/** Photo index built offline by scripts/collect_hotel_photos.py; optional. */
+export function hotelPhotos(): Promise<Record<string, HotelPhoto[]>> {
+  hotelPhotoIndex ||= fetch("/data/seed/hotel_photos.json")
+    .then(async (response) =>
+      response.ok ? (await response.json()).photos || {} : {},
+    )
+    .catch(() => ({}));
+  return hotelPhotoIndex;
+}
+export function photoLabel(photo: HotelPhoto) {
+  return photo.kind === "building"
+    ? "Фото здания · Wikimedia Commons"
+    : "Фото с сайта отеля";
+}
+export function photoCredit(photo: HotelPhoto) {
+  return [photo.title?.replace(/^File:/, ""), photo.author, photo.license]
+    .filter(Boolean)
+    .join(" · ");
+}
 let photoIndex: Promise<Json[]> | null = null;
 function localPhotos(): Promise<Json[]> {
   photoIndex ||= fetch("/data/seed/nearby_photos.json")
@@ -26,14 +57,23 @@ export function NearbyPhotos({ value }: { value: unknown }) {
             source = String(photo.source_url || ""),
             saved = index.data?.find((item) => item.source_url === source);
           const local = photo.local_thumbnail || saved?.local_thumbnail;
+          const remote = photo.thumbnail || saved?.thumbnail;
+          const src =
+            typeof local === "string" && local.startsWith("/data/")
+              ? local
+              : typeof remote === "string" && remote.startsWith("https://")
+                ? remote
+                : null;
           return (
             <figure key={source || i}>
-              {typeof local === "string" && local.startsWith("/data/") && (
+              {src && (
                 <a href={source} target="_blank" rel="noreferrer">
                   <img
-                    src={local}
+                    src={src}
                     alt={String(photo.title || "Фото окрестностей")}
                     loading="lazy"
+                    decoding="async"
+                    referrerPolicy="no-referrer"
                   />
                 </a>
               )}

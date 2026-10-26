@@ -13,21 +13,16 @@ import {
 import { api, useResource } from "../api";
 import { useApp } from "../state";
 import { GeoModal, TravelMap } from "../components/Map";
-import { NearbyPhotos } from "../components/Photos";
+import { FactsPanel } from "../components/FactsPanel";
 import {
   AskButton,
   BackLink,
   CompareButton,
   Empty,
   ErrorState,
-  EvidenceButton,
   EvidenceModal,
-  FactValue,
   HotelVisual,
   Loading,
-  names,
-  needsQuestion,
-  scopeText,
   Synthetic,
   VerdictList,
 } from "../components/ui";
@@ -44,15 +39,6 @@ export function HotelPage() {
   const verdicts = d?.verdicts || [];
   const disappointments = d?.disappointments || [];
   const rec = d?.room_recommendation;
-  const categories = [
-    ...new Set(
-      d?.facts.map(
-        (f) =>
-          specs.data?.find((s) => s.id === f.characteristic_id)?.category ||
-          "Ваше окружение",
-      ),
-    ),
-  ];
   return (
     <div className="hotel-page page-container">
       <BackLink />
@@ -77,7 +63,7 @@ export function HotelPage() {
             <CompareButton hotelId={id} />
           </div>
           <div className="hotel-hero-grid">
-            <HotelVisual hotel={d.hotel} className="detail-visual" />
+            <HotelVisual hotel={d.hotel} className="detail-visual" credit />
             <div className="hotel-hero-map">
               <TravelMap
                 hotels={[d.hotel]}
@@ -183,54 +169,26 @@ export function HotelPage() {
               <section className="all-facts section-block">
                 <span className="eyebrow">ПОЛНАЯ КАРТИНА</span>
                 <h2>Факты и их основания</h2>
+                <p className="muted section-lead">
+                  Каждое значение рассчитано по открытым данным или получено от
+                  отеля. Нажмите на значение, чтобы увидеть источник, метод и
+                  дату.
+                </p>
                 {!d.facts.length && (
                   <Empty title="Профиль ещё собирается">
                     Пока нет достаточных данных для утверждений об отеле.
                   </Empty>
                 )}
-                {categories.map((category) => (
-                  <div className="fact-category" key={category}>
-                    <h3>{category}</h3>
-                    {d.facts
-                      .filter(
-                        (f) =>
-                          (specs.data?.find((s) => s.id === f.characteristic_id)
-                            ?.category || "Ваше окружение") === category,
-                      )
-                      .map((f) => (
-                        <article className="fact-row" key={f.id}>
-                          <div>
-                            <h4>
-                              {specs.data?.find(
-                                (s) => s.id === f.characteristic_id,
-                              )?.name_ru ||
-                                names[f.characteristic_id] ||
-                                f.characteristic_id}
-                            </h4>
-                            <span className="fact-scope">
-                              {scopeText(f.scope)}
-                            </span>
-                          </div>
-                          <div>
-                            <div className="fact-value">
-                              <FactValue fact={f} />
-                              {f.characteristic_id === "nearby_photos" && (
-                                <NearbyPhotos value={f.value} />
-                              )}
-                            </div>
-                            <EvidenceButton fact={f} claims={d.claims} />
-                            {f.synthetic && <Synthetic />}
-                            {needsQuestion(f) && (
-                              <AskButton
-                                hotelId={id}
-                                characteristicId={f.characteristic_id}
-                              />
-                            )}
-                          </div>
-                        </article>
-                      ))}
-                  </div>
-                ))}
+                {d.facts.length > 0 && (
+                  <FactsPanel
+                    facts={d.facts}
+                    claims={d.claims}
+                    specs={specs.data || []}
+                    hotelId={id}
+                    month={parsed?.month || 9}
+                    onEvidence={setEvidence}
+                  />
+                )}
               </section>
               {d.conflicts.length > 0 && (
                 <section className="section-block">

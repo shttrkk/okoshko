@@ -74,7 +74,7 @@ try {
   await page.getByRole("dialog").waitFor();
   assert.match(
     await page.getByRole("dialog").innerText(),
-    /Следующая проверка \/ TTL/,
+    /Данные получены[\s\S]*Актуально до/,
   );
   await page.keyboard.press("Escape");
   await page.getByRole("dialog").waitFor({ state: "hidden" });

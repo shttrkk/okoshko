@@ -10,7 +10,21 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
-import { api, ApiError, dateText, record, textValue } from "../api";
+import {
+  api,
+  ApiError,
+  dateText,
+  record,
+  textValue,
+  useResource,
+} from "../api";
+import {
+  hotelPhotos,
+  photoCredit,
+  photoLabel,
+  type HotelPhoto,
+} from "./Photos";
+import { humanFact, MONTHS } from "./facts";
 import { useApp } from "../state";
 import type { Claim, Fact, Hotel, Scope, Verdict } from "../types";
 export const names: Record<string, string> = {
@@ -48,9 +62,13 @@ export function scopeText(scope: Scope) {
       scope.facade &&
         `${sides[scope.facade]}${scope.type === "facade" ? " · фасад" : ""}`,
       scope.floor_min &&
-        `${scope.floor_min}${scope.floor_max && scope.floor_max !== scope.floor_min ? `–${scope.floor_max}` : "+"} этаж`,
+        (scope.floor_max && scope.floor_max !== scope.floor_min
+          ? `этажи ${scope.floor_min}–${scope.floor_max}`
+          : scope.floor_max
+            ? `${scope.floor_min}-й этаж`
+            : `с ${scope.floor_min}-го этажа`),
       scope.room_type,
-      scope.month && `${scope.month}-й месяц`,
+      scope.month && MONTHS[scope.month - 1],
     ]
       .filter(Boolean)
       .join(" · ") || "Весь отель"
@@ -355,15 +373,44 @@ export function VerdictList({
 export function HotelVisual({
   hotel,
   className = "",
+  credit = false,
 }: {
   hotel: Hotel;
   className?: string;
+  credit?: boolean;
 }) {
-  const local = hotel.image?.startsWith("/data/");
+  const index = useResource(hotelPhotos);
+  const [failed, setFailed] = useState<string[]>([]);
+  const own: HotelPhoto[] = hotel.image?.startsWith("/data/")
+    ? [{ kind: "building", url: hotel.image, local: true }]
+    : [];
+  const photo = [...own, ...(index.data?.[hotel.id] || [])].find(
+    (p) =>
+      (p.local ? p.url.startsWith("/data/") : p.url.startsWith("https://")) &&
+      !failed.includes(p.url),
+  );
   return (
-    <div className={`hotel-visual ${className}`}>
-      {local ? (
-        <img src={hotel.image!} alt={hotel.name} loading="lazy" />
+    <div className={`hotel-visual ${photo ? "has-photo" : ""} ${className}`}>
+      {photo ? (
+        <>
+          <img
+            src={photo.url}
+            alt={`${hotel.name}: ${photo.kind === "building" ? "здание отеля" : "фото с сайта отеля"}`}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            onError={() => setFailed((old) => [...old, photo.url])}
+          />
+          <span className="photo-credit" title={photoCredit(photo)}>
+            {photoLabel(photo)}
+            {credit && photo.page_url && (
+              <a href={photo.page_url} target="_blank" rel="noreferrer">
+                {photo.author ? `${photo.author} · ` : ""}
+                {photo.license || "источник"} <ExternalLink size={11} />
+              </a>
+            )}
+          </span>
+        </>
       ) : (
         <>
           <div className="building-art">
@@ -398,6 +445,16 @@ export function FactValue({ fact }: { fact: Fact }) {
     return <span className="disputed-text">! Есть противоречие</span>;
   if (fact.status === "unknown" || fact.value === null)
     return <span className="unknown-text">? Нет данных</span>;
+  const human = humanFact(fact);
+  if (human)
+    return (
+      <span>
+        {fact.status === "disputed" && (
+          <strong className="disputed-text">Спорное значение · </strong>
+        )}
+        {human}
+      </span>
+    );
   const fields: Record<string, string> = {
     min_floor: "с этажа",
     facade: "фасад",
@@ -504,6 +561,11 @@ export function EvidenceModal({
   const supporting = claims.filter((c) =>
     fact.supporting_claim_ids.includes(c.id),
   );
+  const observed = supporting
+    .map((c) => c.observed_at)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
   return (
     <Modal
       title={names[fact.characteristic_id] || fact.characteristic_id}
@@ -523,11 +585,14 @@ export function EvidenceModal({
           </dd>
         </div>
         <div>
-          <dt>Обновлено</dt>
-          <dd>{dateText(fact.updated_at)}</dd>
+          <dt>Данные получены</dt>
+          <dd>
+            {observed ? dateText(observed) : "Дата наблюдения не передана"}
+            <small>Когда источник наблюдал или рассчитал значение</small>
+          </dd>
         </div>
         <div>
-          <dt>Следующая проверка / TTL</dt>
+          <dt>Актуально до</dt>
           <dd>{dateText(fact.valid_until)}</dd>
         </div>
         <div>

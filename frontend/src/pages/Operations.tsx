@@ -762,7 +762,9 @@ export function StudioPage() {
               <dl className="metadata compact-metadata">
                 <div>
                   <dt>Область</dt>
-                  <dd>{compiled.spec.scope}</dd>
+                  <dd>
+                    {scopeNames[compiled.spec.scope] || compiled.spec.scope}
+                  </dd>
                 </div>
                 <div>
                   <dt>Перепроверка</dt>
@@ -866,7 +868,7 @@ export function StudioPage() {
             <details className="catalog-spec" key={s.id}>
               <summary>
                 {s.name_ru}
-                <span>{s.scope}</span>
+                <span>{scopeNames[s.scope] || s.scope}</span>
               </summary>
               <p>{s.description}</p>
               <small>
@@ -882,10 +884,58 @@ export function StudioPage() {
     </div>
   );
 }
+const runKinds: Record<string, string> = {
+  collect: "Сбор профиля",
+  search: "Поиск",
+  interview: "Вопрос отелю",
+  answer: "Ответ отеля",
+  backfill: "Новая характеристика",
+  refresh: "Перепроверка",
+  freshness: "Перепроверка",
+  change: "Изменение на местности",
+};
+const runStatuses: Record<string, string> = {
+  completed: "готово",
+  done: "готово",
+  running: "идёт",
+  failed: "ошибка",
+  error: "ошибка",
+};
+const runKind = (kind: string) => runKinds[kind] || kind;
+const scopeNames: Record<string, string> = {
+  hotel: "весь отель",
+  facade: "по сторонам здания",
+  floor_range: "по сторонам и этажам",
+  room_type: "по типам номеров",
+};
+const stepAgents: Record<string, string> = {
+  planner: "планировщик",
+  collector: "сборщик",
+  search: "поиск",
+  resolver: "арбитр фактов",
+  interviewer: "интервьюер",
+  answer_parser: "разбор ответа",
+  spec_compiler: "компилятор",
+  freshness: "актуализация",
+};
+function runTitle(run: AgentRun, hotelName?: string) {
+  const text = run.steps.find((s) => typeof s.input?.text === "string")?.input
+    .text;
+  return hotelName || (typeof text === "string" && text ? `«${text}»` : "");
+}
+const timeText = (value: string) =>
+  new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 export function AgentPage() {
   const { hotels } = useApp();
   const runs = useResource(api.runs);
   const [hotelId, setHotelId] = useState(""),
+    [kind, setKind] = useState("all"),
+    [limit, setLimit] = useState(12),
     [selected, setSelected] = useState<AgentRun | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<Error | null>(null),
@@ -971,6 +1021,20 @@ export function AgentPage() {
       setError(e as Error);
     }
   };
+  const kinds = [...new Set((runs.data || []).map((r) => r.kind))];
+  const visible = (runs.data || []).filter(
+    (r) => kind === "all" || r.kind === kind,
+  );
+  const hotelName = (id: string | null) =>
+    id ? hotels.data?.find((h) => h.id === id)?.name : undefined;
+  useEffect(() => {
+    // Open the most informative run so the trace is never an empty panel.
+    if (selected || !runs.data?.length) return;
+    const first =
+      runs.data.find((r) => r.kind !== "search" && r.steps.length) ||
+      runs.data[0];
+    setSelected(first);
+  }, [runs.data, selected]);
   return (
     <div className="page-container operations">
       <PageIntro
@@ -1005,9 +1069,26 @@ export function AgentPage() {
       <div className="agent-layout">
         <aside className="run-list">
           <span className="eyebrow">ПОСЛЕДНИЕ ПРОГОНЫ</span>
+          {kinds.length > 1 && (
+            <div className="run-filter" role="group" aria-label="Тип прогона">
+              {["all", ...kinds].map((k) => (
+                <button
+                  key={k}
+                  className={kind === k ? "active" : ""}
+                  aria-pressed={kind === k}
+                  onClick={() => {
+                    setKind(k);
+                    setLimit(12);
+                  }}
+                >
+                  {k === "all" ? "Все" : runKind(k)}
+                </button>
+              ))}
+            </div>
+          )}
           {runs.loading && <Loading />}
           <ErrorState error={runs.error} retry={runs.reload} />
-          {runs.data?.map((r) => (
+          {visible.slice(0, limit).map((r) => (
             <button
               className={selected?.id === r.id ? "selected" : ""}
               key={r.id}
@@ -1015,13 +1096,23 @@ export function AgentPage() {
             >
               <span className={`run-status ${r.status}`} />
               <div>
-                <strong>{r.kind}</strong>
-                <small>{r.hotel_id || r.id.slice(0, 8)}</small>
-                <span>{dateText(r.started_at)}</span>
+                <strong>{runKind(r.kind)}</strong>
+                <small>{runTitle(r, hotelName(r.hotel_id)) || "—"}</small>
+                <span>
+                  {timeText(r.started_at)} · {runStatuses[r.status] || r.status}
+                </span>
               </div>
               <ChevronRight size={15} />
             </button>
           ))}
+          {visible.length > limit && (
+            <button
+              className="text-button run-more"
+              onClick={() => setLimit(limit + 12)}
+            >
+              Показать ещё {Math.min(12, visible.length - limit)}
+            </button>
+          )}
         </aside>
         <section className="agent-trace">
           {selected ? (
@@ -1029,11 +1120,18 @@ export function AgentPage() {
               <div className="section-heading">
                 <div>
                   <span className="eyebrow">
-                    ПРОГОН {selected.id.slice(0, 8)}
+                    ПРОГОН {selected.id.slice(0, 8)} ·{" "}
+                    {timeText(selected.started_at)}
                   </span>
                   <h2>
-                    {selected.kind} · {selected.status}
+                    {runKind(selected.kind)} ·{" "}
+                    {runStatuses[selected.status] || selected.status}
                   </h2>
+                  {runTitle(selected, hotelName(selected.hotel_id)) && (
+                    <p className="muted run-subject">
+                      {runTitle(selected, hotelName(selected.hotel_id))}
+                    </p>
+                  )}
                 </div>
                 <span className={`badge ${live ? "live" : ""}`}>
                   <Activity size={13} />
@@ -1055,7 +1153,9 @@ export function AgentPage() {
                     </span>
                     <div>
                       <div className="step-top">
-                        <span className="badge">{step.agent}</span>
+                        <span className="badge">
+                          {stepAgents[step.agent] || step.agent}
+                        </span>
                         <span>
                           {step.duration_ms.toFixed(0)} мс · {step.mode}
                           {step.cache_hit ? " · кэш" : ""}

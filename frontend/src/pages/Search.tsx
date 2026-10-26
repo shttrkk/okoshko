@@ -40,6 +40,13 @@ import type {
   Verdict,
 } from "../types";
 export const mashaQuery = "тихий номер с видом на закат недалеко от моря";
+const exampleQueries = [
+  mashaQuery,
+  "с ребёнком и коляской, до пляжа без лестниц",
+  "вид на горы из окна",
+  "круглосуточная аптека рядом",
+  "в октябре ещё можно купаться",
+];
 const personas = [
   {
     icon: Moon,
@@ -608,21 +615,25 @@ function SearchCard({
   hit,
   index,
   active,
+  hovered,
   onHover,
+  onLocate,
   onEvidence,
 }: {
   hit: SearchHit;
   index: number;
   active: boolean;
+  hovered: boolean;
   onHover: (id: string | null) => void;
+  onLocate: (id: string) => void;
   onEvidence: (hotelId: string, v: Verdict) => void;
 }) {
   const navigate = useNavigate();
   return (
     <article
-      className={`result-card ${active ? "is-active" : ""}`}
+      className={`result-card ${active ? "is-active" : ""} ${hovered ? "is-hovered" : ""}`}
       onMouseEnter={() => onHover(hit.hotel.id)}
-      onFocus={() => onHover(hit.hotel.id)}
+      onMouseLeave={() => onHover(null)}
       data-testid={`hotel-card-${hit.hotel.id}`}
     >
       <HotelVisual hotel={hit.hotel} />
@@ -632,6 +643,14 @@ function SearchCard({
             {String(index + 1).padStart(2, "0")}
           </span>
           <span>{hit.hotel.address}</span>
+          <button
+            className={`text-button small locate-button ${active ? "active" : ""}`}
+            onClick={() => onLocate(hit.hotel.id)}
+            aria-pressed={active}
+          >
+            <MapPin size={14} />
+            {active ? "На карте" : "Показать на карте"}
+          </button>
           <CompareButton hotelId={hit.hotel.id} />
         </div>
         <Link className="hotel-name" to={`/hotel/${hit.hotel.id}`}>
@@ -694,6 +713,7 @@ export function SearchPage() {
   const resource = useResource(() => api.search(request), [request]);
   const [edited, setEdited] = useState<ParsedQuery | null>(null),
     [activeId, setActiveId] = useState<string | null>(null),
+    [hoverId, setHoverId] = useState<string | null>(null),
     [mapMobile, setMapMobile] = useState(false),
     [evidence, setEvidence] = useState<{
       detail: HotelDetail;
@@ -741,6 +761,13 @@ export function SearchPage() {
     }
   };
   const results = resource.data?.results || [];
+  // Without a single recognised condition the list is a browse, not a match.
+  const noCriteria =
+    !!resource.data &&
+    !resource.data.parsed.must.length &&
+    !resource.data.parsed.nice.length;
+  const groupOf = (hit: SearchHit) =>
+    noCriteria && hit.group === "all" ? "browse" : hit.group;
   return (
     <div className="search-page">
       <div className="search-heading">
@@ -806,15 +833,16 @@ export function SearchPage() {
             <Loading text="Сопоставляем ваши ожидания с фактами…" />
           )}
           <ErrorState error={resource.error} retry={resource.reload} />
-          {resource.data?.parsed.clarifications.map((c) => (
-            <div className="clarification" key={c}>
-              <span>Нужно уточнить</span>
-              <p>{c}</p>
-              <Link to="/">
-                Изменить запрос <ArrowRight size={14} />
-              </Link>
-            </div>
-          ))}
+          {!noCriteria &&
+            resource.data?.parsed.clarifications.map((c) => (
+              <div className="clarification" key={c}>
+                <span>Нужно уточнить</span>
+                <p>{c}</p>
+                <Link to="/">
+                  Изменить запрос <ArrowRight size={14} />
+                </Link>
+              </div>
+            ))}
           {!resource.loading && resource.data && !results.length && (
             <Empty
               title={
@@ -846,26 +874,51 @@ export function SearchPage() {
               </p>
             </details>
           )}
-          {(["all", "almost", "unknown"] as const).map((group) => {
-            const hits = results.filter((r) => r.group === group);
+          {noCriteria && results.length > 0 && (
+            <div className="no-criteria" data-testid="no-criteria">
+              <strong>
+                Мы не нашли в запросе условий, которые умеем проверять.
+              </strong>
+              <p>
+                {resource.data?.parsed.clarifications[0] ||
+                  "Опишите, что важно в отдыхе, — например, вид, тишину или дорогу до моря."}{" "}
+                Пока показываем отели региона без сортировки по вашим ожиданиям.
+              </p>
+              <div className="example-queries">
+                {exampleQueries.map((text) => (
+                  <Link key={text} to={`/search?q=${encodeURIComponent(text)}`}>
+                    {text}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+          {(["all", "almost", "unknown", "browse"] as const).map((group) => {
+            const hits = results.filter((r) => groupOf(r) === group);
             return (
               hits.length > 0 && (
                 <section className="result-group" key={group}>
                   <div className="result-group-title">
                     <div>
                       <span className="eyebrow">
-                        {group === "all"
-                          ? "ВАШИ УСЛОВИЯ СОШЛИСЬ"
-                          : group === "almost"
-                            ? "ЕСТЬ КОМПРОМИСС"
-                            : "НУЖНО УТОЧНИТЬ"}
+                        {
+                          {
+                            all: "ВАШИ УСЛОВИЯ СОШЛИСЬ",
+                            almost: "ЕСТЬ КОМПРОМИСС",
+                            unknown: "НУЖНО УТОЧНИТЬ",
+                            browse: "ОТЕЛИ РЕГИОНА",
+                          }[group]
+                        }
                       </span>
                       <h2>
-                        {group === "all"
-                          ? "Подходят по обязательным"
-                          : group === "almost"
-                            ? "Почти то, что нужно"
-                            : "Пока не всё известно"}
+                        {
+                          {
+                            all: "Подходят по обязательным",
+                            almost: "Почти то, что нужно",
+                            unknown: "Пока не всё известно",
+                            browse: "Без учёта ваших условий",
+                          }[group]
+                        }
                       </h2>
                     </div>
                     <span className="result-count">{hits.length}</span>
@@ -876,7 +929,13 @@ export function SearchPage() {
                       hit={hit}
                       index={results.indexOf(hit)}
                       active={activeId === hit.hotel.id}
-                      onHover={setActiveId}
+                      hovered={hoverId === hit.hotel.id}
+                      onHover={setHoverId}
+                      onLocate={(id) => {
+                        setActiveId(id);
+                        if (window.matchMedia("(max-width: 680px)").matches)
+                          setMapMobile(true);
+                      }}
                       onEvidence={showEvidence}
                     />
                   ))}
@@ -900,8 +959,15 @@ export function SearchPage() {
           <TravelMap
             hotels={results.map((r) => r.hotel)}
             activeId={activeId}
-            onHover={setActiveId}
-            onSelect={(id) => navigate(`/hotel/${id}`)}
+            hoverId={hoverId}
+            onHover={setHoverId}
+            onSelect={(id) => {
+              setActiveId(id);
+              document
+                .querySelector(`[data-testid="hotel-card-${id}"]`)
+                ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }}
+            onOpen={(id) => navigate(`/hotel/${id}`)}
             month={edited?.month || 9}
           />
           <div className="map-under-note">

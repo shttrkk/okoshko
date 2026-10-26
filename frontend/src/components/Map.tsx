@@ -7,7 +7,15 @@ import type {
   StyleSpecification,
 } from "maplibre-gl";
 import { PMTiles, Protocol } from "pmtiles";
-import { Compass, Expand, Layers3, MapPin, Minus, Plus } from "lucide-react";
+import {
+  ArrowUpRight,
+  Compass,
+  Expand,
+  Layers3,
+  MapPin,
+  Minus,
+  Plus,
+} from "lucide-react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { api } from "../api";
 import type { Geo, Hotel } from "../types";
@@ -225,7 +233,7 @@ async function attachBaseMap(
           "symbol-placement": "line",
           "text-field": ["coalesce", ["get", "name:ru"], ["get", "name"], ""],
           "text-font": ["Noto Sans Regular"],
-          "text-size": 10,
+          "text-size": 12,
           "text-max-angle": 30,
           "symbol-spacing": 400,
         },
@@ -591,8 +599,10 @@ function drawGeo(
 export function TravelMap({
   hotels = [],
   activeId,
+  hoverId,
   onHover,
   onSelect,
+  onOpen,
   geo: providedGeo,
   extraGeometry,
   hero = false,
@@ -603,8 +613,10 @@ export function TravelMap({
 }: {
   hotels?: Hotel[];
   activeId?: string | null;
+  hoverId?: string | null;
   onHover?: (id: string | null) => void;
   onSelect?: (id: string) => void;
+  onOpen?: (id: string) => void;
   geo?: Geo | null;
   extraGeometry?: GeoJSON.Feature | GeoJSON.FeatureCollection | null;
   hero?: boolean;
@@ -629,6 +641,7 @@ export function TravelMap({
   hotelList.current = hotels;
   const callbacks = useRef({ onHover, onSelect });
   callbacks.current = { onHover, onSelect };
+  // Hover only highlights; the camera moves on an explicit click/selection.
   const initialCenter = useRef<[number, number]>(
     providedGeo?.center ||
       (hotels[0] ? [hotels[0].lon, hotels[0].lat] : [39.7233, 43.5855]),
@@ -656,6 +669,17 @@ export function TravelMap({
         attributionControl: false,
         maxPitch: 70,
         canvasContextAttributes: { antialias: true },
+        // The page scrolls under the cursor; zoom needs Ctrl/⌘ + wheel.
+        interactive: !hero,
+        cooperativeGestures: !hero && !large,
+        locale: {
+          "CooperativeGesturesHandler.WindowsHelpText":
+            "Чтобы приблизить карту, используйте Ctrl + колесо мыши",
+          "CooperativeGesturesHandler.MacHelpText":
+            "Чтобы приблизить карту, используйте ⌘ + колесо мыши",
+          "CooperativeGesturesHandler.MobileHelpText":
+            "Двигайте карту двумя пальцами",
+        },
       });
     } catch {
       setError(
@@ -703,7 +727,7 @@ export function TravelMap({
       map.remove();
       mapRef.current = null;
     };
-  }, [theme, hero]);
+  }, [theme, hero, large]);
   useEffect(() => {
     if (providedGeo) {
       setGeo(providedGeo);
@@ -739,9 +763,16 @@ export function TravelMap({
       el.title = hotel.name;
       el.setAttribute("aria-label", hotel.name);
       el.dataset.testid = `map-hotel-${hotel.id}`;
+      if (hero) {
+        // Decorative overview: markers are not interactive there.
+        el.tabIndex = -1;
+        el.setAttribute("aria-hidden", "true");
+        el.style.pointerEvents = "none";
+      }
       el.onmouseenter = () => callbacks.current.onHover?.(hotel.id);
       el.onmouseleave = () => callbacks.current.onHover?.(null);
       el.onfocus = () => callbacks.current.onHover?.(hotel.id);
+      el.onblur = () => callbacks.current.onHover?.(null);
       el.onclick = () => callbacks.current.onSelect?.(hotel.id);
       return new maplibregl.Marker({ element: el })
         .setLngLat([hotel.lon, hotel.lat])
@@ -752,8 +783,9 @@ export function TravelMap({
     markers.current.forEach((marker) => {
       const el = marker.getElement();
       el.classList.toggle("selected", el.dataset.hotelId === activeId);
+      el.classList.toggle("hovered", el.dataset.hotelId === hoverId);
     });
-  }, [activeId, ready, hotelKey]);
+  }, [activeId, hoverId, ready, hotelKey]);
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
@@ -786,7 +818,7 @@ export function TravelMap({
       map.fitBounds(b, { padding: 80, maxZoom: 14.5, duration: 800 });
     }
   }, [geo?.hotel_id, geo?.center?.[0], geo?.center?.[1], ready, hotelKey]);
-  const selected = hotels.find((h) => h.id === activeId);
+  const selected = hotels.find((h) => h.id === (hoverId || activeId));
   return (
     <div
       className={`travel-map ${hero ? "hero-map" : ""} ${large ? "large-map" : ""}`}
@@ -876,12 +908,24 @@ export function TravelMap({
           </div>
           {selected && (
             <div className="map-selected">
-              <span className="eyebrow">В фокусе</span>
+              <span className="eyebrow">
+                {hoverId && hoverId !== activeId ? "Под курсором" : "В фокусе"}
+              </span>
               <strong>{selected.name}</strong>
-              {geo?.limitations?.length ? (
-                <span>{geo.limitations[0]}</span>
-              ) : (
-                <span>Выберите характеристику, чтобы изучить расчёт</span>
+              <span className="map-selected-note">
+                {selected.id !== activeId
+                  ? "Нажмите на метку, чтобы показать расчёт на карте"
+                  : geo?.limitations?.length
+                    ? geo.limitations[0]
+                    : "Выберите характеристику, чтобы изучить расчёт"}
+              </span>
+              {onOpen && (
+                <button
+                  className="text-button map-open"
+                  onClick={() => onOpen(selected.id)}
+                >
+                  Открыть отель <ArrowUpRight size={14} />
+                </button>
               )}
             </div>
           )}
@@ -922,10 +966,13 @@ export function TravelMap({
           <TravelMap
             hotels={hotels}
             activeId={activeId}
+            hoverId={hoverId}
             geo={geo}
             extraGeometry={extraGeometry}
             large
+            onHover={onHover}
             onSelect={onSelect}
+            onOpen={onOpen}
             month={month}
           />
         </Modal>
