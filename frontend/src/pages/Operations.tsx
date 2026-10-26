@@ -87,6 +87,15 @@ export function HotelierPage() {
     data.data?.questions.filter((q) => q.status === "pending") || [];
   const question =
     pendingQuestions.find((q) => q.id === questionId) || pendingQuestions[0];
+  const currentEvidence = evidence
+    ? data.data?.facts.find((fact) => fact.id === evidence.id) ||
+      data.data?.facts.find(
+        (fact) =>
+          fact.characteristic_id === evidence.characteristic_id &&
+          JSON.stringify(fact.scope) === JSON.stringify(evidence.scope),
+      ) ||
+      null
+    : null;
   const login = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
@@ -550,9 +559,10 @@ export function HotelierPage() {
                   month={9}
                   onEvidence={setEvidence}
                 />
-                {evidence && (
+                {currentEvidence && (
                   <EvidenceModal
-                    fact={evidence}
+                    key={JSON.stringify(currentEvidence)}
+                    fact={currentEvidence}
                     claims={data.data.claims}
                     onClose={() => setEvidence(null)}
                   />

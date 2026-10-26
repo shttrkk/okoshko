@@ -5,6 +5,26 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/revision": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Revision",
+        "description": "A process-local signal for open views, with no guest or hotel data.",
+        "operationId": "revision_api_revision_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/status": {
       "get": {
         "tags": [

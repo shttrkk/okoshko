@@ -182,7 +182,20 @@ export function HotelPage() {
   const verdicts = d?.verdicts || [];
   const disappointments = d?.disappointments || [];
   const rec = d?.room_recommendation;
-  const selectedFact = selection?.hotelId === id ? selection.fact : null;
+  const currentFact = (snapshot: Fact | null) =>
+    snapshot
+      ? d?.facts.find((fact) => fact.id === snapshot.id) ||
+        d?.facts.find(
+          (fact) =>
+            fact.characteristic_id === snapshot.characteristic_id &&
+            JSON.stringify(fact.scope) === JSON.stringify(snapshot.scope),
+        ) ||
+        null
+      : null;
+  const selectedFact = currentFact(
+    selection?.hotelId === id ? selection.fact : null,
+  );
+  const currentEvidence = currentFact(evidence);
   const activeRoomSlice = roomSlice?.hotelId === id ? roomSlice.slice : null;
   const hasRoomRays =
     activeRoomSlice &&
@@ -671,9 +684,10 @@ export function HotelPage() {
               }
             />
           )}
-          {evidence && (
+          {currentEvidence && (
             <EvidenceModal
-              fact={evidence}
+              key={JSON.stringify(currentEvidence)}
+              fact={currentEvidence}
               claims={d.claims}
               onClose={() => setEvidence(null)}
             />

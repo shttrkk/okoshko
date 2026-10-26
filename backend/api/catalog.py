@@ -36,6 +36,7 @@ from backend.tracing import Trace
 
 router = APIRouter(prefix="/api", tags=["catalog"])
 _REPO = Depends(get_repo)
+_INSTANCE = uid()
 
 
 def runtime_dir() -> Path:
@@ -203,6 +204,13 @@ def compact_payload(value: HotelDetail) -> dict:
                 if evidence.get(key) is None or evidence.get(key) == {}:
                     evidence.pop(key, None)
     return payload
+
+
+@router.get("/revision")
+def revision(repo=_REPO):
+    """A process-local signal for open views, with no guest or hotel data."""
+    generation = repo.search_generation() if hasattr(repo, "search_generation") else 0
+    return JSONResponse({"instance": _INSTANCE, "revision": generation}, headers={"Cache-Control": "no-store"})
 
 
 @router.get("/status")

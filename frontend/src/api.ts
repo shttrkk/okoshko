@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type {
   Answer,
   AgentRun,
@@ -67,6 +73,109 @@ function errorText(detail: unknown): string {
       .join("; ");
   return detail ? JSON.stringify(detail) : "Сервис временно недоступен";
 }
+
+const revisionStorageKey = "okno-data-revision";
+const resourceListeners = new Set<() => void>();
+let resourceRevision = 0;
+let serverRevision: string | null = null;
+let stopRevisionWatch: (() => void) | undefined;
+const revisionSnapshot = () => resourceRevision;
+function invalidateResources() {
+  resourceRevision += 1;
+  resourceListeners.forEach((listener) => listener());
+}
+function notifyDataChanged() {
+  invalidateResources();
+  try {
+    // Cross-tab signal only: no hotel, answer, query or guest identifiers.
+    localStorage.setItem(revisionStorageKey, crypto.randomUUID());
+  } catch {
+    // Server revisions also cover disabled storage and other devices.
+  }
+}
+function watchRevisions() {
+  let stopped = false;
+  let unsupported = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let requestTimeout: ReturnType<typeof setTimeout> | undefined;
+  let controller: AbortController | null = null;
+  const poll = async () => {
+    if (
+      stopped ||
+      unsupported ||
+      document.visibilityState !== "visible" ||
+      controller
+    )
+      return;
+    const current = new AbortController();
+    controller = current;
+    requestTimeout = setTimeout(() => current.abort(), 10000);
+    try {
+      const value = await request<{ instance: string; revision: number }>(
+        "/api/revision",
+        undefined,
+        current.signal,
+      );
+      if (
+        !stopped &&
+        !current.signal.aborted &&
+        typeof value?.instance === "string" &&
+        Number.isSafeInteger(value.revision) &&
+        value.revision >= 0
+      ) {
+        const next = JSON.stringify([value.instance, value.revision]);
+        const changed = serverRevision !== null && serverRevision !== next;
+        serverRevision = next;
+        if (changed) invalidateResources();
+      } else if (!stopped && !current.signal.aborted) unsupported = true;
+    } catch (error) {
+      if (
+        error instanceof ApiError &&
+        ([404, 405, 501].includes(error.status) ||
+          (error.status >= 200 && error.status < 300))
+      )
+        unsupported = true;
+      // A temporary outage must not discard already loaded facts or inputs.
+    } finally {
+      clearTimeout(requestTimeout);
+      controller = null;
+      if (!stopped && !unsupported && document.visibilityState === "visible")
+        timer = setTimeout(poll, 3000);
+    }
+  };
+  const visibility = () => {
+    clearTimeout(timer);
+    if (document.visibilityState === "visible") void poll();
+    else controller?.abort();
+  };
+  const storage = (event: StorageEvent) => {
+    if (event.key === revisionStorageKey && event.newValue)
+      invalidateResources();
+  };
+  document.addEventListener("visibilitychange", visibility);
+  window.addEventListener("storage", storage);
+  void poll();
+  return () => {
+    stopped = true;
+    clearTimeout(timer);
+    clearTimeout(requestTimeout);
+    controller?.abort();
+    document.removeEventListener("visibilitychange", visibility);
+    window.removeEventListener("storage", storage);
+  };
+}
+function subscribeToRevisions(listener: () => void) {
+  resourceListeners.add(listener);
+  if (resourceListeners.size === 1) stopRevisionWatch = watchRevisions();
+  return () => {
+    resourceListeners.delete(listener);
+    if (!resourceListeners.size) {
+      stopRevisionWatch?.();
+      stopRevisionWatch = undefined;
+    }
+  };
+}
+
 export async function request<T>(
   path: string,
   body?: unknown,
@@ -76,6 +185,7 @@ export async function request<T>(
   const token = sessionStorage.getItem("okno-token");
   const response = await fetch(path, {
     method: body === undefined ? "GET" : "POST",
+    cache: path === "/api/revision" ? "no-store" : undefined,
     headers: {
       Accept: "application/json",
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
@@ -111,6 +221,26 @@ export async function request<T>(
   }
   return data as T;
 }
+async function writeData<T>(path: string, body: unknown, auth = false) {
+  const value = await request<T>(path, body, undefined, auth);
+  notifyDataChanged();
+  return value;
+}
+const pendingDataRuns = new Set<string>();
+function trackDataRun(run: AgentRun) {
+  if (
+    !["collect", "backfill", "refresh", "freshness", "change"].includes(
+      run.kind,
+    )
+  )
+    return run;
+  if (run.status === "running") {
+    pendingDataRuns.add(run.id);
+    if (pendingDataRuns.size > 50)
+      pendingDataRuns.delete(pendingDataRuns.values().next().value!);
+  } else if (pendingDataRuns.delete(run.id)) notifyDataChanged();
+  return run;
+}
 const id = encodeURIComponent;
 export const api = {
   status: () => request<Status>("/api/status"),
@@ -120,10 +250,15 @@ export const api = {
     request<SearchResult>("/api/search", body, signal),
   hotel: (hotelId: string, parsed?: ParsedQuery | null) =>
     parsed
-      ? request<HotelDetail>(`/api/hotels/${id(hotelId)}/evaluate?compact=true`, parsed)
+      ? request<HotelDetail>(
+          `/api/hotels/${id(hotelId)}/evaluate?compact=true`,
+          parsed,
+        )
       : request<HotelDetail>(`/api/hotels/${id(hotelId)}?compact=true`),
   factEvidence: (hotelId: string, factId: string) =>
-    request<FactEvidence>(`/api/hotels/${id(hotelId)}/facts/${id(factId)}/evidence`),
+    request<FactEvidence>(
+      `/api/hotels/${id(hotelId)}/facts/${id(factId)}/evidence`,
+    ),
   geo: (hotelId: string) => request<Geo>(`/api/hotels/${id(hotelId)}/geo`),
   compare: (ids: string[], parsed?: ParsedQuery | null) =>
     parsed
@@ -171,12 +306,7 @@ export const api = {
       true,
     ),
   confirmAnswer: (answerId: string) =>
-    request<Answer>(
-      `/api/answers/${id(answerId)}/confirm`,
-      {},
-      undefined,
-      true,
-    ),
+    writeData<Answer>(`/api/answers/${id(answerId)}/confirm`, {}, true),
   createPassport: (body: PassportCreate) =>
     request<Passport>("/api/passports", body),
   passports: (hotelId: string) =>
@@ -210,26 +340,33 @@ export const api = {
     }),
   dryRun: (spec: Spec) =>
     request<DryResult>("/api/characteristics/dry-run", spec),
-  publish: (spec: Spec) =>
-    request<PublishResult>("/api/characteristics/publish", spec),
+  publish: async (spec: Spec) => {
+    const value = await writeData<PublishResult>(
+      "/api/characteristics/publish",
+      spec,
+    );
+    if (value.status === "running") pendingDataRuns.add(value.run_id);
+    return value;
+  },
   runs: () => request<AgentRun[]>("/api/runs"),
-  run: (runId: string) => request<AgentRun>(`/api/runs/${id(runId)}`),
+  run: (runId: string) =>
+    request<AgentRun>(`/api/runs/${id(runId)}`).then(trackDataRun),
   startRun: (hotel_id: string) =>
-    request<AgentRun>("/api/runs", { hotel_id, characteristic_ids: [] }),
+    request<AgentRun>("/api/runs", { hotel_id, characteristic_ids: [] }).then(
+      trackDataRun,
+    ),
   changes: () =>
     request<ChangeEvent[]>("/api/changes", undefined, undefined, true),
   simulateChange: (hotel_id?: string) =>
-    request<ChangeEvent>(
+    writeData<ChangeEvent>(
       "/api/changes/simulate",
       hotel_id ? { hotel_id } : {},
-      undefined,
       true,
     ),
   refresh: () =>
-    request<{ processed: number; run_id: string }>(
+    writeData<{ processed: number; run_id: string }>(
       "/api/changes/refresh",
       {},
-      undefined,
       true,
     ),
   sources: () => request<Source[]>("/api/sources"),
@@ -254,28 +391,50 @@ export function useResource<T>(
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
   const [generation, setGeneration] = useState(0);
-  const reload = useCallback(() => setGeneration((v) => v + 1), []);
+  const requestSequence = useRef(0);
+  const resolved = useRef(false);
+  const previousDepKey = useRef<string | undefined>(undefined);
+  const revision = useSyncExternalStore(subscribeToRevisions, revisionSnapshot);
+  const reload = useCallback(() => {
+    requestSequence.current += 1;
+    setGeneration((v) => v + 1);
+  }, []);
   const depKey = JSON.stringify(deps);
   useEffect(() => {
     let active = true;
-    setLoading(true);
+    const sequence = ++requestSequence.current;
+    const startedRevision = revisionSnapshot();
+    const dependencyChanged = previousDepKey.current !== depKey;
+    previousDepKey.current = depKey;
+    if (dependencyChanged) {
+      resolved.current = false;
+      setData(null);
+    }
+    // Keep the mounted UI, selections and inputs during background refreshes.
+    setLoading(!resolved.current);
     setError(null);
-    setData(null);
+    const current = () =>
+      active &&
+      sequence === requestSequence.current &&
+      startedRevision === revisionSnapshot();
     loaderRef
       .current()
       .then((value) => {
-        if (active) setData(value);
+        if (current()) {
+          resolved.current = true;
+          setData(value);
+        }
       })
       .catch((e) => {
-        if (active) setError(e instanceof Error ? e : new Error(String(e)));
+        if (current()) setError(e instanceof Error ? e : new Error(String(e)));
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (current()) setLoading(false);
       });
     return () => {
       active = false;
     };
-  }, [generation, depKey]);
+  }, [generation, depKey, revision]);
   return { data, error, loading, reload, setData };
 }
 export const dateText = (value?: string | null) =>

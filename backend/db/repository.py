@@ -23,6 +23,10 @@ TABLES = frozenset({
     "change_events", "jobs", "tool_cache", "llm_cache", "search_queries",
     "eval_labels", "eval_results", "expectation_passports", "passport_items",
 })
+# Visible data mutations advance the polling revision. Search logs and agent
+# traces deliberately do not: a read/search must not trigger another refetch.
+REVISION_TABLES = frozenset({"hotels", "characteristics", "questions", "answers", "conflicts",
+                             "change_events", "expectation_passports", "passport_items"})
 
 COMPACT_FACT = """(payload-'evidence') || jsonb_build_object('evidence', COALESCE(
     (SELECT jsonb_agg((evidence-'inputs'-'output') || jsonb_build_object('inputs',
@@ -74,8 +78,9 @@ class Repository:
                 snapshot[value["id"]] = search_fact(value)
             self._search_snapshot = snapshot
 
-    def _invalidate_catalog(self, table: str):
-        if table in {"hotels", "characteristics"}:
+    def _invalidate_revision(self, table: str):
+        """Invalidate derived results, preserving the unaffected facts snapshot."""
+        if table in REVISION_TABLES:
             with self._search_lock:
                 self._search_generation += 1
                 self._search_results.clear()
@@ -178,7 +183,7 @@ class Repository:
             conn.execute(query, (value["id"], Jsonb(value, dumps=dump_json)))
         if table == "facts":
             self._update_search([value])
-        self._invalidate_catalog(table)
+        self._invalidate_revision(table)
         return value
 
     @serialized_write
@@ -191,7 +196,7 @@ class Repository:
             conn.execute(query, (value["id"], Jsonb(value, dumps=dump_json)))
         if table == "facts":
             self._update_search([value])
-        self._invalidate_catalog(table)
+        self._invalidate_revision(table)
         return value
 
     def add_claim(self, claim: Claim | dict) -> dict:
@@ -219,7 +224,7 @@ class Repository:
                 cursor.execute(sql.SQL("INSERT INTO {}(id,payload) SELECT id,payload FROM batch_import ON CONFLICT(id) DO UPDATE SET payload=EXCLUDED.payload,updated_at=now()").format(self.table(table)))
         if table == "facts":
             self._update_search(values)
-        self._invalidate_catalog(table)
+        self._invalidate_revision(table)
 
     def insert_claims(self, values: list[Claim | dict]) -> list[dict]:
         validated = [Claim.model_validate(value).model_dump(mode="json") for value in values]

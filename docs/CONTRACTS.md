@@ -200,3 +200,7 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
 ### Сообщённое наличие интернета
 
 `data/seed/connectivity_observations.json` содержит небольшой OSM-срез с точной идентичностью объектов, исходными тегами, датами и хэшами; `connectivity_claims.jsonl.gz` загружается тем же append-only seed-loader. `wifi_reported` и `internet_access` не устанавливают `available`, скорость или работоспособность сети. Все `download_mbps/upload_mbps/latency_ms` в этом срезе — null. Поисковое поле характеристики остаётся `download_mbps`, поэтому эти 24 наблюдения не закрывают условие скорости. `make connectivity-data` повторяет извлечение без сети.
+
+### Изменения открытых экранов
+
+`GET /api/revision` возвращает `{instance: string, revision: integer}` с `Cache-Control: no-store`, без идентификаторов гостей и содержимого запросов. Один процесс приложения повышает generation после изменения facts, каталога, вопросов/ответов, конфликтов, событий и паспортов. Журнал поиска и трассы не повышают generation. Видимая вкладка проверяет сигнал раз в 3 секунды; завершение локальной операции обновляет данные сразу. Это process-local механизм одного runtime, не распределённая подписка и не гарантия для прямых SQL-записей.
