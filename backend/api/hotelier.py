@@ -10,6 +10,7 @@ from psycopg.errors import UniqueViolation
 from referencing.exceptions import Unresolvable
 
 from backend.agents.answer_parser import HOTELIER_VALUE_FIELDS, parse_answer
+from backend.agents.demand import search_demand
 from backend.agents.interviewer import create_question, generate_questions, stable_id
 from backend.agents.resolver import resolve_hotel
 from backend.contracts import (
@@ -82,15 +83,16 @@ def cabinet(hotel_id: str, repo=_REPO, _user=_AUTH):
     hotel = _get(repo, "hotels", hotel_id, "Отель")
     facts = repo.find("facts", hotel_id=hotel_id)
     questions = generate_questions(hotel_id, repo)
+    demand = search_demand(repo, hotel_id)
     strengths = [{"characteristic_id": fact["characteristic_id"], "value": fact["value"],
                   "confidence": fact.get("confidence", 0), "synthetic": fact.get("synthetic", False),
-                  "demand_synthetic": True} for fact in facts
+                  "demand": demand["shown_with"].get(fact["characteristic_id"], 0), "demand_synthetic": False} for fact in facts
                  if fact.get("status") in {"confirmed", "computed"} and isinstance(fact.get("value"), dict) and fact["value"].get("available") is True]
     return {"hotel": hotel, "facts": facts, "claims": repo.find("claims", hotel_id=hotel_id),
             "questions": [q.model_dump(mode="json") for q in questions],
             "conflicts": repo.find("conflicts", hotel_id=hotel_id),
             "passports": repo.find("expectation_passports", hotel_id=hotel_id),
-            "strengths": strengths, "demand_synthetic": True}
+            "strengths": strengths, "search_demand": demand, "demand_synthetic": False}
 
 
 @router.post("/questions", response_model=Question)

@@ -218,11 +218,16 @@ class HotelierWorkflowTests(unittest.TestCase):
         self.assertTrue(all(c["synthetic"] and c["source"] == "hotelier_simulator" for c in self.repo.all("claims")))
         self.assertTrue(self.repo.find("facts", characteristic_id="pets")[0]["synthetic"])
 
-    def test_voi_question_order_synthetic_demand(self):
+    def test_voi_question_order_uses_logged_search_demand(self):
+        self.repo.insert("search_queries", {"id": "q1", "text": "шумоизоляция", "results": ["test-hotel"],
+                                            "parsed": {"must": [{"characteristic_id": "soundproofing"}], "nice": []}})
         questions = generate_questions("test-hotel", self.repo)
         self.assertTrue(questions)
         self.assertEqual([q.priority for q in questions], sorted([q.priority for q in questions], reverse=True))
-        self.assertTrue(all(q.demand_synthetic and len(q.options) == 4 for q in questions))
+        self.assertTrue(all(not q.demand_synthetic and len(q.options) == 4 for q in questions))
+        demand = {q.characteristic_ids[0]: q.demand_estimate for q in questions}
+        self.assertEqual(demand.get("soundproofing"), 1)
+        self.assertTrue(all(value == 0 for cid, value in demand.items() if cid != "soundproofing"))
         self.assertEqual([q.id for q in questions], [q.id for q in generate_questions("test-hotel", self.repo)])
 
 
