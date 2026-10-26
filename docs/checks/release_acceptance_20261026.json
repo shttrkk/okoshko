@@ -1,0 +1,56 @@
+{
+  "checked_at": "2026-10-26T17:42:40.929363+00:00",
+  "tested_revision": "9ac03ec054b14412c5d04c10516a01083c0978b4",
+  "subsequent_changes": "Documentation and check reports only",
+  "non_document_diff_paths": [],
+  "clean_clone_passed": true,
+  "no_env": true,
+  "docker_only_startup_path": true,
+  "launch_seconds": 174.979,
+  "full_launch_checks_seconds": 249.074,
+  "make_check_passed": true,
+  "make_check_seconds": 33.491,
+  "pytest_passed": 365,
+  "pytest_subtests_passed": 125,
+  "coverage_product_lines": {
+    "covered": 4597,
+    "statements": 5413,
+    "percent": 84.92518012192869,
+    "excludes": [
+      "backend/tests",
+      "geo/tests"
+    ]
+  },
+  "active_stand": {
+    "url": "http://localhost:8080",
+    "project": "okno-demo",
+    "masha_all_count": 3,
+    "masha_wall_ms": 926.188,
+    "checks_passed": 12,
+    "prior_project_retained": "okno, stopped with original volumes",
+    "card_wall_samples_seconds": [
+      0.642,
+      0.691
+    ],
+    "card_samples_note": "Two local HTTP detail samples; not p95"
+  },
+  "image": {
+    "bytes": 315522627,
+    "architecture": "amd64",
+    "uid": 10001
+  },
+  "history_rewritten": false,
+  "push_performed": false,
+  "submission_tag_created": false,
+  "pending_owner_items": [
+    "Team repository URL",
+    "Public video URL",
+    "Optional voice recording"
+  ],
+  "limitations": [
+    "No independent manual hotel labels or field accuracy",
+    "nDCG not measured",
+    "Independent third height-conflict example not established",
+    "Demo credentials are public; production IAM and capability revocation require integration"
+  ]
+}

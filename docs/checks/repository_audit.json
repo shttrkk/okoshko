@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "checked_at": "2026-10-26T16:19:02.353443+00:00",
-  "git_head": "3e3cc92e20c35ae07038e1ba8567e12360d4ced1",
+  "checked_at": "2026-10-26T17:43:05.485045+00:00",
+  "git_head": "9ac03ec054b14412c5d04c10516a01083c0978b4",
   "passed": true,
   "checks": {
     "mandatory_root_files": {
@@ -34,6 +34,7 @@
         {
           "path": "README.md",
           "counts": {
+            "literal_credential_assignment": 1,
             "connection_uri_credentials": 1
           }
         },
@@ -71,18 +72,6 @@
           "path": "docker-compose.yml",
           "counts": {
             "literal_credential_assignment": 1,
-            "connection_uri_credentials": 1
-          }
-        },
-        {
-          "path": "docs/RULES.md",
-          "counts": {
-            "connection_uri_credentials": 1
-          }
-        },
-        {
-          "path": "docs/research/agent_architecture.md",
-          "counts": {
             "connection_uri_credentials": 1
           }
         },
@@ -194,8 +183,8 @@
       "potential_matches": []
     }
   },
-  "tracked_files": 868,
-  "tracked_worktree_total_bytes": 383133542,
+  "tracked_files": 877,
+  "tracked_worktree_total_bytes": 383198247,
   "largest_tracked_files": [
     {
       "path": "data/geo/terrain_30m.npz",
@@ -239,10 +228,10 @@
     }
   ],
   "git_storage": {
-    "directory_bytes": 258642722,
+    "directory_bytes": 259563194,
     "count_objects": {
-      "count": 736,
-      "size": 70932,
+      "count": 961,
+      "size": 72304,
       "in-pack": 1708,
       "packs": 2,
       "size-pack": 182653,
@@ -251,22 +240,22 @@
       "size-garbage": 0
     },
     "pack_bytes": 187036672,
-    "loose_allocated_bytes": 72634368,
+    "loose_allocated_bytes": 74039296,
     "target_pack_bytes": 150000000,
     "target_pack_met": false,
     "interpretation": "Pack target is advisory; owner decides compaction. No gc, purge or rewrite performed."
   },
   "history": {
     "enabled": true,
-    "reachable_objects": 2311,
+    "reachable_objects": 2519,
     "object_types": {
-      "commit": 123,
-      "tree": 538,
-      "blob": 1650
+      "commit": 148,
+      "tree": 635,
+      "blob": 1736
     },
-    "text_objects_scanned": 1209,
+    "text_objects_scanned": 1320,
     "binary_blobs_not_secret_scanned": 564,
-    "historical_path_count": 874,
+    "historical_path_count": 896,
     "potential_secret_matches": [],
     "recognized_examples": [
       {
@@ -278,6 +267,7 @@
       {
         "path": "README.md",
         "counts": {
+          "literal_credential_assignment": 1,
           "connection_uri_credentials": 1
         }
       },
@@ -319,6 +309,12 @@
         }
       },
       {
+        "path": "scripts/smoke.py",
+        "counts": {
+          "literal_credential_assignment": 1
+        }
+      },
+      {
         "path": "docs/RULES.md",
         "counts": {
           "connection_uri_credentials": 1
@@ -331,9 +327,41 @@
         }
       },
       {
-        "path": "scripts/smoke.py",
+        "path": "README.md",
+        "counts": {
+          "literal_credential_assignment": 1,
+          "connection_uri_credentials": 1
+        }
+      },
+      {
+        "path": "README.md",
+        "counts": {
+          "literal_credential_assignment": 1,
+          "connection_uri_credentials": 1
+        }
+      },
+      {
+        "path": "backend/contracts/models.py",
+        "counts": {
+          "type_annotation_not_credential": 1
+        }
+      },
+      {
+        "path": "backend/tests/test_hotelier.py",
         "counts": {
           "literal_credential_assignment": 1
+        }
+      },
+      {
+        "path": "backend/tests/test_passport.py",
+        "counts": {
+          "literal_credential_assignment": 2
+        }
+      },
+      {
+        "path": "README.md",
+        "counts": {
+          "connection_uri_credentials": 1
         }
       },
       {

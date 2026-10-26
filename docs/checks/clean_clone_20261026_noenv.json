@@ -1,0 +1,19 @@
+{
+  "revision": "9ac03ec054b14412c5d04c10516a01083c0978b4",
+  "clone": "/private/tmp/okno-clean-20261026-noenv",
+  "checked_at": "2026-10-26T17:26:18.431690+00:00",
+  "command": "docker compose up --build",
+  "project": "okno-clean-896f496f0ad4",
+  "fresh_project_volumes": true,
+  "pruned_build_cache": true,
+  "passed": true,
+  "env_file_created": false,
+  "docker_only_launch_path": true,
+  "launch_path_has_python": false,
+  "launch_path_has_node": false,
+  "preexisting_project_volumes": [],
+  "prune_seconds": 1.595,
+  "launch_seconds": 174.979,
+  "browser_preview": "passed",
+  "elapsed_seconds": 249.074
+}
