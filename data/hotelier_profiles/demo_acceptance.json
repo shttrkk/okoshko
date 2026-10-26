@@ -1,0 +1,114 @@
+{
+  "generated_at": "2026-10-26T14:00:24+00:00",
+  "id": "review003-synthetic-hotelier-v1",
+  "limitations": [
+    "Вымышленный ответ для проверки synthetic-demo сценария, не реальный ответ гостиницы.",
+    "Измерений шума в дБ и независимого подтверждения тишины нет.",
+    "Перед реальным бронированием нужны подтверждение отеля, конкретный номер и проверка условий.",
+    "Confidence относится к синтетической фикстуре, не является измеренной точностью или вероятностью тишины реального отеля."
+  ],
+  "method": "simulated_hotelier_quote@1",
+  "profiles": [
+    {
+      "answers": {
+        "quiet_night": "Синтетический ответ для демонстрации: в сентябре на юго-западной стороне на 3 этаже ночью тихо."
+      },
+      "claim_id": "demo-hotelier-ac15d5162a1fcfdef1176fcf",
+      "hotel_id": "osm-node-11866202895",
+      "hotel_name_for_identification": "Cascade",
+      "id": "review003-synthetic-hotelier-v1-cascade-sw3",
+      "reference_geo_claim_ids": {
+        "beach_walk": "geo-4925575dad832d62d474",
+        "quiet_night": "geo-98d98d4a79a128f2ef86",
+        "sunset_view": "geo-cc305028cba1bef8bba3"
+      },
+      "synthetic": true,
+      "truth": {
+        "quiet_night": {
+          "scope": {
+            "facade": "SW",
+            "floor_max": 3,
+            "floor_min": 3,
+            "month": 9,
+            "room_type": null,
+            "type": "floor_range"
+          },
+          "value": {
+            "available": true,
+            "facade": "SW"
+          }
+        }
+      },
+      "truth_kind": "invented_demo_truth_not_a_real_hotel_observation"
+    },
+    {
+      "answers": {
+        "quiet_night": "Синтетический ответ для демонстрации: в сентябре на западной стороне на 5 этаже ночью тихо."
+      },
+      "claim_id": "demo-hotelier-6544c68b45d0e531e4cbdaa7",
+      "hotel_id": "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+      "hotel_name_for_identification": "Приморская",
+      "id": "review003-synthetic-hotelier-v1-primorskaya-w5",
+      "reference_geo_claim_ids": {
+        "beach_walk": "geo-9f2170b9f8d1a5c4bac9",
+        "quiet_night": "geo-e7f3f29cc099f26737ad",
+        "sunset_view": "geo-b49cde38b0c259c27e93"
+      },
+      "synthetic": true,
+      "truth": {
+        "quiet_night": {
+          "scope": {
+            "facade": "W",
+            "floor_max": 5,
+            "floor_min": 5,
+            "month": 9,
+            "room_type": null,
+            "type": "floor_range"
+          },
+          "value": {
+            "available": true,
+            "facade": "W"
+          }
+        }
+      },
+      "truth_kind": "invented_demo_truth_not_a_real_hotel_observation"
+    },
+    {
+      "answers": {
+        "quiet_night": "Синтетический ответ для демонстрации: в сентябре на западной стороне на 7 этаже ночью тихо."
+      },
+      "claim_id": "demo-hotelier-7785d21c2da9da392b2c0962",
+      "hotel_id": "osm-way-201474330",
+      "hotel_name_for_identification": "Brevis apartments",
+      "id": "review003-synthetic-hotelier-v1-brevis-w7",
+      "reference_geo_claim_ids": {
+        "beach_walk": "geo-dfcd03afb55f051d7105",
+        "quiet_night": "geo-e4a67e10f5e76036793e",
+        "sunset_view": "geo-f7e7357c9de1c89d12c0"
+      },
+      "synthetic": true,
+      "truth": {
+        "quiet_night": {
+          "scope": {
+            "facade": "W",
+            "floor_max": 7,
+            "floor_min": 7,
+            "month": 9,
+            "room_type": null,
+            "type": "floor_range"
+          },
+          "value": {
+            "available": true,
+            "facade": "W"
+          }
+        }
+      },
+      "truth_kind": "invented_demo_truth_not_a_real_hotel_observation"
+    }
+  ],
+  "public_claim_artifact": "/data/seed/demo_hotelier_claims.jsonl",
+  "purpose": "Явные вымышленные ответы для REVIEW003 synthetic-demo acceptance; не сведения о реальных гостиницах.",
+  "selection": "Fixed explicit hotel IDs and room scopes; no random selection.",
+  "source": "hotelier_simulator",
+  "synthetic": true
+}
