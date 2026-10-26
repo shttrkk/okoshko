@@ -500,7 +500,8 @@ function drawGeo(
             geometry: { type: "Point", coordinates: walkCoords.at(-1)! },
             properties: {
               label: Number.isFinite(walkMinutes)
-                ? `Пляж ≈ ${Math.max(1, Math.round(walkMinutes))} мин`
+                ? // Map glyphs cover Latin/Cyrillic only: no «≈» here.
+                  `Пляж, ${Math.max(1, Math.round(walkMinutes))} мин пешком`
                 : "Пляж",
             },
           },
