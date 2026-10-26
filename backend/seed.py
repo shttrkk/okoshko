@@ -155,17 +155,20 @@ def seed_dialogues(conn, path: Path, known_hotels: set[str]):
         raise ValueError("Demo dialogue envelope must be explicitly synthetic version1")
     models = {"questions": Question, "answers": Answer, "agent_runs": AgentRun, "agent_steps": AgentStep, "claims": Claim}
     records = {table: [model.model_validate(row).model_dump(mode="json") for row in document[table]] for table, model in models.items()}
-    questions = {row["id"] for row in records["questions"]}
-    answers = {row["id"] for row in records["answers"]}
+    questions = {row["id"]:row for row in records["questions"]}
+    answers = {row["id"]:row for row in records["answers"]}
     claims = {row["id"] for row in records["claims"]}
     runs = {row["id"] for row in records["agent_runs"]}
-    if any(row["hotel_id"] not in known_hotels for table in ("questions", "answers", "claims") for row in records[table]):
+    if any(row["hotel_id"] not in known_hotels for table in ("questions", "claims") for row in records[table]):
         raise ValueError("Demo dialogue references a hotel outside this seed")
     if any(row["question_id"] not in questions or not row["synthetic"] or not row["confirmed"] or not set(row["created_claim_ids"]) <= claims for row in records["answers"]):
         raise ValueError("Invalid demo answer references")
     if any(not row["synthetic"] or row["source"] != "hotelier_simulator" or row["run_id"] not in runs
            or any(ev["kind"] != "simulation" or ev["message_id"] not in answers for ev in row["evidence"]) for row in records["claims"]):
         raise ValueError("Invalid demo claim provenance")
+    if any(questions[answers[ev["message_id"]]["question_id"]]["hotel_id"] != row["hotel_id"]
+           for row in records["claims"] for ev in row["evidence"]):
+        raise ValueError("Demo claim and answer refer to different hotels")
     if any(row["run_id"] not in runs for row in records["agent_steps"]):
         raise ValueError("Orphan demo trace step")
     for table, rows in records.items():
