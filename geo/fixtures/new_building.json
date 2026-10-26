@@ -1,0 +1,1 @@
+{"id":"synthetic-new-building-template","synthetic":true,"height_m":48,"levels":16,"distance_from_facade_m":70,"frontage_m":240,"depth_m":24,"description":"Synthetic demo scenario, not an actual construction. Instantiate with geo.changes.new_building_fixture; geometry then enters DSM and LOS."}
