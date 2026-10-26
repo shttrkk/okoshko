@@ -1,11 +1,27 @@
 """Confidence-aware utility ranking, with one compatible room for all musts."""
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 
 from backend.agents.explainer import disappointments_from_assessment, room_from_assessment, verdict
 from backend.agents.query_match import assess_hotel, fresh
 from backend.contracts import CharacteristicSpec, Fact, Hotel, ParsedQuery, SearchHit
+
+
+def criterion_utility(match, criterion) -> float:
+    utility = match.utility
+    actual, target = match.value, criterion.value
+    if (not match.condition_met or criterion.op not in {"lte", "gte"}
+            or isinstance(actual, bool) or isinstance(target, bool)
+            or not isinstance(actual, int | float) or not isinstance(target, int | float)
+            or not math.isfinite(actual) or not math.isfinite(target)):
+        return utility
+    margin = (target-actual if criterion.op == "lte" else actual-target) / max(abs(target), 1)
+    # A modest preference for comfortably meeting a numeric condition. It can
+    # consume at most 15% of the remaining utility headroom, never change a
+    # must's support, promote unknown/disputed data, or exceed a score of 100.
+    return utility + (1-utility)*.15*min(1, max(0, margin))
 
 
 def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
@@ -27,7 +43,7 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
         satisfied = sum(m.supported for m in required)
         some_support = any(m.status in {"yes", "partial"} for m in required)
         group = "all" if satisfied == must_total else "almost" if some_support or all(m.status == "no" for m in required) else "unknown"
-        weighted = [(m.utility, c.weight*(2 if i < must_total else 1)) for i, (c, m) in enumerate(zip(criteria, assessment.matches, strict=True))]
+        weighted = [(criterion_utility(m, c), c.weight*(2 if i < must_total else 1)) for i, (c, m) in enumerate(zip(criteria, assessment.matches, strict=True))]
         score = 100 * sum(u*w for u, w in weighted) / sum(w for _, w in weighted) if weighted else 0
         tier = 3 if group == "all" else 2 if some_support else 1 if group == "unknown" else 0
         ranked.append((tier, satisfied, score, hotel.id, hotel, assessment, group))

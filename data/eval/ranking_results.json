@@ -1,0 +1,887 @@
+{
+  "label_type": "evidence_derived_expert_rule_weak",
+  "human_labeled": false,
+  "metric_meaning": "nDCG@5 agreement with frozen expert-rule evidence labels, NOT human relevance or independent hotel accuracy",
+  "split": "all",
+  "queries": 30,
+  "queries_with_measured_ndcg": 24,
+  "queries_without_positive_judgments": 6,
+  "ndcg_at_5": 0.9968760695830395,
+  "top5_judged_share": 0.8666666666666667,
+  "ndcg_at_5_bounds": {
+    "lower": 0.8034447943364827,
+    "upper": 0.997322345356891
+  },
+  "by_split": {
+    "dev": {
+      "queries": 20,
+      "queries_with_measured_ndcg": 15,
+      "queries_without_positive_judgments": 5,
+      "ndcg_at_5": 0.9950017113328632,
+      "top5_judged_share": 0.85,
+      "ndcg_at_5_bounds": {
+        "lower": 0.829168092777386,
+        "upper": 0.9958347594440526
+      }
+    },
+    "holdout": {
+      "queries": 10,
+      "queries_with_measured_ndcg": 9,
+      "queries_without_positive_judgments": 1,
+      "ndcg_at_5": 1.0,
+      "top5_judged_share": 0.9,
+      "ndcg_at_5_bounds": {
+        "lower": 0.7571428571428571,
+        "upper": 1.0
+      }
+    }
+  },
+  "input_materialization_matches_frozen": true,
+  "scorer_sha256": {
+    "backend/agents/ranker.py": "776efce7c676d9ad074557d257ba65273fd6e146e68a8bac1ccfc6a58a448e03",
+    "backend/agents/query_match.py": "a3b694e964b9741e0745921cab234794f26a35465548de423c19b3532b9598ea"
+  },
+  "gold_sha256": "06c339b969a2029df51e1c8370e32902773ac116eebc875f345710838f03c6b6",
+  "cases": [
+    {
+      "id": "rank-01",
+      "split": "dev",
+      "text": "До пляжа 5 минут",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "osm-node-4469957897",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-02",
+      "split": "dev",
+      "text": "До пляжа 10 минут",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "osm-node-4469957897",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-03",
+      "split": "dev",
+      "text": "До пляжа 15 минут",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "osm-node-4469957897",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-04",
+      "split": "dev",
+      "text": "Обратно с пляжа до 20 минут",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4",
+        "osm-node-4469957897"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-05",
+      "split": "dev",
+      "text": "Вид на море",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-node-11190910581",
+        "osm-node-11866202895",
+        "osm-node-4393265790",
+        "osm-node-4985022111",
+        "osm-node-5063986547"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-06",
+      "split": "dev",
+      "text": "Закат в сентябре",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-node-12958832506",
+        "osm-way-201474330",
+        "osm-way-52572781",
+        "osm-way-53301267",
+        "overture-037ee676-5776-46bd-a4ac-38c828f2a99d"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-07",
+      "split": "dev",
+      "text": "Закат в июне",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-node-8975796817",
+        "osm-way-52572781",
+        "overture-4aad988f-e0d5-4ee3-9e5d-aa2b68d74afc",
+        "overture-4ce036e8-1aa9-408d-9913-01788d699b84",
+        "osm-node-11016638375"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-08",
+      "split": "dev",
+      "text": "Закат в декабре",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-node-11866202895",
+        "osm-node-4986725623",
+        "osm-node-736761646",
+        "osm-node-8975796817",
+        "osm-way-201474330"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-09",
+      "split": "dev",
+      "text": "Вид на горы",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-node-11190910581",
+        "osm-node-11958163786",
+        "osm-node-5743464666",
+        "osm-way-120859827",
+        "osm-way-207637828"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-10",
+      "split": "dev",
+      "text": "Тихая сторона",
+      "ndcg_at_5": null,
+      "judged_top5": 0,
+      "top5_count": 5,
+      "unjudged_top5": [
+        "osm-node-10058556917",
+        "osm-node-10574252909",
+        "osm-node-10759606594",
+        "osm-node-10759614195",
+        "osm-node-11138786325"
+      ],
+      "lower_bound": 0.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": false,
+      "top5_ids": [
+        "osm-node-10058556917",
+        "osm-node-10574252909",
+        "osm-node-10759606594",
+        "osm-node-10759614195",
+        "osm-node-11138786325"
+      ],
+      "top5_grades": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-11",
+      "split": "dev",
+      "text": "В июне вода от 20 градусов",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-node-10058556917",
+        "osm-node-10574252909",
+        "osm-node-10759614195",
+        "osm-node-11029975305",
+        "osm-node-11138786325"
+      ],
+      "top5_grades": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-12",
+      "split": "dev",
+      "text": "В октябре вода от 20 градусов",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-node-10058556917",
+        "osm-node-10574252909",
+        "osm-node-10759614195",
+        "osm-node-11029975305",
+        "osm-node-11138786325"
+      ],
+      "top5_grades": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-13",
+      "split": "dev",
+      "text": "В сентябре вода от 25 градусов",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-node-10058556917",
+        "osm-node-10574252909",
+        "osm-node-10759614195",
+        "osm-node-11029975305",
+        "osm-node-11138786325"
+      ],
+      "top5_grades": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-14",
+      "split": "dev",
+      "text": "Зимой вода от 16 градусов",
+      "ndcg_at_5": null,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": null,
+      "upper_bound": null,
+      "query_has_positive_judgments": false,
+      "top5_ids": [
+        "osm-node-10058556917",
+        "osm-node-10118233110",
+        "osm-node-10574252909",
+        "osm-node-10759606594",
+        "osm-node-10759606596"
+      ],
+      "top5_grades": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-15",
+      "split": "dev",
+      "text": "Качество воздуха AQI до 40",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-node-10058556917",
+        "osm-node-10574252909",
+        "osm-node-10759614195",
+        "osm-node-11029975305",
+        "osm-node-11138786325"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-16",
+      "split": "dev",
+      "text": "Качество воздуха AQI до 25",
+      "ndcg_at_5": null,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": null,
+      "upper_bound": null,
+      "query_has_positive_judgments": false,
+      "top5_ids": [
+        "osm-node-10058556917",
+        "osm-node-10118233110",
+        "osm-node-10574252909",
+        "osm-node-10759606594",
+        "osm-node-10759606596"
+      ],
+      "top5_grades": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-17",
+      "split": "dev",
+      "text": "Море и пляж до 10 минут",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-node-11866202895",
+        "osm-node-4393265790",
+        "osm-way-53301267",
+        "osm-way-53284165",
+        "osm-node-8975796817"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-18",
+      "split": "dev",
+      "text": "Сентябрьский закат и пляж до 10 минут",
+      "ndcg_at_5": 0.9250256699929476,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 0.9250256699929476,
+      "upper_bound": 0.9250256699929476,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-way-53301267",
+        "osm-node-8975796817",
+        "osm-way-53284165",
+        "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+        "osm-way-201474330"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        2
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-19",
+      "split": "dev",
+      "text": "Горы и тихая сторона",
+      "ndcg_at_5": null,
+      "judged_top5": 0,
+      "top5_count": 5,
+      "unjudged_top5": [
+        "osm-way-120859827",
+        "overture-17ea7c28-fde3-4fb3-891e-549c8f4b2885",
+        "osm-way-80189244",
+        "osm-way-502703777",
+        "osm-node-10058556917"
+      ],
+      "lower_bound": 0.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": false,
+      "top5_ids": [
+        "osm-way-120859827",
+        "overture-17ea7c28-fde3-4fb3-891e-549c8f4b2885",
+        "osm-way-80189244",
+        "osm-way-502703777",
+        "osm-node-10058556917"
+      ],
+      "top5_grades": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-20",
+      "split": "dev",
+      "text": "Море, тишина и пляж до 5 минут",
+      "ndcg_at_5": null,
+      "judged_top5": 0,
+      "top5_count": 5,
+      "unjudged_top5": [
+        "osm-node-11866202895",
+        "osm-way-80189244",
+        "osm-node-10759614195",
+        "osm-node-4393265790",
+        "osm-way-53284165"
+      ],
+      "lower_bound": 0.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": false,
+      "top5_ids": [
+        "osm-node-11866202895",
+        "osm-way-80189244",
+        "osm-node-10759614195",
+        "osm-node-4393265790",
+        "osm-way-53284165"
+      ],
+      "top5_grades": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-21",
+      "split": "holdout",
+      "text": "Пляж до 7 минут без лестниц",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "osm-node-4469957897",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-22",
+      "split": "holdout",
+      "text": "Пляж до 8 минут без переходов",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "osm-node-4469957897",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-23",
+      "split": "holdout",
+      "text": "Море на западе с 5 этажа",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-node-8975796817",
+        "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+        "osm-node-11016638375",
+        "osm-way-207637871",
+        "overture-76383584-f4a0-4333-bb90-3fd6d19a354d"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-24",
+      "split": "holdout",
+      "text": "Горы на востоке с 3 этажа",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-node-11190910581",
+        "osm-way-207637828",
+        "osm-node-11331531334",
+        "overture-52e6f850-ce07-48b5-b364-410d8f37c343",
+        "osm-way-80189244"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-25",
+      "split": "holdout",
+      "text": "Закат в мае с запада",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-node-8975796817",
+        "osm-way-52572781",
+        "overture-4ce036e8-1aa9-408d-9913-01788d699b84",
+        "osm-node-4986725623",
+        "overture-76383584-f4a0-4333-bb90-3fd6d19a354d"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-26",
+      "split": "holdout",
+      "text": "Море и закат в одном номере",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-way-52572781",
+        "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+        "osm-node-8975796817",
+        "osm-way-53301267",
+        "osm-way-207637871"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-27",
+      "split": "holdout",
+      "text": "В октябре тихо, закат и пляж до 15 минут",
+      "ndcg_at_5": null,
+      "judged_top5": 0,
+      "top5_count": 5,
+      "unjudged_top5": [
+        "osm-node-11866202895",
+        "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+        "overture-3958233d-4e7a-4244-a8d9-3ddd0be0f10f",
+        "osm-way-201474330",
+        "osm-node-4986725623"
+      ],
+      "lower_bound": 0.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": false,
+      "top5_ids": [
+        "osm-node-11866202895",
+        "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+        "overture-3958233d-4e7a-4244-a8d9-3ddd0be0f10f",
+        "osm-way-201474330",
+        "osm-node-4986725623"
+      ],
+      "top5_grades": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-28",
+      "split": "holdout",
+      "text": "В августе вода от 25 и пляж до 7 минут",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 0.4285714285714285,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "osm-node-4469957897",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4"
+      ],
+      "top5_grades": [
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-29",
+      "split": "holdout",
+      "text": "AQI до 20 и пляж до 10 минут",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 0.14285714285714285,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+        "osm-way-218836911",
+        "osm-node-4469957897",
+        "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+        "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4"
+      ],
+      "top5_grades": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "top5_unique_names": 5
+    },
+    {
+      "id": "rank-30",
+      "split": "holdout",
+      "text": "Горы и пляж до 15 минут",
+      "ndcg_at_5": 1.0,
+      "judged_top5": 5,
+      "top5_count": 5,
+      "unjudged_top5": [],
+      "lower_bound": 1.0,
+      "upper_bound": 1,
+      "query_has_positive_judgments": true,
+      "top5_ids": [
+        "osm-way-53292014",
+        "osm-node-5743464666",
+        "osm-way-201474331",
+        "osm-way-53292016",
+        "osm-way-80192670"
+      ],
+      "top5_grades": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "top5_unique_names": 5
+    }
+  ],
+  "limitations": [
+    "No human labels; source evidence and predictions share a model, so this measures policy agreement only.",
+    "Unknown/stale/disputed/low-confidence pairs are unjudged. Main nDCG excludes queries with any unjudged top5 item; judged share and loose bounds are reported separately.",
+    "The graded ideal is over judged candidates; unknown candidates could change the ideal. Bounds allow their grades to vary from 0 to 3.",
+    "Explicit criteria isolate the ranker and do not evaluate natural-language parsing. Synthetic hotelier/demo facts are excluded."
+  ]
+}
