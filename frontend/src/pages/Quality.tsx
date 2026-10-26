@@ -9,7 +9,7 @@ import {
   FlaskConical,
   RefreshCw,
 } from "lucide-react";
-import { api, dateText, record, textValue, useResource } from "../api";
+import { api, dateText, record, request, textValue, useResource } from "../api";
 import { useApp } from "../state";
 import { TravelMap } from "../components/Map";
 import {
@@ -22,7 +22,7 @@ import {
   scopeText,
   Synthetic,
 } from "../components/ui";
-import type { ChangeEvent, Fact } from "../types";
+import type { ChangeEvent, Fact, Geo } from "../types";
 const number = (value: unknown, digits = 0) =>
   typeof value === "number"
     ? new Intl.NumberFormat("ru", { maximumFractionDigits: digits }).format(
@@ -574,8 +574,38 @@ export function ChangesPage() {
   const hotel = hotels.data?.find(
     (h) => h.id === current?.affected_hotel_ids[0],
   );
-  const geoBefore = record(current?.payload.geo_before),
-    geoAfter = record(current?.payload.geo_after);
+  const snapshots = useResource(async () => {
+    if (!current || !hotel) return null;
+    const read = async (path: string): Promise<Geo | null> => {
+      try {
+        const document = await request<Record<string, unknown>>(path);
+        const saved = record(document.geo || document);
+        return saved.hotel_id === hotel.id ? (saved as Geo) : null;
+      } catch {
+        return null;
+      }
+    };
+    const artifact = current.payload.geo_artifact;
+    const [before, after] = await Promise.all([
+      read(`/data/geo/${encodeURIComponent(hotel.id)}.json`),
+      typeof artifact === "string" && artifact.startsWith("/data/")
+        ? read(artifact)
+        : api.geo(hotel.id).catch(() => null),
+    ]);
+    return { before, after };
+  }, [current?.id, hotel?.id]);
+  const geoBefore = Object.keys(record(current?.payload.geo_before)).length
+    ? (record(current?.payload.geo_before) as Geo)
+    : snapshots.data?.before;
+  const geoAfter = Object.keys(record(current?.payload.geo_after)).length
+    ? (record(current?.payload.geo_after) as Geo)
+    : snapshots.data?.after;
+  const rawFixture = record(current?.payload.fixture);
+  const fixture =
+    rawFixture.type === "Feature"
+      ? (rawFixture as unknown as GeoJSON.Feature)
+      : null;
+
   return (
     <div className="page-container changes-page">
       <PageIntro
@@ -658,8 +688,7 @@ export function ChangesPage() {
               {hotel && (
                 <>
                   <p className="muted">{hotel.name}</p>
-                  {Object.keys(geoBefore).length &&
-                  Object.keys(geoAfter).length ? (
+                  {geoBefore && geoAfter ? (
                     <div className="change-map-pair">
                       <div>
                         <span>До изменения</span>
@@ -670,17 +699,25 @@ export function ChangesPage() {
                         />
                       </div>
                       <div>
-                        <span>После изменения</span>
+                        <span>
+                          После изменения{" "}
+                          <Synthetic>Новый дом · синтетика</Synthetic>
+                        </span>
                         <TravelMap
                           hotels={[hotel]}
                           activeId={hotel.id}
                           geo={geoAfter}
+                          extraGeometry={fixture}
                         />
                       </div>
                     </div>
                   ) : (
                     <>
-                      <TravelMap hotels={[hotel]} activeId={hotel.id} />
+                      <TravelMap
+                        hotels={[hotel]}
+                        activeId={hotel.id}
+                        extraGeometry={fixture}
+                      />
                       <p className="fine-print">
                         Карта показывает актуальные данные. Исторические геослои
                         API не передал — изменение сравнивается по сохранённым

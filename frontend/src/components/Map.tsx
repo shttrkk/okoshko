@@ -594,6 +594,7 @@ export function TravelMap({
   onHover,
   onSelect,
   geo: providedGeo,
+  extraGeometry,
   hero = false,
   large = false,
   floor,
@@ -605,6 +606,7 @@ export function TravelMap({
   onHover?: (id: string | null) => void;
   onSelect?: (id: string) => void;
   geo?: Geo | null;
+  extraGeometry?: GeoJSON.Feature | GeoJSON.FeatureCollection | null;
   hero?: boolean;
   large?: boolean;
   floor?: number;
@@ -746,7 +748,23 @@ export function TravelMap({
     const map = mapRef.current;
     if (!map || !ready) return;
     drawGeo(map, geo, layers, floor, facade, month);
-  }, [geo, layers, ready, floor, facade, month]);
+    put(map, "scenario-building", extraGeometry || empty);
+    safeLayer(map, {
+      id: "scenario-building",
+      type: "fill-extrusion",
+      source: "scenario-building",
+      paint: {
+        "fill-extrusion-color": "#c84f3a",
+        "fill-extrusion-height": [
+          "coalesce",
+          ["get", "height_m"],
+          ["get", "height"],
+          0,
+        ],
+        "fill-extrusion-opacity": 0.9,
+      },
+    });
+  }, [geo, layers, ready, floor, facade, month, extraGeometry]);
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
@@ -893,6 +911,7 @@ export function TravelMap({
             hotels={hotels}
             activeId={activeId}
             geo={geo}
+            extraGeometry={extraGeometry}
             large
             onSelect={onSelect}
             month={month}
