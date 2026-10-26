@@ -195,12 +195,19 @@ async function main() {
     }
   });
   const blockedExternal: string[] = [];
+  const externalImages: string[] = [];
   await context.route("**/*", (route) => {
     const url = new URL(route.request().url());
     if (
       ["http:", "https:"].includes(url.protocol) &&
       url.origin !== new URL(base).origin
     ) {
+      // Linked hotel photos are the only allowed outside content; everything
+      // else (APIs, tiles, scripts) must stay local.
+      if (route.request().resourceType() === "image") {
+        externalImages.push(url.href);
+        return route.continue();
+      }
       blockedExternal.push(url.href);
       return route.abort();
     }
@@ -710,6 +717,7 @@ async function main() {
     report.browser_errors = errors;
     report.failed_requests = failures;
     report.blocked_external = blockedExternal;
+    report.external_images = externalImages.length;
     report.raw_video = rawPath;
   }
   if (!failure && published) {

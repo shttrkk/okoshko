@@ -4,6 +4,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   Compass,
+  Eye,
   MapPin,
   ShieldCheck,
   Sun,
@@ -14,6 +15,7 @@ import { api, useResource } from "../api";
 import { useApp } from "../state";
 import { GeoModal, TravelMap } from "../components/Map";
 import { FactsPanel } from "../components/FactsPanel";
+import { PanoramaModal } from "../components/Panorama";
 import {
   AskButton,
   BackLink,
@@ -38,13 +40,28 @@ export function HotelPage() {
   const { specs, parsed } = useApp();
   const detail = useResource(() => api.hotel(id, parsed), [id, parsed]),
     geoResource = useResource(() => api.geo(id), [id]);
-  const [showGeo, setShowGeo] = useState(false),
+  const [panorama, setPanorama] = useState<string | null>(null),
+    [showGeo, setShowGeo] = useState(false),
     [evidence, setEvidence] = useState<Fact | null>(null);
   const d = detail.data,
     geo = geoResource.data || d?.geo || {};
   const verdicts = d?.verdicts || [];
   const disappointments = d?.disappointments || [];
   const rec = d?.room_recommendation;
+  // Turn the panorama towards the side that matters most for this hotel.
+  const bestSide =
+    ["sunset_view", "sea_view", "mountain_view"]
+      .map(
+        (id) =>
+          d?.facts.find(
+            (f) =>
+              f.characteristic_id === id &&
+              f.scope.facade &&
+              (f.value as { available?: boolean } | null)?.available === true &&
+              (id !== "sunset_view" || f.scope.month === (parsed?.month || 9)),
+          )?.scope.facade,
+      )
+      .find(Boolean) || "S";
   const valueConflicts = (d?.conflicts || []).filter((c) => c.kind === "value");
   const scopeConflicts = (d?.conflicts || []).filter((c) => c.kind !== "value");
   return (
@@ -71,7 +88,17 @@ export function HotelPage() {
             <CompareButton hotelId={id} />
           </div>
           <div className="hotel-hero-grid">
-            <HotelVisual hotel={d.hotel} className="detail-visual" credit />
+            <div className="detail-visual-wrap">
+              <HotelVisual hotel={d.hotel} className="detail-visual" credit />
+              <button
+                className="button panorama-button"
+                onClick={() => setPanorama(bestSide)}
+                data-testid="open-panorama"
+              >
+                <Eye size={16} />
+                Панорама рядом
+              </button>
+            </div>
             <div className="hotel-hero-map">
               <TravelMap
                 hotels={[d.hotel]}
@@ -195,6 +222,7 @@ export function HotelPage() {
                     hotelId={id}
                     month={parsed?.month || 9}
                     onEvidence={setEvidence}
+                    onPanorama={setPanorama}
                   />
                 )}
               </section>
@@ -302,6 +330,13 @@ export function HotelPage() {
               hotel={d.hotel}
               geo={geo}
               onClose={() => setShowGeo(false)}
+            />
+          )}
+          {panorama && (
+            <PanoramaModal
+              hotel={d.hotel}
+              side={panorama}
+              onClose={() => setPanorama(null)}
             />
           )}
           {evidence && (

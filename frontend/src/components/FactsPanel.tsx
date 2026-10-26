@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Eye } from "lucide-react";
 import { record } from "../api";
 import type { Claim, Fact } from "../types";
 import { NearbyPhotos } from "./Photos";
@@ -35,6 +36,7 @@ const CATEGORY_ORDER = [
   "Окружение",
 ];
 const WIDE = new Set(["sunset_view", "climate", "nearby_photos"]);
+const VIEWS = new Set(["sunset_view", "sea_view", "mountain_view"]);
 const v = (f: Fact) => record(f.value);
 const known = (f: Fact) => f.status !== "unknown" && f.value !== null;
 const floorOf = (f: Fact) => {
@@ -339,6 +341,7 @@ function FactCard({
   month,
   onEvidence,
   canAsk,
+  onPanorama,
 }: {
   id: string;
   name: string;
@@ -348,6 +351,7 @@ function FactCard({
   month: number;
   onEvidence: (f: Fact) => void;
   canAsk: boolean;
+  onPanorama?: (side: string) => void;
 }) {
   const shown = facts.filter(known);
   const rep = representative(facts);
@@ -400,6 +404,19 @@ function FactCard({
         {canAsk && (disputed || needsQuestion(rep)) && (
           <AskButton hotelId={hotelId} characteristicId={id} compact />
         )}
+        {onPanorama &&
+          VIEWS.has(id) &&
+          !!(rep.scope.facade || v(rep).facade) && (
+            <button
+              className="text-button small panorama-link"
+              onClick={() =>
+                onPanorama(String(rep.scope.facade || v(rep).facade))
+              }
+            >
+              <Eye size={14} />
+              Панорама: {SIDES[String(rep.scope.facade || v(rep).facade)]}
+            </button>
+          )}
       </div>
     </article>
   );
@@ -412,6 +429,7 @@ export function FactsPanel({
   month,
   onEvidence,
   hotelier = false,
+  onPanorama,
 }: {
   facts: Fact[];
   claims: Claim[];
@@ -421,6 +439,8 @@ export function FactsPanel({
   onEvidence: (f: Fact) => void;
   /** The hotel's own cabinet: no "ask the hotel" actions. */
   hotelier?: boolean;
+  /** Open a street panorama turned towards a facade. */
+  onPanorama?: (side: string) => void;
 }) {
   const ids = [...new Set(facts.map((f) => f.characteristic_id))];
   const spec = (id: string) => specs.find((s) => s.id === id);
@@ -460,6 +480,7 @@ export function FactsPanel({
                   month={month}
                   onEvidence={onEvidence}
                   canAsk={!hotelier}
+                  onPanorama={onPanorama}
                 />
               ))}
           </div>

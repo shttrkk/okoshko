@@ -1,5 +1,4 @@
-// Offline step: renders an oblique 3D view of each hotel building that has no
-// photo, from the local PMTiles basemap (OSM/Overture heights) via the hidden
+// Offline step: renders an oblique 3D view of each hotel building from the local PMTiles basemap (OSM/Overture heights) via the hidden
 // /snapshot/:id route of a running stand. Output is JPEG in data/raw; the
 // companion scripts/build_snapshot_index.py converts it to WebP for the seed.
 // Usage: node scripts/render_building_snapshots.mjs [http://localhost:8080]
@@ -12,7 +11,9 @@ const out = new URL("../data/raw/building_snapshots/", import.meta.url).pathname
 mkdirSync(out, { recursive: true });
 const hotels = JSON.parse(readFileSync(new URL("../data/seed/hotels.json", import.meta.url)));
 const photos = JSON.parse(readFileSync(new URL("../data/seed/hotel_photos.json", import.meta.url))).photos;
-const todo = hotels.filter((h) => !photos[h.id]);
+// Every hotel gets a model view: it is also the fallback when a linked
+// official-site photo is unavailable (offline stand, removed image).
+const todo = process.env.ONLY_MISSING ? hotels.filter((h) => !photos[h.id]) : hotels;
 // SHARD=k/n renders every n-th hotel starting at k, for parallel processes.
 const [shard, shards] = (process.env.SHARD || "0/1").split("/").map(Number);
 const mine = todo.filter((_, i) => i % shards === shard);

@@ -18,7 +18,8 @@ try {
     requests = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("response", (response) => {
-    if (response.status() >= 400)
+    // Linked official-site photos are optional and fall back to a model view.
+    if (response.status() >= 400 && response.url().startsWith(base))
       failures.push(`${response.status()} ${response.url()}`);
   });
   page.on("request", (request) => requests.push(request.url()));

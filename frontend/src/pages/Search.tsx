@@ -40,6 +40,23 @@ import type {
   Verdict,
 } from "../types";
 export const mashaQuery = "тихий номер с видом на закат недалеко от моря";
+function tripDates(checkIn: string | null, checkOut: string | null) {
+  if (!checkIn || !checkOut) return checkIn || checkOut || "Даты не указаны";
+  const a = new Date(checkIn),
+    b = new Date(checkOut);
+  const day = (d: Date) => d.getUTCDate();
+  const genitive = (d: Date) =>
+    new Intl.DateTimeFormat("ru", {
+      day: "numeric",
+      month: "long",
+      timeZone: "UTC",
+    })
+      .format(d)
+      .replace(/^\d+\s/, "");
+  return a.getUTCMonth() === b.getUTCMonth()
+    ? `${day(a)}–${day(b)} ${genitive(b)}`
+    : `${day(a)} ${genitive(a)} — ${day(b)} ${genitive(b)}`;
+}
 const exampleQueries = [
   mashaQuery,
   "с ребёнком и коляской, до пляжа без лестниц",
@@ -229,7 +246,7 @@ export function Home() {
           </div>
         </div>
         <div className="hero-map-wrap">
-          <TravelMap hero hotels={(hotels.data || []).slice(0, 12)} />
+          <TravelMap hero hotels={hotels.data || []} />
           <div className="hero-map-note">
             <span className="note-sun">
               <Sun size={23} />
@@ -398,10 +415,7 @@ function CriteriaEditor({
             </>
           ) : (
             <>
-              <strong>
-                {parsed.check_in || "Заезд не указан"} —{" "}
-                {parsed.check_out || "Выезд не указан"}
-              </strong>
+              <strong>{tripDates(parsed.check_in, parsed.check_out)}</strong>
               <span>Изменить даты</span>
             </>
           )}
@@ -854,15 +868,26 @@ export function SearchPage() {
           )}
           <ErrorState error={resource.error} retry={resource.reload} />
           {!noCriteria &&
-            resource.data?.parsed.clarifications.map((c) => (
-              <div className="clarification" key={c}>
-                <span>Нужно уточнить</span>
-                <p>{c}</p>
-                <Link to="/">
-                  Изменить запрос <ArrowRight size={14} />
-                </Link>
-              </div>
-            ))}
+            (() => {
+              // No-data and unmapped notes are already shown as chips and
+              // fine print in the criteria panel; keep only real questions.
+              const notes = (resource.data?.parsed.clarifications || []).filter(
+                (c) =>
+                  !c.startsWith("В демо-регионе нет данных") &&
+                  !c.startsWith("Не удалось сопоставить с каталогом"),
+              );
+              return notes.length ? (
+                <div className="clarification">
+                  <span>Нужно уточнить</span>
+                  {notes.map((c) => (
+                    <p key={c}>{c}</p>
+                  ))}
+                  <Link to="/">
+                    Изменить запрос <ArrowRight size={14} />
+                  </Link>
+                </div>
+              ) : null;
+            })()}
           {!resource.loading && resource.data && !results.length && (
             <Empty
               title={

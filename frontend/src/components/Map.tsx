@@ -484,11 +484,35 @@ function drawGeo(
   const building = geo?.building
     ? { type: "FeatureCollection" as const, features: [geo.building] }
     : empty;
+  // Mark where the walk ends so the route reads as «hotel → beach».
+  const walk = (
+    geo?.route as GeoJSON.FeatureCollection | undefined
+  )?.features.find((f) => f.geometry.type === "LineString");
+  const walkCoords =
+    walk?.geometry.type === "LineString" ? walk.geometry.coordinates : [];
+  const walkMinutes = Number(walk?.properties?.minutes);
+  const routeEnd: GeoJSON.FeatureCollection = walkCoords.length
+    ? {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: { type: "Point", coordinates: walkCoords.at(-1)! },
+            properties: {
+              label: Number.isFinite(walkMinutes)
+                ? `Пляж ≈ ${Math.max(1, Math.round(walkMinutes))} мин`
+                : "Пляж",
+            },
+          },
+        ],
+      }
+    : empty;
   for (const [id, data] of [
     ["selected-building", building],
     ["facades", facades],
     ["cones", cones],
     ["walk-route", geo?.route || empty],
+    ["route-end", routeEnd],
     ["crossings", geo?.crossings || empty],
     ["sunset", sunset],
   ] as const)
@@ -554,13 +578,46 @@ function drawGeo(
     },
   });
   safeLayer(map, {
+    id: "route-casing",
+    type: "line",
+    source: "walk-route",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": "#ffffff", "line-width": 10, "line-opacity": 0.9 },
+  });
+  safeLayer(map, {
     id: "route-line",
     type: "line",
     source: "walk-route",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": "#0e6b70", "line-width": 5 },
+  });
+  safeLayer(map, {
+    id: "route-end-circle",
+    type: "circle",
+    source: "route-end",
     paint: {
-      "line-color": "#37807e",
-      "line-width": 4,
-      "line-dasharray": [1, 0.8],
+      "circle-radius": 8,
+      "circle-color": "#0e6b70",
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": 3,
+    },
+  });
+  safeLayer(map, {
+    id: "route-end-label",
+    type: "symbol",
+    source: "route-end",
+    layout: {
+      "text-field": ["get", "label"],
+      "text-font": ["Noto Sans Medium"],
+      "text-size": 13,
+      "text-offset": [0, -1.6],
+      "text-anchor": "bottom",
+      "text-allow-overlap": true,
+    },
+    paint: {
+      "text-color": "#0b4f53",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 2,
     },
   });
   safeLayer(map, {
@@ -587,7 +644,13 @@ function drawGeo(
   for (const [group, ids] of Object.entries({
     view: ["cones-fill", "cones-line"],
     noise: ["facades-line"],
-    route: ["route-line", "crossings-circle"],
+    route: [
+      "route-casing",
+      "route-line",
+      "route-end-circle",
+      "route-end-label",
+      "crossings-circle",
+    ],
     sun: ["sunset-line"],
   }))
     for (const id of ids)
@@ -596,6 +659,105 @@ function drawGeo(
         "visibility",
         layers.includes(group) ? "visible" : "none",
       );
+}
+/** Demo zones, same boxes as pipeline/regions/sochi.yaml (lon/lat). */
+const HERO_ZONES = [
+  { name: "Центр Сочи", bbox: [39.69, 43.555, 39.79, 43.635] },
+  { name: "Адлер — Имеретинка", bbox: [39.88, 43.38, 40.02, 43.46] },
+] as const;
+const HERO_BOUNDS: [[number, number], [number, number]] = [
+  [39.66, 43.37],
+  [40.04, 43.645],
+];
+function drawHeroOverlay(map: LibreMap, hotels: Hotel[]) {
+  const inside = (h: Hotel, b: readonly number[]) =>
+    h.lon >= b[0] && h.lon <= b[2] && h.lat >= b[1] && h.lat <= b[3];
+  put(map, "hero-zones", {
+    type: "FeatureCollection",
+    features: HERO_ZONES.map((z) => {
+      const [w, s, e, n] = z.bbox;
+      return {
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "Polygon",
+          coordinates: [
+            [
+              [w, s],
+              [e, s],
+              [e, n],
+              [w, n],
+              [w, s],
+            ],
+          ],
+        },
+      };
+    }),
+  });
+  put(map, "hero-zone-labels", {
+    type: "FeatureCollection",
+    features: HERO_ZONES.map((z) => ({
+      type: "Feature",
+      properties: {
+        label: `${z.name}\n${hotels.filter((h) => inside(h, z.bbox)).length} отелей`,
+      },
+      geometry: { type: "Point", coordinates: [z.bbox[2], z.bbox[3]] },
+    })),
+  });
+  put(map, "hero-sea", {
+    type: "Feature",
+    properties: { label: "Ч Ё Р Н О Е   М О Р Е" },
+    geometry: { type: "Point", coordinates: [39.74, 43.45] },
+  });
+  safeLayer(map, {
+    id: "hero-zones-fill",
+    type: "fill",
+    source: "hero-zones",
+    paint: { "fill-color": "#e85c3b", "fill-opacity": 0.07 },
+  });
+  safeLayer(map, {
+    id: "hero-zones-line",
+    type: "line",
+    source: "hero-zones",
+    paint: {
+      "line-color": "#e85c3b",
+      "line-width": 1.5,
+      "line-opacity": 0.75,
+      "line-dasharray": [3, 2],
+    },
+  });
+  safeLayer(map, {
+    id: "hero-zone-labels",
+    type: "symbol",
+    source: "hero-zone-labels",
+    layout: {
+      "text-field": ["get", "label"],
+      "text-font": ["Noto Sans Medium"],
+      "text-size": 13,
+      "text-anchor": "bottom-right",
+      "text-offset": [0, -0.4],
+      "text-justify": "right",
+      "text-allow-overlap": true,
+    },
+    paint: {
+      "text-color": "#b5452c",
+      "text-halo-color": "#fbf9f3",
+      "text-halo-width": 2,
+    },
+  });
+  safeLayer(map, {
+    id: "hero-sea",
+    type: "symbol",
+    source: "hero-sea",
+    layout: {
+      "text-field": ["get", "label"],
+      "text-font": ["Noto Sans Regular"],
+      "text-size": 15,
+      "text-rotate": -32,
+      "text-allow-overlap": true,
+    },
+    paint: { "text-color": "#42787b", "text-opacity": 0.85 },
+  });
 }
 export function TravelMap({
   hotels = [],
@@ -665,8 +827,16 @@ export function TravelMap({
         style: baseStyle(dark),
         center: initialCenter.current,
         zoom: hero ? 13.4 : 14.2,
-        pitch: hero ? 57 : 48,
-        bearing: -22,
+        pitch: hero ? 40 : 48,
+        bearing: hero ? -18 : -22,
+        ...(hero
+          ? {
+              bounds: HERO_BOUNDS,
+              fitBoundsOptions: {
+                padding: { top: 90, bottom: 230, left: 170, right: 60 },
+              },
+            }
+          : {}),
         attributionControl: false,
         maxPitch: 70,
         canvasContextAttributes: { antialias: true },
@@ -780,6 +950,11 @@ export function TravelMap({
     });
   }, [hotelKey, ready, hero]);
   useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || !hero) return;
+    drawHeroOverlay(map, hotelList.current);
+  }, [ready, hero, hotelKey]);
+  useEffect(() => {
     markers.current.forEach((marker) => {
       const el = marker.getElement();
       el.classList.toggle("selected", el.dataset.hotelId === activeId);
@@ -809,8 +984,22 @@ export function TravelMap({
   }, [geo, layers, ready, floor, facade, month, extraGeometry]);
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready) return;
-    if (geo?.center)
+    if (!map || !ready || hero) return;
+    const route = (
+      geo?.route as GeoJSON.FeatureCollection | undefined
+    )?.features.flatMap((f) =>
+      f.geometry.type === "LineString" ? f.geometry.coordinates : [],
+    );
+    if (geo?.center && route?.length && !hero) {
+      // Frame the whole walk to the beach, not just the building.
+      const b = new maplibregl.LngLatBounds(geo.center, geo.center);
+      route.forEach((p) => b.extend(p as [number, number]));
+      map.fitBounds(b, {
+        padding: { top: 90, bottom: 110, left: 70, right: 70 },
+        maxZoom: 16.2,
+        duration: 900,
+      });
+    } else if (geo?.center)
       map.easeTo({ center: geo.center, zoom: 15.8, duration: 900 });
     else if (hotels.length) {
       const b = new maplibregl.LngLatBounds();
@@ -943,14 +1132,6 @@ export function TravelMap({
               Закат
             </span>
           </div>
-        </>
-      )}
-      {hero && (
-        <>
-          <span className="hero-map-label">
-            43°35′ с. ш. &nbsp;39°43′ в. д.
-          </span>
-          <span className="sea-label">Чёрное море</span>
         </>
       )}
       <div className="map-source">
