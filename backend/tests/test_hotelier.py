@@ -301,3 +301,13 @@ class QualitativeAndNightParserTests(unittest.TestCase):
                 answer = self.answer(text, "quiet_night")
                 self.assertFalse(any(u.characteristic_id == "quiet_night" for u in answer.updates))
                 self.assertIn("quiet_night", answer.unknown_fields)
+
+
+class ContradictoryNightClausesTests(unittest.TestCase):
+    def test_untagged_continuation_does_not_hide_night_contradiction(self):
+        for text in ("Ночью тихо, но шумно.", "Ночью тихо и шумно."):
+            with self.subTest(text=text):
+                question = Question(hotel_id="synthetic", characteristic_ids=["quiet_night"], text="Уточните")
+                answer = parse_answer(question, text, synthetic=True)
+                self.assertFalse(any(u.characteristic_id == "quiet_night" for u in answer.updates))
+                self.assertIn("quiet_night", answer.unknown_fields)

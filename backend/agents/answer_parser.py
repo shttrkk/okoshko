@@ -95,9 +95,14 @@ def _night_observations(sentence: str) -> list[tuple[str, bool | None]]:
     prefix_uncertain = bool(re.match(UNCERTAIN, normalized))
     has_explicit_time = bool(re.search(night + "|" + other_time, normalized))
     observations = []
+    active_time = None
     for clause in clauses:
         low = clause.lower().replace("ё", "е")
-        if has_explicit_time and (not re.search(night, low) or re.search(other_time, low)):
+        explicit_night = bool(re.search(night, low))
+        explicit_other = bool(re.search(other_time, low))
+        if explicit_night or explicit_other:
+            active_time = "night" if explicit_night and not explicit_other else "other"
+        if has_explicit_time and active_time != "night":
             continue
         values = []
         for pattern, invert in ((r"тих\w*", False), (r"шумн\w*", True)):
@@ -106,7 +111,7 @@ def _night_observations(sentence: str) -> list[tuple[str, bool | None]]:
                 values.append(None if present is None else not present if invert else present)
         if values:
             available = values[0] if not prefix_uncertain and None not in values and len(set(values)) == 1 else None
-            observations.append((clause, available))
+            observations.append((clause if explicit_night or not has_explicit_time else sentence, available))
     return observations
 
 
