@@ -30,7 +30,12 @@ const number = (value: unknown, digits = 0) =>
       )
     : "Не измерено";
 const percent = (value: unknown) =>
-  typeof value === "number" ? `${Math.round(value * 100)}%` : "Не измерено";
+  typeof value === "number"
+    ? new Intl.NumberFormat("ru", {
+        style: "percent",
+        maximumFractionDigits: value > 0 && value < 0.01 ? 2 : 1,
+      }).format(value)
+    : "Не измерено";
 export function QualityPage() {
   const quality = useResource(api.quality);
   const q = quality.data,
@@ -87,7 +92,13 @@ export function QualityPage() {
                 </span>
                 <h2>С чем сравнивали</h2>
               </div>
-              <span className="badge">{textValue(q.status)}</span>
+              <span className="badge">
+                {q.status === "awaiting_independent_labels"
+                  ? "Ожидает независимой разметки"
+                  : q.status === "measured"
+                    ? "Есть размеченные примеры"
+                    : textValue(q.status)}
+              </span>
             </div>
             {Object.entries(groups).length ? (
               Object.entries(groups).map(([name, data]) => {
@@ -209,6 +220,33 @@ export function QualityPage() {
               </Empty>
             )}
           </section>
+          {q.synthetic_parser && (
+            <section className="synthetic-parser quality-group">
+              <Synthetic>Синтетический набор · проверка парсера</Synthetic>
+              <h3>Разбор ответов на регрессионных примерах</h3>
+              <div className="metric-row">
+                <div>
+                  <span>Примеры</span>
+                  <strong>
+                    {number(record(q.synthetic_parser).evaluated)}
+                  </strong>
+                </div>
+                <div>
+                  <span>Совпадение ожидаемых полей</span>
+                  <strong>
+                    {percent(record(q.synthetic_parser).accuracy)}
+                  </strong>
+                </div>
+              </div>
+              <p className="fine-print">
+                {textValue(record(q.synthetic_parser).limitation)}
+              </p>
+              <p className="fine-print">
+                Этот результат не измеряет точность характеристик реальных
+                отелей и не объединяется с ручной разметкой.
+              </p>
+            </section>
+          )}
           <div className="quality-other">
             <div>
               <span>Точность разбора ответов отельера</span>
@@ -221,6 +259,16 @@ export function QualityPage() {
           </div>
           <div className="limitations">
             <h3>Как читать эти цифры</h3>
+            {typeof q.methodology_url === "string" && (
+              <a
+                className="text-button"
+                href={q.methodology_url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Методика и определения <ExternalLink size={14} />
+              </a>
+            )}
             {Array.isArray(q.limitations) ? (
               q.limitations.map((l, i) => <p key={i}>{textValue(l)}</p>)
             ) : (

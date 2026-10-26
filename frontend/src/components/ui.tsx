@@ -97,9 +97,17 @@ export function ErrorState({
   return (
     <div className="error-state" role="alert">
       <span className="eyebrow">
-        {error instanceof ApiError ? `API · ${error.status}` : "Соединение"}
+        {error instanceof ApiError
+          ? `API · ${error.status}`
+          : error.message === "Failed to fetch"
+            ? "Соединение"
+            : "Проверка"}
       </span>
-      <h3>Не удалось получить данные</h3>
+      <h3>
+        {error instanceof ApiError || error.message === "Failed to fetch"
+          ? "Не удалось получить данные"
+          : "Проверьте введённые данные"}
+      </h3>
       <p>
         {error.message === "Failed to fetch"
           ? "Проверьте, запущен ли сервис. Страница готова повторить запрос."
@@ -303,6 +311,7 @@ export function VerdictList({
               disabled={!onEvidence}
             >
               <strong>{v.label}</strong>
+              {v.synthetic && <Synthetic>Подтверждение · синтетика</Synthetic>}
               <span>{v.text}</span>
               {v.caveat && <small>{v.caveat}</small>}
             </button>
@@ -415,7 +424,11 @@ export function EvidenceButton({
 }) {
   const [open, setOpen] = useState(false);
   const labels = {
-    computed: "Рассчитано",
+    computed: fact.evidence.some((e) => e.kind === "quote")
+      ? "Сайт отеля · цитата"
+      : fact.evidence.some((e) => e.kind === "open_data")
+        ? "Открытые данные"
+        : "Рассчитано",
     confirmed: "Подтверждено отелем",
     disputed: "Есть противоречие",
     unknown: "Нет данных",
@@ -498,7 +511,18 @@ export function EvidenceModal({
       </dl>
       {fact.evidence.map((e) => (
         <article className="evidence-card" key={e.id}>
-          <span className="eyebrow">{e.kind}</span>
+          <span className="eyebrow">
+            {
+              {
+                calculation: "Расчёт",
+                open_data: "Открытые данные",
+                quote: "Дословная цитата",
+                hotelier: "Ответ отеля",
+                simulation: "Симуляция",
+                mock: "Макет",
+              }[e.kind]
+            }
+          </span>
           <h3>{e.label}</h3>
           {e.quote && <blockquote>«{e.quote}»</blockquote>}
           {(e.url || e.artifact) && (

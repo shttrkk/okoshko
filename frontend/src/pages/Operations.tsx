@@ -45,6 +45,7 @@ export function HotelierPage() {
     [username, setUsername] = useState("hotelier"),
     [password, setPassword] = useState("hotelier123"),
     [hotelId, setHotelId] = useState(""),
+    [questionId, setQuestionId] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<Error | null>(null),
     [text, setText] = useState(""),
@@ -56,7 +57,10 @@ export function HotelierPage() {
     () => (token && hotelId ? api.hotelier(hotelId) : Promise.resolve(null)),
     [token, hotelId],
   );
-  const question = data.data?.questions.find((q) => q.status === "pending");
+  const pendingQuestions =
+    data.data?.questions.filter((q) => q.status === "pending") || [];
+  const question =
+    pendingQuestions.find((q) => q.id === questionId) || pendingQuestions[0];
   const login = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
@@ -173,6 +177,7 @@ export function HotelierPage() {
                 value={hotelId}
                 onChange={(e) => {
                   setHotelId(e.target.value);
+                  setQuestionId("");
                   setPreview(null);
                   setText("");
                 }}
@@ -221,6 +226,29 @@ export function HotelierPage() {
                       ожидают
                     </span>
                   </div>
+                  {pendingQuestions.length > 1 && (
+                    <label className="question-select">
+                      Вопрос из очереди
+                      <select
+                        value={question?.id || ""}
+                        onChange={(e) => {
+                          setQuestionId(e.target.value);
+                          setPreview(null);
+                          setText("");
+                        }}
+                        data-testid="hotelier-question-select"
+                      >
+                        {pendingQuestions.map((q) => (
+                          <option value={q.id} key={q.id}>
+                            {q.characteristic_ids
+                              .map((c) => names[c] || c)
+                              .join(" · ")}
+                            {q.reason === "guest" ? " · от гостя" : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                   {question ? (
                     <>
                       <div className="question-hypothesis">
@@ -449,7 +477,7 @@ export function HotelierPage() {
   );
 }
 export function StudioPage() {
-  const { specs } = useApp();
+  const { specs, status } = useApp();
   const [text, setText] = useState(
       "Можно ли утром дойти до пляжа и искупаться до завтрака: пляж ≤ 10 минут пешком и вода ≥ 20 °C в месяц поездки",
     ),
@@ -459,6 +487,78 @@ export function StudioPage() {
     [published, setPublished] = useState<PublishResult | null>(null),
     [busy, setBusy] = useState(""),
     [error, setError] = useState<Error | null>(null);
+  useEffect(() => {
+    if (!published?.run_id || published.status !== "running") return;
+    let cancelled = false;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    const applyRun = (run: AgentRun) => {
+      if (cancelled) return;
+      const counts = run.steps
+        .map((step) => step.output.processed)
+        .filter((value): value is number => typeof value === "number");
+      setPublished((old) =>
+        old?.run_id === run.id
+          ? {
+              ...old,
+              processed: Math.max(old.processed, ...counts),
+              status: run.status,
+            }
+          : old,
+      );
+      if (run.error) setError(new Error(run.error));
+      if (run.status !== "running") {
+        specs.reload();
+        status.reload();
+      }
+    };
+    const poll = async () => {
+      try {
+        const run = await api.run(published.run_id);
+        applyRun(run);
+        if (!cancelled && run.status === "running")
+          retry = setTimeout(poll, 1500);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e as Error);
+          retry = setTimeout(poll, 3000);
+        }
+      }
+    };
+    const source = new EventSource(
+      `/api/runs/${encodeURIComponent(published.run_id)}/stream`,
+    );
+    source.addEventListener("step", (event) => {
+      try {
+        const step = JSON.parse((event as MessageEvent).data) as AgentStep;
+        const processed = step.output.processed;
+        if (typeof processed === "number")
+          setPublished((old) =>
+            old?.run_id === published.run_id
+              ? { ...old, processed: Math.max(old.processed, processed) }
+              : old,
+          );
+      } catch {
+        setError(
+          new Error(
+            "Не удалось прочитать ход заполнения. Прогресс сохранён в журнале агента.",
+          ),
+        );
+      }
+    });
+    source.addEventListener("done", () => {
+      source.close();
+      void poll();
+    });
+    source.onerror = () => {
+      source.close();
+      void poll();
+    };
+    return () => {
+      cancelled = true;
+      source.close();
+      if (retry) clearTimeout(retry);
+    };
+  }, [published?.run_id]);
   const run = async (action: "compile" | "dry" | "publish") => {
     setBusy(action);
     setError(null);
@@ -527,6 +627,7 @@ export function StudioPage() {
               value={text}
               onChange={(e) => {
                 setText(e.target.value);
+                setYaml("");
                 setCompiled(null);
                 setDry(null);
                 setPublished(null);
@@ -662,6 +763,16 @@ export function StudioPage() {
                 value={published.processed}
                 max={published.total || 1}
               />
+              <p className="fine-print">
+                {published.status === "running"
+                  ? "Заполнение идёт в фоне. Чип уже доступен в поиске; неизвестные входы сохраняются как неизвестные."
+                  : published.status === "failed"
+                    ? "Заполнение завершилось с ошибкой. Подробности сохранены в прогоне агента."
+                    : "Заполнение завершено. Значения доступны там, где хватило исходных данных."}
+              </p>
+              <Link to="/agent" className="text-button">
+                Открыть журнал заполнения <ArrowRight size={14} />
+              </Link>
               <Link to="/search" className="button secondary">
                 Добавить новый чип в поиск <ArrowRight size={15} />
               </Link>

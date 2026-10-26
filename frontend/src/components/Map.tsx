@@ -23,6 +23,7 @@ const protocol = new Protocol();
 function baseStyle(dark: boolean): StyleSpecification {
   return {
     version: 8,
+    glyphs: `${window.location.origin}/data/tiles/fonts/{fontstack}/{range}.pbf`,
     sources: {},
     layers: [
       {
@@ -69,6 +70,357 @@ function safeLayer(
 ) {
   if (!map.getLayer(layer.id)) map.addLayer(layer, before);
 }
+const archives = new Map<string, PMTiles>();
+async function attachBaseMap(
+  map: LibreMap,
+  dark: boolean,
+  isDisposed: () => boolean,
+): Promise<string> {
+  const url = `${window.location.origin}/data/tiles/city.pmtiles`;
+  try {
+    let archive = archives.get(url);
+    if (!archive) {
+      archive = new PMTiles(url);
+      archives.set(url, archive);
+      protocol.add(archive);
+    }
+    const metadata = (await archive.getMetadata()) as {
+      vector_layers?: { id: string }[];
+    };
+    if (isDisposed()) return "";
+    const available = new Set(metadata.vector_layers?.map((l) => l.id));
+    if (!available.has("earth") || !available.has("buildings"))
+      throw new Error("Неподдерживаемые слои локальной карты");
+    map.addSource("city", { type: "vector", url: `pmtiles://${url}` });
+    const vectorLayer = (layer: maplibregl.LayerSpecification) =>
+      safeLayer(map, layer);
+    vectorLayer({
+      id: "tile-earth",
+      type: "fill",
+      source: "city",
+      "source-layer": "earth",
+      paint: { "fill-color": dark ? "#343d36" : "#e5e4d4" },
+    });
+    if (available.has("landuse"))
+      vectorLayer({
+        id: "tile-landuse",
+        type: "fill",
+        source: "city",
+        "source-layer": "landuse",
+        paint: {
+          "fill-color": [
+            "match",
+            ["get", "kind"],
+            [
+              "park",
+              "forest",
+              "nature_reserve",
+              "wood",
+              "grass",
+              "garden",
+              "protected_area",
+            ],
+            dark ? "#3c4c3b" : "#c3d0b4",
+            ["beach", "sand"],
+            "#d6c39b",
+            dark ? "#3c4237" : "#dddfcc",
+          ],
+          "fill-opacity": 0.7,
+        },
+      });
+    if (available.has("water"))
+      vectorLayer({
+        id: "tile-water",
+        type: "fill",
+        source: "city",
+        "source-layer": "water",
+        paint: { "fill-color": dark ? "#16343a" : "#b5d3d3" },
+      });
+    if (available.has("roads")) {
+      vectorLayer({
+        id: "tile-road-casing",
+        type: "line",
+        source: "city",
+        "source-layer": "roads",
+        paint: {
+          "line-color": dark ? "#626856" : "#cac9b7",
+          "line-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            11,
+            1.2,
+            15,
+            6,
+            18,
+            12,
+          ],
+        },
+      });
+      vectorLayer({
+        id: "tile-roads",
+        type: "line",
+        source: "city",
+        "source-layer": "roads",
+        paint: {
+          "line-color": [
+            "match",
+            ["get", "kind"],
+            ["highway", "major_road"],
+            dark ? "#92917a" : "#faf4df",
+            dark ? "#737b68" : "#faf8ee",
+          ],
+          "line-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            11,
+            0.6,
+            15,
+            3.8,
+            18,
+            9,
+          ],
+        },
+      });
+      vectorLayer({
+        id: "tile-railways",
+        type: "line",
+        source: "city",
+        "source-layer": "roads",
+        filter: ["==", ["get", "kind"], "rail"],
+        paint: {
+          "line-color": dark ? "#a09d85" : "#8c9282",
+          "line-width": 2,
+          "line-dasharray": [3, 2],
+        },
+      });
+    }
+    vectorLayer({
+      id: "tile-buildings",
+      type: "fill-extrusion",
+      source: "city",
+      "source-layer": "buildings",
+      minzoom: 13,
+      paint: {
+        "fill-extrusion-color": dark ? "#7b8471" : "#cfc8b1",
+        "fill-extrusion-height": [
+          "case",
+          [">", ["coalesce", ["get", "height"], 0], 0],
+          ["get", "height"],
+          9,
+        ],
+        "fill-extrusion-base": ["coalesce", ["get", "min_height"], 0],
+        "fill-extrusion-opacity": 0.96,
+      },
+    });
+    if (available.has("roads"))
+      vectorLayer({
+        id: "tile-road-names",
+        type: "symbol",
+        source: "city",
+        "source-layer": "roads",
+        minzoom: 14,
+        layout: {
+          "symbol-placement": "line",
+          "text-field": ["coalesce", ["get", "name:ru"], ["get", "name"], ""],
+          "text-font": ["Noto Sans Regular"],
+          "text-size": 10,
+          "text-max-angle": 30,
+          "symbol-spacing": 400,
+        },
+        paint: {
+          "text-color": dark ? "#c5c9b6" : "#7a8273",
+          "text-halo-color": dark ? "#343d36" : "#f3f0e0",
+          "text-halo-width": 1.3,
+        },
+      });
+    if (available.has("places"))
+      vectorLayer({
+        id: "tile-place-names",
+        type: "symbol",
+        source: "city",
+        "source-layer": "places",
+        layout: {
+          "text-field": ["coalesce", ["get", "name:ru"], ["get", "name"], ""],
+          "text-font": ["Noto Sans Medium"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 10, 11, 15, 16],
+          "text-max-width": 9,
+        },
+        paint: {
+          "text-color": dark ? "#cdd0c1" : "#5e7061",
+          "text-halo-color": dark ? "#343d36" : "#e5e4d4",
+          "text-halo-width": 1.8,
+        },
+      });
+    return "PMTiles + OSM · часть высот условная";
+  } catch {
+    if (isDisposed()) return "";
+    // Heavy regional GeoJSON is only a fallback. Its data is cached once and
+    // only the current viewport is submitted to the renderer.
+    const [coast, buildings, roads] = await Promise.all(
+      ["coastline", "buildings", "roads"].map((n) =>
+        getGeoJSON(`/data/seed/${n}.geojson`),
+      ),
+    );
+    if (isDisposed()) return "";
+    if (coast) {
+      put(map, "coastline", coast);
+      safeLayer(map, {
+        id: "fallback-land",
+        type: "fill",
+        source: "coastline",
+        filter: ["==", ["geometry-type"], "Polygon"],
+        paint: { "fill-color": dark ? "#343d36" : "#e5e4d4" },
+      });
+      safeLayer(map, {
+        id: "fallback-coast",
+        type: "line",
+        source: "coastline",
+        paint: { "line-color": "#82ada2", "line-width": 2 },
+      });
+    }
+    const indexed = (collection: GeoJSON.FeatureCollection | null) =>
+      collection?.features.map((feature) => {
+        const points: number[][] = [];
+        const collect = (value: unknown) => {
+          if (!Array.isArray(value)) return;
+          if (typeof value[0] === "number") points.push(value as number[]);
+          else value.forEach(collect);
+        };
+        if ("coordinates" in feature.geometry)
+          collect(feature.geometry.coordinates);
+        return {
+          feature,
+          west: Math.min(...points.map((p) => p[0])),
+          east: Math.max(...points.map((p) => p[0])),
+          south: Math.min(...points.map((p) => p[1])),
+          north: Math.max(...points.map((p) => p[1])),
+        };
+      }) || [];
+    const buildingIndex = indexed(buildings),
+      roadIndex = indexed(roads);
+    const update = () => {
+      if (isDisposed()) return;
+      const bounds = map.getBounds();
+      for (const [name, index] of [
+        ["fallback-buildings", buildingIndex],
+        ["fallback-roads", roadIndex],
+      ] as const)
+        put(map, name, {
+          type: "FeatureCollection",
+          features: index
+            .filter(
+              (f) =>
+                f.east >= bounds.getWest() &&
+                f.west <= bounds.getEast() &&
+                f.north >= bounds.getSouth() &&
+                f.south <= bounds.getNorth(),
+            )
+            .slice(0, 8000)
+            .map((f) => f.feature),
+        });
+    };
+    update();
+    map.on("moveend", update);
+    safeLayer(map, {
+      id: "fallback-roads",
+      type: "line",
+      source: "fallback-roads",
+      paint: { "line-color": dark ? "#7c826d" : "#faf7e9", "line-width": 3 },
+    });
+    safeLayer(map, {
+      id: "fallback-buildings",
+      type: "fill-extrusion",
+      source: "fallback-buildings",
+      paint: {
+        "fill-extrusion-color": dark ? "#7b8471" : "#cfc8b1",
+        "fill-extrusion-height": [
+          "coalesce",
+          ["get", "height_m"],
+          ["*", ["coalesce", ["get", "levels"], 3], 3],
+        ],
+        "fill-extrusion-opacity": 0.95,
+      },
+    });
+    return coast || buildings || roads
+      ? "OSM · резервная карта · часть высот условная"
+      : "Картографические данные недоступны";
+  }
+}
+
+function viewGeometry(
+  geo: Geo | null,
+  floor?: number,
+  facade?: string,
+): GeoJSON.FeatureCollection {
+  const features = (geo?.view_cones?.features || []).filter((feature) => {
+    const p = feature.properties || {};
+    return (
+      (!facade || !p.facade || p.facade === facade) &&
+      (!floor ||
+        ((!p.floor || Number(p.floor) === floor) &&
+          (!p.min_floor || floor >= Number(p.min_floor))))
+    );
+  });
+  const fans: GeoJSON.Feature[] = [];
+  const groups = new Map<
+    string,
+    {
+      feature: GeoJSON.Feature;
+      origin: GeoJSON.Position;
+      end: GeoJSON.Position;
+      angle: number;
+    }[]
+  >();
+  for (const feature of features) {
+    if (
+      feature.geometry.type !== "LineString" ||
+      feature.geometry.coordinates.length < 2
+    )
+      continue;
+    const origin = feature.geometry.coordinates[0],
+      end = feature.geometry.coordinates.at(-1)!;
+    const angle =
+      ((Math.atan2(
+        (end[0] - origin[0]) * Math.cos((origin[1] * Math.PI) / 180),
+        end[1] - origin[1],
+      ) *
+        180) /
+        Math.PI +
+        360) %
+      360;
+    const p = feature.properties || {},
+      key = `${p.facade}|${p.floor}|${p.target}`;
+    const group = groups.get(key) || [];
+    group.push({ feature, origin, end, angle });
+    groups.set(key, group);
+  }
+  for (const group of groups.values()) {
+    group.sort((a, b) => a.angle - b.angle);
+    for (let i = 0; i < group.length - 1; i++) {
+      const a = group[i],
+        b = group[i + 1];
+      // Only interpolate between neighbouring calculated rays. Blocked gaps
+      // remain empty instead of becoming an invented visible sector.
+      if (
+        b.angle - a.angle > 3 ||
+        Math.abs(a.origin[0] - b.origin[0]) > 0.00001 ||
+        Math.abs(a.origin[1] - b.origin[1]) > 0.00001
+      )
+        continue;
+      fans.push({
+        type: "Feature",
+        properties: a.feature.properties,
+        geometry: {
+          type: "Polygon",
+          coordinates: [[a.origin, a.end, b.end, a.origin]],
+        },
+      });
+    }
+  }
+  return { type: "FeatureCollection", features: [...features, ...fans] };
+}
 function drawGeo(
   map: LibreMap,
   geo: Geo | null,
@@ -87,24 +439,18 @@ function drawGeo(
         properties: { code: f.code, noise: f.night_db_max ?? null },
       })),
   };
-  const cones: GeoJSON.FeatureCollection = {
-    type: "FeatureCollection",
-    features: (geo?.view_cones?.features || []).filter((f) => {
-      const p = f.properties || {};
-      return (
-        (!facade || !p.facade || p.facade === facade) &&
-        (!floor || !p.min_floor || floor >= p.min_floor)
-      );
-    }),
-  };
+  const cones = viewGeometry(geo, floor, facade);
   const sun = geo?.sun_paths
     ?.find((s) => s.month === month)
     ?.points.filter((p) => p.elevation_deg >= 0)
     .at(-1);
+  const savedSunsetAzimuth = geo?.facades
+    ?.flatMap((f) => f.sunset_by_month || [])
+    .find((s) => s.month === month)?.azimuth_deg;
   let sunset: GeoJSON.FeatureCollection = empty;
-  if (sun && geo?.center) {
+  if ((sun || savedSunsetAzimuth !== undefined) && geo?.center) {
     const [lon, lat] = geo.center,
-      r = (sun.azimuth_deg * Math.PI) / 180,
+      r = ((savedSunsetAzimuth ?? sun!.azimuth_deg) * Math.PI) / 180,
       d = 0.014;
     sunset = {
       type: "FeatureCollection",
@@ -144,7 +490,12 @@ function drawGeo(
     source: "selected-building",
     paint: {
       "fill-extrusion-color": "#f26143",
-      "fill-extrusion-height": ["coalesce", ["get", "height"], 10],
+      "fill-extrusion-height": [
+        "coalesce",
+        ["get", "height_m"],
+        ["get", "height"],
+        9,
+      ],
       "fill-extrusion-opacity": 0.85,
     },
   });
@@ -156,7 +507,7 @@ function drawGeo(
       "fill-color": [
         "match",
         ["get", "target"],
-        "mountains",
+        ["mountains", "mountain"],
         "#8a9d73",
         "#ecac52",
       ],
@@ -167,6 +518,7 @@ function drawGeo(
     id: "cones-line",
     type: "line",
     source: "cones",
+    filter: ["==", ["geometry-type"], "LineString"],
     paint: {
       "line-color": "#d99943",
       "line-width": 1.2,
@@ -269,6 +621,9 @@ export function TravelMap({
     [layers, setLayers] = useState(["view", "noise", "route", "sun"]),
     [geo, setGeo] = useState<Geo | null>(providedGeo || null),
     [full, setFull] = useState(false);
+  const hotelKey = hotels.map((h) => `${h.id}:${h.lon}:${h.lat}`).join("|");
+  const hotelList = useRef(hotels);
+  hotelList.current = hotels;
   const callbacks = useRef({ onHover, onSelect });
   callbacks.current = { onHover, onSelect };
   const initialCenter = useRef<[number, number]>(
@@ -282,6 +637,8 @@ export function TravelMap({
       registered = true;
     }
     let disposed = false;
+    setError("");
+    setBase("Загружаем локальную карту");
     const dark = theme === "dark";
     let map: LibreMap;
     try {
@@ -314,194 +671,16 @@ export function TravelMap({
       /* A missing optional local layer must not hide valid map data. */
     });
     map.on("load", async () => {
-      const data = await Promise.all(
-        ["coastline", "buildings", "roads", "beaches", "pois", "railways"].map(
-          (n) => getGeoJSON(`/data/seed/${n}.geojson`),
-        ),
-      );
-      if (disposed) return;
-      const [coast, buildings, roads, beaches, pois, railways] = data;
-      if (coast) {
-        put(map, "coastline", coast);
-        safeLayer(map, {
-          id: "land",
-          type: "fill",
-          source: "coastline",
-          filter: ["==", ["geometry-type"], "Polygon"],
-          paint: { "fill-color": dark ? "#343d36" : "#e4e3d3" },
-        });
-        safeLayer(map, {
-          id: "coast",
-          type: "line",
-          source: "coastline",
-          paint: {
-            "line-color": dark ? "#567e78" : "#82ada2",
-            "line-width": 2,
-          },
-        });
-      }
-      if (beaches) {
-        put(map, "beaches", beaches);
-        safeLayer(map, {
-          id: "beaches",
-          type: "fill",
-          source: "beaches",
-          paint: { "fill-color": "#d6bb83", "fill-opacity": 0.8 },
-        });
-      }
-      if (roads) {
-        put(map, "roads", roads);
-        safeLayer(map, {
-          id: "road-casing",
-          type: "line",
-          source: "roads",
-          paint: {
-            "line-color": dark ? "#56594f" : "#c5c4b5",
-            "line-width": 6,
-          },
-        });
-        safeLayer(map, {
-          id: "roads",
-          type: "line",
-          source: "roads",
-          paint: {
-            "line-color": dark ? "#777a6b" : "#f7f2e5",
-            "line-width": 3.5,
-          },
-        });
-      }
-      if (railways) {
-        put(map, "railways", railways);
-        safeLayer(map, {
-          id: "railways",
-          type: "line",
-          source: "railways",
-          paint: {
-            "line-color": "#8a8c81",
-            "line-width": 2,
-            "line-dasharray": [3, 2],
-          },
-        });
-      }
-      if (pois) {
-        put(map, "pois", pois);
-        safeLayer(map, {
-          id: "pois",
-          type: "circle",
-          source: "pois",
-          paint: {
-            "circle-radius": 2.5,
-            "circle-color": "#879d74",
-            "circle-opacity": 0.7,
-          },
-        });
-      }
-      if (buildings) {
-        put(map, "buildings", buildings);
-        safeLayer(map, {
-          id: "buildings",
-          type: "fill-extrusion",
-          source: "buildings",
-          paint: {
-            "fill-extrusion-color": dark ? "#748073" : "#d1cbb7",
-            "fill-extrusion-height": [
-              "case",
-              ["!=", ["get", "height_m"], null],
-              ["to-number", ["get", "height_m"], 9],
-              ["!=", ["get", "height"], null],
-              ["to-number", ["get", "height"], 9],
-              ["!=", ["get", "levels"], null],
-              ["*", ["to-number", ["get", "levels"], 3], 3],
-              ["!=", ["get", "building:levels"], null],
-              ["*", ["to-number", ["get", "building:levels"], 3], 3],
-              9,
-            ],
-            "fill-extrusion-base": 0,
-            "fill-extrusion-opacity": 0.95,
-          },
-        });
-      }
-      setBase(
-        data.some(Boolean)
-          ? "OSM · неизвестные высоты условные"
-          : "Базовые слои пока не загружены",
-      );
-      setReady(true);
       try {
-        const archive = new PMTiles(
-          `${window.location.origin}/data/tiles/city.pmtiles`,
-        );
-        const response = await fetch("/data/tiles/city.pmtiles", {
-          method: "HEAD",
-        });
-        if (!response.ok || disposed) return;
-        const meta = (await archive.getMetadata()) as {
-          vector_layers?: { id: string }[];
-        };
+        const label = await attachBaseMap(map, dark, () => disposed);
         if (disposed) return;
-        protocol.add(archive);
-        map.addSource("city", {
-          type: "vector",
-          url: `pmtiles://${window.location.origin}/data/tiles/city.pmtiles`,
-        });
-        const baseBefore = map
-          .getStyle()
-          .layers.find((l) => l.id !== "background")?.id;
-        for (const l of meta.vector_layers || []) {
-          const isBuilding = /building/.test(l.id),
-            isRoad = /road|transport/.test(l.id),
-            isWater = /water/.test(l.id),
-            isLand = l.id === "earth";
-          if (isBuilding && !buildings)
-            safeLayer(map, {
-              id: `tile-${l.id}`,
-              type: "fill-extrusion",
-              source: "city",
-              "source-layer": l.id,
-              paint: {
-                "fill-extrusion-color": dark ? "#748073" : "#d1cbb7",
-                "fill-extrusion-height": [
-                  "coalesce",
-                  ["to-number", ["get", "height"]],
-                  9,
-                ],
-              },
-            });
-          else if (isRoad && !roads)
-            safeLayer(map, {
-              id: `tile-${l.id}`,
-              type: "line",
-              source: "city",
-              "source-layer": l.id,
-              paint: {
-                "line-color": dark ? "#7d8270" : "#f5f0e2",
-                "line-width": 2,
-              },
-            });
-          else if (isWater || isLand)
-            safeLayer(
-              map,
-              {
-                id: `tile-${l.id}`,
-                type: "fill",
-                source: "city",
-                "source-layer": l.id,
-                paint: {
-                  "fill-color": isWater
-                    ? dark
-                      ? "#162f36"
-                      : "#b7d5d5"
-                    : dark
-                      ? "#343d36"
-                      : "#e4e3d3",
-                },
-              },
-              baseBefore,
-            );
-        }
-        setBase("PMTiles + OSM · часть высот условная");
+        setBase(label);
+        setReady(true);
       } catch {
-        /* GeoJSON fallback remains available. */
+        if (!disposed)
+          setError(
+            "Не удалось загрузить локальную карту. Все факты доступны в списке.",
+          );
       }
     });
     return () => {
@@ -539,10 +718,11 @@ export function TravelMap({
     const map = mapRef.current;
     if (!map || !ready) return;
     markers.current.forEach((m) => m.remove());
-    markers.current = hotels.map((hotel, i) => {
+    markers.current = hotelList.current.map((hotel, i) => {
       const el = document.createElement("button");
       el.type = "button";
-      el.className = `map-marker ${hotel.id === activeId ? "selected" : ""}`;
+      el.className = "map-marker";
+      el.dataset.hotelId = hotel.id;
       el.textContent = hero ? "" : String(i + 1);
       el.title = hotel.name;
       el.setAttribute("aria-label", hotel.name);
@@ -555,11 +735,21 @@ export function TravelMap({
         .setLngLat([hotel.lon, hotel.lat])
         .addTo(map);
     });
-  }, [hotels, activeId, ready, hero]);
+  }, [hotelKey, ready, hero]);
+  useEffect(() => {
+    markers.current.forEach((marker) => {
+      const el = marker.getElement();
+      el.classList.toggle("selected", el.dataset.hotelId === activeId);
+    });
+  }, [activeId, ready, hotelKey]);
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
     drawGeo(map, geo, layers, floor, facade, month);
+  }, [geo, layers, ready, floor, facade, month]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
     if (geo?.center)
       map.easeTo({ center: geo.center, zoom: 15.8, duration: 900 });
     else if (hotels.length) {
@@ -567,12 +757,14 @@ export function TravelMap({
       hotels.forEach((h) => b.extend([h.lon, h.lat]));
       map.fitBounds(b, { padding: 80, maxZoom: 14.5, duration: 800 });
     }
-  }, [geo, layers, ready, floor, facade, month, hotels]);
+  }, [geo?.hotel_id, geo?.center?.[0], geo?.center?.[1], ready, hotelKey]);
   const selected = hotels.find((h) => h.id === activeId);
   return (
     <div
       className={`travel-map ${hero ? "hero-map" : ""} ${large ? "large-map" : ""}`}
       data-testid="travel-map"
+      data-map-status={error ? "error" : ready ? "ready" : "loading"}
+      data-map-source={base}
     >
       <div className="map-canvas" ref={container} />
       {error && (
@@ -705,7 +897,9 @@ export function GeoModal({
   geo: Geo;
   onClose: () => void;
 }) {
-  const [floor, setFloor] = useState(geo.monte_carlo?.min_floor_p80 || 1),
+  const [floor, setFloor] = useState(
+      geo.floors?.modeled_count || hotel.floors || 1,
+    ),
     [facade, setFacade] = useState(geo.facades?.[0]?.code || ""),
     [month, setMonth] = useState(9);
   const horizon = geo.horizon || [],
@@ -723,6 +917,25 @@ export function GeoModal({
       .map((h) => xy(h.azimuth_deg, h[key] || 0))
       .join(" ");
   const mc = geo.monte_carlo;
+  const selectedFacade = geo.facades?.find((f) => f.code === facade);
+  const probability = selectedFacade?.sea_probability_by_floor
+    ? selectedFacade.sea_probability_by_floor[floor - 1]
+    : mc?.probability;
+  const p80 = selectedFacade?.min_floor_sea_p80;
+  const sunset = selectedFacade?.sunset_by_month?.find(
+    (s) => s.month === month,
+  );
+  const sunsetMinutes = sunset?.visible_minutes[floor - 1];
+  const solarDate = geo.sun_paths?.find((s) => s.month === month)?.date;
+  const availableRayFloors = [
+    ...new Set(
+      geo.view_cones?.features
+        .filter((f) => !facade || f.properties?.facade === facade)
+        .map((f) => Number(f.properties?.floor))
+        .filter(Number.isFinite) || [],
+    ),
+  ];
+
   return (
     <Modal wide title="От карты — к вашему окну" onClose={onClose}>
       <p className="muted">
@@ -743,7 +956,7 @@ export function GeoModal({
           <input
             type="number"
             min="1"
-            max={hotel.floors || 100}
+            max={geo.floors?.modeled_count || hotel.floors || 100}
             value={floor}
             onChange={(e) => setFloor(Math.max(1, Number(e.target.value)))}
           />
@@ -777,20 +990,19 @@ export function GeoModal({
         <section className="geo-reading">
           <div className="eyebrow">Чувствительность расчёта</div>
           <h3>Вид — это вероятность</h3>
-          {mc?.probability !== undefined && mc.probability !== null ? (
+          {probability !== undefined && probability !== null ? (
             <>
               <div className="probability">
-                {Math.round(mc.probability * 100)}
+                {Math.round(probability * 100)}
                 <span>%</span>
               </div>
               <p>
-                Видимость в {mc.iterations || "неизвестном числе"} симуляциях
+                Видимость в {mc?.iterations || "неизвестном числе"} симуляциях
                 неопределённых входных высот.
               </p>
-              {mc.min_floor_p80 && (
+              {p80 && (
                 <p>
-                  80% устойчивости:{" "}
-                  <strong>с {mc.min_floor_p80}-го этажа</strong>
+                  80% устойчивости: <strong>с {p80}-го этажа</strong>
                 </p>
               )}
             </>
@@ -799,12 +1011,33 @@ export function GeoModal({
               Нет достаточных входных данных для Monte Carlo.
             </Empty>
           )}
+          {sunsetMinutes !== undefined && sunsetMinutes !== null && (
+            <p className="sunset-reading">
+              <strong>
+                Закат:{" "}
+                {sunsetMinutes > 0
+                  ? `${sunsetMinutes} мин видимости`
+                  : "не виден"}
+              </strong>
+              <br />
+              {facade} · {floor}-й этаж · опорная дата{" "}
+              {sunset?.date || solarDate || "не передана"}
+            </p>
+          )}
           <p className="fine-print">
             Показан сохранённый расчёт отеля. Выбор фасада и этажа фильтрует
-            доступные слои, но не запускает новый Monte Carlo.
+            доступные слои и рассчитанные значения. Новый Monte Carlo не
+            запускается.
           </p>
         </section>
       </div>
+      {availableRayFloors.length > 0 && !availableRayFloors.includes(floor) && (
+        <p className="fine-print">
+          Лучи обзора сохранены для этажей: {availableRayFloors.join(", ")}. Для
+          выбранного этажа геометрия лучей отсутствует; вероятность показана
+          только при наличии расчёта.
+        </p>
+      )}
       <section className="horizon-section">
         <div className="section-heading">
           <div>
@@ -815,8 +1048,15 @@ export function GeoModal({
             <span>● Рельеф</span>
             <span>● Здания</span>
             <span>● Солнце</span>
+            <span>● Море</span>
           </div>
         </div>
+        <p className="fine-print">
+          Сохранённый профиль горизонта.{" "}
+          {solarDate
+            ? `Солнечный путь рассчитан на ${solarDate}; на точные даты поездки пересчёт не выполнялся.`
+            : "Опорная дата солнечного пути не передана."}
+        </p>
         {horizon.length ? (
           <svg
             viewBox="0 0 760 210"
@@ -846,6 +1086,19 @@ export function GeoModal({
               </g>
             ))}
             <g transform="translate(20 0)">
+              {horizon
+                .filter((h) => h.sea)
+                .map((h) => (
+                  <line
+                    key={h.azimuth_deg}
+                    x1={h.azimuth_deg * 2}
+                    x2={h.azimuth_deg * 2 + 5}
+                    y1={180}
+                    y2={180}
+                    stroke="#6b9d9e"
+                    strokeWidth={5}
+                  />
+                ))}
               <polyline
                 points={points("terrain_deg")}
                 fill="none"

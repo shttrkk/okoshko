@@ -602,7 +602,7 @@ export function SearchPage() {
     setEvidenceLoading(true);
     setEvidenceError(null);
     try {
-      const detail = await api.hotel(hotelId);
+      const detail = await api.hotel(hotelId, edited);
       const fact =
         detail.facts.find((f) => v.fact_ids.includes(f.id)) ||
         detail.facts.find((f) => f.characteristic_id === v.characteristic_id);
@@ -689,7 +689,11 @@ export function SearchPage() {
           ))}
           {!resource.loading && resource.data && !results.length && (
             <Empty
-              title="Пока не нашлось совпадений"
+              title={
+                resource.data.parsed.unmapped.includes("region_out_of_scope")
+                  ? "Этот регион пока не собран"
+                  : "Пока не нашлось совпадений"
+              }
               action={
                 <button
                   className="button secondary"
@@ -699,9 +703,20 @@ export function SearchPage() {
                 </button>
               }
             >
-              Попробуйте сделать одно из условий желательным. Неизвестные
-              характеристики не считаются подтверждёнными.
+              {resource.data.parsed.unmapped.includes("region_out_of_scope")
+                ? "В демо доступны центр Сочи и Адлер–Имеретинка. Отелей другого города в этой выдаче нет."
+                : "Попробуйте сделать одно из условий желательным. Неизвестные характеристики не считаются подтверждёнными."}
             </Empty>
+          )}
+          {resource.data?.parsed.unmapped.includes("region_out_of_scope") && (
+            <details className="region-limit" data-testid="region-limitation">
+              <summary>Как расширить регион демо</summary>
+              <p className="fine-print">
+                Пайплайн параметризован конфигурацией региона:{" "}
+                <code>make pipeline REGION=&lt;config&gt;</code>. Для другого
+                города сначала нужно собрать и проверить данные.
+              </p>
+            </details>
           )}
           {(["all", "almost", "unknown"] as const).map((group) => {
             const hits = results.filter((r) => r.group === group);

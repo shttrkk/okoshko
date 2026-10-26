@@ -16,16 +16,24 @@ import {
 } from "../components/ui";
 export function ComparePage() {
   const { compare, toggleCompare, parsed, hotels } = useApp();
-  const [params] = useSearchParams(),
+  const [params, setParams] = useSearchParams(),
     [onlyDiff, setOnlyDiff] = useState(true);
   const ids =
     params.get("ids")?.split(",").filter(Boolean).slice(0, 4) || compare;
+  const changeSelection = (hotelId: string) => {
+    if (params.has("ids")) {
+      const next = ids.includes(hotelId)
+        ? ids.filter((i) => i !== hotelId)
+        : [...ids, hotelId].slice(0, 4);
+      setParams({ ids: next.join(",") });
+    } else toggleCompare(hotelId);
+  };
   const result = useResource(
     () =>
       ids.length >= 2
-        ? api.compare(ids)
+        ? api.compare(ids, parsed)
         : Promise.resolve({ hotels: [], characteristics: [] }),
-    [ids],
+    [ids, parsed],
   );
   const d = result.data;
   const priority = [...(parsed?.must || []), ...(parsed?.nice || [])].map(
@@ -116,7 +124,7 @@ export function ComparePage() {
                           <button
                             className="icon-button"
                             aria-label={`Убрать ${h.hotel.name}`}
-                            onClick={() => toggleCompare(h.hotel.id)}
+                            onClick={() => changeSelection(h.hotel.id)}
                           >
                             <X size={15} />
                           </button>
@@ -198,7 +206,7 @@ export function ComparePage() {
         <div className="add-compare">
           <label>
             Добавить отель
-            <select value="" onChange={(e) => toggleCompare(e.target.value)}>
+            <select value="" onChange={(e) => changeSelection(e.target.value)}>
               <option value="">Выберите из каталога</option>
               {hotels.data
                 .filter((h) => !ids.includes(h.id))
