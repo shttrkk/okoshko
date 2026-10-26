@@ -37,12 +37,26 @@ def materialize(data_dir: Path, output: Path, *, hotel_ids=None, characteristics
     counts = {cid: {"claims": 0, "hotels_with_claims": 0, "known_hotels": 0,
                     "known_hotels_confidence_ge_06": 0, "positive_hotels": 0} for cid in characteristics}
     warnings = defaultdict(list)
+    # The shipped new-house demonstration is active on first startup. Its
+    # baseline must not be exported as current sunlight after that change.
+    active_geo = {}
+    event_path = data_dir/"seed"/"demo_change_event.json"
+    if event_path.is_file():
+        event = json.loads(event_path.read_text())
+        if event.get("hotel_id"):
+            artifact = event.get("geo", {}).get("artifact")
+            active_geo[event["hotel_id"]] = artifact
     ledger = output/"geo_traits.jsonl.gz"
     temporary = output/"geo_traits.jsonl.gz.tmp"
     with temporary.open("wb") as raw, gzip.GzipFile(fileobj=raw, mode="wb", filename="", mtime=0) as stream:
         for index, hotel in enumerate(hotels, 1):
             for cid in characteristics:
-                result = compute_trait(hotel, data_dir, cid, month=month)
+                solar = cid in {"morning_sun", "evening_heat"}
+                if solar and hotel["id"] in active_geo and not active_geo[hotel["id"]]:
+                    result = {"claims": [], "warnings": ["Активное изменение без authoritative geo artifact; солнечное значение неизвестно"]}
+                else:
+                    kwargs = {"geo_artifact": active_geo[hotel["id"]]} if solar and hotel["id"] in active_geo else {}
+                    result = compute_trait(hotel, data_dir, cid, month=month, **kwargs)
                 claims = result["claims"]
                 for row in claims:
                     Claim.model_validate(row)
@@ -61,6 +75,7 @@ def materialize(data_dir: Path, output: Path, *, hotel_ids=None, characteristics
     report = {"version": 1, "generated_at": datetime.now(UTC).isoformat(), "hotels": len(hotels),
               "months": [month] if month else list(range(1, 13)), "methods": {cid: METHODS[cid] for cid in characteristics},
               "counts": counts, "warnings": dict(warnings),
+              "authoritative_geo_overrides": active_geo,
               "ledger": {"name": ledger.name, "bytes": ledger.stat().st_size,
                          "sha256": hashlib.sha256(ledger.read_bytes()).hexdigest()},
               "coverage_definition": "At least one known trait value in any facade/floor/month; not same-room fulfilment or ground-truth accuracy",

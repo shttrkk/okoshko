@@ -111,6 +111,34 @@ def test_unknown_floors_and_changed_snapshot_do_not_reuse_horizon(solar_artifact
     assert not result["claims"] and "пересчёта" in result["warnings"][0]
 
 
+def test_explicit_changed_artifact_never_falls_back_to_clear_baseline(solar_artifacts):
+    hotel, directory, baseline = solar_artifacts
+    changed = directory/"geo"/"test-change-example.json"
+    changed.write_text(json.dumps(baseline))
+    # Compact cached variants use fN_horizon rather than facade_N_horizon.
+    np.savez_compressed(changed.with_suffix(".npz"), f0_horizon=np.full((2, 120), 90),
+                        f1_horizon=np.full((2, 120), 90))
+    result = compute_trait(hotel, directory, "morning_sun", month=9, geo_artifact=changed)
+    assert result["claims"] and all(not c["value"]["available"] for c in result["claims"])
+    assert all(c["evidence"][0]["artifact"].endswith("test-change-example.json") for c in result["claims"])
+    missing = compute_trait(hotel, directory, "morning_sun", geo_artifact="/data/geo/test-change-missing.json")
+    assert missing["claims"] == [] and missing["warnings"]
+    with pytest.raises(ValueError):
+        compute_trait(hotel, directory, "morning_sun", geo_artifact=directory/"outside.json")
+
+
+def test_materializer_skips_active_change_without_supported_artifact(solar_artifacts):
+    from pipeline.compute_traits import materialize
+    hotel, directory, _ = solar_artifacts
+    seed = directory/"seed"
+    seed.mkdir()
+    (seed/"hotels.json").write_text(json.dumps([hotel]))
+    (seed/"demo_change_event.json").write_text(json.dumps({"hotel_id": hotel["id"], "geo": {}}))
+    report = materialize(directory, directory/"output", characteristics=["morning_sun"])
+    assert report["counts"]["morning_sun"]["claims"] == 0
+    assert report["warnings"]["morning_sun"]
+
+
 class FakeRegion:
     def __init__(self, features, own=None):
         self.features = {name: features.get(name, []) for name in ("roads", "railways", "beaches", "pois")}
@@ -156,13 +184,15 @@ def test_beach_missing_surface_is_not_sand_and_green_uses_polygon_boundary(monke
 def test_railway_proxy_has_no_road_contribution_and_no_false_quiet(monkeypatch, tmp_path):
     hotel = {"id": "test", "lon": 39.72, "lat": 43.58}
     x, y = TO_UTM.transform(hotel["lon"], hotel["lat"])
-    own = feature("own", box(x-10, y-10, x+10, y+10))
+    own = feature("own", box(x-10, y-10, x+10, y+10), source_id="overture_buildings", synthetic=True)
     rail = feature("rail", LineString([(x-50, y-250), (x-50, y+250)]), railway="rail")
     road = feature("road", LineString([(x-20, y-250), (x-20, y+250)]), highway="motorway")
     region = FakeRegion({"roads": [road], "railways": [rail]}, own)
     monkeypatch.setattr("geo.traits.get_region", lambda _: region)
     rows = compute_trait(hotel, tmp_path, "railway_noise")["claims"]
     assert rows and all(row["confidence"] <= .38 for row in rows)
+    assert all(row["evidence"][0]["source_ids"] == ["osm_geofabrik", "overture_buildings"] for row in rows)
+    assert all(row["synthetic"] and row["evidence"][0]["kind"] == "simulation" for row in rows)
     assert all(row["value"]["sources"] == ["rail"] and row["value"]["measurement"] is False for row in rows)
     west = next(row["value"] for row in rows if row["scope"]["facade"] == "W")
     east = next(row["value"] for row in rows if row["scope"]["facade"] == "E")
