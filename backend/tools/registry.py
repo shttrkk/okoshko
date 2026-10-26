@@ -1,6 +1,7 @@
 """Whitelisted local tools. Plans cannot execute code or arbitrary network requests."""
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import UTC, datetime, timedelta
 from functools import lru_cache
@@ -38,6 +39,7 @@ def feature_index(data_dir: str, name: str):
 class Registry:
     def __init__(self, repo, data_dir: Path = DATA):
         self.repo, self.data_dir = repo, Path(data_dir)
+        self._hotels = {}
         self.specs = {}
         self.handlers = {}
         schema = {"type":"object", "properties":{"target":{"type":"string","enum":["sea","mountains","landmark","beach"]},
@@ -102,9 +104,10 @@ class Registry:
         return ToolResult(warnings=["Свойство требует ответа отельера; вопрос формируется Interviewer"])
 
     def _poi(self, context, call):
-        hotel = self.repo.get("hotels",context.hotel_id)
+        hotel = self._hotels.get(context.hotel_id) or self.repo.get("hotels",context.hotel_id)
         if not hotel:
             return ToolResult(warnings=["Отель не найден"])
+        self._hotels[context.hotel_id] = hotel
         features, geometries, tree = feature_index(str(self.data_dir.resolve()),"pois")
         if tree is None:
             return ToolResult(warnings=["OSM POI не загружены"])
@@ -146,7 +149,9 @@ class Registry:
         evidence = Evidence(kind="calculation",label="Поиск по локальному снимку OpenStreetMap",source_ids=["osm_geofabrik"],artifact="/data/seed/pois.geojson",
                             inputs={"hotel_id":context.hotel_id,"radius_m":radius,"kind":kind,"matched_osm_ids":[feature["id"] for _,feature in selected]},output=value,
                             limitations=["Расстояния по прямой, не время пешего маршрута", "Отсутствие объекта или opening_hours в OSM не доказывает отсутствие услуги", "Подъезд к фактическому входу, детский профиль больницы и доступность для коляски требуют отдельного подтверждения"])
-        claim = Claim(hotel_id=context.hotel_id,characteristic_id=context.characteristic_id,value=value,source="osm_geofabrik",method="local_poi_lookup@1",evidence=[evidence],confidence=.65 if value["available"] else .35,
+        identity = hashlib.sha256(json.dumps([context.hotel_id,context.characteristic_id,kind,radius,observed.isoformat(),value],sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:24]
+        evidence.id = "ev-poi-"+identity
+        claim = Claim(id="poi-"+identity,hotel_id=context.hotel_id,characteristic_id=context.characteristic_id,value=value,source="osm_geofabrik",method="local_poi_lookup@1",evidence=[evidence],confidence=.65 if value["available"] else .35,
                       observed_at=observed,valid_until=observed+timedelta(days=90),run_id=context.run_id)
         return ToolResult(claims=[claim])
 

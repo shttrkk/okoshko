@@ -28,7 +28,17 @@ def known_value(value) -> bool:
 
 
 def scope_matches(expected: dict, actual: dict) -> bool:
-    return all(actual.get(key) == value for key, value in expected.items() if value is not None and key != "type")
+    for key in ("facade","month","room_type"):
+        if expected.get(key) is not None and actual.get(key)!=expected[key]:
+            return False
+    if expected.get("floor_min") is not None or expected.get("floor_max") is not None:
+        if actual.get("floor_min") is None:
+            return False
+        low = expected.get("floor_min") or expected["floor_max"]
+        high = expected.get("floor_max") or low
+        if actual["floor_min"]>low or (actual.get("floor_max") or actual["floor_min"])<high:
+            return False
+    return True
 
 
 def pick_fact(facts: list[dict], hotel_id: str, characteristic_id: str, scope: dict | None = None):
@@ -61,7 +71,7 @@ def classification(rows: list[tuple[bool, bool, float]], abstentions: int = 0):
     bins = []
     ece = 0
     for low in [0, .2, .4, .6, .8]:
-        group = [(truth, prob) for _, truth, prob in rows if low <= prob < low+.2 or low == .8 and prob == 1]
+        group = [(truth, prob) for _, truth, prob in rows if min(int(prob*5),4)==round(low*5)]
         if group:
             mean_prob = sum(p for _, p in group)/len(group)
             positive_rate = sum(t for t, _ in group)/len(group)
@@ -75,6 +85,7 @@ def classification(rows: list[tuple[bool, bool, float]], abstentions: int = 0):
 def evaluate(hotels: list[dict], facts: list[dict], characteristics: list[dict], labels: list[dict], questions: list[dict] | None = None) -> dict:
     # Do not count synthetic hotelier answers as independently verified real facts.
     ids = {h["id"] for h in hotels}
+    hotel_by_id = {hotel["id"]:hotel for hotel in hotels}
     active = {c["id"] for c in characteristics if c.get("status", "active") == "active"}
     denominator = len(ids)*len(active)
     covered = {(f["hotel_id"], f["characteristic_id"]) for f in facts if f["hotel_id"] in ids and f["characteristic_id"] in active
@@ -95,7 +106,22 @@ def evaluate(hotels: list[dict], facts: list[dict], characteristics: list[dict],
                 scope = json.loads(scope or "{}")
             if truth is None:
                 continue
-            fact = pick_fact(facts, label["hotel_id"], label["characteristic_id"], scope)
+            prediction_facts = facts
+            if label_type=="weak_website":
+                # Held-out website quotes must never evaluate themselves through Resolver.
+                prediction_facts = [fact for fact in facts if not fact.get("synthetic") and
+                                    any(evidence.get("kind")=="calculation" for evidence in fact.get("evidence",[])) and
+                                    not any(evidence.get("kind")=="quote" for evidence in fact.get("evidence",[]))]
+            fact = pick_fact(prediction_facts, label["hotel_id"], label["characteristic_id"], scope)
+            if label_type=="weak_website" and not scope and label["characteristic_id"] in {"sea_view","sunset_view","mountain_view"}:
+                candidates = [candidate for candidate in prediction_facts if candidate["hotel_id"]==label["hotel_id"] and
+                              candidate["characteristic_id"]==label["characteristic_id"] and candidate.get("status") not in {"unknown","stale","disputed"}]
+                positives = [candidate for candidate in candidates if available(candidate.get("value")) is True]
+                if positives:
+                    fact = max(positives,key=lambda candidate:candidate.get("confidence",0))
+                elif not hotel_by_id.get(label["hotel_id"],{}).get("floors"):
+                    # A single modeled ground level cannot refute existence on unknown upper floors.
+                    fact = None
             pred = available(fact["value"]) if fact else None
             if pred is None:
                 abstentions += 1
