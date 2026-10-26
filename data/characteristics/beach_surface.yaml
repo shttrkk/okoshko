@@ -1,9 +1,9 @@
 id: beach_surface
 version: 1
-name_ru: Покрытие ближайшего пляжа
-description: Явный тег surface ближайшего картированного OSM пляжа; расстояние по
-  прямой до геометрии. Нет тега — unknown. Не подтверждает доступ, качество воды или
-  вход в море.
+name_ru: Покрытие пляжа на маршруте
+description: Явный тег surface пляжа из сохранённого пешего маршрута. Если маршрута
+  нет — ближайший картированный OSM пляж по прямой с явной пометкой. Нет тега — unknown.
+  Не подтверждает доступ, качество воды или вход в море.
 category: Пляж
 synonyms:
 - покрытие пляжа
@@ -28,14 +28,20 @@ value_schema:
       type:
       - string
       - 'null'
+    beach_id:
+      type:
+      - string
+      - 'null'
+    selection_kind:
+      type: string
   additionalProperties: true
 methods:
 - tool: geo_trait
   params:
     kind: beach_surface
-  rationale: Явный тег surface ближайшего картированного OSM пляжа; расстояние по
-    прямой до геометрии. Нет тега — unknown. Не подтверждает доступ, качество воды
-    или вход в море.
+  rationale: Явный тег surface пляжа из сохранённого пешего маршрута. Если маршрута
+    нет — ближайший картированный OSM пляж по прямой с явной пометкой. Нет тега —
+    unknown. Не подтверждает доступ, качество воды или вход в море.
 ttl_days: 90
 change_triggers: []
 search:
@@ -43,7 +49,7 @@ search:
   field: surface
   default_op: eq
   default_value: sand
-  explain_ok: На ближайшем картированном пляже указан песок
-  explain_bad: Покрытие ближайшего картированного пляжа отличается от песка
+  explain_ok: На пляже маршрута (или ближайшем картированном) указан песок
+  explain_bad: Явно указанное покрытие выбранного пляжа отличается от песка
 hotelier_answerable: true
 status: active

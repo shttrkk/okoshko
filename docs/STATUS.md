@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 01:04 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 01:05 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -111,3 +111,5 @@
 - 27.10.2026 01:03: feat(geo): add evidence-backed solar and local environment traits; 617 passed, 1 warning, 125 subtests passed in 69.58s (0:01:09); Ruff и frontend lint PASS.
 
 - 27.10.2026 01:04: fix(geo): preserve active scenarios and complete input provenance; 619 passed, 1 warning, 125 subtests passed in 48.56s; Ruff и frontend lint PASS.
+
+- 27.10.2026 01:05: fix(geo): keep beach surface tied to the walking destination; 620 passed, 1 warning, 125 subtests passed in 48.26s; Ruff и frontend lint PASS.

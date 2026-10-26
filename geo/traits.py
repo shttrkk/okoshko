@@ -25,7 +25,7 @@ TRAITS = frozenset({"morning_sun", "evening_heat", "railway_noise", "beach_surfa
 METHODS = {"morning_sun": "astral_morning_horizon_proxy_v1",
            "evening_heat": "astral_evening_exposure_proxy_v1",
            "railway_noise": "outdoor_rail_noise_proxy_v1",
-           "beach_surface": "osm_beach_surface_v1",
+           "beach_surface": "osm_beach_surface_v2",
            "accessible_route": "osm_route_accessibility_v1",
            "green_nearby": "osm_green_geometry_distance_v1"}
 SOLAR_LIMITATIONS = [
@@ -294,6 +294,17 @@ def _regional(hotel, data_dir, characteristic):
                                     "Ширина, бордюры, уклон и покрытие могут быть не картированы"])], []
     dataset = "beaches" if characteristic == "beach_surface" else "pois"
     matches = region.nearby(dataset, xy, 5000)
+    selection_kind = "nearest_mapped_geometry"
+    if characteristic == "beach_surface":
+        baseline = _baseline(hotel, data_dir)
+        route_beach = (baseline or {}).get("route_details", {}).get("beach_id")
+        if route_beach:
+            # A sandy nearby polygon is not evidence that the beach reached by
+            # beach_walk has sand. Preserve the existing route's destination.
+            matches = [feature for feature in region.features["beaches"] if feature["id"] == route_beach]
+            if not matches:
+                return [], ["Пляж сохранённого маршрута не найден в текущем OSM слое; покрытие неизвестно"]
+            selection_kind = "beach_walk_destination"
     if characteristic == "green_nearby":
         matches = [feature for feature in matches if feature["properties"].get("leisure") in {"park", "garden"}
                    and feature["properties"].get("access") not in {"no", "private"}]
@@ -303,11 +314,11 @@ def _regional(hotel, data_dir, characteristic):
     distance = round(feature["shape"].distance(point), 1)
     properties = feature["properties"]
     value = {"osm_id": feature["id"], "name": properties.get("name"), "distance_m": distance,
-             "distance_kind": "straight_line_to_mapped_geometry"}
+             "distance_kind": "straight_line_to_mapped_geometry", "selection_kind": selection_kind}
     if characteristic == "beach_surface":
         surface = properties.get("surface")
-        value.update(surface=surface, available=True if surface else None)
-        limitations = ["Покрытие только из явного OSM surface ближайшего картированного пляжа; отсутствующий тег — unknown",
+        value.update(surface=surface, beach_id=feature["id"], available=True if surface else None)
+        limitations = ["Покрытие только из явного OSM surface пляжа маршрута; без маршрута — ближайшего картированного пляжа; отсутствующий тег — unknown",
                        "Расстояние до геометрии по прямой; вход, доступ, чистота воды и безопасность купания не проверены"]
     else:
         value.update(available=True if distance <= 500 else None, leisure=properties.get("leisure"),
@@ -340,7 +351,9 @@ def compute_trait(hotel: dict, data_dir: Path, characteristic_id: str, month: in
     if month is not None and (isinstance(month, bool) or not isinstance(month, int) or not 1 <= month <= 12):
         raise ValueError("month must be 1..12 or None")
     data_dir = Path(data_dir)
-    if characteristic_id in {"morning_sun", "evening_heat"}:
+    if characteristic_id == "railway_noise" and geo_artifact is not None:
+        claims, warnings = [], ["Изменённая геометрия требует нового расчёта железнодорожного экранирования; baseline не используем"]
+    elif characteristic_id in {"morning_sun", "evening_heat"}:
         claims, warnings = _solar(hotel, data_dir, characteristic_id, month, geo_artifact)
     else:
         claims, warnings = _regional(hotel, data_dir, characteristic_id)
