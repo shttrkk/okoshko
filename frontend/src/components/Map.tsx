@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
+import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import type {
   GeoJSONSource,
   Map as LibreMap,
@@ -16,6 +17,7 @@ const empty: GeoJSON.FeatureCollection = {
   type: "FeatureCollection",
   features: [],
 };
+maplibregl.setWorkerUrl(mapWorkerUrl);
 let registered = false;
 const protocol = new Protocol();
 function baseStyle(dark: boolean): StyleSpecification {
