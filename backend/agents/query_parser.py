@@ -16,6 +16,7 @@ from backend.agents.query_text import (
     clause_bounds,
     facade_is_explicit,
     normalize_query_text,
+    search_context_text,
     valid_intent_match,
 )
 from backend.contracts import CharacteristicSpec, Criterion, ParsedQuery, Scope, SearchRequest
@@ -57,11 +58,18 @@ RULES = {
     'green_nearby': r'(?:\bпарк(?:а|у|ом|е|и|ов|ам|ами|ах)?\b|\bсквер\w*|\bзелен\w* зон\w*) (?:рядом|поблизости)|рядом (?:с )?(?:\bпарк(?:а|у|ом|е|и|ов|ам|ами|ах)?\b|\bсквер\w*)',
 }
 RULES['nightlife'] += r'|\b' + VENUE_NOUN + r'(?:\s*(?:,\s*(?:и\s*)?|и\s+)' + VENUE_NOUN + r')+'
+RULES['nightlife'] += r'|\bнасыщенн\w*\s+(?:вечерн\w*|ночн\w*)\s+жизн\w*'
+RULES['sea_view'] += r'|\bморе\s+из\s+номер\w*|\b(?:из\s+номер\w*\s+)?(?:долж\w*\s+быть\s+)?видно\s+море|\bморе\s+долж\w*\s+быть\s+видно'
+RULES['morning_sun'] += r'|\bсолнц\w*\s+(?:по\s+утрам|утром)'
+RULES['railway_noise'] += r'|\bжелезнодорожн\w*\s+шум(?:а|у|ом|е|ы|ов)?\b'
+RULES['evening_heat'] += r'|\b(?:поменьше\s+вечерн\w*\s+солнц\w*|индекс\w*\s+вечерн\w*\s+экспозиц\w*)'
+RULES['beach_surface'] += r'|\bпесок\b[^,;.!?]{0,30}\bна\s+пляж\w*'
+RULES['nearby_photos'] += r'|\b(?:фотографи\w*|снимк\w*)\s+(?:его\s+)?(?:окрестност\w*|район\w*)'
 # "подальше от баров" asks for a calm area: the same measurement, opposite threshold.
 AWAY = r"(?:подальше|вдали|далеко|подальш\w*)\s+от\s+$"
 CALM_VENUES_MAX = 10
 OUTSIDE = r"москв\w*|саратов\w*|санкт[ -]?петербург\w*|петербург\w*|спб|казан[ьиь]\w*|анап\w*|геленджик\w*|краснодар\w*|стамбул\w*|париж\w*|дуба[ий]\w*|калининград\w*|екатеринбург\w*|новосибирск\w*|ялт\w*|туапсе|крым\w*|ростов\w*|нижн\w* новгород\w*|самар\w*|твер[ьиь]\w*|минск\w*|батум\w*|красн\w* полян\w*|воронеж\w*|волгоград\w*|омск\w*|томск\w*|перм[ьиь]\w*|уф[аеуы]\w*|челябинск\w*|красноярск\w*|тюмен[ьиь]\w*|иркутск\w*|хабаровск\w*|владивосток\w*|сургут\w*|сочи-парк|тбилиси|ереван\w*|ташкент\w*|белград\w*|антал[ьи]\w*|бишкек\w*|алмат[ыи]|астан\w*|псков\w*|суздал\w*|ярославл\w*|костром\w*|владимир\w*|иванов\w*|смоленск\w*|брянск\w*|ор[её]л\w*|курск\w*|белгород\w*|рязан\w*|тул[аеуы]\w*|тамбов\w*|липецк\w*|пенза|пензе|ижевск\w*|киров\w*|чебоксар\w*|саранск\w*|йошкар\w*|ульяновск\w*|оренбург\w*|барнаул\w*|кемеров\w*|новокузнецк\w*|абакан\w*|чита|чите|улан-удэ|якутск\w*|магадан\w*|мурманск\w*|архангельск\w*|петрозаводск\w*|вологд\w*|сыктывкар\w*|грозн\w*|махачкал\w*|владикавказ\w*|ставропол\w*|пятигорск\w*|кисловодск\w*|ессентук\w*|нальчик\w*|майкоп\w*"
-SOFT = r"желатель\w*|хорошо бы|по возможности|необязатель\w*|не обязател\w*|не\s*принципиал\w*|(?:будет\s+)?(?:приятн\w*\s+)?(?:плюсом|бонусом)"
+SOFT = r"желатель\w*|хорошо бы|хотелось бы|буду рад\w*|по возможности|необязатель\w*|не обязател\w*|не\s*принципиал\w*|(?:будет\s+)?(?:приятн\w*\s+)?(?:плюсом|бонусом|бонус|дополнени\w*)"
 HARD = r"(?<!не )обязатель\w*|только|важн\w*|нуж(?:ен|на|но|ны)|долж\w*|необходим\w*"
 NEARBY = {
     "beach_walk": (r"\b(?:пляж\w*|мор[еяю]|морем)\b", "minutes", 10, "До пляжа", "мин пешком"),
@@ -141,6 +149,10 @@ def _dates(text: str, request: SearchRequest) -> tuple[date | None, date | None,
 def _importance(text: str, start: int, end: int) -> tuple[bool, bool, bool]:
     left, right = clause_bounds(text, start, end)
     before, after = text[left:start], text[end:right]
+    if re.match(r'\s+не входит\w*\s+в\s+(?:мои\s+)?пожелани\w*|\s+(?:(?:рядом|поблизости)\s+)?(?:может|могут)\s+(?:и\s+)?не\s+быть', after):
+        return False, False, True
+    if re.search(r'пожелани\w*\s+к\s*$', before) and re.search(r'\bнет\b', after):
+        return False, False, True
     if re.search(r"\bне\s*(?:нуж\w*|важ\w*|интерес\w*|треб\w*|ищ\w*)\s*(?:мне\s*)?(?:вид\w*\s*(?:на\s*)?)?$", before) or re.match(r"\s*(?:(?:мне|меня|нам|нас)\s+)?не\s*(?:важ\w*|нуж\w*|интерес\w*|треб\w*|ищ\w*)", after):
         return False, False, True
     markers = [(m.start(), True) for m in re.finditer(SOFT, before)] + [(m.start(), False) for m in re.finditer(HARD, before)]
@@ -161,11 +173,16 @@ def _importance(text: str, start: int, end: int) -> tuple[bool, bool, bool]:
         soft = True
     if re.search(SOFT, text[start:end]):
         soft = True
+    postfix = re.match(r'\s*[-–—]?\s*(?:(?:из\s+окна|по\s+утрам|утром|в\s+номере|для\s+прогулок)\s+)?(?:(?:был\w*\s+бы|это)\s+)?(?:' + SOFT + ')', after)
+    if postfix:
+        soft = True
     if re.search(r"(?:^|[,;])\s*можно(?: бы)?\s*$", before) and not re.search(r"\b(?:собак|кошк|котом|питом)\w*", text[start:end]):
         soft = True
     negation = re.search(r'(?P<words>(?:(?:\bбез|\bне)\s+)+)(?:вид\w*\s*(?:на\s*)?)?$', before[-60:])
     negative = bool(negation and len(re.findall(r'\b(?:не|без)\b', negation['words'])) % 2)
     if re.search(r'\bне\s+(?:хочу|хотим|нуж\w*)\s+(?:\w+\s+){0,2}без\s*(?:вид\w*\s*(?:на\s*)?)?$', before):
+        negative = False
+    if negative and re.match(r'[^,;.!?]{0,40}\b(?:не хочу|не хотим|не рассматрива\w*)', after):
         negative = False
     # A qualifier such as "не обязательно" is a preference, not negation.
     if re.search(r"не обязател\w*\s*$", before):
@@ -180,6 +197,7 @@ def _measurement_unit(field: str) -> str | None:
         'water_c': r'(?:°\s*[cс]?(?!\s*[fф])|градус\w*|[cс]\b)',
         'download_mbps': r'(?:мбит(?:/с)?|mbps|мб/с|мегабит\w*|мегабайт(?:/с)?|гбит(?:/с)?|gbps|гигабит\w*)',
         'european_aqi': r'(?:aqi|единиц\w*)', 'night_db_max': r'дб',
+        'visible_minutes': r'мин(?:ут\w*)?\b',
         'parking_distance_m': distance, 'playground_distance_m': distance,
         'distance_m': distance, 'ev_distance_m': distance,
         'venues_500m': r'(?:заведени\w*|' + VENUE_NOUN + ')',
@@ -215,11 +233,13 @@ def _numeric(text: str, start: int, end: int, field: str, default_op: str, defau
     interval = _numeric_range(text, start, end, field)
     if interval:
         return interval[0] if default_op == 'gte' else interval[1]
-    operators = r'не менее|не меньше|не ниже|не холоднее|не ближе|хотя бы|минимум|больше|выше|от|≥|>=|не более|не дальше|не дольше|не выше|не больше|не быстрее|максимум|менее|меньше|ниже|до|≤|<='
+    operators = r'не менее|не меньше|не ниже|не холоднее|не ближе|хотя бы|минимум|больше|выше|от|≥|>=|не более|не дальше|не длиннее|не далее|не дольше|не выше|не больше|не быстрее|максимум|менее|меньше|ниже|до|≤|<='
     pattern = r'(?<![-\w.,])(?P<op>' + operators + r')?\s*(?P<num>\d+(?:[.,]\d+)?)\s*(?P<unit>' + unit + ')'
     candidates = list(re.finditer(pattern, window))
     if field == 'european_aqi':
-        candidates += list(re.finditer(r'(?P<unit>aqi)\s*(?P<op>' + operators + r')?\s*(?P<num>\d+(?:[.,]\d+)?)', window))
+        candidates += list(re.finditer(r'(?P<unit>aqi)\s*(?:в районе\s+)?(?:нуж\w*\s+)?(?P<op>' + operators + r')?\s*(?P<num>\d+(?:[.,]\d+)?)', window))
+    if field == 'exposure_index':
+        candidates += list(re.finditer(r'(?P<unit>индекс\w*|экспозиц\w*)\s+(?:вечерн\w*\s+)?(?:солнечн\w*\s+)?(?:экспозиц\w*\s+)?(?:(?:нуж\w*|значени\w*)\s+)?(?P<op>' + operators + r')?\s*(?P<num>\d+(?:[.,]\d+)?)', window))
 
     def gap(match):
         return max(0, start-(offset+match.end()), offset+match.start()-end)
@@ -241,7 +261,7 @@ def _numeric(text: str, start: int, end: int, field: str, default_op: str, defau
     if not found:
         return default_op, default_value
     op = 'gte' if found['op'] in {'не менее', 'не меньше', 'не ниже', 'не холоднее', 'не ближе', 'хотя бы', 'минимум', 'больше', 'выше', 'от', '≥', '>='} else default_op
-    if found['op'] in {'не более', 'не дальше', 'не дольше', 'не выше', 'не больше', 'не быстрее', 'максимум', 'менее', 'меньше', 'ниже', 'до', '≤', '<='}:
+    if found['op'] in {'не более', 'не дальше', 'не далее', 'не длиннее', 'не дольше', 'не выше', 'не больше', 'не быстрее', 'максимум', 'менее', 'меньше', 'ниже', 'до', '≤', '<='}:
         op = 'lte'
     return op, _convert_measurement(found['num'], found['unit'], field)
 
@@ -309,15 +329,15 @@ def _unsupported_measurement(text: str, match, cid: str) -> tuple[str, str] | No
 
 def _measurement_clauses(text: str, matches: list, cid: str) -> list:
     """Attach a directly following, noun-free measurement clarification."""
-    if cid not in {'beach_walk', 'car_access', 'night_pharmacy', 'family_nearby', 'connectivity', 'climate', 'air_quality'}:
+    if cid not in {'beach_walk', 'car_access', 'night_pharmacy', 'family_nearby', 'connectivity', 'climate', 'air_quality', 'green_nearby', 'nightlife'}:
         return matches
     result = list(matches)
-    operator = r'(?:не\s+(?:больше|дальше|дольше|более|менее|ниже|выше)|максимум|минимум)'
-    prefix = r'\s*(?:расстояни\w*\s+(?:' + operator + r'\s*)?|' + operator + r'\s*)'
-    units = r'(?:мин(?:ут\w*)?\b|час\w*|метр\w*|м\b|километр\w*|км\b|мбит(?:/с)?|mbps|градус\w*|°\s*[cс]?)'
+    operator = r'(?:не\s+(?:больше|дальше|дольше|длиннее|более|менее|ниже|выше)|максимум|минимум|хотя бы)'
+    prefix = r'\s*(?:(?:он\s+должен\s+находиться|путь\s+должен\s+быть)\s+)?(?:расстояни\w*\s+(?:' + operator + r'\s*)?|' + operator + r'\s*)'
+    units = r'(?:мин(?:ут\w*)?\b|час\w*|метр\w*|м\b|километр\w*|км\b|мбит(?:/с)?|mbps|градус\w*|°\s*[cс]?|заведени\w*)'
     for match in matches:
         _, boundary = clause_bounds(text, match.start(), match.end())
-        if boundary >= len(text) or text[boundary] not in ',;':
+        if boundary >= len(text) or text[boundary] not in ',;:':
             continue
         continuation = re.match(prefix + r'\d+(?:[.,]\d+)?\s*' + units, text[boundary+1:])
         if not continuation:
@@ -330,6 +350,24 @@ def _measurement_clauses(text: str, matches: list, cid: str) -> list:
         if extended:
             result.append(extended)
     return result
+
+
+def _contextual_nouns(cid: str, text: str) -> list:
+    """Recognize bounded property nouns only in their declared activity domain."""
+    if cid == 'green_nearby':
+        nouns = r'\b(?:парк(?:а|у|ом|е|и|ов|ам|ами|ах)?|сад(?:а|у|ом|е|ы|ов|ам|ами|ах)?|сквер(?:а|у|ом|е|ы|ов|ам|ами|ах)?)\b'
+        return [m for m in re.finditer(nouns, text) if re.search(
+            r'\b(?:нуж\w*|хочу|гуля\w*|прогул\w*|метр\w*|километр\w*|км|м|не дальше)\b',
+            text[max(0, m.start()-55):min(len(text), m.end()+120)])]
+    if cid == 'beach_walk':
+        return [m for m in re.finditer(r'\b(?:к морю|к пляжу)\b', text) if re.search(
+            r'\b(?:прогул\w*|пешком|идти|ходить|пройти|потратить|путь|маршрут\w*)\b',
+            text[max(0, m.start()-60):min(len(text), m.end()+70)])]
+    if cid == 'accessible_route':
+        return [m for m in re.finditer(r'\b(?:маршрут\w*|путь)\b[^;.!?]{0,70}\b(?:пляж\w*|морю)\b', text)
+                if re.search(r'инвалидн\w*\s+коляск\w*|проезд\s+коляск\w*|тег\w*\s+доступност\w*',
+                             text[max(0, m.start()-100):min(len(text), m.end()+80)])]
+    return []
 
 
 def _nearby_intents(text: str) -> dict:
@@ -384,6 +422,10 @@ def _numeric_mentions(text: str, spec: CharacteristicSpec, matches: list,
         'connectivity': [('download_mbps', 'gte')],
         'climate': [('water_c', 'gte')],
         'air_quality': [('european_aqi', 'lte')],
+        'morning_sun': [('visible_minutes', 'gte')],
+        'evening_heat': [('exposure_index', 'lte')],
+        'railway_noise': [('night_db_max', 'lte')],
+        'green_nearby': [('distance_m', 'lte')],
     }.get(spec.id, [])
     result = []
     for atom in matches:
@@ -413,7 +455,8 @@ def _numeric_mentions(text: str, spec: CharacteristicSpec, matches: list,
 
 
 def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> ParsedQuery:
-    text = normalized(request.text)
+    source_text = normalized(request.text)
+    text = search_context_text(source_text)
     check_in, check_out, month, warnings = _dates(text, request)
     parsed = ParsedQuery(text=request.text, check_in=check_in, check_out=check_out, month=month, clarifications=warnings[:2])
     outside = list(re.finditer(r"\b(?:" + OUTSIDE + r")\b", text))
@@ -437,12 +480,12 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
     facade_importance = _importance(text, facade_match[1].start(), facade_match[1].end()) if facade_match else (False, False, False)
     if facade_match and not any(facade_importance):
         parsed.facade = facade_match[0]
-    floor = re.search(r"(?:с|от|не ниже)\s*(-?\d{1,3})(?:\s*[-–]?(?:го|ого))?\s*(?:этажа?|эт\b)|\b(\d{1,3})\s*\+\s*этаж", text)
+    floor = re.search(r"(?:со?|от|не ниже)\s*(-?\d{1,3})(?:\s*[-–]?(?:го|ого))?\s*(?:этажа?|эт\b)|\b(\d{1,3})\s*\+\s*этаж", text)
     reversed_floor = re.search(r'этаж\w*\s*(?:не ниже|от)\s*(-?\d{1,3})\b', text)
     exact_floor = re.search(r"на\s+(-?\d{1,3})(?:[- ]?(?:м|ом))?\s*этаже", text)
     if not exact_floor:
         exact_floor = re.search(r'(?<![\d.,-])\b(\d{1,3})\s*этаж\b', text)
-    floor_range = re.search(r"(?:с|от)\s*(-?\d{1,3})\s*(?:по|до|[-–—])\s*(-?\d{1,3})(?:\s*[-–]?(?:го|ого))?\s*этаж", text)
+    floor_range = re.search(r"(?:со?|от)\s*(-?\d{1,3})\s*(?:по|до|[-–—])\s*(-?\d{1,3})(?:\s*[-–]?(?:го|ого))?\s*этаж", text)
     floor_ceiling = re.search(r"(?:не выше|до)\s*(-?\d{1,3})(?:\s*[-–]?(?:го|ого))?\s*этаж", text)
     floor_match = floor_range or floor or reversed_floor or exact_floor or floor_ceiling
     requested_floor = int(floor_range[1] if floor_range else (floor[1] or floor[2]) if floor else reversed_floor[1] if reversed_floor else exact_floor[1]) if floor_range or floor or reversed_floor or exact_floor else None
@@ -481,6 +524,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         matches = [m for phrase in [spec.name_ru, *spec.synonyms] for m in re.finditer(_phrase_pattern(phrase), text)]
         if spec.id in RULES:
             matches += list(re.finditer(RULES[spec.id], text))
+        matches += _contextual_nouns(spec.id, text)
         if spec.id == 'car_access':
             matches += list(re.finditer(CAR_CHARGING, text))
         if spec.id in nearby:
@@ -666,7 +710,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         if spec.id == "beach_walk":
             for flag, extra_field, label, pattern, extra_value in [
                 ("no_stairs", "has_steps", "Без лестниц до пляжа", r"без (?:лестниц\w*|ступен\w*)|\bколяск\w*|лестниц\w*[^,;.!?]{0,70}(?:не должно|не будет|нет)|не (?:поднима\w*|спуска\w*)(?:\s+\w+){0,3}\s+(?:лестниц\w*|ступен\w*)", False),
-                ("no_crossings", "crossings", "Без переходов до пляжа", r"(?:без (?:переход\w*|пересечени\w*)(?:\s+(?:и\s+)?переход\w*)?|без лестниц\w*\s+и\s+переход\w*)(?:\s+(?:через\s+)?(?:трасс\w*|дорог\w*|шоссе|железн\w*\s+дорог\w*))?|переход\w*\s+через\s+дорог\w*\s+исключен\w*|не (?:переход\w*|пересек\w*)(?:\s+\w+){0,3}\s+(?:дорог\w*|трасс\w*|шоссе|улиц\w*)|переход\w*[^,;.!?]{0,60}(?:не должно|не будет|нет)", []),
+                ("no_crossings", "crossings", "Без переходов до пляжа", r"(?:без (?:дорожн\w*\s+)?(?:переход\w*|пересечени\w*)(?:\s+(?:и\s+)?переход\w*)?|без (?:лестниц\w*|ступен\w*)\s+и\s+(?:дорожн\w*\s+)?переход\w*)(?:\s+(?:через\s+)?(?:трасс\w*|дорог\w*|шоссе|железн\w*\s+дорог\w*))?|переход\w*\s+через\s+дорог\w*\s+исключен\w*|не (?:переход\w*|пересек\w*)(?:\s+\w+){0,3}\s+(?:дорог\w*|трасс\w*|шоссе|улиц\w*)|переход\w*[^,;.!?]{0,60}(?:не должно|не будет|нет)", []),
             ]:
                 for extra in re.finditer(pattern, text):
                     consumed.append((extra.start(), extra.end()))
@@ -715,7 +759,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         same_priority = [extra for atom_soft, extra in measurements if atom_soft == soft]
         replaces_default = any(extra.field == criterion.field or
                                spec.id in {'beach_walk', 'night_pharmacy'} and {extra.field, criterion.field} <= {'minutes', 'distance_m'} or
-                               criterion.field == 'available' and spec.id in {'quiet_night', 'family_nearby', 'night_pharmacy'}
+                               criterion.field == 'available' and spec.id in {'quiet_night', 'family_nearby', 'night_pharmacy', 'morning_sun'}
                                for extra in same_priority)
         if own_measurement is None and replaces_default:
             group = parsed.nice if soft else parsed.must
@@ -732,7 +776,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         if any(c.field == absence and c.value is False for absence, positives in presence_fields.items()
                if any(other.field in positives for other in hard) for c in hard):
             warnings.append('Обязательные условия противоречат друг другу: «' + spec.name_ru + '». Уточните, нужно ли это условие.')
-    residual = list(text)
+    residual = list(source_text)
     for start, end in consumed:
         residual[start:end] = " " * (end-start)
     for marker in re.finditer(SOFT, text):
@@ -765,8 +809,11 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
     parsed.clarifications = list(dict.fromkeys(parsed.clarifications))[:2]
     for group in (parsed.must, parsed.nice):
         group[:] = [c for c in group if not (c.characteristic_id == 'room_orientation' and c.field == 'available'
-                    and c.value is True and any(other.characteristic_id == c.characteristic_id and other.field == 'balcony'
-                                               and other.scope == c.scope for other in group))]
+                    and c.value is True and any(other is not c and other.scope == c.scope and (
+                        other.characteristic_id == c.characteristic_id and other.field == 'balcony'
+                        or c.scope is not None and other.characteristic_id != c.characteristic_id
+                        and next((s.scope != 'hotel' for s in catalog if s.id == other.characteristic_id), False))
+                        for other in group))]
         unique = {}
         for criterion in group:
             key = json.dumps(criterion.model_dump(exclude={'label', 'weight'}, mode='json'), sort_keys=True)
