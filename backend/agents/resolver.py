@@ -64,7 +64,10 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
         # An explicit null availability is a data gap, not a vote for false.
         valid = [claim for claim in valid if claim.value is not None and not (isinstance(claim.value, dict) and "available" in claim.value and claim.value["available"] is None)]
         if not valid:
-            facts.append(Fact(id=id, hotel_id=hotel_id, characteristic_id=characteristic_id, scope=scope))
+            partial = max(group, key=lambda claim: claim.observed_at)
+            facts.append(Fact(id=id, hotel_id=hotel_id, characteristic_id=characteristic_id, scope=scope,
+                              value=partial.value, supporting_claim_ids=[partial.id], evidence=partial.evidence,
+                              valid_until=partial.valid_until, synthetic=partial.synthetic))
             continue
         buckets = defaultdict(list)
         for claim in valid:
