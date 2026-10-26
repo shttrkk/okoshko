@@ -91,6 +91,16 @@
               ],
               "title": "Month"
             }
+          },
+          {
+            "name": "compact",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Compact"
+            }
           }
         ],
         "responses": {
@@ -100,6 +110,57 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HotelDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hotels/{hotel_id}/facts/{fact_id}/evidence": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Fact Evidence",
+        "operationId": "fact_evidence_api_hotels__hotel_id__facts__fact_id__evidence_get",
+        "parameters": [
+          {
+            "name": "hotel_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hotel Id"
+            }
+          },
+          {
+            "name": "fact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Fact Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FactEvidence"
                 }
               }
             }
@@ -172,6 +233,16 @@
             "schema": {
               "type": "string",
               "title": "Hotel Id"
+            }
+          },
+          {
+            "name": "compact",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Compact"
             }
           }
         ],
@@ -251,6 +322,16 @@
               ],
               "title": "Month"
             }
+          },
+          {
+            "name": "compact",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Compact"
+            }
           }
         ],
         "responses": {
@@ -280,6 +361,18 @@
         ],
         "summary": "Compare Parsed",
         "operationId": "compare_parsed_api_compare_post",
+        "parameters": [
+          {
+            "name": "compact",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Compact"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2941,6 +3034,26 @@
         ],
         "title": "Fact"
       },
+      "FactEvidence": {
+        "properties": {
+          "fact": {
+            "$ref": "#/components/schemas/Fact"
+          },
+          "claims": {
+            "items": {
+              "$ref": "#/components/schemas/Claim"
+            },
+            "type": "array",
+            "title": "Claims"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "fact"
+        ],
+        "title": "FactEvidence"
+      },
       "FieldUpdate": {
         "properties": {
           "characteristic_id": {
@@ -3510,6 +3623,13 @@
             },
             "type": "array",
             "title": "No Data"
+          },
+          "no_data_must": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array",
+            "title": "No Data Must"
           }
         },
         "additionalProperties": false,
@@ -3681,6 +3801,13 @@
             },
             "type": "array",
             "title": "No Data"
+          },
+          "no_data_must": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array",
+            "title": "No Data Must"
           }
         },
         "additionalProperties": false,

@@ -2701,6 +2701,13 @@
         },
         "title": "No Data",
         "type": "array"
+      },
+      "no_data_must": {
+        "items": {
+          "$ref": "#/$defs/Criterion"
+        },
+        "title": "No Data Must",
+        "type": "array"
       }
     },
     "required": [
@@ -2955,6 +2962,13 @@
               "$ref": "#/$defs/Criterion"
             },
             "title": "No Data",
+            "type": "array"
+          },
+          "no_data_must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data Must",
             "type": "array"
           }
         },
@@ -3467,6 +3481,13 @@
               "$ref": "#/$defs/Criterion"
             },
             "title": "No Data",
+            "type": "array"
+          },
+          "no_data_must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data Must",
             "type": "array"
           }
         },
@@ -4642,6 +4663,13 @@
               "$ref": "#/$defs/Criterion"
             },
             "title": "No Data",
+            "type": "array"
+          },
+          "no_data_must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data Must",
             "type": "array"
           }
         },
@@ -7748,6 +7776,13 @@
               "$ref": "#/$defs/Criterion"
             },
             "title": "No Data",
+            "type": "array"
+          },
+          "no_data_must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data Must",
             "type": "array"
           }
         },

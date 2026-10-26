@@ -104,6 +104,7 @@ export interface ParsedQuery {
   similar_to_name?: string | null;
   /** Recognised, but the demo region has no data, so they are not ranked. */
   no_data?: Criterion[];
+  no_data_must?: Criterion[];
 }
 export interface Verdict {
   characteristic_id: string;

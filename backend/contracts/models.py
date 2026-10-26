@@ -269,6 +269,7 @@ class ParsedQuery(Model):
     similar_to_name: str | None = None
     # Recognized conditions without any data in the demo region; not used for ranking.
     no_data: list[Criterion] = Field(default_factory=list)
+    no_data_must: list[Criterion] = Field(default_factory=list)
 
 
 class SearchRequest(Model):
