@@ -45,13 +45,15 @@ _ORDINAL_WORDS = {
 }
 _CARDINAL_VALUES = {word: number for number, forms in _NUMBER_WORDS.items() for word in forms.split('|')}
 _CARDINAL_TOKEN = '(?:' + '|'.join(sorted(_CARDINAL_VALUES, key=len, reverse=True)) + ')'
-_QUANTITY_UNIT = r'(?:мин(?:ут\w*)?\b|метр\w*|м\b|километр\w*|км\b|час\w*|кг\b|килограмм\w*|градус\w*|мбит|mbps|этаж\w*)'
+_QUANTITY_UNIT = r'(?:мин(?:ут\w*)?\b|метр\w*|м\b|километр\w*|км\b|час\w*|кг\b|килограмм\w*|градус\w*|мбит|mbps|этаж\w*|заведени\w*)'
 
 
 def _cardinal_number(words: list[str]) -> int | None:
     values = [_CARDINAL_VALUES[word] for word in words]
     if len(values) == 1:
         return values[0]
+    if values == [1, 1000]:
+        return 1000
     total = 0
     if values and 100 <= values[0] <= 900 and values[0] % 100 == 0:
         total = values.pop(0)
@@ -72,7 +74,16 @@ def _normalize_cardinals(text: str) -> str:
     return re.sub(pattern, replacement, text)
 _TRANSLATIONS = (
     (r'\bno need (?:for )?(?:wi[ -]?fi|internet)\b', 'интернет не нужен'),
-    (r'\bsea view\b', 'вид на море'),
+    (r'\b(?:sea|ocean) view\b', 'вид на море'),
+    (r'\bmorning sun(?:shine)?\b', 'утреннее солнце'),
+    (r'\bstep[- ]free\b', 'без лестниц'),
+    (r'\bsandy beach\b', 'песчаный пляж'),
+    (r'\ba park\b|\bpark(?=\s+(?:nearby|within))', 'парк'),
+    (r'\bnearby\b', 'рядом'),
+    (r'\bwould be (?:a bonus|nice)\b', 'желательно'),
+    (r'\bessential\b', 'обязательно'),
+    (r'\bremote work\b', 'удаленная работа'),
+    (r'\b(?:i )?need\b', 'нужно'),
     (r'\bmountain view\b', 'вид на горы'),
     (r'\bsunset view\b', 'вид на закат'),
     (r'\bquiet (?:room|hotel)\b', 'тихий номер'),
@@ -105,6 +116,9 @@ def normalize_query_text(value: str) -> str:
     text = re.sub(r'\bвай[ -]?фай\b', 'wi-fi', text)
     text = re.sub(r'\bтишын([ауые])\b', r'тишин\1', text)
     text = re.sub(r'\bшумоизляц(\w*)\b', r'шумоизоляц\1', text)
+    text = re.sub(r'\bпорковк(\w*)\b', r'парковк\1', text)
+    text = re.sub(r'\bутренее\b', 'утреннее', text)
+    text = re.sub(r'(?<=\d)\s*m\b', ' м', text)
     for pattern, replacement in _TRANSLATIONS:
         text = re.sub(pattern, replacement, text)
     for english, russian in zip(_ENGLISH_MONTHS, _RUSSIAN_MONTHS, strict=True):
@@ -113,12 +127,25 @@ def normalize_query_text(value: str) -> str:
     text = re.sub(r'\bчетверт[ьи]\s+часа\b', '15 минут', text)
     text = re.sub(r'\bполукилометр\w*\b', '0,5 км', text)
     text = _normalize_cardinals(text)
+    # An explicit correction replaces the rejected measurement, not its unit.
+    units = r'(?:дб|метр\w*|м|км|минут\w*|мбит/с|mbps)'
+    text = re.sub(r'\bне\s+\d+(?:[.,]\d+)?\s*(?P<unit>' + units + r')\s*,\s*а\s+(?P<correct>\d+(?:[.,]\d+)?\s*(?P=unit))\b',
+                  lambda m: m['correct'], text)
     for number, words in sorted(_ORDINAL_WORDS.items(), reverse=True):
         suffixes = r'(?:ый|ой|ого|ому|ом|ая|ую|ое|ые|ых|ыми)'
         if number == 3:
             suffixes = r'(?:ий|ьего|ьему|ьем|ья|ью)'
         words = words.removesuffix(r'\w*') + suffixes
         text = re.sub(r'\b(?:' + words + r')\b(?=\s+этаж)', str(number), text)
+    def floor_pair(match):
+        bounds = []
+        for word in (match['low'], match['high']):
+            number = next((n for n, pattern in _ORDINAL_WORDS.items() if re.fullmatch(pattern, word)), None)
+            if number is None:
+                return match[0]
+            bounds.append(number)
+        return f'этаж с {bounds[0]} по {bounds[1]} этажа'
+    text = re.sub(r'\bэтаж\w*\s+(?:допустим\w*\s+)?со?\s+(?P<low>[а-я]+)\s+по\s+(?P<high>[а-я]+)\b', floor_pair, text)
     return text
 
 
@@ -128,6 +155,67 @@ def clause_bounds(text: str, start: int, end: int) -> tuple[int, int]:
     left = max((match.end() for match in re.finditer(separators, text[:start])), default=0)
     right = next((end + match.start() for match in re.finditer(separators, text[end:])), len(text))
     return left, right
+
+
+_QUOTED = r'«[^»]+»|"[^"\n]+"|“[^”]+”|(?<!\w)\'[^\'\n]+\'(?!\w)'
+_HOTEL_REQUEST = (r'\b(?:ищ\w*|найди\w*|подбер\w*|выбира\w*|брониру\w*|хочу|хотим|нуж\w*)'
+                  r'\s+(?:\w+\s+){0,5}(?:отел\w*|номер\w*|гостиниц\w*|жиль\w*)\b')
+_LANGUAGE_TASK = (r'\b(?:словосочетани\w*|слов[аоеу]|словах|выражени\w*|грамматик\w*|'
+                  r'орфограф\w*|пунктуац\w*|запят\w*|числительн\w*|аббревиатур\w*|'
+                  r'перевести|перевод\w*|расшифров\w*|библиограф\w*|алфавит\w*|'
+                  r'vocabulary|translate|adjective|homework)\b')
+_DOCUMENT_TASK = (r'\b(?:редактир\w*|перепиш\w*|сократ\w*|подпис\w*|заголов\w*|'
+                  r'шрифт\w*|логотип\w*|эмблем\w*|этикет\w*|резюме|учебник\w*|'
+                  r'урок\w*|реферат\w*|чертеж\w*|нарисова\w*|стенгазет\w*)\b')
+_OTHER_OBJECT = (r'\b(?:наушник\w*|микрофон\w*|роутер\w*|прошивк\w*|терминал\w*|'
+                 r'хостинг\w*|домен\w*|шина\w*|steam|робот\w*|игрушечн\w*)\b')
+_CURRENT_REQUIREMENT = r'\b(?:хочу|хотим|нуж\w*|ищу|ищем|требу\w*|необходим\w*|долж\w*|хотелось|предпоч\w*)\b'
+_REPORTED_CONTEXT = r'\b(?:раньше|вспомина\w*|рассказ\w*|в прошлом|обсужда\w*|упомина\w*|работал[аи]?|прочита\w*)\b'
+
+
+def search_context_text(text: str) -> str:
+    """Mask explicit non-search discourse while retaining offsets and bare queries.
+
+    A quoted preference is evidence only when the writer adopts it as a hotel
+    request. Language tasks, document editing, device properties and reported
+    speech do not establish a hotel requirement. This deliberately does not
+    demand a verb from short catalogue-shaped requests such as 'парковка рядом'.
+    """
+    result = list(text)
+    separators = r'(?<!\d)\.(?!\d)|[;!?\n]'
+    boundaries = [0, *[m.end() for m in re.finditer(separators, text)], len(text)]
+    for left, right in zip(boundaries, boundaries[1:], strict=False):
+        segment = text[left:right]
+        quotes = list(re.finditer(_QUOTED, segment))
+        unquoted = re.sub(_QUOTED, lambda m: ' ' * len(m[0]), segment)
+        hotel_request = bool(re.search(_HOTEL_REQUEST, unquoted))
+        language_task = bool(re.search(_LANGUAGE_TASK, unquoted))
+        document_task = bool(re.search(_DOCUMENT_TASK, unquoted))
+        document_task |= bool(quotes and re.search(r'\b(?:упаковк\w*|корм\w*|этикет\w*)\b', unquoted))
+        other_object = bool(re.search(_OTHER_OBJECT, unquoted))
+        reported = bool(re.search(r'\b(?:написал\w*|сказал\w*|обсужда\w*|цитир\w*|называ\w*)\b', unquoted))
+        narrative = bool(re.search(_REPORTED_CONTEXT, unquoted))
+        current_requirement = bool(re.search(_CURRENT_REQUIREMENT, unquoted))
+        if not hotel_request and (language_task or document_task or other_object or narrative and not current_requirement):
+            result[left:right] = ' ' * (right-left)
+        elif quotes and (language_task or document_task or reported):
+            for quoted in quotes:
+                result[left+quoted.start():left+quoted.end()] = ' ' * len(quoted[0])
+    # Mixed discourse can place a genuine request after a comma. Reject the
+    # reported/device clause without suppressing the neighbouring requirement.
+    masked = ''.join(result)
+    boundaries = [0, *[m.end() for m in re.finditer(r'(?<!\d)[,.]|[,.](?!\d)|[;!?]', masked)], len(masked)]
+    for left, right in zip(boundaries, boundaries[1:], strict=False):
+        clause = masked[left:right]
+        reported = re.search(_REPORTED_CONTEXT, clause)
+        adopted = re.search(_CURRENT_REQUIREMENT, re.sub(_QUOTED, lambda m: ' ' * len(m[0]), clause))
+        if reported and adopted and reported.start() < adopted.start():
+            result[left:left+adopted.start()] = ' ' * adopted.start()
+            continue
+        if re.search(_OTHER_OBJECT, clause) and not re.search(_HOTEL_REQUEST, clause) or (
+                reported and not adopted):
+            result[left:right] = ' ' * (right-left)
+    return ''.join(result)
 
 
 def facade_is_explicit(text: str, match: re.Match) -> bool:
@@ -182,6 +270,11 @@ def valid_intent_match(cid: str, text: str, match: re.Match) -> bool:
     if cid == 'family_nearby' and re.search(r'инвалидн\w*\s+коляск\w*|кресл\w*[ -]коляск\w*', clause) and not re.search(
             r'\bдет\w*|ребен\w*|малыш\w*', clause):
         return False
+    if cid in {'family_nearby', 'beach_walk'} and re.search(r'проезд\s+коляск\w*|тег\w*\s+доступност\w*|инвалидн\w*\s+коляск\w*', clause):
+        if cid == 'family_nearby' and not re.search(r'\bдет\w*|ребен\w*|малыш\w*', clause):
+            return False
+        if cid == 'beach_walk' and not re.search(r'\d+(?:[.,]\d+)?\s*(?:минут\w*|час\w*|метр\w*|км\b|м\b)', clause):
+            return False
     if cid == 'family_nearby' and re.search(r'\b(?:не\s+(?:едем|поедем|берем|возьмем)|без\s+дет\w*)\b|дет\w*\s+не\s+(?:берем|едут|поедут)', clause):
         return False
     if cid == 'pets' and (re.search(r'\b(?:дома|родител\w*|остав\w*|остает\w*)\b', clause)
@@ -190,7 +283,11 @@ def valid_intent_match(cid: str, text: str, match: re.Match) -> bool:
         return False
     if cid == 'connectivity' and re.search(r'работ\w*\s+(?:художник\w*|рецепц\w*|ресепш\w*|над\s+ошибк\w*)', clause):
         return False
+    if cid == 'connectivity' and re.search(r'\b(?:гора|куча|много)\s+работы\b', clause) and not re.search(r'интернет|wi[ -]?fi|удален', clause):
+        return False
     if cid == 'connectivity' and re.search(r'удален\w*\s+(?:от|фотограф\w*)', clause):
+        return False
+    if cid == 'connectivity' and re.search(r'\b(?:разда\w*|сво[йяе]\w*)\b[^,;.!?]{0,35}(?:wi[ -]?fi|интернет)', clause):
         return False
     if cid == 'building_history' and not re.search(r'здани\w*|особняк\w*|отел\w*|гостиниц\w*|архитектур\w*', clause):
         return False

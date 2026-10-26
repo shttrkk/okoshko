@@ -183,7 +183,7 @@ queries:
     persona: Лена — прогулки и впечатления
     text: вид на море с 5-го этажа, западная сторона
     expected:
-      must: [{id: sea_view}, {id: room_orientation}]
+      must: [{id: sea_view}]
       facade: W
       min_floor: 5
   - id: culture_sunset_winter

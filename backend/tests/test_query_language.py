@@ -131,7 +131,7 @@ def test_adult_wheelchair_does_not_invent_a_family_persona(catalog):
     parsed = parse_query(SearchRequest(text='до пляжа на инвалидной коляске'), catalog)
     assert 'family_nearby' not in {c.characteristic_id for c in parsed.must}
     assert parsed.persona is None
-    assert any(c.characteristic_id == 'beach_walk' and c.no_stairs for c in parsed.must)
+    assert [(c.characteristic_id, c.field, c.value) for c in parsed.must] == [('accessible_route', 'available', True)]
 
 
 def test_pet_staying_home_does_not_set_a_pet_persona_or_weight(catalog):
