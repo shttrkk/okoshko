@@ -4,23 +4,49 @@ Pipeline нужен для обновления данных разработч�
 
 ## Запуск
 
-Проверено на macOS arm64, Python 3.13. Контракты приложения совместимы с Python 3.12. Для подготовки данных нужны интернет, около 2–3 ГБ памяти и несколько ГБ свободного диска; в runtime тяжёлые зависимости pipeline не нужны.
+Полный pipeline запускается в отдельном `Dockerfile.pipeline`: Python **3.12.15 slim-bookworm**, целевая платформа **linux/amd64**, multi-stage, пользователь 10001. Он не использует корневую `.venv` и не добавляет GDAL/инструменты загрузки в runtime-образ приложения. Для подготовки данных нужны интернет, несколько ГБ памяти и свободного диска; вычисления всех 250 отелей могут занять длительное время. На arm64 Docker использует эмуляцию amd64.
 
 ```sh
-python3 -m venv .venv
-.venv/bin/pip install --require-hashes -r pipeline/requirements.lock
-.venv/bin/python -m pipeline.run --region pipeline/regions/sochi.yaml
+docker build --platform linux/amd64 -f Dockerfile.pipeline -t okno-pipeline .
+docker run --rm --platform linux/amd64 \
+  --user "$(id -u):$(id -g)" \
+  --mount "type=bind,src=$PWD/data,dst=/app/data" \
+  okno-pipeline --region pipeline/regions/sochi.yaml --dry-run
 ```
 
-Эквивалентная переменная окружения:
+Полная пересборка из открытых источников — та же команда **без `--dry-run`**. Она изменяет производные файлы в `data`; существующий raw cache читается там же. `--user` сохраняет владельца bind-mounted файлов на POSIX-хосте; образ по умолчанию также работает без root. `REGION` можно передать через `--region` либо `docker run -e REGION=...`.
+
+`pipeline.rebuild` исполняет следующую последовательность и печатает её до запуска:
+
+```text
+fetch_osm → fetch_overture → merge_hotels → fetch_dem → build_dsm
+→ fetch_open → fetch_ookla → fetch_tiles → export_seed
+→ compute_views (все 250) → compute_runtime_cache (герой)
+→ compact_seed → validate → compute_validate
+```
+
+`fetch_dem` сначала сохраняет TIFF и добавляет высоты в пеший граф. `build_dsm` получает **оба явных пути** `data/raw/Copernicus_DSM_COG_10_N43_00_E039_00_DEM.tif` и `...E040...tif`, проверяет их размеры и SHA-256 по download metadata и вызывает `pipeline.build_dsm.convert(..., output=data/geo/terrain_30m.npz, bbox=[39.35,43.10,40.45,43.98], resolution=30)`. Только после этого `compute_views` строит локальные DSM, виды, закат, шум и маршруты для полного списка отелей. Отдельных шагов `compute_sun/noise/walk` в реализации нет: они входят в этот расчёт. `export_seed` выполняется до geo, чтобы нормализация входов не инвалидировала новые claims. Упаковка после geo сохраняет хеши исходных байтов.
+
+По умолчанию LOS cache создаётся только для demo-героя `osm-node-10058556917`. Для другого отеля передают `--cache-hotel-id ID` (можно повторять); `--all-runtime-caches` явно включает все подходящие отели и требует существенно больше места. Все **geo claims 250 отелей** рассчитываются независимо от этого выбора. Отель без сохранённого LOS cache использует полный региональный пересчёт.
+
+`--compact-geo` включает отдельный optional offline hook `python -m pipeline.compact_geo --data-dir data --apply` после `compute_views` и перед LOS cache/валидацией. Он предназначен для lossless упаковки per-hotel output NPZ, сохраняя массивы и физические terrain/LOS inputs. `--apply` передаётся явно: без него сам `compact_geo` только показывает план. По умолчанию hook выключен; для его включения модуль `pipeline.compact_geo` должен быть включён в исходники образа. `pipeline.rebuild --compact-geo --dry-run` явно показывает включённый шаг и полную команду, не исполняя её.
+
+Проверка включённых результатов без сети и без изменений в `data`:
 
 ```sh
-REGION=pipeline/regions/sochi.yaml .venv/bin/python -m pipeline.run
+docker run --rm --platform linux/amd64 --network none \
+  --read-only --tmpfs /tmp \
+  --mount "type=bind,src=$PWD/data,dst=/app/data,readonly" \
+  okno-pipeline --validate-only
 ```
 
-Корневой `make pipeline REGION=pipeline/regions/sochi.yaml` может вызывать эту команду. Параметры bbox, доли портфеля, PBF snapshot, Overture release, DEM tiles, допущения высот, погодные точки и периоды находятся в YAML. Для другого региона создают конфиг с такими же полями A/B и проверяют покрытие источников. У `portfolio_ids.json` есть поле региона: фиксированный список Сочи применяется только к этому региону. Смена целевого состава Сочи требует явной правки этого списка и повторного аудита, чтобы обновление источника не меняло демонстрационные ID молча.
+`--validate-only` проверяет seed, 250 geo snapshot, claims, provenance и имеющиеся LOS cache; новые cache не создаются, отчёты не сохраняются поверх поставки. `--from-cache` означает **пересчёт geo из уже экспортированных seed/tiles и cached DEM TIFF**, а не восстановление seed из PBF/Parquet. Перед расчётом seed и DEM проходят проверку; пропущенные скачивания не объявляются выполненными. Этот режим запускают с `--network none`, RW mount `data` и при необходимости отдельным read-only mount raw cache в `/app/data/raw`. Он всё равно пересчитывает все geo outputs, поэтому его не запускают для простой проверки поставки.
 
-Отдельные этапы:
+`--from-stage NAME --to-stage NAME` ограничивает диапазон и требует готовых входов предыдущих шагов; он не загружает пропущенные зависимости. `--workers N` управляет числом fork workers в `compute_views`. Полный и частичный план можно посмотреть через `--dry-run`, справку — через `--help`. Для нового региона нужен явный `--terrain-bbox WEST SOUTH EAST NORTH`; параметры портфеля, snapshots и DEM tiles берутся из YAML. У `portfolio_ids.json` есть поле региона: фиксированный список Сочи применяется только к этому региону. Смена состава Сочи требует явной правки этого списка и повторного аудита.
+
+Хеши lock фиксируют окружение, но полный rebuild создаёт новые `computed_at`, claim IDs и retrieval metadata. Побайтного совпадения исторических JSON snapshot и одинаковых floating-point результатов между прежним macOS окружением и Linux не обещаем. Включённые результаты не перегенерируются автоматически при старте приложения.
+
+Старый `pipeline.run` оставлен для отдельных этапов подготовки открытых данных; он **не является полным geo rebuild**. Для него требуется то же объединённое окружение `pipeline/rebuild.lock`:
 
 ```sh
 .venv/bin/python -m pipeline.run --stage fetch_osm
@@ -33,6 +59,25 @@ REGION=pipeline/regions/sochi.yaml .venv/bin/python -m pipeline.run
 .venv/bin/python -m pipeline.run --stage export_seed
 .venv/bin/python -m pipeline.run --stage validate
 ```
+
+## Окружение и совместимость
+
+`pipeline/rebuild.in` включает `backend/requirements.in` и только дополнительные `duckdb`, `osmium`, `requests`, `rasterio`, `pmtiles` из acquisition pipeline. Поэтому общие `pydantic==2.11.4`, `shapely==2.1.0`, `pyproj==3.7.1`, `PyYAML==6.0.2`, `numpy==2.2.5`, `numba==0.61.2` и `astral==3.2` совпадают с runtime direct pins. Старый `pipeline/requirements.lock` описывает прежнее окружение acquisition и не используется Docker rebuild; runtime lock не меняется.
+
+Официальная [матрица Numba 0.61.2](https://numba.readthedocs.io/en/0.61.2/user/installing.html#version-support-information) поддерживает Python 3.12; [release notes](https://numba.readthedocs.io/en/0.61.2/release/0.61.2-notes.html) подтверждают NumPy 2.2. [Rasterio 1.5.2](https://pypi.org/project/rasterio/1.5.2/) требует Python ≥3.12 и NumPy ≥2. Его Linux wheels включают GDAL; Docker устанавливает только wheels с `--only-binary=:all:` и проверяет все SHA-256 через `--require-hashes`.
+
+Базовый Python-образ дополнительно закреплён digest. Системная библиотека `libexpat1=2.5.0-1+deb12u5` берётся из Debian bookworm-security: она нужна GDAL wheel для импорта в slim-образе. При обновлении образа проверяют и этот pin; runtime Dockerfile не меняется.
+
+Обновление объединённого lock выполняется отдельно от runtime. В Python 3.12 окружении с `pip-tools==7.6.2` и `pip-audit==2.10.1`:
+
+```sh
+python -m piptools compile --generate-hashes --strip-extras \
+  --no-emit-index-url --no-emit-trusted-host \
+  --output-file pipeline/rebuild.lock pipeline/rebuild.in
+python -m pip_audit --disable-pip --no-deps -r pipeline/rebuild.lock
+```
+
+`pip-compile` следует запускать в целевом Python/платформе при изменении зависимостей: [документация pip-tools](https://pip-tools.pypa.io/en/stable/) объясняет зависимость environment markers от окружения. Приёмка образа включает импорты бинарных модулей и `--validate-only` на Linux amd64.
 
 `fetch_osm` должен предшествовать `fetch_overture`: второй этап добавляет только действительно дополнительные footprints. Повторные этапы читают кэш с URL, временем получения, ETag, размером и SHA256. `fetch_overture` делает отдельный Parquet bbox scan для каждой зоны: один OR-предикат в DuckDB приводил к существенно большим сетевым чтениям. Overpass не используется. Сетевые сбои не заменяются синтетическими значениями.
 
@@ -99,12 +144,13 @@ Seed GeoJSON физически хранятся только в `.geojson.gz`, 
 ## Проверки и безопасность
 
 ```sh
-.venv/bin/python -m pipeline.validate
-.venv/bin/python -m compileall -q pipeline
-.venv/bin/pip install --dry-run --require-hashes -r pipeline/requirements.lock
-.venv/bin/pip-audit --disable-pip --no-deps -r pipeline/requirements.lock --format json --output pipeline/dependency_audit.json
+docker run --rm --platform linux/amd64 --network none --read-only --tmpfs /tmp \
+  --mount "type=bind,src=$PWD/data,dst=/app/data,readonly" okno-pipeline --validate-only
+python -m compileall -q pipeline
+python -m pip install --dry-run --only-binary=:all: --require-hashes -r pipeline/rebuild.lock
+python -m pip_audit --disable-pip --no-deps -r pipeline/rebuild.lock --format json --output /tmp/okno-rebuild-audit.json
 ```
 
 `validation.json` подтверждает Hotel/Source/Claim модели, уникальность ID, ровно две CSV-колонки, `gzip mtime=0`, геометрии, непустую provenance, ссылки всех рёбер и DEM coverage, существование evidence artifacts, физические и исходные SHA256 manifest и предел **<50 MB на файл**. Наибольший включённый seed/tiles файл — `city.pmtiles`, 7 536 245 байт; `buildings.geojson.gz` занимает 4 686 376 байт. `pipeline.compute_validate` дополнительно проверяет исходные GeoJSON-хеши в каждом из 250 geo snapshot и 20 340 claims. Проверка не является измерением точности гостиничных характеристик.
 
-`requirements.in` содержит прямые зависимости; `requirements.lock` получен `pip-compile --generate-hashes` и фиксирует все транзитивные версии и hashes. **pip-audit 2.10.1 от 26.10.2026: 22 пакета, известных уязвимостей не найдено**; машинный отчёт — `pipeline/dependency_audit.json`. Утилита go-pmtiles 1.31.2 загружается только с официального GitHub release и проверяется по заранее записанному SHA256 издателя **до распаковки и запуска**. SHA для Darwin/Linux arm64/x86_64 находятся в `fetch_tiles.py`; URL и проверенный digest сохранены в manifest. Shell installers и `curl | sh` отсутствуют.
+Объединённый `rebuild.lock` получен `pip-compile --generate-hashes`: **pip-audit 2.10.1 от 26.10.2026, 45 пакетов, известных уязвимостей не найдено**. На Linux amd64 проверены импорты, Numba known-answer LOS, чтение исходного DEM TIFF и offline/read-only `--validate-only`: 250 отелей, 20 340 geo claims, один существующий LOS cache. Полный online rebuild при этой проверке не запускался, большие данные не пересчитывались. Старый машинный отчёт `pipeline/dependency_audit.json` относится к acquisition-окружению `requirements.lock` (22 пакета). Утилита go-pmtiles 1.31.2 загружается только с официального GitHub release и проверяется по заранее записанному SHA256 издателя **до распаковки и запуска**. SHA для Darwin/Linux arm64/x86_64 находятся в `fetch_tiles.py`; URL и проверенный digest сохранены в manifest. Shell installers и `curl | sh` отсутствуют.
