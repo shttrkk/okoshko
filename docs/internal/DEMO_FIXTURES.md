@@ -48,3 +48,9 @@ CLI не создаёт claims, ответы, паспорта или событ
 - `osm-node-10574252909` — Relax club exsclusive: seed 42, private profile `demo-restricted`, вымышленный запрет питомцев.
 
 Оба результата заранее объявлены synthetic truth, не выведены из реальных удобств. Войти `hotelier / hotelier123`, выбрать один из этих отелей, открыть помеченный demo-вопрос, нажать «Симулировать», просмотреть цитаты/поля и отдельно подтвердить. До confirm нового claim нет. Обычные два simulator profiles не менялись. Папка profiles и builder остаются приватными; public envelope содержит лишь самодостаточные synthetic диалоги и provenance, без публикации приватного truth-каталога.
+
+## Паспорт и ограничения маршрута
+
+Подтверждение и уведомления используют один `_comparison`: основное сравнение времени/значения объединено с публичным S5 helper `route_constraints(fact, criterion)` через трёхзначный AND. Известные лестницы или переходы отклоняют соответствующий запрет, отсутствующие теги остаются unknown. `no_stairs`/`no_crossings` сохраняются в `passport_items.criteria`; даже при основном `field=available` неизвестный тег не разрешает обойти ограничение локальным generic confirm. Известное несоответствие числовому порогу остаётся отказом, даже если другой route tag неизвестен. Изменение подтверждённого маршрута на `has_steps=true` или missing переводит критичное ожидание в `at_risk` через тот же predicate и только локальное уведомление.
+
+Проверки включают stairs true/false/missing/null, crossings empty/nonempty/missing, основной available вместо minutes, числовое несоответствие при чистом маршруте, сохранение flags, а также реальные notify_passports на тестовом Repository. Shared DB и стенд не изменяются.

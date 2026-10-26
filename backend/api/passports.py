@@ -10,6 +10,7 @@ from threading import RLock
 from fastapi import APIRouter, Depends, HTTPException
 
 from backend.agents.interviewer import stable_id
+from backend.agents.query_match import route_constraints
 from backend.api.hotelier import _get, require_hotelier
 from backend.contracts import (
     Criterion,
@@ -40,10 +41,7 @@ def scopes_compatible(scopes: list[Scope]) -> bool:
     return len(facades) <= 1 and len(room_types) <= 1 and len(months) <= 1 and minimum <= maximum
 
 
-def _comparison(fact: Fact, criterion: Criterion | None = None) -> bool | None:
-    """Three states keep a missing threshold separate from a known rejection."""
-    if fact.status not in {"computed", "confirmed"} or fact.value is None or fact.valid_until and fact.valid_until <= now():
-        return None
+def _value_comparison(fact: Fact, criterion: Criterion | None = None) -> bool | None:
     value = fact.value
     field = criterion.field or "available" if criterion else "available"
     actual = value
@@ -84,6 +82,17 @@ def _comparison(fact: Fact, criterion: Criterion | None = None) -> bool | None:
     if isinstance(actual, str) and isinstance(target, str):
         return actual.casefold() == target.casefold()
     return actual == target
+
+
+def _comparison(fact: Fact, criterion: Criterion | None = None) -> bool | None:
+    """Conjoin the numeric/boolean condition with known route constraints."""
+    if fact.status not in {"computed", "confirmed"} or fact.value is None or fact.valid_until and fact.valid_until <= now():
+        return None
+    primary = _value_comparison(fact, criterion)
+    route = route_constraints(fact, criterion) if criterion else True
+    # A known violation wins over another unknown; missing tags never imply
+    # that stairs or crossings are absent. Notifications reuse this predicate.
+    return False if primary is False or route is False else None if primary is None or route is None else True
 
 
 def _holds(fact: Fact, criterion: Criterion | None = None) -> bool:
@@ -329,7 +338,8 @@ def passport_action(passport_id: str, request: PassportAction, repo) -> Expectat
                 known_negative = not eligible and any(
                     any(_comparison(fact, criterion) is False for criterion in item_criteria)
                     if item_criteria else _comparison(fact) is False for fact in related)
-                targeted = any((criterion.field or "available") != "available" for criterion in item_criteria)
+                targeted = any((criterion.field or "available") != "available" or criterion.no_stairs or criterion.no_crossings
+                               for criterion in item_criteria)
                 unresolved = not eligible and targeted and not known_negative
                 scope_mismatch = bool(stored.get("scope_conflict")) or not related and any(
                     _all_hold(fact, item_criteria) for fact in all_related)
