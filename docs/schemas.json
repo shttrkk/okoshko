@@ -1750,6 +1750,102 @@
     "type": "object"
   },
   "Question": {
+    "$defs": {
+      "Scope": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "default": "hotel",
+            "enum": [
+              "hotel",
+              "facade",
+              "floor_range",
+              "room_type"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "Scope",
+        "type": "object"
+      }
+    },
     "additionalProperties": false,
     "properties": {
       "id": {
@@ -1823,6 +1919,14 @@
           "type": "string"
         },
         "title": "Evidence Refs",
+        "type": "array"
+      },
+      "requested_scopes": {
+        "items": {
+          "$ref": "#/$defs/Scope"
+        },
+        "maxItems": 8,
+        "title": "Requested Scopes",
         "type": "array"
       },
       "demand_estimate": {
@@ -5667,6 +5771,14 @@
             "title": "Evidence Refs",
             "type": "array"
           },
+          "requested_scopes": {
+            "items": {
+              "$ref": "#/$defs/Scope"
+            },
+            "maxItems": 8,
+            "title": "Requested Scopes",
+            "type": "array"
+          },
           "demand_estimate": {
             "default": 0,
             "title": "Demand Estimate",
@@ -8125,6 +8237,102 @@
     "type": "object"
   },
   "AskRequest": {
+    "$defs": {
+      "Scope": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "default": "hotel",
+            "enum": [
+              "hotel",
+              "facade",
+              "floor_range",
+              "room_type"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "Scope",
+        "type": "object"
+      }
+    },
     "additionalProperties": false,
     "properties": {
       "hotel_id": {
@@ -8134,6 +8342,17 @@
       "characteristic_id": {
         "title": "Characteristic Id",
         "type": "string"
+      },
+      "scope": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/Scope"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
       }
     },
     "required": [

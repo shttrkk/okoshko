@@ -2091,6 +2091,16 @@
           "characteristic_id": {
             "type": "string",
             "title": "Characteristic Id"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Scope"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -4057,6 +4067,14 @@
             },
             "type": "array",
             "title": "Evidence Refs"
+          },
+          "requested_scopes": {
+            "items": {
+              "$ref": "#/components/schemas/Scope"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Requested Scopes"
           },
           "demand_estimate": {
             "type": "integer",

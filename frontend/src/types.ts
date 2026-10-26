@@ -153,6 +153,7 @@ export interface Question {
   id: string;
   hotel_id: string;
   characteristic_ids: string[];
+  requested_scopes?: Scope[];
   text: string;
   hypothesis: string | null;
   options: string[];

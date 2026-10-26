@@ -206,6 +206,7 @@ class Question(Model):
     reason: Literal["unknown", "disputed", "low_confidence", "guest", "conflict"] = "unknown"
     status: Literal["pending", "answered", "expired"] = "pending"
     evidence_refs: list[str] = Field(default_factory=list)
+    requested_scopes: list[Scope] = Field(default_factory=list, max_length=8)
     demand_estimate: int = 0
     demand_synthetic: bool = True
     asked_at: datetime = Field(default_factory=now)
@@ -502,6 +503,7 @@ class ChangeRequest(Model):
 class AskRequest(Model):
     hotel_id: str
     characteristic_id: str
+    scope: Scope | None = None
 
 
 class LoginRequest(Model):
