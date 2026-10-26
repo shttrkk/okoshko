@@ -73,3 +73,7 @@
 - 26.10 15:12 `docker compose up --build -d`: app + PostGIS amd64 запущены; миграция 0001 выполнена.
 - 26.10 `make smoke`: health/status PASS; `pytest`: 4 passed; `ruff`: All checks passed.
 - Ф0 API функциональных маршрутов пока честно возвращает 501, а не выдаёт фикстуры за данные.
+
+- 26.10 15:20 PostgreSQL: в rollback-транзакции проверены запрет UPDATE claims и отказ INSERT без provenance, тестовые строки не сохранены.
+- 26.10 LLM transport: 7 unit tests суммарно; offline запрещает сеть, mock provider проверяет structured cascade и fallback при HTTP 503. Реальный провайдер пока не настроен.
+- Первая волна: S1 скачал Geofabrik 2026-10-25, Overture 264 исходных lodging records и Copernicus tiles; сбор и проверка ещё идут.

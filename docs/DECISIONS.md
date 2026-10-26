@@ -13,3 +13,5 @@
 9. **Без API ключа.** Offline по умолчанию, whitelist инструментов, правила русского языка и cache. Live OpenAI-compatible LLM — опция, сетевых запросов в boot нет.
 10. **Четыре доступных слота.** После Ф0 запускаем три параллельных потока; остальные волнами. Модель всех субагентов строго gpt-6.1-sol, reasoning xhigh, fork none. Каждый поток в worktree со своей зоной, merge и общие контракты у оркестратора.
 
+
+11. **LLM transport:** Chat Completions для совместимости с произвольным провайдером; native JSON Schema → JSON mode → prompted и один bounded repair, все ответы проходят Pydantic. Общий бюджет запроса 2,4 с, ошибка провайдера возвращает deterministic fallback. Формат проверен по [official Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=chat) и [Chat Completions reference](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create). Live сеть не проверена без пользовательского ключа; transport tested MockTransport.
