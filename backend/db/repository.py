@@ -165,6 +165,10 @@ class Repository:
         with psycopg.connect(self.db_url, connect_timeout=3) as conn:
             return conn.execute("SELECT 1").fetchone()[0] == 1
 
+    def expiry_token(self) -> str | None:
+        with psycopg.connect(self.db_url) as conn:
+            return conn.execute("SELECT md5(string_agg(id,',' ORDER BY id)) FROM claims WHERE (payload->>'valid_until')::timestamptz <= now()").fetchone()[0]
+
     def search_facts(self, characteristic_ids: list[str] | None = None, month: int | None = None) -> list[dict]:
         # Keep evidence references, quotes and limitations; omit repeated raw calculation payloads.
         query = """SELECT (payload-'evidence') || jsonb_build_object('evidence', COALESCE(

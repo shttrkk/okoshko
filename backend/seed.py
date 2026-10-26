@@ -94,7 +94,8 @@ def bootstrap_poi(repo,data_dir):
     from backend.contracts import ToolCall, ToolContext
     from backend.tools.registry import Registry
     from backend.tracing import Trace
-    existing = {(claim["hotel_id"],claim["characteristic_id"]) for claim in repo.all("claims") if claim["method"]=="local_poi_lookup@1"}
+    known_claims = repo.all("claims")
+    existing = {(claim["hotel_id"],claim["characteristic_id"]) for claim in known_claims if claim["method"]=="local_poi_lookup@1"}
     hotels = repo.all("hotels")
     kinds = {"night_pharmacy":"pharmacy","family_nearby":"family","car_access":"car"}
     missing = [(hotel,cid,kind) for hotel in hotels for cid,kind in kinds.items() if (hotel["id"],cid) not in existing]
@@ -102,6 +103,7 @@ def bootstrap_poi(repo,data_dir):
         return
     trace = Trace(repo,"backfill",trigger="seed")
     registry = Registry(repo,data_dir)
+    registry._known_claims = {claim["id"]:claim for claim in known_claims}
     registry._hotels = {hotel["id"]:hotel for hotel in hotels}
     values=[]
     for hotel,cid,kind in missing:

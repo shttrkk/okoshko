@@ -41,6 +41,7 @@ class Registry:
     def __init__(self, repo, data_dir: Path = DATA):
         self.repo, self.data_dir = repo, Path(data_dir)
         self._hotels = {}
+        self._known_claims = None
         self.specs = {}
         self.handlers = {}
         schema = {"type":"object", "properties":{"target":{"type":"string","enum":["sea","mountains","landmark","beach"]},
@@ -154,7 +155,7 @@ class Registry:
         evidence.id = "ev-poi-"+identity
         claim = Claim(id="poi-"+identity,hotel_id=context.hotel_id,characteristic_id=context.characteristic_id,value=value,source="osm_geofabrik",method="local_poi_lookup@1",evidence=[evidence],confidence=.65 if value["available"] else .35,
                       observed_at=observed,valid_until=observed+timedelta(days=90),run_id=context.run_id)
-        existing = self.repo.get("claims", claim.id)
+        existing = self._known_claims.get(claim.id) if self._known_claims is not None else self.repo.get("claims", claim.id)
         if existing is not None:
             # Reuse the observation date, not its primary key. Append-only claims
             # retain an explicit supersession chain across manual collections.
