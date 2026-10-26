@@ -5,6 +5,7 @@ ranking; coverage is supplied by the repository and never guessed from language.
 """
 from __future__ import annotations
 
+import json
 import math
 
 from backend.contracts import CharacteristicSpec, Criterion, ParsedQuery
@@ -89,11 +90,13 @@ def _valid_shape(criterion: Criterion, spec: CharacteristicSpec) -> bool:
     return not (criterion.no_stairs or criterion.no_crossings) or spec.id == 'beach_walk'
 
 
-def _meaning(criterion: Criterion, spec: CharacteristicSpec) -> tuple:
+def _meaning(criterion: Criterion, spec: CharacteristicSpec) -> str:
     """Labels and model-selected weights never change the meaning of a condition."""
     data = criterion.model_dump(exclude={'label', 'weight'}, mode='json')
     data['field'] = data['field'] or spec.search.field
-    return tuple((key, repr(value)) for key, value in sorted(data.items()))
+    if isinstance(data['value'], float) and data['value'].is_integer():
+        data['value'] = int(data['value'])
+    return json.dumps(data, ensure_ascii=False, sort_keys=True)
 
 
 def validate_query_plan(plan: ParsedQuery, baseline: ParsedQuery,

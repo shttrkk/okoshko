@@ -92,6 +92,9 @@ def compare_case(row: dict, actual: dict) -> dict:
             expected['clarification_contains'] in value for value in actual.get('clarifications', [])):
         errors.append({'missing_clarification': expected['clarification_contains']})
     return {'id': row['id'], 'text': row['text'], 'split': row['split'], 'exact': not errors,
+            'stage': ('coverage_projection' if row.get('context', {}).get('no_data_ids')
+                      else 'similarity_resolution' if 'similar_to_name' in expected else 'semantic_extraction'),
+            'criteria_exact': not missing and not extra,
             'true_positive': sum((want & got).values()), 'expected_count': sum(want.values()),
             'actual_count': sum(got.values()), 'unmapped_ok': unmapped_ok,
             'has_unmapped': bool(actual.get('unmapped')), 'errors': errors}
@@ -107,6 +110,7 @@ def aggregate(results: list[dict]) -> dict:
             'criterion_precision': round(true_positive/actual, 6) if actual else None,
             'criterion_recall': round(true_positive/expected, 6) if expected else None,
             'criterion_true_positive': true_positive, 'criterion_expected': expected, 'criterion_actual': actual,
+            'criteria_exact_match_rate': round(sum(row['criteria_exact'] for row in results)/total, 6) if total else None,
             'unmapped_expectation_accuracy': round(sum(row['unmapped_ok'] for row in results)/total, 6) if total else None,
             'queries_with_unmapped': sum(row['has_unmapped'] for row in results)}
 
@@ -123,6 +127,8 @@ def evaluate(gold: list[dict], negatives: list[dict], catalog=None, hotels=None)
             'gold': aggregate(results),
             'splits': {split: aggregate([row for row in results if row['split'] == split])
                        for split in sorted({row['split'] for row in results})},
+            'stages': {stage: aggregate([row for row in results if row['stage'] == stage])
+                       for stage in sorted({row['stage'] for row in results})},
             'negative': {'queries': len(negative_results), 'queries_with_false_criteria': false_queries,
                          'false_criteria_rate': round(false_queries/len(negative_results), 6) if negative_results else None,
                          'criteria_emitted': sum(row['actual_count'] for row in negative_results)},

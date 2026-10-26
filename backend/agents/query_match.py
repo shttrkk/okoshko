@@ -14,9 +14,10 @@ from typing import Any
 from backend.contracts import CharacteristicSpec, Criterion, Fact, ParsedQuery
 
 TRUSTED_CONFIDENCE = .7
-ROOM_CHARACTERISTICS = {"sea_view", "sunset_view", "mountain_view", "quiet_night", "soundproofing", "room_orientation"}
+ROOM_CHARACTERISTICS = {"sea_view", "sunset_view", "mountain_view", "quiet_night", "soundproofing", "room_orientation",
+                        'morning_sun', 'evening_heat', 'railway_noise'}
 DEFAULT_FIELDS = {"beach_walk": "minutes", "climate": "water_c", "air_quality": "european_aqi", "connectivity": "download_mbps"}
-MONTHLY = {"climate", "sunset_view", "morning_swim"}
+MONTHLY = {"climate", "sunset_view", "morning_swim", 'morning_sun', 'evening_heat'}
 COMPASS_AZIMUTHS = {side: index * 45 for index, side in enumerate(("N", "NE", "E", "SE", "S", "SW", "W", "NW"))}
 
 
