@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 26.10.2026 20:16 МСК. Интегрированы scoped demo auth, защита LLM и Quality baseline. Python: 365 tests + 125 subtests PASS; frontend lint/build PASS. Следующий P0 — повтор чистого запуска без `.env`.
+Обновлено: 26.10.2026 20:24 МСК. Интегрированы scoped demo auth, защита LLM и Quality baseline. Python: 365 tests + 125 subtests PASS; frontend lint/build PASS. Следующий P0 — повтор чистого запуска без `.env`.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -64,7 +64,7 @@
 - `scripts/audit_repository.py --history`: 12/12 release guards PASS, полная история сохранена.
 - `pytest`: 365 passed + 125 subtests; `ruff`, frontend lint/build PASS после integration 3293368.
 - Security: schema whitelist, no shell/network tools from text, exact secret echo filter, signed tenant scope, SSE cookie и logout. Production SSO, capability revocation и универсальная DLP не заявлены; см. SECURITY.md.
-- Второй регион: изолированный Геленджик, 30 объектов, 2 376 geo + 418 open claims; тайминги/ресурсы оформляются, основной seed Сочи не изменялся.
+- Второй регион интегрирован c7c8ba3/f721305: Геленджик, 30 объектов, 2 376 geo +418 open claims, 14 стадий/1 140,93 с. Geo 373,25 с; warm mean 11,795 с/отель; lifetime RSS 1,81 GB. Sochi seed/geo/tiles не изменялись; readonly/network-none validation обоих регионов PASS.
 - Требуется повтор clean clone: без .env, новый project/пустые volumes, Docker-only PATH, prune, smoke/demo-check/browser. Предыдущий прогон был с .env.example→.env.
 - pytest-cov и make demo-voice интегрированы; 85% line coverage без кода тестов. README provenance обновляется. Голос и публичные URL предоставляет владелец позже; плейсхолдеры сохраняются.
 - Перед финальной упаковкой рабочие reviews/Telegram/blueprint будут убраны из tracked tree с сохранением полной git-истории. Сейчас канал ревью остаётся доступным.
@@ -75,3 +75,5 @@
 - 26.10 19:10: чистый клон 3e3cc92, empty build cache, 139,49 с до health; API smoke, 12 demo-check guards, браузер PASS.
 - 26.10 19:20: REVIEW005 принят; сохранение истории, no.env Docker-only gate и нейтральные PRODUCT/ARCHITECTURE документы.
 - 26.10 20:12: main 3293368: tenant auth, live-mock injection guards, private Changes projections; Quality model baseline/provenance; timed VOICEOVER и lossless mix helper; frontend XSS regression.
+
+- 26.10 20:20: c7c8ba3/f721305, Геленджик — перенос pipeline и реальные resource measurements. Root Ruff и оба dry-run PASS.

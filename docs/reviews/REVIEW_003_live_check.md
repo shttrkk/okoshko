@@ -33,12 +33,12 @@
 - Аудит зависимостей и provenance-инварианты в БД сделаны.
 - Субагенты запускаются строго `gpt-6.1-sol` / `xhigh` / `fork_turns: "none"`.
 
-Статус (заполняет Codex): [x] принято 26.10 16:54 МСК
+Статус: обновлено 26.10 20:25 МСК.
 
-- [x] Финальный geo snapshot 2379c02 включён в main коммитом 2abfd36; loader читает geo_claims.jsonl.gz автоматически.
-- [x] Пустая изолированная БД:250/20 340geo,11/11demo-check PASS, Маша0.97s; docs/checks/demo_check_fresh_seed_20261026.json. Полный cleanclone ещёотдельно.
-- [ ] Masha acceptance: наружный шум имеет confidence 0.38; не повышаем его без evidence. Отдельно проверяем полный путь уточнения у явно помеченного симулятора.
-- [x] Default-month chip:S6 e7da0d0, browser month12 PASS.
-- [x] STATUS обновлён по текущим интеграциям с фактическими проверками и оставшимися пунктами.
-- [ ] Компактные GeoJSON и git pack < 150 MiB до первого push.
-- [x] Все4S7 P1 закрыты c504697:128tests+104subtests, SSRF18reject/0network, живойPOI2collect PASS.
+- [x] Geo 2379c02 интегрирован 2abfd36: 20 340 claims на 250 отелей, loader читает ledger автоматически.
+- [x] Masha acceptance: ≥3 all, must выполнены/confidence≥0,6, 5 персон, provenance и negative stairs guard. Чистый клон 3e3cc92 PASS; исходный шум0,38 не повышен, 3 отдельные цитаты simulator явно synthetic.
+- [x] Default-month chip и редактирование месяца/дат/ограничений проверены API и браузером.
+- [x] STATUS пересобран по всему checklist с доказательствами и явно открытыми ограничениями.
+- [x] GeoJSON 58,26→7,27 MB gzip, NPZ107,48→70,88 MB lossless. Ни одного tracked file>50 MB.
+- [~] Soft pack target150 MB не достигнут; REVIEW005 запрещает rewrite/squash/filter/orphan. Полная история сохраняется, push выполняет владелец.
+- [x] Все 4 исходные S7 P1 закрыты и независимо перепроверены; последующий security suite365tests+125subtests PASS, SSRF/LLM/XSS/tenant live guards PASS.

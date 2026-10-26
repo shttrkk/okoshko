@@ -85,12 +85,12 @@
 - [ ] P0: повтор без `.env`, с Docker-only PATH, новым Compose project и пустыми volumes. Исправлен driver, чтобы не переиспользовать БД предыдущего прогона; ожидается финальная интеграция.
 - [x] Полная история/main/origin сохраняются; squash/filter/orphan/export не выполнялись. Идея компактной копии отменена до реализации; soft pack target 150 MB не достигнут.
 - [ ] P1.3: финальная очистка tracked tree. Reviews/Telegram/blueprint будут архивированы вне продукта после этой волны; история останется. Новая расшифровка не скопирована.
-- [x] P1.4/8: README reuse API, ARCHITECTURE и нейтральный PRODUCT: 04336b9; обновление auth и фактических pipeline timings продолжается.
-- [ ] P1.5: Геленджик. Изолированный полный DAG завершён: 30 отелей, 2 376 geo + 418 open claims; validation и network-none validation PASS. Отчёт и переносимые изменения готовятся. Основной seed Сочи не тронут.
+- [x] P1.4/8: README reuse API, ARCHITECTURE и нейтральный PRODUCT: 04336b9; auth, provenance,85%coverage и фактические pipeline timings добавлены 176104f/8175df3;44file:function и13curl contracts проверены.
+- [x] P1.5: Геленджик. Изолированный полный DAG завершён: 30 отелей, 2 376 geo + 418 open claims; validation и network-none validation PASS. Отчёт и код интегрированы c7c8ba3/f721305; 33,1 минуты из бюджета90, все14 стадий выполнены. Основной seed Сочи не тронут.
 - [x] P1.6: baseline/API/Quality UI интегрированы b861232. Радиус ≤500 м даёт 132 отеля; модель поддерживает compatible море+закат у 60, включая 20 вне радиуса (4 предварительных). Это не конверсия и не проверка реальных окон.
-- [x] P1.7: SECURITY, signed tenant scope, private passport/run/event projection, live-mock injection и XSS regression интегрированы 2dea871/c32baba/3293368. 365 tests +125 subtests, Ruff/frontend lint/build PASS. Совместный live auth smoke идёт.
+- [x] P1.7: SECURITY, signed tenant scope, private passport/run/event projection, live-mock injection и XSS regression интегрированы 2dea871/c32baba/3293368. 365 tests +125 subtests, Ruff/frontend lint/build PASS. Live smoke63fc7b7:23 HTTP checks(7×200/7×403/9×401), nativeSSE/logout, privateUUIDguard и8XSS sinks PASS.
 - [x] P1.9: VOICEOVER на 381 слово, 11 таймкодов; helper b27f4e5, Makefile `demo-voice VOICE=...` добавлен. Проверка техническим тоном: 178,9 с, оригинал и видеопоток неизменны. Голос записывает владелец.
 - [x] P2.10: pytest-cov 7.1.0 с hashed lock. Без кода тестов: 4 597/5 413 строк, 84,925% (85%); `make coverage`, JSON в docs/checks/coverage.json. Coverage не является доказательством функциональной полноты.
 - [x] P2.11: provenance на /quality и в seed eval: 23 734 non-synthetic +10 synthetic из 23 744 известных materialized facts (0,0421% synthetic), mixed3 входит в synthetic; 2 140 unknown/stale/disputed/empty исключены. Runtime после действий отличается.
-- [ ] P2.12: одноразовый офлайн сбор слабых меток/robots/OTA/runtime ограничения уточняются в README.
+- [x] P2.12: README описывает одноразовый офлайн сбор слабых меток, robots/OTA denylist и отсутствие websitefetch в runtime.
 - [x] Ссылки repo/video владелец явно отложил; плейсхолдеры остаются, повторно не спрашиваем. Push выполняет только владелец.

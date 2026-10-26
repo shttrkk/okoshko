@@ -1,10 +1,7 @@
 # О!кно: общие контракты v1
 
-Владелец файла, `backend/contracts/`, миграций и `docs/openapi.json` — оркестратор.
-Изменения запрашивать сообщением с причиной и примером JSON. Все пути ниже от корня продукта.
-Машинная истина: `backend/contracts/models.py`; схема API: `docs/openapi.json`.
-Рабочая область продукта: `/Users/shttrkk/ostrovok-hack/okno`.
-Исследования и первоисточники: родительская `/Users/shttrkk/ostrovok-hack`.
+Машинная схема: `backend/contracts/models.py`; HTTP API: `docs/openapi.json`.
+JSON Schema всех общих моделей: `docs/schemas.json`. Все пути ниже относительны корню репозитория.
 
 ## 1. Инварианты
 
@@ -57,11 +54,11 @@
 Каждая таблица загружается из `data/seed/<table>.csv.gz`: UTF-8, CSV RFC4180, ровно две колонки `id,payload`. `payload` — JSON объекта с таким же id. Сжатие gzip, `mtime=0` для воспроизводимости. COPY во временную таблицу, затем INSERT; порядок: sources, hotels, characteristics, agent_runs, claims, facts, прочие.
 
 - Обязательные: `hotels.csv.gz`, `sources.csv.gz`. Claim и Fact валидируются моделями до экспорта.
-- S1 владеет seed hotels/sources/buildings/osm_features/hotel_facades/room_types; S2 выдаёт `geo_claims.jsonl.gz` как промежуточный файл. Оркестратор объединяет claims/facts. Не затирать чужие seed-файлы.
+- Pipeline экспортирует hotels/sources/buildings/osm_features/hotel_facades/room_types; geo stage создаёт `geo_claims.jsonl.gz` как промежуточный ledger. Bootstrap объединяет claims и материализует facts.
 - Исходные записи открытых данных, версии, URL, retrieval, bbox и SHA-256 — `data/seed/manifest.json`; счётчики и использованные лицензии — там же.
-- S1 дополнительно экспортирует `hotels.json`, `buildings.geojson`, `pois.geojson`, `roads.geojson`, `railways.geojson`, `beaches.geojson`, `coastline.geojson`, `walk_graph.json.gz` в `data/seed/` для S2.
+- Pipeline дополнительно экспортирует `hotels.json`, `buildings.geojson`, `pois.geojson`, `roads.geojson`, `railways.geojson`, `beaches.geojson`, `coastline.geojson`, `walk_graph.json.gz` в `data/seed/` для S2.
 - Граф: `{nodes:[{id,lon,lat,elevation_m?}],edges:[{u,v,length_m,highway,geometry,steps,tunnel,bridge,crossing,access}]}`. Рёбра могут быть направленными; запреты доступа соблюдаются.
-- S2: `data/geo/<hotel_id>.npz` и `data/geo/<hotel_id>.json`: фасады, этажи, профиль горизонта, сектор моря, солнечные пути по месяцам, шум, маршрут и ссылки на исходники. Всё < 50 МБ на файл.
+- Geo: `data/geo/<hotel_id>.npz` и `data/geo/<hotel_id>.json`: фасады, этажи, профиль горизонта, сектор моря, солнечные пути по месяцам, шум, маршрут и ссылки на исходники. Всё < 50 МБ на файл.
 - `.npz` только numeric/bool, `allow_pickle=False`. Metadata в соседнем JSON.
 - Source registry — только реально скачанные и использованные источники (`used=true`); список планов не считать покрытием.
 - Базовые mock поля честно помечать `basic_fields_source=mock_basic_card`; имена и координаты реальных объектов не выдумывать.
@@ -71,7 +68,7 @@
 
 DB: таблицы из миграции `0001`. `id text PK,payload jsonb` — проверенный Pydantic JSON, с generated NOT NULL provenance-колонками для claims и геометрией PostGIS hotels. Это типизированные JSON-документы с SQL-ограничениями, не произвольный key/value.
 
-S3 реализует `backend/db/repository.py`:
+Интерфейс `backend/db/repository.py`:
 
 ```python
 class Repository:
@@ -87,7 +84,7 @@ def get_repo() -> Repository: ...  # dependency FastAPI
 
 Интерфейс синхронный, psycopg3. Локальный кэш допускается с инвалидацией, запись всегда в Postgres; рестарт не теряет паспорт/ответ/характеристику. Все имена таблиц whitelist, SQL-параметры bind. In-memory Repository допускается только в тестах. Claims insert-only.
 
-S4 экспортирует:
+Интерфейсы диалога:
 
 ```python
 # backend/agents/interviewer.py
@@ -98,9 +95,9 @@ def parse_answer(question: Question, text: str, *, synthetic: bool=False, llm=No
 def simulate_answer(question: Question, repo, *, seed: int=42) -> Answer: ...
 ```
 
-S4 владеет FastAPI `router` в `backend/api/hotelier.py`, `backend/api/passports.py`; `prefix='/api'`. Resolver вызывать `backend.agents.resolver.resolve_hotel(hotel_id,repo)` после подтверждения ответа. S3 реализует эту функцию. Никаких сетевых писем/мессенджеров: уведомления локально в паспорте.
+FastAPI `router` определён в `backend/api/hotelier.py`, `backend/api/passports.py`; `prefix='/api'`. Resolver вызывать `backend.agents.resolver.resolve_hotel(hotel_id,repo)` после подтверждения ответа. Функция реализована в Resolver. Никаких сетевых писем/мессенджеров: уведомления локально в паспорте.
 
-S5 экспортирует:
+Интерфейсы поиска:
 
 ```python
 def parse_query(request: SearchRequest, catalog: list[CharacteristicSpec], llm=None) -> ParsedQuery: ...
@@ -112,11 +109,11 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
                    specs: list[CharacteristicSpec]) -> list[SearchHit]: ...
 ```
 
-S2 публичный runtime вход: `geo.service.compute_hotel(hotel: dict, data_dir: Path, *, new_building: dict|None=None) -> dict`, где результат `{claims:[Claim JSON],geo:{...}}`. Допустим другой внутренний API, но этот адаптер обязателен. Не додумывать реальные входы при их отсутствии: return unknown с limitation. S3 tool registry оборачивает этот сервис.
+Публичный geo runtime вход: `geo.service.compute_hotel(hotel: dict, data_dir: Path, *, new_building: dict|None=None) -> dict`, где результат `{claims:[Claim JSON],geo:{...}}`. Допустим другой внутренний API, но этот адаптер обязателен. Не додумывать реальные входы при их отсутствии: return unknown с limitation. Tool registry оборачивает этот сервис.
 
 ## 5. HTTP API (все на одном origin)
 
-Объекты запросов/ответов из моделей, ошибки `{detail: ...}`, HTTP 404/422/409. Foundation endpoints возвращают 501 явно; такие ответы нельзя оставить к контрольной точке.
+Объекты запросов/ответов из моделей, ошибки `{detail: ...}`, HTTP 404/422/409. Неизвестные объекты возвращают 404; недопустимый контракт — 422; конфликт состояния — 409.
 
 | Method | Path | Input → output |
 |---|---|---|
@@ -163,21 +160,13 @@ S2 публичный runtime вход: `geo.service.compute_hotel(hotel: dict, 
 {"hotel_id":"osm-way-123","center":[39.72,43.58],"building":{"type":"Feature","properties":{"height":27,"height_source":"levels"},"geometry":{"type":"Polygon","coordinates":[]}},"facades":[{"code":"W","azimuth_deg":270,"geometry":{"type":"LineString","coordinates":[]},"min_floor_sea":5,"min_floor_sunset":5,"night_db_min":44,"night_db_max":56,"confidence":0.65}],"horizon":[{"azimuth_deg":270,"terrain_deg":0.2,"buildings_deg":1.1,"sea":true}],"sun_paths":[{"month":9,"points":[{"azimuth_deg":275,"elevation_deg":2}]}],"view_cones":{"type":"FeatureCollection","features":[]},"route":{"type":"FeatureCollection","features":[]},"crossings":{"type":"FeatureCollection","features":[]},"monte_carlo":{"iterations":100,"probability":0.72,"min_floor_p80":6},"limitations":["Приближённая высота части зданий"]}
 ```
 
-Числа здесь — контрактный пример, не реальные измерения. S2 предоставляет actual result; S6 не хардкодит evidence. `docs/fixtures/` помечены synthetic и доступны для разработки, API production не использует эти fixtures как реальные данные.
+Числа здесь — контрактный пример, не реальные измерения. Runtime возвращает actual result; UI использует evidence API. `docs/fixtures/` помечены synthetic и доступны для разработки, API production не использует эти fixtures как реальные данные.
 
-## 7. Владение и git
+## 7. Версионирование и совместимость
 
-Крупные независимые потоки — отдельные worktree `../okno-wt-<stream>`, ветка `feat/<stream>` от foundation. Коммиты делают агенты в своей ветке; main меняет только оркестратор. После merge: contract validation, линтер, targeted tests, compose smoke. Не менять общие модели ради облегчения локальной реализации. Папку `docs/reviews/` проверять в начале волны и на контрольных точках.
+Общие модели валидируются Pydantic на HTTP, seed и внутренних границах. Изменения wire-схем сопровождаются обновлением OpenAPI, JSON Schema и контрактных fixtures через `make contracts`. Новые необязательные поля имеют безопасные defaults; идентификаторы существующих отелей, claims и источников сохраняются. Миграции БД применяются автоматически перед bootstrap.
 
-| Поток | Пишет | Не пишет |
-|---|---|---|
-| S1 | pipeline/fetch_*,merge_hotels,export_seed, data/seed, data/tiles | geo,contracts, compute_* |
-| S2 | geo, pipeline/compute_*,build_dsm, data/geo | seed hotels/sources,backend |
-| S3 | backend кроме S4/S5/contracts/migrations, data/characteristics | frontend,pipeline,контракты |
-| S4 | backend/agents/{interviewer,answer_parser}.py,backend/sim,backend/api/{hotelier,passports}.py,data/hotelier_profiles | db/contracts/main.py |
-| S5 | backend/agents/query_*.py,ranker.py,explainer.py,similarity.py,data/eval/queries.yaml | остальные backend файлы |
-| S6 | frontend | backend/data/contracts |
-
+Изменение вычислительного метода создаёт новую версию method и новые claims с supersedes; оно не переписывает исторические наблюдения. Изменение хранения артефакта с сохранением логических bytes не меняет геометрический результат. Проверки совместимости — parser/geo known-answer tests, seed validation, API smoke и demo-check.
 
 ## 8. Уточнения интеграционной приёмки
 
