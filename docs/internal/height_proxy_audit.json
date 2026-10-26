@@ -1,0 +1,243 @@
+{
+  "schema_version": 1,
+  "audit_type": "raw_dsm_height_proxy_screening",
+  "terrain": {
+    "path": "/data/geo/terrain_30m.npz",
+    "metadata": "/data/geo/terrain_30m.json",
+    "sha256": "27000f9047826a66c3cacac2b70cf46fd08aec572b1926d9088655e3e22d1563",
+    "cell_m": 30.0,
+    "source": "copernicus_dem",
+    "surface": "raw reprojected DSM, not local OSM-composed DSM"
+  },
+  "method": {
+    "roof": "Actual raster pixel centers inside the OSM footprint; core requires at least 80% cell overlap.",
+    "ground_proxy": "Raw DSM pixel centers 30–180 m from the footprint, outside known building polygons and mapped sea; P10.",
+    "height_proxy": "Median roof DSM minus P10 neighboring land DSM; not true roof-to-foundation height.",
+    "osm_envelope": "[max(0, levels*2.8-3), levels*3.5+3] meters",
+    "proxy_envelope": "[max(0, roofP10-groundP20-15), max(0, roofP90-groundP5+15)] meters",
+    "envelope_interpretation": "Heuristic sensitivity envelope, not a calibrated confidence interval (not CI).",
+    "quality_flag_gate": "Disjoint envelopes AND at least 3 core roof pixels AND at least 10 ground pixels."
+  },
+  "limitations": [
+    "No independent ground surface or measured building height is supplied.",
+    "30 m mixed pixels, bilinear reprojection, trees/canopy and sloping terrain may dominate the proxy.",
+    "Footprints and roof sections may differ; neighboring low DSM samples need not equal foundation elevation.",
+    "The acquisition date of each raster pixel and its temporal match with current OSM floors are unknown.",
+    "The chosen 15 m buffer and support gate are audit heuristics, not empirically calibrated uncertainty.",
+    "Zero flags do not validate OSM heights or establish field accuracy.",
+    "No Claim, Fact, Conflict or geodata is created or modified by this audit."
+  ],
+  "results": [
+    {
+      "hotel_id": "osm-node-10058556917",
+      "hotel_name": "Островок",
+      "building_id": "osm-way-53284172",
+      "geometry_artifact": "/data/geo/osm-node-10058556917.json",
+      "footprint_area_m2": 337.739,
+      "osm_levels": 5.0,
+      "osm_nominal_height_m": 15.0,
+      "osm_envelope_m": [
+        11.0,
+        20.5
+      ],
+      "roof_pixel_centers": 0,
+      "roof_core80_pixel_centers": 0,
+      "roof_cell_footprint_fractions": [],
+      "roof_dsm_p10_p50_p90_m": [
+        null,
+        null,
+        null
+      ],
+      "land_ground_pixel_centers": 91,
+      "sea_pixels_excluded": 0,
+      "ground_dsm_p5_p10_p20_p90_m": [
+        5.563,
+        6.042,
+        6.617,
+        9.561
+      ],
+      "raw_roof_minus_ground_proxy_m": null,
+      "proxy_heuristic_envelope_m": null,
+      "envelopes_disjoint": null,
+      "sufficient_roof_and_ground_support": false,
+      "quality_flag": false,
+      "status": "insufficient_roof_support"
+    },
+    {
+      "hotel_id": "osm-node-10118233110",
+      "hotel_name": "Swissotel Resort Сочи Камелия",
+      "building_id": "osm-way-697170340",
+      "geometry_artifact": "/data/geo/osm-node-10118233110.json",
+      "footprint_area_m2": 4868.118,
+      "osm_levels": 7.0,
+      "osm_nominal_height_m": 21.0,
+      "osm_envelope_m": [
+        16.6,
+        27.5
+      ],
+      "roof_pixel_centers": 6,
+      "roof_core80_pixel_centers": 0,
+      "roof_cell_footprint_fractions": [
+        0.552,
+        0.704,
+        0.53,
+        0.708,
+        0.67,
+        0.797
+      ],
+      "roof_dsm_p10_p50_p90_m": [
+        27.173,
+        31.572,
+        35.703
+      ],
+      "land_ground_pixel_centers": 160,
+      "sea_pixels_excluded": 2,
+      "ground_dsm_p5_p10_p20_p90_m": [
+        5.247,
+        7.548,
+        10.588,
+        60.157
+      ],
+      "raw_roof_minus_ground_proxy_m": 24.024,
+      "proxy_heuristic_envelope_m": [
+        1.586,
+        45.456
+      ],
+      "envelopes_disjoint": false,
+      "sufficient_roof_and_ground_support": false,
+      "quality_flag": false,
+      "status": "insufficient_roof_support"
+    },
+    {
+      "hotel_id": "overture-5d220661-b1ca-4461-a03b-c89126a98e02",
+      "hotel_name": "RODINA Grand Hotel & SPA",
+      "building_id": "osm-way-52503575",
+      "geometry_artifact": "/data/geo/overture-5d220661-b1ca-4461-a03b-c89126a98e02.json",
+      "footprint_area_m2": 3565.942,
+      "osm_levels": 6.0,
+      "osm_nominal_height_m": 18.0,
+      "osm_envelope_m": [
+        13.8,
+        24.0
+      ],
+      "roof_pixel_centers": 3,
+      "roof_core80_pixel_centers": 1,
+      "roof_cell_footprint_fractions": [
+        0.38,
+        0.581,
+        0.817
+      ],
+      "roof_dsm_p10_p50_p90_m": [
+        69.936,
+        72.792,
+        75.161
+      ],
+      "land_ground_pixel_centers": 151,
+      "sea_pixels_excluded": 0,
+      "ground_dsm_p5_p10_p20_p90_m": [
+        46.386,
+        49.554,
+        54.094,
+        91.878
+      ],
+      "raw_roof_minus_ground_proxy_m": 23.238,
+      "proxy_heuristic_envelope_m": [
+        0.842,
+        43.775
+      ],
+      "envelopes_disjoint": false,
+      "sufficient_roof_and_ground_support": false,
+      "quality_flag": false,
+      "status": "insufficient_roof_support"
+    },
+    {
+      "hotel_id": "osm-way-201474330",
+      "hotel_name": "Brevis apartments",
+      "building_id": "osm-way-201474330",
+      "geometry_artifact": "/data/geo/osm-way-201474330.json",
+      "footprint_area_m2": 1294.109,
+      "osm_levels": 16.0,
+      "osm_nominal_height_m": 48.0,
+      "osm_envelope_m": [
+        41.8,
+        59.0
+      ],
+      "roof_pixel_centers": 2,
+      "roof_core80_pixel_centers": 0,
+      "roof_cell_footprint_fractions": [
+        0.285,
+        0.515
+      ],
+      "roof_dsm_p10_p50_p90_m": [
+        29.676,
+        30.859,
+        32.043
+      ],
+      "land_ground_pixel_centers": 92,
+      "sea_pixels_excluded": 8,
+      "ground_dsm_p5_p10_p20_p90_m": [
+        2.405,
+        4.61,
+        16.708,
+        35.959
+      ],
+      "raw_roof_minus_ground_proxy_m": 26.25,
+      "proxy_heuristic_envelope_m": [
+        0,
+        44.638
+      ],
+      "envelopes_disjoint": false,
+      "sufficient_roof_and_ground_support": false,
+      "quality_flag": false,
+      "status": "insufficient_roof_support"
+    },
+    {
+      "hotel_id": "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+      "hotel_name": "Приморская",
+      "building_id": "osm-way-51676847",
+      "geometry_artifact": "/data/geo/overture-037ee676-5776-46bd-a4ac-38c828f2a99d.json",
+      "footprint_area_m2": 2317.93,
+      "osm_levels": 5.0,
+      "osm_nominal_height_m": 15.0,
+      "osm_envelope_m": [
+        11.0,
+        20.5
+      ],
+      "roof_pixel_centers": 2,
+      "roof_core80_pixel_centers": 0,
+      "roof_cell_footprint_fractions": [
+        0.349,
+        0.689
+      ],
+      "roof_dsm_p10_p50_p90_m": [
+        32.784,
+        34.296,
+        35.809
+      ],
+      "land_ground_pixel_centers": 112,
+      "sea_pixels_excluded": 10,
+      "ground_dsm_p5_p10_p20_p90_m": [
+        1.518,
+        3.931,
+        14.594,
+        39.028
+      ],
+      "raw_roof_minus_ground_proxy_m": 30.366,
+      "proxy_heuristic_envelope_m": [
+        3.189,
+        49.291
+      ],
+      "envelopes_disjoint": false,
+      "sufficient_roof_and_ground_support": false,
+      "quality_flag": false,
+      "status": "insufficient_roof_support"
+    }
+  ],
+  "summary": {
+    "hotels_checked": 5,
+    "quality_flags": 0,
+    "height_ground_truth_count": 0,
+    "field_accuracy": null,
+    "blueprint_height_conflict": "unconfirmed"
+  }
+}

@@ -246,3 +246,11 @@ Read-only метод: реальные центры raw raster pixels внутр
 Все четыре доступных proxy envelopes пересекаются с широким OSM envelope; у «Островка» roof sample отсутствует. **Quality flags по этому screening: 0 из 5.** Это не доказательство правильности OSM: разрешение, bilinear resampling, смешение крыши с землёй / деревьями, наклон местности, неизвестная эпоха конкретного пикселя и несовпадающие footprint / roof sections не позволяют получить истинную высоту. Особенно у Brevis оба roof pixels имеют только 28% / 52% площади внутри контура; разницу nominal 48 против proxy 26.25 нельзя честно называть опровержением 16 этажей.
 
 Результат сохраняет gap третьего сценария: независимого обработанного height conflict на этих пяти примерах нет. Данные / seed / код при проверке не менялись.
+
+Машинный отчёт: `docs/internal/height_proxy_audit.json`. По отдельному разрешению оркестратора добавлен воспроизводимый `scripts/audit_height_proxy.py` без новых зависимостей. Запуск:
+
+```sh
+.venv/bin/python -m scripts.audit_height_proxy --output docs/internal/height_proxy_audit.json
+```
+
+Измеренное время — 3.42 с; повторный запуск даёт побайтово тот же JSON. По умолчанию скрипт только печатает JSON; optional output ограничен `docs/internal`, попытка записать в `data/geo` отвергается до расчёта. Ruff PASS, roof/core support и исходный terrain hash проверены. Claim / Fact / Conflict и геоданные не создаются и не изменяются. Blueprint height-conflict status в JSON явно `unconfirmed`.
