@@ -16,14 +16,15 @@ from backend.contracts.validation import validate_value as validate
 from backend.settings import DATA
 from backend.tools.derive import MissingInput, evaluate_expression
 from geo.coordinates import TO_UTM
+from geo.io import exists, read_json
 
 
 @lru_cache(maxsize=4)
 def feature_index(data_dir: str, name: str):
     path = Path(data_dir)/"seed"/(name+".geojson")
-    if not path.exists():
+    if not exists(path):
         return [], [], None
-    features = json.loads(path.read_text()).get("features", [])
+    features = read_json(path).get("features", [])
     geometries, selected = [], []
     for feature in features:
         try:

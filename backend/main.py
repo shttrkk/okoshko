@@ -35,10 +35,19 @@ def health(repo=_REPO) -> dict[str, str]:
     return {"status": "ok"}
 
 
+class EncodedStaticFiles(StaticFiles):
+    async def get_response(self, path, scope):
+        if path.endswith(".geojson"):
+            full_path, stat = self.lookup_path(path + ".gz")
+            if stat is not None:
+                return FileResponse(full_path, stat_result=stat, media_type="application/geo+json", headers={"Content-Encoding": "gzip", "Vary": "Accept-Encoding"})
+        return await super().get_response(path, scope)
+
+
 # Explicit public directories: simulator profiles, prompts and caches stay private.
 for directory in ("seed", "geo", "tiles", "eval", "fixtures"):
     if (DATA / directory).is_dir():
-        app.mount("/data/" + directory, StaticFiles(directory=DATA / directory), name="data-" + directory)
+        app.mount("/data/" + directory, EncodedStaticFiles(directory=DATA / directory), name="data-" + directory)
 runtime_dir().mkdir(parents=True, exist_ok=True)
 app.mount("/data/runtime", StaticFiles(directory=runtime_dir()), name="runtime")
 if (STATIC / "assets").is_dir():
