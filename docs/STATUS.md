@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 02:55 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 02:56 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -151,3 +151,5 @@
 - 27.10.2026 02:42: fix(ranking): require a confirmed hotel floor domain for room geometry; 833 passed, 1 warning, 125 subtests passed in 48.20s; Ruff и frontend lint PASS.
 
 - 27.10.2026 02:55: feat(contracts): carry requested room scopes with hotel questions; 833 passed, 1 warning, 125 subtests passed in 60.56s (0:01:00); Ruff и frontend lint PASS.
+
+- 27.10.2026 02:56: test(search): freeze independent validation intents and irrelevant contexts; 833 passed, 1 warning, 125 subtests passed in 54.76s; Ruff и frontend lint PASS.
