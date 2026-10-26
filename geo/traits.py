@@ -57,7 +57,7 @@ def _claim(hotel_id, characteristic, value, scope, confidence, observed_at, *, a
               "observed_at": observed.isoformat(), "valid_until": (observed+timedelta(days=90)).isoformat(),
               "synthetic": bool(synthetic)}
     # Input identity is part of the claim identity even when outputs are equal.
-    identity = {**record, "input_identity": inputs}
+    identity = {**record, "input_identity": inputs, "source_ids": sorted(set(source_ids))}
     record["id"] = "geo-trait-"+hashlib.sha256(_canonical(identity).encode()).hexdigest()[:24]
     record["evidence"] = [{"id": "ev-"+record["id"], "kind": "simulation" if synthetic else kind,
                            "label": "Открытые геоданные: "+characteristic,
@@ -66,9 +66,38 @@ def _claim(hotel_id, characteristic, value, scope, confidence, observed_at, *, a
     return record
 
 
-def _baseline(hotel, data_dir):
-    path = data_dir/"geo"/(hotel["id"]+".json")
-    return json.loads(path.read_text()) if path.is_file() else None
+def _geo_path(hotel, data_dir, geo_artifact=None):
+    """Resolve only an explicitly selected, hotel-owned geo artifact.
+
+    Registry supplies the authoritative change-event reference. We never scan
+    for the newest variant, since an unused/abandoned scenario is not state.
+    """
+    if geo_artifact is None:
+        path = data_dir/"geo"/(hotel["id"]+".json")
+    else:
+        text = str(geo_artifact)
+        if text.startswith("/data/geo/"):
+            path = data_dir/"geo"/text.removeprefix("/data/geo/")
+        elif text.startswith("/data/runtime/geo/"):
+            path = data_dir.parent/"runtime"/"geo"/text.removeprefix("/data/runtime/geo/")
+        else:
+            path = Path(geo_artifact)
+    path = path.resolve()
+    allowed = {(data_dir/"geo").resolve(), (data_dir/"runtime"/"geo").resolve(),
+               (data_dir.parent/"runtime"/"geo").resolve()}
+    name = path.name
+    if path.parent not in allowed or path.suffix != ".json" or not (
+            name == hotel["id"]+".json" or name.startswith(hotel["id"]+"-change-")):
+        raise ValueError("geo artifact must belong to this hotel in an approved geo directory")
+    return path
+
+
+def _baseline(hotel, data_dir, geo_artifact=None):
+    path = _geo_path(hotel, data_dir, geo_artifact)
+    document = json.loads(path.read_text()) if path.is_file() else None
+    if document is not None and document.get("hotel_id") != hotel["id"]:
+        return None
+    return document
 
 
 def solar_floor_ranges(outputs, characteristic):
@@ -104,13 +133,21 @@ def solar_floor_ranges(outputs, characteristic):
         start = stop
 
 
-def _solar(hotel, data_dir, characteristic, month):
-    baseline = _baseline(hotel, data_dir)
-    npz = data_dir/"geo"/(hotel["id"]+".npz")
+def _solar(hotel, data_dir, characteristic, month, geo_artifact=None):
+    path = _geo_path(hotel, data_dir, geo_artifact)
+    baseline = _baseline(hotel, data_dir, geo_artifact)
+    npz = path.with_suffix(".npz")
     if not baseline or not npz.is_file() or not baseline.get("facades"):
         return [], ["Нет сохранённого пофасадного профиля горизонта; солнце неизвестно"]
+    if not isinstance(baseline.get("computed_at"), str) or any(
+            facade.get("code") not in {"N", "NE", "E", "SE", "S", "SW", "W", "NW"}
+            or not isinstance(facade.get("azimuth_deg"), int | float)
+            or not np.isfinite(facade["azimuth_deg"]) for facade in baseline["facades"]):
+        return [], ["Неподдержанные метаданные выбранного профиля горизонта; солнце неизвестно"]
     if baseline.get("floors", {}).get("count") is None:
         return [], ["Нет известной этажности связанного здания; условный уровень глаза не считаем этажами отеля"]
+    if not isinstance(baseline["floors"]["count"], int) or not 1 <= baseline["floors"]["count"] <= 100:
+        return [], ["Некорректная этажность выбранного профиля горизонта; солнце неизвестно"]
     # A changed regional snapshot invalidates a saved horizon, even if the file
     # name stayed the same. Do not silently combine incompatible generations.
     for artifact, digest in baseline.get("inputs", {}).items():
@@ -125,8 +162,9 @@ def _solar(hotel, data_dir, characteristic, month):
         return [], ["Для координат/даты нет поддержанного окна восхода и заката; значение неизвестно"]
     if month is not None:
         paths = [path for path in paths if path["month"] == month]
-    hashes = {"/data/geo/"+npz.name: input_digest(npz),
-              "/data/geo/"+hotel["id"]+".json": input_digest(data_dir/"geo"/(hotel["id"]+".json"))}
+    public_root = "/data/geo/" if path.parent == (data_dir/"geo").resolve() else "/data/runtime/geo/"
+    selected_artifact = public_root+path.name
+    hashes = {public_root+npz.name: input_digest(npz), selected_artifact: input_digest(path)}
     claims = []
     sources = sorted({sid for c in baseline.get("claims", []) for e in c.get("evidence", [])
                       for sid in e.get("source_ids", [])})
@@ -137,9 +175,11 @@ def _solar(hotel, data_dir, characteristic, month):
         for index, facade in enumerate(baseline["facades"]):
             key = f"facade_{index}_horizon"
             if key not in arrays:
-                continue
+                key = f"f{index}_horizon"  # additive-building compact runtime cache
+                if key not in arrays:
+                    continue
             horizon = arrays[key]
-            if horizon.ndim != 2 or horizon.shape[1] == 0:
+            if horizon.ndim != 2 or horizon.shape[1] == 0 or horizon.shape[0] != baseline["floors"]["count"]:
                 continue
             angles = np.arange(horizon.shape[1])*360/horizon.shape[1]
             for path in paths:
@@ -157,7 +197,7 @@ def _solar(hotel, data_dir, characteristic, month):
                                          {"type": "floor_range", "facade": facade["code"],
                                           "floor_min": low, "floor_max": high, "month": path["month"]},
                                          min(.6, facade.get("confidence", 0))*.9, observed,
-                                         artifact="/data/geo/"+hotel["id"]+".json", source_ids=sources,
+                                         artifact=selected_artifact, source_ids=sources,
                                          inputs=inputs, limitations=limitations,
                                          synthetic=baseline.get("synthetic", False)))
     return claims, [] if claims else ["В сохранённом NPZ нет подходящих числовых профилей горизонта"]
@@ -208,6 +248,8 @@ def _regional(hotel, data_dir, characteristic):
         railways = region.nearby("railways", xy, 650)
         sources = source_samples(railways, kind="rail")
         source_ids = {feature["properties"].get("source_id", "osm_geofabrik") for feature in railways}
+        # Footprints screen the rail sources, including Overture additions.
+        source_ids.update(building["properties"].get("source_id", "osm_geofabrik") for building in buildings)
         synthetic = bool(own["properties"].get("synthetic") or any(feature["properties"].get("synthetic") for feature in railways))
         claims = []
         for facade in extract_facades(own["shape"]):
@@ -282,11 +324,13 @@ def _regional(hotel, data_dir, characteristic):
                    limitations=limitations, kind="open_data", synthetic=properties.get("synthetic", False))], []
 
 
-def compute_trait(hotel: dict, data_dir: Path, characteristic_id: str, month: int | None = None) -> dict:
+def compute_trait(hotel: dict, data_dir: Path, characteristic_id: str, month: int | None = None,
+                  *, geo_artifact: Path | str | None = None) -> dict:
     """Return ``{claims, warnings, artifacts}``; month=None emits all 12 months.
 
-    Inputs and the source snapshot are read-only. No room/floor is manufactured
-    when a footprint, floor count, route or source tag is missing.
+    Inputs and the source snapshot are read-only. ``geo_artifact`` is an explicit
+    authoritative solar change-event reference; missing/unsupported variants
+    return unknown. Registry must pass it for hotels with an active change.
     """
     if characteristic_id not in TRAITS:
         raise ValueError("unsupported geo trait")
@@ -297,7 +341,7 @@ def compute_trait(hotel: dict, data_dir: Path, characteristic_id: str, month: in
         raise ValueError("month must be 1..12 or None")
     data_dir = Path(data_dir)
     if characteristic_id in {"morning_sun", "evening_heat"}:
-        claims, warnings = _solar(hotel, data_dir, characteristic_id, month)
+        claims, warnings = _solar(hotel, data_dir, characteristic_id, month, geo_artifact)
     else:
         claims, warnings = _regional(hotel, data_dir, characteristic_id)
     return {"claims": claims, "warnings": warnings,
