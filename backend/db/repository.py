@@ -82,6 +82,10 @@ class Repository:
             self._search_results.pop(key, None)
             return self._search_generation, None
 
+    def search_generation(self) -> int:
+        with self._search_lock:
+            return self._search_generation
+
     def search_cache_put(self, key: str, generation: int, value, valid_until: float | None):
         with self._search_lock:
             if generation != self._search_generation:

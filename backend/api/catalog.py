@@ -208,6 +208,9 @@ def search(body: SearchRequest, repo=_REPO):
     started = time.monotonic()
     trace = Trace(repo, "search", trigger="user")
     try:
+        # Capture before reading either catalog or facts. A concurrent write at
+        # any point during parsing/ranking must not cache an older snapshot.
+        read_generation = repo.search_generation() if hasattr(repo, "search_generation") else None
         specs = catalog(repo)
         parsed = parse_query(body, specs, llm=LLMClient(repo))
         trace.run.llm_mode = parsed.mode
@@ -245,6 +248,8 @@ def search(body: SearchRequest, repo=_REPO):
                                              *parsed.clarifications][:2]
             cache_key = json.dumps({"parsed": parsed.model_dump(mode="json"), "limit": body.limit}, ensure_ascii=False, sort_keys=True)
             generation, hits = repo.search_cache_get(cache_key) if hasattr(repo, "search_cache_get") else (None, None)
+            if read_generation != generation:
+                hits = None
             if hits is None:
                 facts = [Fact.model_validate(row) for row in rows]
                 if reference is not None:
@@ -254,8 +259,8 @@ def search(body: SearchRequest, repo=_REPO):
                 else:
                     hits = rank_hotels(hotel_rows, facts, parsed, specs, explain_limit=body.limit)
                 if hasattr(repo, "search_cache_put"):
-                    deadlines = [fact.valid_until.timestamp() for fact in facts if fact.valid_until and fact.valid_until.timestamp() > time.time()]
-                    repo.search_cache_put(cache_key, generation, hits, min(deadlines) if deadlines else None)
+                    deadlines = [fact.valid_until.timestamp() for fact in facts if fact.valid_until]
+                    repo.search_cache_put(cache_key, read_generation, hits, min(deadlines) if deadlines else None)
             if reference is None:
                 if not parsed.must and not parsed.nice:
                     browse = ("Не нашли в запросе условий из каталога, поэтому показываем обзор отелей без подбора. "

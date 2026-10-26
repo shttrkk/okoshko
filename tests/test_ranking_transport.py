@@ -36,3 +36,16 @@ def test_reference_removal_does_not_hide_unknown_preferences():
     assert only_reference_phrase("похожий на Brevis apartments", "Brevis apartments")
     assert not only_reference_phrase("похожий на Brevis apartments с бассейном", "Brevis apartments")
     assert not only_reference_phrase("бассейн", "Brevis apartments")
+
+
+def test_numeric_margin_prefers_robust_fit_without_promoting_disputed_data(catalog):  # noqa: F811
+    hotels = [hotel(name) for name in ["a-narrow", "z-comfortable", "disputed"]]
+    facts = [fact("a-narrow", "beach_walk", {"available": True, "minutes": 9}, confidence=.66),
+             fact("z-comfortable", "beach_walk", {"available": True, "minutes": 4}, confidence=.66),
+             fact("disputed", "beach_walk", {"available": True, "minutes": 1}, confidence=.99, status="disputed")]
+    parsed = ParsedQuery(text="пляж", must=[Criterion(characteristic_id="beach_walk", label="Пляж", field="minutes", op="lte", value=10)])
+    hits = rank_hotels(hotels, facts, parsed, catalog)
+    assert [hit.hotel.id for hit in hits] == ["z-comfortable", "a-narrow", "disputed"]
+    assert [hit.group for hit in hits] == ["all", "all", "unknown"]
+    assert hits[-1].verdicts[0].disputed and hits[-1].verdicts[0].status == "unknown"
+    assert all(0 <= hit.score <= 100 for hit in hits)

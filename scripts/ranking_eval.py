@@ -263,7 +263,19 @@ def agreement_at_5(retrieved: list[str], judgments: dict):
     ideal_max = sum(gain(g)/math.log2(i+2) for i, g in enumerate(sorted([*grades.values(), *([3]*(len(judgments)-len(grades)))], reverse=True)[:5]))
     return {"ndcg_at_5": agreement, "judged_top5": len(ids)-len(unknown), "top5_count": len(ids),
             "unjudged_top5": unknown, "lower_bound": known_dcg/ideal_max if ideal_max else None,
-            "upper_bound": min(1, max_dcg/ideal_known) if ideal_known else 1 if ideal_max else None}
+            "upper_bound": min(1, max_dcg/ideal_known) if ideal_known else 1 if ideal_max else None,
+            "query_has_positive_judgments": ideal_known > 0}
+
+
+def aggregate_cases(cases):
+    measured = [row["ndcg_at_5"] for row in cases if row["ndcg_at_5"] is not None]
+    bounds = [row for row in cases if row["lower_bound"] is not None]
+    return {"queries": len(cases), "queries_with_measured_ndcg": len(measured),
+            "queries_without_positive_judgments": sum(not row["query_has_positive_judgments"] for row in cases),
+            "ndcg_at_5": sum(measured)/len(measured) if measured else None,
+            "top5_judged_share": sum(row["judged_top5"] for row in cases)/sum(row["top5_count"] for row in cases) if cases else None,
+            "ndcg_at_5_bounds": {"lower": sum(row["lower_bound"] for row in bounds)/len(bounds) if bounds else None,
+                                  "upper": sum(row["upper_bound"] for row in bounds)/len(bounds) if bounds else None}}
 
 
 def evaluate_gold(path, split="all"):
@@ -289,15 +301,10 @@ def evaluate_gold(path, split="all"):
             cases.append({"id": row["id"], "split": row["split"], "text": row["parsed"]["text"], **measurement,
                           "top5_ids": retrieved, "top5_grades": [row["judgments"][key]["grade"] for key in retrieved],
                           "top5_unique_names": len({hit.hotel.name.casefold() for hit in hits[:5]})})
-    measured = [row["ndcg_at_5"] for row in cases if row["ndcg_at_5"] is not None]
-    bounds = [row for row in cases if row["lower_bound"] is not None]
     return {"label_type": "evidence_derived_expert_rule_weak", "human_labeled": False,
             "metric_meaning": "nDCG@5 agreement with frozen expert-rule evidence labels, NOT human relevance or independent hotel accuracy",
-            "split": split, "queries": len(cases), "queries_with_measured_ndcg": len(measured),
-            "ndcg_at_5": sum(measured)/len(measured) if measured else None,
-            "top5_judged_share": sum(row["judged_top5"] for row in cases)/sum(row["top5_count"] for row in cases) if cases else None,
-            "ndcg_at_5_bounds": {"lower": sum(row["lower_bound"] for row in bounds)/len(bounds) if bounds else None,
-                                  "upper": sum(row["upper_bound"] for row in bounds)/len(bounds) if bounds else None},
+            "split": split, **aggregate_cases(cases),
+            "by_split": {name: aggregate_cases([row for row in cases if row["split"] == name]) for name in sorted({row["split"] for row in cases})},
             "input_materialization_matches_frozen": all(row["input_facts_sha256"] == facts_hash for row in rows),
             "scorer_sha256": {path: hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
                               for path in ["backend/agents/ranker.py", "backend/agents/query_match.py"]},
