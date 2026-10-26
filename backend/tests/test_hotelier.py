@@ -252,3 +252,52 @@ class SyntheticLabelledParserCases(unittest.TestCase):
                         self.assertEqual(actual[key], expected)
                 if case["unknown"]:
                     self.assertIn(cid, answer.unknown_fields)
+
+
+class QualitativeAndNightParserTests(unittest.TestCase):
+    def answer(self, text, cid):
+        question = Question(hotel_id="synthetic", characteristic_ids=[cid], text="Уточните")
+        answer = parse_answer(question, text, synthetic=True)
+        self.assertTrue(all(update.quote in text for update in answer.updates))
+        return answer
+
+    def test_negative_insulation_quality_is_not_positive_availability(self):
+        for text in ("Шумоизоляция плохая.", "У нас слабая шумоизоляция.", "Низкая звукоизоляция.",
+                     "Шумоизоляция очень плохая.", "Шумоизоляция ужасная.", "Отвратительная шумоизоляция.",
+                     "Шумоизоляция недостаточная.", "Шумоизоляция так себе."):
+            with self.subTest(text=text):
+                answer = self.answer(text, "soundproofing")
+                updates = [u for u in answer.updates if u.characteristic_id == "soundproofing"]
+                self.assertTrue(updates)
+                self.assertTrue(all(u.value["available"] is False for u in updates))
+
+    def test_negated_quality_and_uncertainty_abstain(self):
+        for text in ("Шумоизоляция не плохая.", "Кажется, шумоизоляция слабая.", "Шумоизоляция, наверное, плохая."):
+            with self.subTest(text=text):
+                answer = self.answer(text, "soundproofing")
+                self.assertFalse(any(u.value.get("available") is True for u in answer.updates))
+                self.assertTrue(answer.unknown_fields)
+                self.assertTrue(answer.needs_clarification)
+
+    def test_day_noise_does_not_reverse_night_quiet(self):
+        for text in ("Днём шумно, ночью тихо.", "Днем шумно, а ночью тихо.", "Днем шумно. Ночью тихо.",
+                     "Днем шумно ночью тихо.", "Ночью тихо, днем шумно.", "Утром шумно, ночью не шумно."):
+            with self.subTest(text=text):
+                answer = self.answer(text, "quiet_night")
+                updates = [u for u in answer.updates if u.characteristic_id == "quiet_night"]
+                self.assertTrue(updates)
+                self.assertTrue(all(u.value["available"] is True for u in updates))
+                self.assertTrue(all("ноч" in u.quote.lower() for u in updates))
+
+    def test_day_quiet_does_not_reverse_night_noise(self):
+        answer = self.answer("Днем тихо, ночью шумно.", "quiet_night")
+        update = next(u for u in answer.updates if u.characteristic_id == "quiet_night")
+        self.assertFalse(update.value["available"])
+        self.assertEqual(update.quote, "ночью шумно")
+
+    def test_day_only_statement_does_not_assert_night(self):
+        for text in ("Днем тихо.", "Днём шумно.", "Вечером тихо."):
+            with self.subTest(text=text):
+                answer = self.answer(text, "quiet_night")
+                self.assertFalse(any(u.characteristic_id == "quiet_night" for u in answer.updates))
+                self.assertIn("quiet_night", answer.unknown_fields)
