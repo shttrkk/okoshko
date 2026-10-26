@@ -63,7 +63,7 @@ def run():
                 sha_scope="extracted city PMTiles", coverage_bboxes=COVERAGE_BBOXES, maxzoom=CONFIG["tiles"]["maxzoom"], tool={**toolmeta, "verified_sha256": expected_sha256})
     assets = []
     for font in ["Noto Sans Regular", "Noto Sans Medium", "Noto Sans Italic"]:
-        for span in ["0-255", "1024-1279"]:
+        for span in ["0-255", "1024-1279", "8192-8447", "8448-8703"]:
             url = "https://protomaps.github.io/basemaps-assets/fonts/" + quote(font) + "/" + span + ".pbf"
             p, record = fetch(url, font.replace(" ", "_") + "_" + span + ".pbf")
             target = tile_dir / "fonts" / font / (span + ".pbf")

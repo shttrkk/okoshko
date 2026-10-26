@@ -169,11 +169,15 @@ def resolve_all(repo):
     specs = [CharacteristicSpec.model_validate(value) for value in repo.all("characteristics")]
     sources = repo.all("sources")
     facts, conflicts = [], []
-    for hotel in repo.all("hotels"):
+    hotels = repo.all("hotels")
+    for hotel in hotels:
         new_facts, new_conflicts = resolve_claims(hotel["id"], claims_by_hotel[hotel["id"]], specs, sources)
         facts.extend(fact.model_dump(mode="json") for fact in new_facts)
         conflicts.extend(conflict.model_dump(mode="json") for conflict in new_conflicts)
-    repo.upsert_many("facts", facts)
+    if hasattr(repo, "replace_materialized_facts"):
+        repo.replace_materialized_facts([hotel["id"] for hotel in hotels], facts)
+    else:
+        repo.upsert_many("facts", facts)
     repo.upsert_many("conflicts", conflicts)
     return {"facts": len(facts), "conflicts": len(conflicts)}
 

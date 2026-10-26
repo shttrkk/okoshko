@@ -88,7 +88,7 @@ def evaluate(hotels: list[dict], facts: list[dict], characteristics: list[dict],
     hotel_by_id = {hotel["id"]:hotel for hotel in hotels}
     active = {c["id"] for c in characteristics if c.get("status", "active") == "active"}
     denominator = len(ids)*len(active)
-    covered = {(f["hotel_id"], f["characteristic_id"]) for f in facts if f["hotel_id"] in ids and f["characteristic_id"] in active
+    covered = {(f["hotel_id"], f["characteristic_id"]) for f in facts if not f.get("synthetic") and f["hotel_id"] in ids and f["characteristic_id"] in active
                and f.get("status") not in {"unknown", "stale", "disputed"} and known_value(f.get("value"))}
     groups = {}
     for label_type in sorted({label.get("label_type", "manual") for label in labels}):
@@ -146,6 +146,7 @@ def evaluate(hotels: list[dict], facts: list[dict], characteristics: list[dict],
         "generated_at": datetime.now(UTC).isoformat(), "hotel_count": len(hotels), "characteristic_count": len(active),
         "fact_count": len(facts), "label_count": len(labels), "manual_label_count": sum(label.get("label_type", "manual") == "manual" for label in labels),
         "coverage": {"known_pairs": len(covered), "total_pairs": denominator, "ratio": len(covered)/denominator if denominator else 0},
+        "synthetic_fact_count": sum(bool(f.get("synthetic")) for f in facts),
         "question_share": len({(q["hotel_id"], cid) for q in questions or [] for cid in q.get("characteristic_ids", [])})/denominator if denominator else 0,
         "label_groups": groups, "parser_accuracy": None, "ndcg_at_5": None,
         "status": "measured" if groups else "awaiting_independent_labels",

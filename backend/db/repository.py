@@ -117,6 +117,15 @@ class Repository:
             cursor.executemany("INSERT INTO facts(id,payload) VALUES(%s,%s)",
                                [(value["id"],Jsonb(value,dumps=dump_json)) for value in values])
 
+    def replace_materialized_facts(self, hotel_ids: list[str], values: list[dict]) -> None:
+        with psycopg.connect(self.db_url) as conn, conn.cursor() as cursor:
+            cursor.execute("CREATE TEMP TABLE resolved_import(id text PRIMARY KEY,payload jsonb NOT NULL) ON COMMIT DROP")
+            with cursor.copy("COPY resolved_import(id,payload) FROM STDIN") as copy:
+                for value in values:
+                    copy.write_row((value["id"], dump_json(value)))
+            cursor.execute("DELETE FROM facts WHERE payload->>'hotel_id'=ANY(%s)", (hotel_ids,))
+            cursor.execute("INSERT INTO facts(id,payload) SELECT id,payload FROM resolved_import")
+
     def count(self, table: str) -> int:
         with psycopg.connect(self.db_url) as conn:
             return conn.execute(sql.SQL("SELECT count(*) FROM {}").format(self.table(table))).fetchone()[0]
