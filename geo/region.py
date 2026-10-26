@@ -11,6 +11,7 @@ from shapely.geometry import Point, shape
 from shapely.strtree import STRtree
 
 from geo.coordinates import metric
+from geo.io import exists, read_bytes, read_json
 from geo.terrain import Grid, SeaClassifier
 from geo.walk import WalkGraph
 
@@ -23,9 +24,9 @@ def number(value):
 
 
 def load_features(path):
-    if not path.exists():
+    if not exists(path):
         return []
-    data = json.loads(path.read_text())
+    data = read_json(path)
     result = []
     for feature in data.get("features", []):
         try:
@@ -56,8 +57,8 @@ class Region:
             features = load_features(path)
             self.features[name] = features
             self.indexes[name] = STRtree([feature["shape"] for feature in features])
-            if path.exists():
-                self.inputs["/data/seed/"+path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
+            if exists(path):
+                self.inputs["/data/seed/"+path.name] = hashlib.sha256(read_bytes(path)).hexdigest()
         if terrain_path.exists():
             self.inputs["/data/geo/terrain_30m.npz"] = hashlib.sha256(terrain_path.read_bytes()).hexdigest()
         self.sea = SeaClassifier([feature["shape"] for feature in self.features["coastline"]])
@@ -122,7 +123,7 @@ _CACHE = {}
 def get_region(data_dir: Path):
     data_dir = Path(data_dir).resolve()
     seed = data_dir/"seed" if (data_dir/"seed").exists() else data_dir
-    files = list(seed.glob("*.geojson")) + [seed/"walk_graph.json.gz", data_dir/"geo"/"terrain_30m.npz"]
+    files = sorted(seed.glob("*.geojson")) + sorted(seed.glob("*.geojson.gz")) + [seed/"walk_graph.json.gz", data_dir/"geo"/"terrain_30m.npz"]
     key = (str(data_dir), tuple((str(path), path.stat().st_mtime_ns, path.stat().st_size) for path in files if path.exists()))
     if key not in _CACHE:
         _CACHE.clear()

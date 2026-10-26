@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import itertools
+import math
+import re
+from collections import Counter, defaultdict
 from threading import RLock
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -24,6 +27,7 @@ router = APIRouter(prefix="/api", tags=["passports"])
 _LOCK = RLock()
 _REPO = Depends(get_repo)
 _AUTH = Depends(require_hotelier)
+ROOM_CHARACTERISTICS = {"sea_view", "sunset_view", "mountain_view", "quiet_night", "soundproofing", "room_orientation"}
 
 
 def scopes_compatible(scopes: list[Scope]) -> bool:
@@ -36,26 +40,87 @@ def scopes_compatible(scopes: list[Scope]) -> bool:
     return len(facades) <= 1 and len(room_types) <= 1 and len(months) <= 1 and minimum <= maximum
 
 
-def _holds(fact: Fact, criterion: Criterion | None = None) -> bool:
-    if fact.status not in {"computed", "confirmed"} or fact.value is None:
-        return False
+def _comparison(fact: Fact, criterion: Criterion | None = None) -> bool | None:
+    """Three states keep a missing threshold separate from a known rejection."""
+    if fact.status not in {"computed", "confirmed"} or fact.value is None or fact.valid_until and fact.valid_until <= now():
+        return None
     value = fact.value
-    if criterion:
-        field = criterion.field or "available"
-        actual = value.get(field) if isinstance(value, dict) else value
-        if actual is None:
+    field = criterion.field or "available" if criterion else "available"
+    actual = value
+    if isinstance(value, dict):
+        actual = value
+        for part in field.split("."):
+            actual = actual.get(part) if isinstance(actual, dict) else None
+        if field != "available" and value.get("available") is False:
             return False
+    if actual is None:
+        return None
+    if criterion is None:
+        return actual is True if isinstance(actual, bool) else None
+    target = criterion.value
+    if criterion.op in {"lte", "gte"}:
+        if isinstance(actual, bool) or isinstance(target, bool):
+            return None
         try:
-            if criterion.op == "lte":
-                return not isinstance(actual, bool) and float(actual) <= float(criterion.value)
-            if criterion.op == "gte":
-                return not isinstance(actual, bool) and float(actual) >= float(criterion.value)
-            if criterion.op == "contains":
-                return criterion.value in actual
-            return actual == criterion.value
+            actual_number, target_number = float(actual), float(target)
         except (TypeError, ValueError):
-            return False
-    return value.get("available") is True if isinstance(value, dict) else value is True
+            return None
+        if not math.isfinite(actual_number) or not math.isfinite(target_number):
+            return None
+        return actual_number <= target_number if criterion.op == "lte" else actual_number >= target_number
+    if criterion.op == "contains":
+        if isinstance(actual, str) and isinstance(target, str):
+            return target.casefold() in actual.casefold()
+        if not isinstance(actual, list | tuple):
+            return None
+        if isinstance(target, str):
+            aliases = {"dog": {"dog", "dogs", "собака", "собаки"}, "cat": {"cat", "cats", "кошка", "кошки"}}
+            allowed = {str(item).casefold() for item in actual}
+            if field == "species" and target in aliases:
+                return bool(allowed.intersection(aliases[target] | {"all", "любые", "pets", "животные"}))
+        return target in actual
+    if isinstance(target, bool):
+        return actual is target if isinstance(actual, bool) else None
+    if isinstance(actual, str) and isinstance(target, str):
+        return actual.casefold() == target.casefold()
+    return actual == target
+
+
+def _holds(fact: Fact, criterion: Criterion | None = None) -> bool:
+    # Public helper is also consumed by the change-notification service.
+    return _comparison(fact, criterion) is True
+
+
+def _effective_scope(fact: Fact) -> Scope | None:
+    """Room qualifiers inside a value must not disappear at confirmation."""
+    scope = fact.scope.model_copy(deep=True)
+    value = fact.value if isinstance(fact.value, dict) else {}
+    side = value.get("facade")
+    if scope.facade and side and scope.facade != side:
+        return None
+    if not scope.facade and side in {"N", "NE", "E", "SE", "S", "SW", "W", "NW"}:
+        scope.facade = side
+    if value.get("available") is True:
+        for attr, key in (("floor_min", "min_floor"), ("floor_max", "max_floor")):
+            if getattr(scope, attr) is None and type(value.get(key)) is int:
+                setattr(scope, attr, value[key])
+    scope.type = "room_type" if scope.room_type else "floor_range" if scope.facade and (scope.floor_min or scope.floor_max) else "facade" if scope.facade else "hotel"
+    try:
+        return Scope.model_validate(scope.model_dump())
+    except ValueError:
+        return None
+
+
+def _all_hold(fact: Fact, criteria: list[Criterion]) -> bool:
+    return all(_holds(fact, criterion) for criterion in criteria) if criteria else _holds(fact)
+
+
+def _stored_criteria(stored: dict) -> list[Criterion]:
+    # Read earlier passports while writing the new complete list.
+    values = stored.get("criteria")
+    if values is None:
+        values = [stored["criterion"]] if stored.get("criterion") else []
+    return [Criterion.model_validate(value) for value in values]
 
 
 def _combine_scope(wanted: Scope, actual: Scope) -> Scope | None:
@@ -70,12 +135,13 @@ def _combine_scope(wanted: Scope, actual: Scope) -> Scope | None:
     return Scope.model_validate(data)
 
 
-def _fact_candidates(item: PassportItem, facts: list[Fact], criterion: Criterion | None = None):
+def _fact_candidates(item: PassportItem, facts: list[Fact], criteria: list[Criterion]):
     candidates = []
     for fact in facts:
-        if fact.characteristic_id != item.characteristic_id or not _holds(fact, criterion):
+        if fact.characteristic_id != item.characteristic_id or not _all_hold(fact, criteria):
             continue
-        scope = _combine_scope(item.scope, fact.scope)
+        actual_scope = _effective_scope(fact)
+        scope = _combine_scope(item.scope, actual_scope) if actual_scope else None
         if scope is not None:
             candidates.append((scope, fact))
     return sorted(candidates, key=lambda pair: -pair[1].confidence)[:12]
@@ -99,7 +165,7 @@ def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
     if len(request.guest_name.strip()) > 120 or not request.guest_name.strip():
         raise HTTPException(422, "Укажите имя гостя длиной до 120 символов")
     facts = [Fact.model_validate(value) for value in repo.find("facts", hotel_id=request.hotel_id)]
-    criteria: dict[str, Criterion] = {}
+    criteria: dict[str, list[Criterion]] = {}
     items = [item.model_copy(deep=True) for item in request.items]
     if not items and request.parsed:
         for critical, group in ((True, request.parsed.must), (False, request.parsed.nice)):
@@ -113,8 +179,46 @@ def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
                     if scope.facade:
                         scope.type = "floor_range"
                 item = PassportItem(characteristic_id=criterion.characteristic_id, text=criterion.label, critical=critical, scope=scope)
-                criteria[item.id] = criterion
+                criteria[item.id] = [criterion.model_copy(deep=True)]
                 items.append(item)
+    if request.items and request.parsed:
+        grouped: dict[str, list[Criterion]] = defaultdict(list)
+        for criterion in [*request.parsed.must, *request.parsed.nice]:
+            grouped[criterion.characteristic_id].append(criterion)
+        counts = Counter(item.characteristic_id for item in items)
+        positions: dict[str, int] = defaultdict(int)
+        for item in items:
+            matching = grouped[item.characteristic_id]
+            # The editor emits one row per criterion in parsed order. A single
+            # merged row keeps all requirements for that characteristic.
+            if counts[item.characteristic_id] == len(matching) and matching:
+                matching = [matching[positions[item.characteristic_id]]]
+                positions[item.characteristic_id] += 1
+            criteria[item.id] = [criterion.model_copy(deep=True) for criterion in matching]
+    scope_conflicts: set[str] = set()
+    for item in items:
+        item_criteria = criteria.setdefault(item.id, [])
+        wanted_scopes = [criterion.scope for criterion in item_criteria if criterion.scope]
+        if request.parsed and item.characteristic_id in ROOM_CHARACTERISTICS:
+            wanted_scopes.append(Scope(facade=request.parsed.facade, floor_min=request.parsed.min_floor))
+        for wanted in wanted_scopes:
+            combined = _combine_scope(item.scope, wanted)
+            if combined is None:
+                scope_conflicts.add(item.id)
+            else:
+                item.scope = combined
+        positive_pets = item.characteristic_id == "pets" and any(
+            (criterion.field or "available") == "available" and criterion.value is True for criterion in item_criteria)
+        if request.parsed and positive_pets:
+            weight = max((criterion.weight for criterion in item_criteria), default=1)
+            if request.parsed.pet_weight_kg is not None:
+                item_criteria.append(Criterion(characteristic_id="pets", label="Допустимый вес питомца",
+                    field="max_weight_kg", op="gte", value=request.parsed.pet_weight_kg, weight=weight))
+            pet_text = request.parsed.text.casefold() + " " + item.text.casefold()
+            for species, pattern in (("dog", r"собак|лабрадор|\bdog\b"), ("cat", r"кошк|котом|\bcat\b")):
+                if re.search(pattern, pet_text):
+                    item_criteria.append(Criterion(characteristic_id="pets", label="Разрешённый вид питомца",
+                        field="species", op="contains", value=species, weight=weight))
     if not items:
         # Facts can prefill a passport, but an unknown is never silently invented.
         for fact in sorted(facts, key=lambda value: -value.confidence):
@@ -132,11 +236,14 @@ def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
     fact_by_id = {fact.id: fact for fact in facts}
     candidate_sets = []
     for item in items:
-        _get(repo, "characteristics", item.characteristic_id, "Характеристика")
+        spec = _get(repo, "characteristics", item.characteristic_id, "Характеристика")
+        for criterion in criteria.get(item.id, []):
+            if criterion.field is None:
+                criterion.field = spec.get("search", {}).get("field", "available")
         if any(fid not in fact_by_id or fact_by_id[fid].characteristic_id != item.characteristic_id for fid in item.fact_ids):
             raise HTTPException(422, "Факты ожидания должны принадлежать этому отелю и характеристике")
         item.status, item.response = "pending", None
-        candidates = _fact_candidates(item, facts, criteria.get(item.id))
+        candidates = _fact_candidates(item, facts, criteria.get(item.id, [])) if item.id not in scope_conflicts else []
         candidate_sets.append(candidates)
     # Find a shared room scope when several facade/floor alternatives exist.
     critical_indices = [index for index, item in enumerate(items) if item.critical]
@@ -161,7 +268,7 @@ def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
                                   check_out=request.check_out or (request.parsed.check_out if request.parsed else None), items=items)
     if passport.check_in and passport.check_out and passport.check_out <= passport.check_in:
         raise HTTPException(422, "Дата выезда должна быть позже заезда")
-    incompatible = not scopes_compatible([item.scope for item in items if item.critical])
+    incompatible = bool(scope_conflicts.intersection(item.id for item in items if item.critical)) or not scopes_compatible([item.scope for item in items if item.critical])
     if incompatible:
         passport.status = "alternative"
         for item in passport.items:
@@ -174,7 +281,8 @@ def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
     repo.insert("expectation_passports", passport.model_dump(mode="json"))
     for item in items:
         repo.upsert("passport_items", {**item.model_dump(mode="json"), "passport_id": passport.id,
-                                      "criterion": criteria[item.id].model_dump(mode="json") if item.id in criteria else None})
+                                      "criteria": [criterion.model_dump(mode="json") for criterion in criteria.get(item.id, [])],
+                                      "scope_conflict": item.id in scope_conflicts})
     return passport
 
 
@@ -210,28 +318,43 @@ def passport_action(passport_id: str, request: PassportAction, repo) -> Expectat
             critical = [item for item in passport.items if item.critical]
             incompatible = not scopes_compatible([item.scope for item in critical])
             declined = []
+            alternatives = []
             for item in passport.items:
-                related = [fact for fact in facts if fact.characteristic_id == item.characteristic_id and scopes_compatible([item.scope, fact.scope])]
+                all_related = [fact for fact in facts if fact.characteristic_id == item.characteristic_id]
+                related = [fact for fact in all_related if (actual_scope := _effective_scope(fact)) is not None
+                           and scopes_compatible([item.scope, actual_scope])]
                 stored = repo.get("passport_items", item.id) or {}
-                criterion = Criterion.model_validate(stored["criterion"]) if stored.get("criterion") else None
-                eligible = [fact for fact in related if _holds(fact, criterion)]
-                known_negative = related and not eligible and any(
-                    fact.status in {"computed", "confirmed"} and isinstance(fact.value, dict)
-                    and (fact.value.get("available") is False or criterion is not None and
-                         fact.value.get(criterion.field or "available") is not None and not _holds(fact, criterion))
-                    for fact in related)
-                room_mismatch = bool(eligible) and all(isinstance(fact.value, dict) and fact.value.get("rooms") and request.room_number.strip() not in [str(room) for room in fact.value["rooms"]] for fact in eligible)
+                item_criteria = _stored_criteria(stored)
+                eligible = [fact for fact in related if _all_hold(fact, item_criteria)]
+                known_negative = not eligible and any(
+                    any(_comparison(fact, criterion) is False for criterion in item_criteria)
+                    if item_criteria else _comparison(fact) is False for fact in related)
+                targeted = any((criterion.field or "available") != "available" for criterion in item_criteria)
+                unresolved = not eligible and targeted and not known_negative
+                scope_mismatch = bool(stored.get("scope_conflict")) or not related and any(
+                    _all_hold(fact, item_criteria) for fact in all_related)
+                room_mismatch = bool(eligible) and all(
+                    isinstance(fact.value, dict) and fact.value.get("rooms")
+                    and request.room_number.strip() not in [str(room) for room in fact.value["rooms"]] for fact in eligible)
                 if incompatible and item.critical:
                     item.status, item.response = "alternative", "Условия несовместимы для одного номера; выберите сторону или этаж."
                 elif not item.critical and not scopes_compatible([item.scope] + [required.scope for required in critical]):
                     item.status, item.response = "alternative", "Желательное условие несовместимо с критичными условиями выбранного номера."
+                elif scope_mismatch:
+                    item.status, item.response = "alternative", "Сведения относятся к другой стороне или этажам; требуется альтернатива."
+                    if item.critical:
+                        alternatives.append(item.id)
+                elif unresolved:
+                    item.status, item.response = "at_risk", "Нет подтверждённых данных для проверки указанного порога или ограничения."
+                    if item.critical:
+                        declined.append(item.id)
                 elif known_negative or room_mismatch:
                     item.status, item.response = "declined", "Текущие сведения не подтверждают условие для выбранного номера."
                     if item.critical:
                         declined.append(item.id)
                 else:
                     item.status, item.response = "confirmed", "Явно подтверждено отельером в локальном демо; это не реальная бронь."
-            passport.status = "alternative" if incompatible else "at_risk" if declined else "confirmed"
+            passport.status = "alternative" if incompatible or alternatives else "at_risk" if declined else "confirmed"
             passport.room_number = request.room_number.strip() if passport.status == "confirmed" else None
             message = (f"Локальное демо-подтверждение: номер {passport.room_number}. " + (request.text or "Критичные ожидания приняты отельером.")) if passport.status == "confirmed" else "Требуется альтернатива: критичные условия несовместимы или не выполняются."
         elif request.action == "alternative":

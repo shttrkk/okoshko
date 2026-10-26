@@ -22,7 +22,7 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
         hotel_facts = by_hotel[hotel.id]
         assessment = assess_hotel(hotel_facts, parsed, specs)
         required = assessment.matches[:must_total]
-        satisfied = sum(m.status == "yes" for m in required)
+        satisfied = sum(m.supported for m in required)
         some_support = any(m.status in {"yes", "partial"} for m in required)
         group = "all" if satisfied == must_total else "almost" if some_support or all(m.status == "no" for m in required) else "unknown"
         weighted = [(m.utility, c.weight*(2 if i < must_total else 1)) for i, (c, m) in enumerate(zip(criteria, assessment.matches, strict=True))]
@@ -33,7 +33,9 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
         if not must_total:
             summary = "Оценка по желательным условиям." if criteria else "Задайте условия, чтобы сравнить отели по подтверждённым фактам."
         elif group == "all":
-            summary = f"Все обязательные условия подтверждены для совместимого номера ({satisfied} из {must_total})."
+            summary = f"Все обязательные условия выполнены по имеющимся данным для совместимого номера ({satisfied} из {must_total})."
+            if any(m.status == "partial" for m in required):
+                summary += " Часть условий рассчитана предварительно — проверьте оговорки и уверенность."
         elif assessment.scope_conflict:
             summary = "Есть компромисс: обязательные условия относятся к разным номерам. Одного подходящего номера не подтверждено."
         else:

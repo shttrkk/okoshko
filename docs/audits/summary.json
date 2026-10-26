@@ -1,6 +1,23 @@
 {
-  "generated_at": "2026-10-26T12:41:12.316405+00:00",
+  "generated_at": "2026-10-26T13:56:49.250478+00:00",
   "python_vulnerable_packages": 0,
+  "python_locks": {
+    "python": {
+      "path": "backend/requirements.lock",
+      "sha256": "64dd8a2cb48ec4f9728fcbf6af3eea304f3539a95740084e98f1b7173d2e974b",
+      "vulnerable_packages": 0
+    },
+    "python-dev": {
+      "path": "requirements-dev.lock",
+      "sha256": "c1677ccb971a1a9c541e31b0a7546ca026acb3e1139b48008ce2a552417deffa",
+      "vulnerable_packages": 0
+    },
+    "python-pipeline": {
+      "path": "pipeline/requirements.lock",
+      "sha256": "cc1ff8a2fe70e094a6042cf014a118b95c23b3c300b20301e55ce67091c1061a",
+      "vulnerable_packages": 0
+    }
+  },
   "npm_production": {
     "info": 0,
     "low": 0,
@@ -9,11 +26,31 @@
     "critical": 0,
     "total": 0
   },
+  "npm_full": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "npm_lock_sha256": "e67e5be7aeb6eade25ca6d8b7725f9e56981df560e05faf5a1a8409d9807e199",
   "scanner_errors": false,
+  "errors": {},
+  "exit_codes": {
+    "python": 0,
+    "python-dev": 0,
+    "python-pipeline": 0,
+    "npm": 0,
+    "npm-full": 0
+  },
   "passed": true,
-  "policy": "Python: resolve every reported vulnerability; npm production: no High/Critical. Scanner failure blocks.",
+  "policy": "Python runtime/dev/pipeline: resolve every reported vulnerability; npm full/production: no High/Critical. Scanner failure or skipped dependency blocks.",
   "commands": [
-    "pip-audit --require-hashes -r backend/requirements.lock -f json",
-    "npm audit --omit=dev --json"
+    "/Users/shttrkk/ostrovok-hack/okno/.venv/bin/python -m pip_audit --require-hashes --disable-pip --strict -r backend/requirements.lock --format json --progress-spinner off",
+    "/Users/shttrkk/ostrovok-hack/okno/.venv/bin/python -m pip_audit --require-hashes --disable-pip --strict -r requirements-dev.lock --format json --progress-spinner off",
+    "/Users/shttrkk/ostrovok-hack/okno/.venv/bin/python -m pip_audit --require-hashes --disable-pip --strict -r pipeline/requirements.lock --format json --progress-spinner off",
+    "npm audit --omit=dev --json",
+    "npm audit --json"
   ]
 }

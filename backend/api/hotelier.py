@@ -8,9 +8,10 @@ import time
 from datetime import timedelta
 from threading import RLock
 
-import jsonschema
 from fastapi import APIRouter, Depends, Header, HTTPException
+from jsonschema import SchemaError, ValidationError
 from psycopg.errors import UniqueViolation
+from referencing.exceptions import Unresolvable
 
 from backend.agents.answer_parser import parse_answer
 from backend.agents.interviewer import create_question, generate_questions, stable_id
@@ -28,6 +29,7 @@ from backend.contracts import (
     Source,
     now,
 )
+from backend.contracts.validation import validate_value
 from backend.db.repository import get_repo
 from backend.llm.client import LLMClient
 from backend.sim.hotelier import simulate_answer
@@ -145,8 +147,8 @@ def confirm_answer(answer_id: str, repo) -> Answer:
         for update in answer.updates:
             spec = _get(repo, "characteristics", update.characteristic_id, "Характеристика")
             try:
-                jsonschema.validate(update.value, spec["value_schema"])
-            except jsonschema.ValidationError as exc:
+                validate_value(update.value, spec["value_schema"])
+            except (ValueError, SchemaError, ValidationError, Unresolvable) as exc:
                 raise HTTPException(422, "Значение не соответствует схеме характеристики: " + update.characteristic_id) from exc
             specs[update.characteristic_id] = spec
         source_id = "hotelier_simulator" if answer.synthetic else "hotelier"

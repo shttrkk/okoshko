@@ -1,0 +1,41 @@
+{
+  "bbox_wgs84": [
+    39.35,
+    43.1,
+    40.45,
+    43.98
+  ],
+  "crs": "EPSG:32637",
+  "inputs": [
+    {
+      "filename": "Copernicus_DSM_COG_10_N43_00_E039_00_DEM.tif",
+      "native_crs": "EPSG:4326",
+      "native_shape": [
+        3600,
+        3600
+      ],
+      "sha256": "ec4192bc74e18926617e40373898d37d6000ab0593cabde3a25a5d9781d7991e"
+    },
+    {
+      "filename": "Copernicus_DSM_COG_10_N43_00_E040_00_DEM.tif",
+      "native_crs": "EPSG:4326",
+      "native_shape": [
+        3600,
+        3600
+      ],
+      "sha256": "49e7ef0de441d943645ee1b8aa9941f35a2d3e7c1574be23135b339612d58493"
+    }
+  ],
+  "limitation": "No extrapolation outside downloaded tiles. Building bases are estimated separately at 10th percentile; residual canopy/roof errors remain.",
+  "pipeline_versions": {
+    "gdal": "3.12.2",
+    "numpy": "2.5.4",
+    "rasterio": "1.5.2"
+  },
+  "resampling": "bilinear",
+  "resolution_m": 30,
+  "source_id": "copernicus_dem",
+  "surface": "DSM, not bare-earth",
+  "valid_fraction": 1.0,
+  "vertical_datum": "EGM2008"
+}

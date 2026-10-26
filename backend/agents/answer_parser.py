@@ -65,6 +65,56 @@ def _bool_feature(sentence: str, pattern: str) -> bool | None:
     return values[0] if values and len(set(values)) == 1 else None
 
 
+def _insulation_available(sentence: str) -> bool | None:
+    if re.search(UNCERTAIN, sentence):
+        return None
+    feature = r"(?:шумо|звуко)изоляц\w*"
+    negative_quality = r"плох\w*|слаб\w*|низк\w*|ужасн\w*|отвратительн\w*|посредственн\w*|недостаточн\w*|так\s+себе"
+    for clause in re.split(r"[,;]|\bно\b|\bа\b|\bи\b", sentence):
+        if not re.search(feature, clause):
+            continue
+        quality = re.search(negative_quality, clause)
+        if quality:
+            # "Not bad" is not evidence of adequate insulation either.
+            if re.search(r"\bне\s+$", clause[:quality.start()]):
+                return None
+            adjacent = re.search(r"(?:" + negative_quality + r")\s+" + feature, clause) or re.search(
+                feature + r"\s+(?:(?:очень|крайне|довольно|весьма|тут|здесь)\s+)?(?:" + negative_quality + r")", clause)
+            return False if adjacent else None
+    return _bool_feature(sentence, feature)
+
+
+def _night_observations(sentence: str) -> list[tuple[str, bool | None]]:
+    """Keep daytime statements out of the nighttime characteristic."""
+    night = r"ночью|ночн\w*|по\s+ночам|\bночи\b"
+    other_time = r"днем|дневн\w*|утром|утрен\w*|вечером|вечерн\w*"
+    clauses = [part.strip() for part in re.split(
+        r"[,;]|\bно\b|\bа\b|\bи\b|(?=\b(?:днем|ночью|утром|вечером|по\s+ночам)\b)", sentence,
+        flags=re.IGNORECASE) if part.strip()]
+    normalized = sentence.lower().replace("ё", "е")
+    prefix_uncertain = bool(re.match(UNCERTAIN, normalized))
+    has_explicit_time = bool(re.search(night + "|" + other_time, normalized))
+    observations = []
+    active_time = None
+    for clause in clauses:
+        low = clause.lower().replace("ё", "е")
+        explicit_night = bool(re.search(night, low))
+        explicit_other = bool(re.search(other_time, low))
+        if explicit_night or explicit_other:
+            active_time = "night" if explicit_night and not explicit_other else "other"
+        if has_explicit_time and active_time != "night":
+            continue
+        values = []
+        for pattern, invert in ((r"тих\w*", False), (r"шумн\w*", True)):
+            if re.search(pattern, low):
+                present = _bool_feature(low, pattern)
+                values.append(None if present is None else not present if invert else present)
+        if values:
+            available = values[0] if not prefix_uncertain and None not in values and len(set(values)) == 1 else None
+            observations.append((clause if explicit_night or not has_explicit_time else sentence, available))
+    return observations
+
+
 def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
     updates: list[FieldUpdate] = []
     unknown: set[str] = set()
@@ -81,7 +131,9 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
                 unknown.add(cid)
                 clarifications.append(f"Уточните противоречивые значения: {cid} ({', '.join(contradictory)}).")
                 return
-            prior.value.update(value)
+            # A later partial amenity sentence must not erase an explicit
+            # insulation statement with its default available=null.
+            prior.value.update({key: item for key, item in value.items() if item is not None or key not in prior.value})
             prior.quote = raw
         elif cid not in unknown:
             updates.append(FieldUpdate(characteristic_id=cid, scope=scope, value=value, quote=quote))
@@ -159,7 +211,9 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
                 if sound[key] is None:
                     unknown.add("soundproofing."+key)
         if re.search(r"шумоизоляц|звукоизоляц", low):
-            sound["available"] = _bool_feature(low, r"шумоизоляц|звукоизоляц")
+            sound["available"] = _insulation_available(low)
+            if sound["available"] is None:
+                unknown.add("soundproofing.available")
         if sound and any(value is not None for value in sound.values()):
             # Double glazing is a window description, never proof of measured insulation.
             sound.setdefault("available", None)
@@ -211,7 +265,19 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
                     pets["available"] = True
             add("pets", pets, sentence)
 
-        for cid, pattern in (("quiet_night", r"тих\w*|шумн\w*"), ("sea_view", r"вид\w*\s+(?:на\s+)?мор|море\s+вид"), ("sunset_view", r"закат"), ("mountain_view", r"вид\w*\s+(?:на\s+)?гор")):
+        for quote, available in _night_observations(sentence):
+            if available is None:
+                unknown.add("quiet_night")
+                continue
+            night_text = quote.lower().replace("ё", "е")
+            night_side = _side(night_text)
+            night_scope = Scope(type="facade", facade=night_side) if night_side else Scope()
+            value = {"available": available}
+            if night_side:
+                value["facade"] = night_side
+            add("quiet_night", value, quote, night_scope)
+
+        for cid, pattern in (("sea_view", r"вид\w*\s+(?:на\s+)?мор|море\s+вид"), ("sunset_view", r"закат"), ("mountain_view", r"вид\w*\s+(?:на\s+)?гор")):
             if re.search(pattern, low):
                 if re.search(UNCERTAIN, low):
                     unknown.add(cid)
@@ -220,8 +286,6 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
                 if available is None:
                     unknown.add(cid)
                     continue
-                if cid == "quiet_night" and re.search(r"шумн", low):
-                    available = not available
                 value = {"available": available}
                 if side:
                     value["facade"] = side

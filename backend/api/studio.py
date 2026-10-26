@@ -6,13 +6,13 @@ import threading
 
 import yaml
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from jsonschema import validate
 
 from backend.agents.planner import plan_characteristic
 from backend.agents.resolver import resolve_claims
 from backend.agents.spec_compiler import compile_spec, validate_spec
 from backend.api.catalog import catalog
 from backend.contracts import CharacteristicSpec, Claim, CompileRequest, ToolContext, now
+from backend.contracts.validation import validate_value as validate
 from backend.db.repository import get_repo
 from backend.tools.registry import Registry
 from backend.tracing import Trace
@@ -130,6 +130,12 @@ def publish(body: CharacteristicSpec, background_tasks: BackgroundTasks, repo=_R
         if current and not repo.get("characteristic_versions", f"{body.id}:v{current['version']}"):
             repo.insert("characteristic_versions", {"id": f"{body.id}:v{current['version']}", "characteristic_id": body.id,
                         "version": current["version"], "spec": current, "created_at": now().isoformat(), "run_id": None})
+        # A changed definition must not reuse materialized values from its older meaning.
+        if current:
+            previous_facts = repo.find("facts", characteristic_id=spec.id)
+            if previous_facts:
+                stale = [{**fact, "status": "stale", "confidence": 0, "valid_until": now().isoformat()} for fact in previous_facts]
+                repo.upsert_many("facts", stale)
         repo.upsert("characteristics", spec.model_dump(mode="json"))
         repo.insert("characteristic_versions", {"id": f"{spec.id}:v{spec.version}", "characteristic_id": spec.id,
                     "version": spec.version, "spec": spec.model_dump(mode="json"), "created_at": now().isoformat(), "run_id": trace.run.id})

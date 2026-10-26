@@ -11,15 +11,35 @@ import copy
 import hashlib
 import json
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
 from shapely.geometry import LineString, Point, shape
 
 from geo.coordinates import TO_UTM, angle_difference, geographic, hotel_center, metric
+from geo.io import read_bytes
 from geo.sun import visible_sunset
 from geo.terrain import Grid
 from geo.views import CURVATURE, EARTH_RADIUS_M
+
+
+@lru_cache(maxsize=32)
+def _input_digest(path: Path, signature: tuple) -> str:
+    """Hash original logical bytes once per physical file revision.
+
+    The signature includes ctime/inode as well as mtime/size so replacing a seed
+    with an equally sized file does not reuse a stale provenance check.
+    """
+    return hashlib.sha256(read_bytes(path)).hexdigest()
+
+
+def input_digest(path: Path) -> str | None:
+    physical = path if path.is_file() or path.suffix == ".gz" else Path(str(path) + ".gz")
+    if not physical.is_file():
+        return None
+    stat = physical.stat()
+    return _input_digest(path, (str(physical), stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size, stat.st_ino))
 
 
 def _roof_intervals(points, azimuths, polygon):
@@ -78,7 +98,7 @@ def compute_cached_change(hotel, data_dir, new_building):
         return None  # Named target LOS needs the full engine, not this sea/ridge cache.
     for input_artifact, expected in baseline["inputs"].items():
         input_path = data_dir/input_artifact.removeprefix("/data/")
-        if not input_path.exists() or hashlib.sha256(input_path.read_bytes()).hexdigest() != expected:
+        if input_digest(input_path) != expected:
             return None
     lon, lat = hotel_center(hotel)
     if np.linalg.norm(np.asarray(baseline["center"])-[lon, lat]) > 1e-7:

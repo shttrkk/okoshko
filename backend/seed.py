@@ -61,13 +61,19 @@ def load_seed(data_dir: Path = DATA):
             conn.execute("INSERT INTO characteristics (id,payload) VALUES (%s,%s) ON CONFLICT(id) DO NOTHING",
                          (spec.id, Jsonb(spec.model_dump(mode="json"))))
         known_hotels = {row[0] for row in conn.execute("SELECT id FROM hotels")}
+        if (data_dir/"seed"/"demo_hotelier_claims.jsonl").exists():
+            source = Source(id="hotelier_simulator", name="Синтетический демонстрационный отельер", kind="simulation",
+                            url="/data/seed/demo_hotelier_claims.jsonl", license="MIT (project-authored synthetic fixtures)",
+                            attribution="О!кно: вымышленные ответы для демонстрации", observed_at=now(), retrieved_at=now(),
+                            notes="Три помеченных ответа о тишине для проверки полного сценария. Не сведения и не измерения реальных отелей.", alpha=6, beta=4)
+            conn.execute("INSERT INTO sources(id,payload) VALUES(%s,%s) ON CONFLICT(id) DO NOTHING", (source.id,Jsonb(source.model_dump(mode="json"))))
         if (data_dir/"eval"/"website_claims.jsonl").exists():
             source = Source(id="hotel_website",name="Короткие цитаты с официальных сайтов отелей",kind="text_quote",
                             url="/data/eval/website_fetch_log.jsonl",license="Фактические выдержки до 25 слов на страницу; права на тексты у сайтов отелей",
                             attribution="Официальные сайты отелей: точный URL у каждой цитаты",observed_at=now(),retrieved_at=now(),
                             notes="Слабые метки с проверкой robots.txt. Не доказательство реального вида из каждого номера; не используются для оценки самих себя",alpha=5.5,beta=4.5)
             conn.execute("INSERT INTO sources(id,payload) VALUES(%s,%s) ON CONFLICT(id) DO NOTHING",(source.id,Jsonb(source.model_dump(mode="json"))))
-        for path in (data_dir/"seed"/"open_claims.jsonl.gz", data_dir/"geo"/"geo_claims.jsonl.gz", data_dir/"eval"/"website_claims.jsonl"):
+        for path in (data_dir/"seed"/"open_claims.jsonl.gz", data_dir/"geo"/"geo_claims.jsonl.gz", data_dir/"eval"/"website_claims.jsonl", data_dir/"seed"/"demo_hotelier_claims.jsonl"):
             if path.exists():
                 count = seed_claims(conn, path, known_hotels)
                 logging.info("Seed evidence ledger %s: %s claims", path.name, count)

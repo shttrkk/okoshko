@@ -13,6 +13,8 @@ from pathlib import Path
 import requests
 import yaml
 
+from geo.io import read_json
+
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data/raw"
 SEED = ROOT / "data/seed"
@@ -33,22 +35,50 @@ def utcnow():
 
 
 def dump(path: Path, value):
+    """Write seed GeoJSON as reproducible gzip; other JSON stays plain.
+
+    The tiny data/tiles/coverage.geojson remains plain for the PMTiles CLI.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
+    logical = path
+    compressed = path.suffix == ".geojson" and path.parent == SEED
+    if compressed:
+        path = Path(str(path) + ".gz")
     temp = path.with_suffix(path.suffix + ".tmp")
-    temp.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
+    data = (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+    if compressed:
+        with temp.open("wb") as raw:
+            with gzip.GzipFile(fileobj=raw, mode="wb", mtime=0, filename="") as stream:
+                stream.write(data)
+    else:
+        temp.write_bytes(data)
     temp.replace(path)
+    if compressed:
+        logical.unlink(missing_ok=True)
 
 
 def read(path: Path):
-    return json.loads(path.read_text())
+    return read_json(path)
 
 
 def sha(path: Path):
+    """SHA-256 of physical bytes, including gzip envelopes when present."""
     h = hashlib.sha256()
     with path.open("rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def output_metadata(path: Path):
+    """Manifest hashes identify physical files and original logical GeoJSON."""
+    result = {"sha256": sha(path), "bytes": path.stat().st_size}
+    if path.name.endswith(".geojson.gz"):
+        logical = path.with_suffix("")
+        original = gzip.decompress(path.read_bytes())
+        result.update(encoding="gzip", logical_path=str(logical.relative_to(ROOT)),
+                      uncompressed_sha256=hashlib.sha256(original).hexdigest(), uncompressed_bytes=len(original))
+    return result
 
 
 def fetch(url: str, name: str, *, params=None, refresh=False):

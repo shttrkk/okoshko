@@ -42,6 +42,8 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
     for claim in claims:
         if claim.hotel_id != hotel_id or claim.id in superseded:
             continue
+        if claim.characteristic_id in spec_by_id and claim.spec_version!=spec_by_id[claim.characteristic_id].version:
+            continue
         key = (claim.characteristic_id, scope_key(claim.scope), claim.source, claim.method)
         if key not in latest or (claim.observed_at, claim.id) > (latest[key].observed_at, latest[key].id):
             latest[key] = claim

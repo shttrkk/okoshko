@@ -7,6 +7,8 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from backend.contracts.schema_safety import check_schema_safety
+
 Json = dict[str, Any]
 Side = Literal["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 Mode = Literal["offline", "cache", "live"]
@@ -186,6 +188,11 @@ class CharacteristicSpec(Model):
     hotelier_answerable: bool = True
     status: Literal["draft", "active"] = "active"
 
+    @model_validator(mode="after")
+    def safe_schema(self) -> CharacteristicSpec:
+        check_schema_safety(self.value_schema)
+        return self
+
 
 class Question(Model):
     id: str = Field(default_factory=uid)
@@ -283,6 +290,19 @@ class CriterionVerdict(Model):
     fact_ids: list[str] = Field(default_factory=list)
     evidence_refs: list[str] = Field(default_factory=list)
     caveat: str | None = None
+    synthetic: bool = False
+    disputed: bool = False
+
+
+class ComparisonRequest(Model):
+    ids: list[str] = Field(min_length=2, max_length=4)
+    parsed: ParsedQuery | None = None
+
+    @model_validator(mode="after")
+    def unique(self) -> ComparisonRequest:
+        if len(set(self.ids)) != len(self.ids):
+            raise ValueError("Choose distinct hotels")
+        return self
 
 
 class Hotel(Model):

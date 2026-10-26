@@ -4,6 +4,7 @@ import time
 from backend.agents.planner import plan_characteristic
 from backend.agents.resolver import resolve_hotel
 from backend.contracts import CharacteristicSpec, ToolContext
+from backend.contracts.validation import validate_value as validate
 from backend.tools.registry import Registry
 from backend.tracing import Trace
 
@@ -24,6 +25,9 @@ def collect_hotel(hotel_id: str, repo, characteristic_ids=None, *, trigger="user
             for call in plan:
                 started = time.monotonic()
                 result = registry.execute(ToolContext(hotel_id=hotel_id,characteristic_id=spec.id,run_id=trace.run.id),call)
+                for claim in result.claims:
+                    claim.spec_version = spec.version
+                    validate(claim.value,spec.value_schema)
                 if result.claims:
                     repo.insert_claims(result.claims)
                 trace.step("collector","tool_call",call.tool,input=call.params,

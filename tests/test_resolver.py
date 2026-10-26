@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 from backend.agents.resolver import resolve_claims
-from backend.contracts import Claim, Evidence, Scope
+from backend.contracts import CharacteristicSpec, Claim, Evidence, Scope, ToolCall
 
 OBSERVED = datetime(2026, 10, 26, tzinfo=UTC)
 
@@ -44,4 +44,10 @@ def test_duplicate_source_does_not_manufacture_votes():
     facts, _ = resolve_claims("h", [original, duplicate], [], [], at=OBSERVED)
     assert facts[0].confidence == .7
     assert len(facts[0].supporting_claim_ids) == 1
+
+
+def test_new_spec_version_cannot_reuse_values_with_old_semantics():
+    spec=CharacteristicSpec(id="sea_view",version=2,name_ru="Вид",description="Новая семантика",value_schema={"type":"object"},methods=[ToolCall(tool="viewshed_facade")])
+    facts,_=resolve_claims("h",[claim("v1",True)],[spec],[],at=OBSERVED)
+    assert len(facts)==1 and facts[0].status=="unknown"
 

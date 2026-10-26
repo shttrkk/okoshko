@@ -252,3 +252,100 @@ class SyntheticLabelledParserCases(unittest.TestCase):
                         self.assertEqual(actual[key], expected)
                 if case["unknown"]:
                     self.assertIn(cid, answer.unknown_fields)
+
+
+class QualitativeAndNightParserTests(unittest.TestCase):
+    def answer(self, text, cid):
+        question = Question(hotel_id="synthetic", characteristic_ids=[cid], text="Уточните")
+        answer = parse_answer(question, text, synthetic=True)
+        self.assertTrue(all(update.quote in text for update in answer.updates))
+        return answer
+
+    def test_negative_insulation_quality_is_not_positive_availability(self):
+        for text in ("Шумоизоляция плохая.", "У нас слабая шумоизоляция.", "Низкая звукоизоляция.",
+                     "Шумоизоляция очень плохая.", "Шумоизоляция ужасная.", "Отвратительная шумоизоляция.",
+                     "Шумоизоляция недостаточная.", "Шумоизоляция так себе."):
+            with self.subTest(text=text):
+                answer = self.answer(text, "soundproofing")
+                updates = [u for u in answer.updates if u.characteristic_id == "soundproofing"]
+                self.assertTrue(updates)
+                self.assertTrue(all(u.value["available"] is False for u in updates))
+
+    def test_later_window_description_preserves_explicit_poor_insulation(self):
+        answer = self.answer("Шумоизоляция плохая. Окна двойные.", "soundproofing")
+        update = next(u for u in answer.updates if u.characteristic_id == "soundproofing")
+        self.assertIs(update.value["available"], False)
+        self.assertEqual(update.value["windows"], "double")
+
+    def test_negated_quality_and_uncertainty_abstain(self):
+        for text in ("Шумоизоляция не плохая.", "Кажется, шумоизоляция слабая.", "Шумоизоляция, наверное, плохая."):
+            with self.subTest(text=text):
+                answer = self.answer(text, "soundproofing")
+                self.assertFalse(any(u.value.get("available") is True for u in answer.updates))
+                self.assertTrue(answer.unknown_fields)
+                self.assertTrue(answer.needs_clarification)
+
+    def test_day_noise_does_not_reverse_night_quiet(self):
+        for text in ("Днём шумно, ночью тихо.", "Днем шумно, а ночью тихо.", "Днем шумно. Ночью тихо.",
+                     "Днем шумно ночью тихо.", "Ночью тихо, днем шумно.", "Утром шумно, ночью не шумно."):
+            with self.subTest(text=text):
+                answer = self.answer(text, "quiet_night")
+                updates = [u for u in answer.updates if u.characteristic_id == "quiet_night"]
+                self.assertTrue(updates)
+                self.assertTrue(all(u.value["available"] is True for u in updates))
+                self.assertTrue(all("ноч" in u.quote.lower() for u in updates))
+
+    def test_day_quiet_does_not_reverse_night_noise(self):
+        answer = self.answer("Днем тихо, ночью шумно.", "quiet_night")
+        update = next(u for u in answer.updates if u.characteristic_id == "quiet_night")
+        self.assertFalse(update.value["available"])
+        self.assertEqual(update.quote, "ночью шумно")
+
+    def test_day_only_statement_does_not_assert_night(self):
+        for text in ("Днем тихо.", "Днём шумно.", "Вечером тихо."):
+            with self.subTest(text=text):
+                answer = self.answer(text, "quiet_night")
+                self.assertFalse(any(u.characteristic_id == "quiet_night" for u in answer.updates))
+                self.assertIn("quiet_night", answer.unknown_fields)
+
+
+class ContradictoryNightClausesTests(unittest.TestCase):
+    def test_untagged_continuation_does_not_hide_night_contradiction(self):
+        for text in ("Ночью тихо, но шумно.", "Ночью тихо и шумно."):
+            with self.subTest(text=text):
+                question = Question(hotel_id="synthetic", characteristic_ids=["quiet_night"], text="Уточните")
+                answer = parse_answer(question, text, synthetic=True)
+                self.assertFalse(any(u.characteristic_id == "quiet_night" for u in answer.updates))
+                self.assertIn("quiet_night", answer.unknown_fields)
+
+
+class SafeConfirmationSchemaTests(unittest.TestCase):
+    def test_persisted_unsafe_or_invalid_schemas_are_rejected_before_writes_without_network(self):
+        from unittest.mock import patch
+
+        from fastapi import HTTPException
+
+        schemas = [
+            {"$ref": "http://127.0.0.1:12345/forbidden-schema"},
+            {"type": "object", "properties": {"available": {"$ref": "file:///forbidden-schema"}}},
+            {"$dynamicRef": "http://127.0.0.1:12345/forbidden-schema"},
+            {"$ref": "#/missing"},
+            {"type": "invalid-schema-type"},
+        ]
+        for schema in schemas:
+            with self.subTest(schema=schema):
+                repo = MemoryRepo()
+                question = create_question("test-hotel", "pets", repo)
+                answer = parse_answer(question, "С собакой можно.")
+                repo.insert("answers", answer.model_dump(mode="json"))
+                spec = repo.get("characteristics", "pets")
+                spec["value_schema"] = schema
+                repo.upsert("characteristics", spec)
+                with patch("urllib.request.urlopen", side_effect=AssertionError("Network retrieval is forbidden")) as retrieve:
+                    with self.assertRaises(HTTPException) as error:
+                        confirm_answer(answer.id, repo)
+                    self.assertEqual(error.exception.status_code, 422)
+                    retrieve.assert_not_called()
+                self.assertEqual(repo.all("claims"), [])
+                self.assertEqual(repo.all("sources"), [])
+                self.assertFalse(repo.get("answers", answer.id)["confirmed"])

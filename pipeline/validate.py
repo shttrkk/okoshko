@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import gzip
+import hashlib
 import json
 import math
 from collections import Counter
@@ -10,6 +11,7 @@ from collections import Counter
 from shapely.geometry import shape
 
 from backend.contracts.models import Claim, Hotel, Source
+from geo.io import exists, read_bytes
 from pipeline.common import CONFIG, ROOT, SEED, dump, read, sha
 
 
@@ -24,7 +26,7 @@ def run():
     assert all(h.source_ids and set(h.source_ids) <= sources.keys() and h.tags.get("source_records") for h in hotels)
     assert all(h.id.startswith(("osm-node-", "osm-way-", "overture-")) for h in hotels)
     table_counts = {}
-    for name in ["hotels", "sources", "buildings", "osm_features"]:
+    for name in ["hotels", "sources"]:
         path = SEED / (name + ".csv.gz")
         assert path.read_bytes()[4:8] == b"\0\0\0\0", f"gzip mtime is not reproducible: {path}"
         ids = set()
@@ -40,7 +42,10 @@ def run():
                     Source.model_validate(payload)
                 ids.add(row["id"])
         table_counts[name] = len(ids)
+    for name in ("buildings", "osm_features"):
+        assert not (SEED / (name + ".csv.gz")).exists(), f"Duplicate layer export: {name}"
     geometry_counts, heights = {}, Counter()
+    feature_ids = set()
     for layer in ["buildings", "pois", "roads", "railways", "beaches", "coastline"]:
         features = read(SEED / (layer + ".geojson"))["features"]
         assert len({f["id"] for f in features}) == len(features)
@@ -55,6 +60,14 @@ def run():
                 assert (p["height_m"] is None) == (p["height_source"] == "unknown")
                 assert p["height_m"] is None or p["height_m"] > 0
         geometry_counts[layer] = len(features)
+        if layer != "buildings":
+            feature_ids.update(f["id"] for f in features)
+        logical = SEED / (layer + ".geojson")
+        physical = logical.with_suffix(".geojson.gz")
+        assert not logical.exists() and physical.is_file(), logical
+        assert str(physical.relative_to(ROOT)) in manifest["outputs"], physical
+    assert geometry_counts["buildings"] == manifest["counts"]["buildings"]
+    assert len(feature_ids) == manifest["counts"]["osm_features"]
     with gzip.open(SEED / "walk_graph.json.gz", "rt") as f:
         graph = json.load(f)
     nodes = {n["id"]: n for n in graph["nodes"]}
@@ -91,10 +104,18 @@ def run():
             for ev in c.evidence:
                 assert set(ev.source_ids) <= sources.keys()
                 if ev.artifact:
-                    assert (ROOT / ev.artifact.lstrip("/")).exists(), ev.artifact
+                    assert exists(ROOT / ev.artifact.lstrip("/")), ev.artifact
     for path, meta in manifest["outputs"].items():
         p = ROOT / path
         assert p.exists() and p.stat().st_size == meta["bytes"] and sha(p) == meta["sha256"], path
+        if path.endswith(".geojson.gz"):
+            assert meta["encoding"] == "gzip" and meta["logical_path"] == path.removesuffix(".gz"), path
+            assert p.read_bytes()[4:8] == b"\0\0\0\0", f"gzip mtime is not reproducible: {path}"
+            logical = ROOT / meta["logical_path"]
+            assert not logical.exists(), f"Duplicate plain GeoJSON: {logical}"
+            original = read_bytes(logical)
+            assert len(original) == meta["uncompressed_bytes"], path
+            assert hashlib.sha256(original).hexdigest() == meta["uncompressed_sha256"], path
     for p in list(SEED.rglob("*")) + list((ROOT / "data/tiles").rglob("*")):
         if p.is_file():
             assert p.stat().st_size < 50_000_000, f"Over 50MB: {p}"

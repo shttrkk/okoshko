@@ -33,6 +33,11 @@ class Match:
     facts: list[Fact] = field(default_factory=list)
     reason: str = "Нет данных по этому условию"
     value: Any = None
+    condition_met: bool = False
+
+    @property
+    def supported(self) -> bool:
+        return self.status == "yes" or self.status == "partial" and self.condition_met and self.confidence >= .6
 
     @property
     def confidence(self) -> float:
@@ -170,10 +175,10 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
     ):
         return Match("partial", [fact], "Общее заявление о виде не подтверждает сторону и этаж конкретного номера", actual)
     if result and (fact.confidence < TRUSTED_CONFIDENCE or incomplete):
-        return Match("partial", [fact], "Есть предварительные данные; нужно уточнить ограничения" if incomplete else "Предварительная оценка с низкой уверенностью", actual)
+        return Match("partial", [fact], "Есть предварительные данные; нужно уточнить ограничения" if incomplete else "Предварительная оценка с низкой уверенностью", actual, condition_met=not incomplete)
     if not result and fact.confidence < TRUSTED_CONFIDENCE:
         return Match("unknown", [fact], "Модель предполагает несоответствие, но уверенности недостаточно для отказа", actual)
-    return Match("yes" if result else "no", [fact], "Условие выполнено" if result else "Условие не выполняется", actual)
+    return Match("yes" if result else "no", [fact], "Условие выполнено" if result else "Условие не выполняется", actual, condition_met=result)
 
 
 def _best_match(facts: list[Fact], criterion: Criterion, context: RoomContext, field_name: str,
@@ -250,7 +255,7 @@ def assess_hotel(facts: list[Fact], parsed: ParsedQuery, specs: list[Characteris
         yes = sum(m.status == "yes" for m in required)
         progress = sum({"yes": 1, "partial": .5, "unknown": .1, "no": 0}[m.status] for m in required)
         utility = sum(m.utility*c.weight*(2 if i < len(parsed.must) else 1) for i, (c, m) in enumerate(zip(criteria, item.matches, strict=True)))
-        return yes, progress, utility, -item.context.floor
+        return sum(m.supported for m in required), yes, progress, utility, -item.context.floor
     best = max(candidates, key=key, default=Assessment(RoomContext(month=parsed.month), []))
     best.alternatives = {i: list({f.id: f for f in fs}.values()) for i, fs in alternatives.items()}
     best.scope_conflict = len(alternatives) >= 2 and not any(

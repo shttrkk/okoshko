@@ -12,10 +12,12 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from backend.contracts import (
     CharacteristicSpec,
+    ComparisonRequest,
     Fact,
     Hotel,
     HotelDetail,
     LabelRequest,
+    ParsedQuery,
     SearchRequest,
     SearchResult,
     Source,
@@ -78,17 +80,18 @@ def read_geo(hotel_id: str, repo) -> dict:
             "limitations": ["Георасчёт для этого отеля ещё не подготовлен; отсутствие данных не означает отсутствие вида."]}
 
 
-def detail(hotel_id: str, repo, *, text: str = "", month: int = 9) -> HotelDetail:
+def detail(hotel_id: str, repo, *, text: str = "", month: int | None = None, parsed: ParsedQuery | None = None) -> HotelDetail:
     hotel = Hotel.model_validate(required(repo, "hotels", hotel_id, "Отель"))
     facts = [Fact.model_validate(row) for row in repo.find("facts", hotel_id=hotel_id)]
     from backend.agents.explainer import disappointments, recommend_room
-    parsed = None
     verdicts = []
-    if text:
+    if text and parsed is None:
         from backend.agents.query_parser import parse_query
-        from backend.agents.ranker import rank_hotels
         parsed = parse_query(SearchRequest(text=text), catalog(repo))
-        parsed.month = month
+        if month is not None:
+            parsed.month = month
+    if parsed is not None:
+        from backend.agents.ranker import rank_hotels
         hits = rank_hotels([hotel], facts, parsed, catalog(repo))
         verdicts = hits[0].verdicts if hits else []
     return HotelDetail(hotel=hotel, facts=facts, claims=repo.find("claims", hotel_id=hotel_id),
@@ -113,8 +116,8 @@ def hotels(repo=_REPO):
 
 
 @router.get("/hotels/{hotel_id}", response_model=HotelDetail)
-def hotel(hotel_id: str, text: str = "", month: int = 9, repo=_REPO):
-    if month not in range(1, 13):
+def hotel(hotel_id: str, text: str = "", month: int | None = None, repo=_REPO):
+    if month is not None and month not in range(1, 13):
         raise HTTPException(422, "Месяц должен быть от 1 до 12")
     return detail(hotel_id, repo, text=text, month=month)
 
@@ -124,12 +127,22 @@ def geo(hotel_id: str, repo=_REPO):
     return read_geo(hotel_id, repo)
 
 
+@router.post("/hotels/{hotel_id}/evaluate", response_model=HotelDetail)
+def evaluate_hotel(hotel_id: str, body: ParsedQuery, repo=_REPO):
+    return detail(hotel_id, repo, parsed=body)
+
+
 @router.get("/compare")
-def compare(ids: str, repo=_REPO):
+def compare(ids: str, text: str = "", month: int | None = None, repo=_REPO):
     selected = list(dict.fromkeys(part.strip() for part in ids.split(",") if part.strip()))
     if not 2 <= len(selected) <= 4:
         raise HTTPException(422, "Для сравнения выберите от 2 до 4 разных отелей")
-    return {"hotels": [detail(item_id, repo) for item_id in selected], "characteristics": catalog(repo)}
+    return {"hotels": [detail(item_id, repo, text=text, month=month) for item_id in selected], "characteristics": catalog(repo)}
+
+
+@router.post("/compare")
+def compare_parsed(body: ComparisonRequest, repo=_REPO):
+    return {"hotels": [detail(item_id, repo, parsed=body.parsed) for item_id in body.ids], "characteristics": catalog(repo)}
 
 
 @router.post("/search", response_model=SearchResult)
@@ -145,15 +158,18 @@ def search(body: SearchRequest, repo=_REPO):
         trace.step("search", "decision", "Разбор запроса", input={"text": body.text},
                    output=parsed.model_dump(mode="json"), mode=parsed.mode,
                    rationale="Текст сопоставлен с каталогом; неизвестные условия требуют уточнения")
-        hotel_rows = [Hotel.model_validate(row) for row in repo.all("hotels")]
-        facts = [Fact.model_validate(row) for row in repo.all("facts")]
         if "region_out_of_scope" in parsed.unmapped:
             hits = []
-        elif body.similar_to:
-            required(repo, "hotels", body.similar_to, "Отель")
-            hits = similar_hotels(body.similar_to, hotel_rows, facts, specs)
         else:
-            hits = rank_hotels(hotel_rows, facts, parsed, specs)
+            hotel_rows = [Hotel.model_validate(row) for row in repo.all("hotels")]
+            ids = None if body.similar_to else sorted({criterion.characteristic_id for criterion in [*parsed.must, *parsed.nice]} | {"beach_walk"})
+            rows = repo.search_facts(ids, 9 if body.similar_to else parsed.month) if hasattr(repo, "search_facts") else repo.all("facts")
+            facts = [Fact.model_validate(row) for row in rows]
+            if body.similar_to:
+                required(repo, "hotels", body.similar_to, "Отель")
+                hits = similar_hotels(body.similar_to, hotel_rows, facts, specs)
+            else:
+                hits = rank_hotels(hotel_rows, facts, parsed, specs)
         trace.step("search", "decision", "Ранжирование по фактам", output={"total": len(hits), "hotel_ids": [hit.hotel.id for hit in hits[:body.limit]]},
                    rationale="Обязательные условия проверены для совместимой стороны и этажей; неизвестное не засчитано как выполненное")
         trace.finish()
@@ -217,7 +233,8 @@ def quality(repo=_REPO):
 def label_queue(repo=_REPO):
     from backend.quality import read_labels
     facts_by_hotel = defaultdict(list)
-    for row in repo.all("facts"):
+    rows = repo.search_facts() if hasattr(repo, "search_facts") else repo.all("facts")
+    for row in rows:
         facts_by_hotel[row["hotel_id"]].append(row)
     labels_by_hotel = defaultdict(list)
     for row in [*read_labels(DATA / "eval" / "labels.csv"), *repo.all("eval_labels")]:

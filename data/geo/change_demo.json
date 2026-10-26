@@ -1,0 +1,154 @@
+{
+  "after_artifact": "/data/geo/osm-node-10058556917-change-4550bdb27a87f91044c3.json",
+  "before_artifact": "/data/geo/osm-node-10058556917.json",
+  "changes": [
+    {
+      "facade": "NW",
+      "min_floor_after": 4,
+      "min_floor_before": 3,
+      "new_building_in_dependencies": true,
+      "sea_width_after": [
+        0.0,
+        0.0,
+        0.0,
+        18.0,
+        18.0
+      ],
+      "sea_width_before": [
+        0.0,
+        0.0,
+        36.0,
+        58.0,
+        58.0
+      ]
+    },
+    {
+      "facade": "W",
+      "min_floor_after": 4,
+      "min_floor_before": 3,
+      "new_building_in_dependencies": true,
+      "sea_width_after": [
+        0.0,
+        0.0,
+        0.0,
+        15.0,
+        15.0
+      ],
+      "sea_width_before": [
+        0.0,
+        0.0,
+        51.0,
+        81.0,
+        81.0
+      ]
+    },
+    {
+      "facade": "SW",
+      "min_floor_after": 4,
+      "min_floor_before": 3,
+      "new_building_in_dependencies": true,
+      "sea_width_after": [
+        0.0,
+        0.0,
+        0.0,
+        10.0,
+        10.0
+      ],
+      "sea_width_before": [
+        0.0,
+        0.0,
+        46.0,
+        79.0,
+        83.0
+      ]
+    },
+    {
+      "facade": "SE",
+      "min_floor_after": null,
+      "min_floor_before": 4,
+      "new_building_in_dependencies": true,
+      "sea_width_after": [
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        4.0
+      ],
+      "sea_width_before": [
+        0.0,
+        0.0,
+        0.0,
+        13.0,
+        16.0
+      ]
+    },
+    {
+      "facade": "E",
+      "min_floor_after": null,
+      "min_floor_before": null,
+      "new_building_in_dependencies": true,
+      "sea_width_after": [
+        0.0,
+        0.0,
+        0.0,
+        3.0,
+        8.0
+      ],
+      "sea_width_before": [
+        0.0,
+        0.0,
+        0.0,
+        3.0,
+        8.0
+      ]
+    },
+    {
+      "facade": "NE",
+      "min_floor_after": null,
+      "min_floor_before": null,
+      "new_building_in_dependencies": true,
+      "sea_width_after": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "sea_width_before": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "facade": "N",
+      "min_floor_after": 4,
+      "min_floor_before": 4,
+      "new_building_in_dependencies": true,
+      "sea_width_after": [
+        0.0,
+        0.0,
+        0.0,
+        18.0,
+        18.0
+      ],
+      "sea_width_before": [
+        0.0,
+        0.0,
+        0.0,
+        21.0,
+        21.0
+      ]
+    }
+  ],
+  "fixture_artifact": "/data/geo/new_building-osm-node-10058556917.geojson",
+  "hotel_id": "osm-node-10058556917",
+  "hotel_name": "Островок",
+  "los_cache_artifact": "/data/geo/osm-node-10058556917.los.npz",
+  "method": "Exact polygon/roof ray intersections against per-observer/per-floor/per-Monte-Carlo visible-target envelopes with curvature/refraction; no preselected outcome.",
+  "runtime_method": "cached_ray_envelope_exact_polygon_los_v1",
+  "runtime_seconds_cached": 1.259,
+  "synthetic": true
+}

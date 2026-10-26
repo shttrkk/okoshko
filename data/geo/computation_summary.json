@@ -1,0 +1,46 @@
+{
+  "claims": 20340,
+  "computed_at": "2026-10-26T13:07:43+00:00",
+  "hotels": 250,
+  "samples": [
+    {
+      "claims": 155,
+      "facades": 7,
+      "hotel_id": "osm-node-10058556917",
+      "name": "Островок",
+      "unknown": []
+    },
+    {
+      "claims": 124,
+      "facades": 8,
+      "hotel_id": "osm-node-10118233110",
+      "name": "Swissotel Resort Сочи Камелия",
+      "unknown": [
+        "beach_walk"
+      ]
+    },
+    {
+      "claims": 61,
+      "facades": 4,
+      "hotel_id": "osm-node-10574252909",
+      "name": "Relax club exsclusive",
+      "unknown": []
+    },
+    {
+      "claims": 61,
+      "facades": 4,
+      "hotel_id": "osm-node-10759606594",
+      "name": "RP Ranovsky Park",
+      "unknown": []
+    },
+    {
+      "claims": 61,
+      "facades": 4,
+      "hotel_id": "osm-node-10759606596",
+      "name": "RP Manhattan",
+      "unknown": []
+    }
+  ],
+  "unknown": 19,
+  "validation": "Contract and artifact invariants; no photo/field ground-truth labels, no accuracy percentage claimed"
+}

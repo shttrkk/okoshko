@@ -1,0 +1,174 @@
+{
+  "accuracy": null,
+  "claims": 20340,
+  "claims_by_characteristic": {
+    "beach_walk": 235,
+    "mountain_view": 1449,
+    "quiet_night": 1161,
+    "sea_view": 1480,
+    "sunset_view": 16015
+  },
+  "coverage_hotels": {
+    "beach_walk": 235,
+    "mountain_view": 250,
+    "quiet_night": 250,
+    "sea_view": 246,
+    "sunset_view": 250
+  },
+  "ground_truth_labels": 0,
+  "hotels": 250,
+  "implementation_sha256": {
+    "geo/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "geo/changes.py": "c4775649ca8090e80dfb963fd5f454f80662ff07b74604ce5b990dc23954de6b",
+    "geo/coordinates.py": "4ba5e5d7afef779227e62bc498c3e99bdea45ed51822e5ef7ae345bdbb11bd53",
+    "geo/facades.py": "2476a40ec6b08c37cce3c0832ae6a9d06adc77314e340070b4bba6f60c455ce0",
+    "geo/noise.py": "7939608587e00879f54db078fc473b65b9e4a055f6da44a2bfc4095cfd99d9ec",
+    "geo/region.py": "ea6f2c84919285728beb64d45f1ec91aff8d2bfb6b842daf3e4fb7ff260d0d1f",
+    "geo/runtime_cache.py": "d125437379e045d938972a291ce331057775022d6ea841aacca363412e583708",
+    "geo/service.py": "b89db6a39fcedbfdca512fdd4aaf668f3c8708d5aaa41e9febb35564162641f2",
+    "geo/sun.py": "dc47d6e30f5a2ce5e38f1052b27347045f3c7380847b2f3f434b6bbbdeea0a3c",
+    "geo/terrain.py": "1a88f1d1c48be66f65f2f6008a7dca98d14c7a0ccefad97454698edca88f0923",
+    "geo/views.py": "9ab66414aaa3ce9ee6deb19a401f745a6eb40585a45ca038e0da082e46b3a8d6",
+    "geo/walk.py": "28a5729c7165dfef5ee9b94c5a5fa225db383402e8ee0a3b55eee9145a5111cd",
+    "pipeline/build_dsm.py": "ec9a440453c9c0acd4044abf703fdf902be18ffbb72719195523d811f6644007",
+    "pipeline/compute_export.py": "58a95949e087f1a1ae4b71a21af5a32f7823a48189f192649bd46fbee83b4252",
+    "pipeline/compute_runtime_cache.py": "a447cd67cf38cbfe70719fee524af58ee1c4f1912c293c93f6a305262afc69e2",
+    "pipeline/compute_validate.py": "2b142e9b6d46aadefa189230fd1ba052507600a63be8aef4dd2890f6a9cfd5de",
+    "pipeline/compute_views.py": "ce19a7a29d1bbb4855ef6d9f275c8a51b52cc268858f2402bfc9684c6fe9e1f8"
+  },
+  "input_sha256": {
+    "/data/seed/beaches.geojson": "fc07d077ddc2f8925ed9d816661e254c29cc49a02a70d760cee95b293842b7c9",
+    "/data/seed/buildings.geojson": "4b62330144be330f899679a5f6a18c926baf58ce807477da78f7e2811c965e6e",
+    "/data/seed/coastline.geojson": "19675c8bf31cda091d01d25260287a99214064fdb2d98c4b26689108f633ab8c",
+    "/data/seed/hotels.json": "45cd3b05b6f5b0129864278b648ea4991e439593d0cd63a8a571388af0a1a6f6",
+    "/data/seed/pois.geojson": "214f78ac7b94891a6ac296d0c50ceebebeb70994931a70e5136329cf4f801b3c",
+    "/data/seed/railways.geojson": "d6fa5682b1aa3dd25663c4e7f9ae63795fad3768ed697900b6f0798979defdad",
+    "/data/seed/roads.geojson": "ab22ca5343810cefaa3f5ea8a57bc5d5cea7f2b576ec060da5ebfaf7bba99b3f",
+    "/data/seed/walk_graph.json.gz": "063bba9633075b8613a4b27e4756604efca4ad93ed1e7e033611019ba0d64c44"
+  },
+  "limitation": "No photo/manual/field labels were supplied. These checks establish reproducibility and schema correctness, not real-world accuracy.",
+  "runtime_dependencies": {
+    "astral": "3.2",
+    "numba": "0.61.2",
+    "numpy": "2.2.5",
+    "pyproj": "3.7.1",
+    "shapely": "2.1.0"
+  },
+  "samples": [
+    {
+      "beach_route": true,
+      "center": [
+        39.9153879,
+        43.428439
+      ],
+      "claims_validated": 155,
+      "facades": 7,
+      "hotel_id": "osm-node-10058556917",
+      "name": "Островок",
+      "sea_facades": [
+        {
+          "facade": "NW",
+          "min_floor": 3,
+          "min_floor_p80": 4
+        },
+        {
+          "facade": "W",
+          "min_floor": 3,
+          "min_floor_p80": 4
+        },
+        {
+          "facade": "SW",
+          "min_floor": 3,
+          "min_floor_p80": 5
+        },
+        {
+          "facade": "SE",
+          "min_floor": 4,
+          "min_floor_p80": null
+        },
+        {
+          "facade": "N",
+          "min_floor": 4,
+          "min_floor_p80": 5
+        }
+      ],
+      "unknown": []
+    },
+    {
+      "beach_route": false,
+      "center": [
+        39.7566382,
+        43.5626775
+      ],
+      "claims_validated": 124,
+      "facades": 8,
+      "hotel_id": "osm-node-10118233110",
+      "name": "Swissotel Resort Сочи Камелия",
+      "sea_facades": [
+        {
+          "facade": "NW",
+          "min_floor": 7,
+          "min_floor_p80": null
+        },
+        {
+          "facade": "W",
+          "min_floor": 7,
+          "min_floor_p80": null
+        },
+        {
+          "facade": "SW",
+          "min_floor": 5,
+          "min_floor_p80": null
+        },
+        {
+          "facade": "S",
+          "min_floor": 5,
+          "min_floor_p80": null
+        }
+      ],
+      "unknown": [
+        "beach_walk"
+      ]
+    },
+    {
+      "beach_route": true,
+      "center": [
+        39.9241694,
+        43.4226689
+      ],
+      "claims_validated": 61,
+      "facades": 4,
+      "hotel_id": "osm-node-10574252909",
+      "name": "Relax club exsclusive",
+      "sea_facades": [],
+      "unknown": []
+    },
+    {
+      "beach_route": true,
+      "center": [
+        39.7393969,
+        43.5741612
+      ],
+      "claims_validated": 61,
+      "facades": 4,
+      "hotel_id": "osm-node-10759606594",
+      "name": "RP Ranovsky Park",
+      "sea_facades": [],
+      "unknown": []
+    },
+    {
+      "beach_route": true,
+      "center": [
+        39.7245803,
+        43.5869054
+      ],
+      "claims_validated": 61,
+      "facades": 4,
+      "hotel_id": "osm-node-10759606596",
+      "name": "RP Manhattan",
+      "sea_facades": [],
+      "unknown": []
+    }
+  ],
+  "validation_type": "contract, provenance, numeric artifacts and internal invariants"
+}
