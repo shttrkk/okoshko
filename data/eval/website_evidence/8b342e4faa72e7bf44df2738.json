@@ -1,0 +1,12 @@
+{
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "d04d8392ccb2c17c58c59039bee269956fc6b02fb644cbafe22aa344f4fb006b",
+  "robots_url": "http://www.seasons-hotel.com/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "id": "8b342e4faa72e7bf44df2738",
+  "hotel_id": "osm-way-113588514",
+  "url": "https://seasons-hotel.com/",
+  "quote": "Бесплатная парковка",
+  "review_status": "weak_quote_reviewed_for_support_only",
+  "label_type": "weak_website"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "af1e81bc087cbbcb764bb7c7",
+  "hotel_id": "osm-node-12749552601",
+  "url": "https://www.marinayacht.ru/",
+  "quote": "Номера с видом на Морской порт и море",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "30675a4bb6f7794d078384f764eebf71ca88b707b605f4b17a3883869f111f48",
+  "robots_url": "https://www.marinayacht.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

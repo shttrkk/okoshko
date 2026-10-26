@@ -1,0 +1,12 @@
+{
+  "id": "b7786e9e20dee14abfe1c810",
+  "hotel_id": "osm-node-8872412718",
+  "url": "https://grace-gorizont.ru/",
+  "quote": "Центр СочиСПА-центрВид на море",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "f26ccda4a14af701e59e9e572bafe725c27c14d2f258719c49f1b8c55f6199d8",
+  "robots_url": "https://grace-gorizont.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

@@ -1,0 +1,12 @@
+{
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "cdda4682a59d73da92740e2d718c50237c1667b23ef4f97aaa83b151c7f61047",
+  "robots_url": "http://www.libertyfly.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "id": "591841ea37cd3ca40abd4531",
+  "hotel_id": "osm-node-5267688942",
+  "url": "https://www.libertyfly.ru/",
+  "quote": "В живописном районе города Сочи – Адлере, в 300 м от солнечных пляжей и бирюзовой глади Черного моря расположен элегантный курортный отель «Liberty Fly»",
+  "review_status": "weak_quote_reviewed_for_support_only",
+  "label_type": "weak_website"
+}

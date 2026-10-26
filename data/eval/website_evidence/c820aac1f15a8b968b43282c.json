@@ -1,0 +1,12 @@
+{
+  "id": "c820aac1f15a8b968b43282c",
+  "hotel_id": "osm-node-12183637644",
+  "url": "https://mirror-hotel.ru/",
+  "quote": "Панорамные виды на море",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "29f31b102d70f7e9fba23bf102be6fa215e1e0622c8f4411c9dab026f6aef41d",
+  "robots_url": "https://mirror-hotel.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

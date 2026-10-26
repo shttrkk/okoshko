@@ -1,0 +1,12 @@
+{
+  "id": "1d15bb8f561b27171f0adb86",
+  "hotel_id": "osm-node-11016638375",
+  "url": "https://veryhotel.ru/ru-ru/",
+  "quote": "крытая лоджия и открытый балкон с панорамным видом на море, горы и город",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "922e9457e782e22b59aafa62f62af67fcc1970f1447d4cd3d5205240c1c3170c",
+  "robots_url": "https://veryhotel.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

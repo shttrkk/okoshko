@@ -1,0 +1,12 @@
+{
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "fed012b5a0dc3eaa34c31b3b50e43f77d0b78b47b6d15ea31baae1f99a7f5e2a",
+  "robots_url": "https://grey-sochi.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "id": "1cfb45407aef04354ba9da78",
+  "hotel_id": "osm-node-12800893166",
+  "url": "https://grey-sochi.ru/",
+  "quote": "Полностью закрытая и охраняемая территория с собственной парковкой",
+  "review_status": "weak_quote_reviewed_for_support_only",
+  "label_type": "weak_website"
+}

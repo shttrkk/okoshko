@@ -1,0 +1,12 @@
+{
+  "id": "6a7fa2c9752373f76bae6587",
+  "hotel_id": "osm-way-51764141",
+  "url": "https://azimuthotels.com/ru/sochi/azimut-hotel-vinogradnaya-sochi",
+  "quote": "Доступно проживание с животными",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "bbfcc94fb71a142c8858cef0cdb3eb26f0337c6e77fafce913011518e4c11566",
+  "robots_url": "https://azimuthotels.com/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

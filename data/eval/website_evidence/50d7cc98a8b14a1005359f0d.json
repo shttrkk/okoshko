@@ -1,0 +1,12 @@
+{
+  "id": "50d7cc98a8b14a1005359f0d",
+  "hotel_id": "osm-way-51847429",
+  "url": "https://www.zhem.ru/",
+  "quote": "875 обновлённых комфортабельных номеров с балконами и видом на море, из которых 145 номера высшей категории, оборудованный пляж и водные аттракционы, круглогодичный бассейн с подогреваемой",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "b66fa91df0fb757d8e67dab4c8fb45b8a1a00c4292e2351ddd813fc9cf6c8967",
+  "robots_url": "https://www.zhem.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

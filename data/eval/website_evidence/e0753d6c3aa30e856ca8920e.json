@@ -1,0 +1,12 @@
+{
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "fbe56d1fb75416709199ea99e1f5372edfd1935d058396626f40e1f318aee568",
+  "robots_url": "http://sofia-hotels.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "id": "e0753d6c3aa30e856ca8920e",
+  "hotel_id": "osm-way-209182328",
+  "url": "https://sofia-hotels.ru/",
+  "quote": "\"София\" - уютный отель с отдельной территорией, бассейном, охраняемой парковкой",
+  "review_status": "weak_quote_reviewed_for_support_only",
+  "label_type": "weak_website"
+}

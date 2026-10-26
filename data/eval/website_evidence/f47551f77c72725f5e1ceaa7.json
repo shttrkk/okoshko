@@ -1,0 +1,12 @@
+{
+  "id": "f47551f77c72725f5e1ceaa7",
+  "hotel_id": "osm-way-53301256",
+  "url": "http://www.adler-flamingo.ru",
+  "quote": "Из окон номеров открываются замечательные виды на лазурную гладь Чёрного моря или, по выбору, на заснеженные вершины гор главного Кавказского хребта",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "2b50eb000c363c3c535fc50d2a4dc0668b407c0cf80f84d6978fb572c9017b96",
+  "robots_url": "http://www.adler-flamingo.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

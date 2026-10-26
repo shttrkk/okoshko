@@ -1,0 +1,12 @@
+{
+  "id": "b6a9e7f78bffc31d181b07ed",
+  "hotel_id": "osm-way-52572781",
+  "url": "https://www.ostrova-hotel.ru/",
+  "quote": "субтропических растений расположено 42 номера с завораживающим видом на Черное море или парк",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "af3c4eda86deabe1f49085e80489a251e51ce311af9e5152646ede0604686100",
+  "robots_url": "https://www.ostrova-hotel.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

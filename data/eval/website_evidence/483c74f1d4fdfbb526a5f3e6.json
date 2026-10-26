@@ -1,0 +1,12 @@
+{
+  "id": "483c74f1d4fdfbb526a5f3e6",
+  "hotel_id": "osm-way-80192701",
+  "url": "http://strana-magnoliy.ru/",
+  "quote": "два балкона, вид на реку и боковой вид на море",
+  "retrieved_at": "2026-10-26T14:40:51.657795+00:00",
+  "html_sha256": "5158d9e897a6d0a4e3f3c9ff743e8d4a73d766ac1085ba5ee6532a8911c3bbd2",
+  "robots_url": "http://strana-magnoliy.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "be0bd9c0fcc3d56c6f35c606",
+  "hotel_id": "overture-74ff2c5a-4204-42cb-bb2f-f825b7ca1c45",
+  "url": "https://rzdz.ru/ru/sochi/sanatorium-oktyabrskiy",
+  "quote": "Просторные номера различных категорий с видом на море или живописный субтропический парк",
+  "retrieved_at": "2026-10-26T14:40:51.657795+00:00",
+  "html_sha256": "ded745a60a2550255c0f2672de231978a2a2a6ce1eea123a76f0b7d7e88796ff",
+  "robots_url": "http://www.oktyabrsky.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only",
+  "redirect_destination_robots_review": {
+    "robots_url": "https://rzdz.ru/robots.txt",
+    "final_robots_url": "https://rzdz.ru/robots.txt",
+    "http_status": 200,
+    "checked_at": "2026-10-26T15:01:53.998349+00:00",
+    "allowed": true,
+    "sha256": "762f0348e8c7376e5fa9f8dfc30ea54f14957ef5622a4cc84e15cdbd433aeaf9",
+    "reason": "Cross-host redirect destination independently checked during curation."
+  }
+}

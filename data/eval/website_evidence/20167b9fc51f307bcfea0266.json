@@ -1,0 +1,21 @@
+{
+  "id": "20167b9fc51f307bcfea0266",
+  "hotel_id": "overture-3b6e73bd-b423-453f-a384-a8d2329acae2",
+  "url": "http://www.anita-sochi.ru/",
+  "quote": "Возможно проживание с животными по запросу",
+  "retrieved_at": "2026-10-26T14:40:51.657795+00:00",
+  "html_sha256": "def6fd7e4c1ea398fbfe4906b151b4c5c3df0ecb81e8e7583d4bcd9a2284b447",
+  "robots_url": "http://xn----7sba5ac0akxg8c.xn--p1ai/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only",
+  "redirect_destination_robots_review": {
+    "robots_url": "http://www.anita-sochi.ru/robots.txt",
+    "final_robots_url": "http://www.anita-sochi.ru/robots.txt",
+    "http_status": 200,
+    "checked_at": "2026-10-26T15:01:53.838471+00:00",
+    "allowed": true,
+    "sha256": "de53362f8bcc4b460eb50b7c283fb3ab3579a3ea9b540dd34dc46250e27e76d4",
+    "reason": "Cross-host redirect destination independently checked during curation."
+  }
+}

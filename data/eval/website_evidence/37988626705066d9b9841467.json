@@ -1,0 +1,12 @@
+{
+  "id": "37988626705066d9b9841467",
+  "hotel_id": "osm-node-11843553789",
+  "url": "https://sochiaparts.ru",
+  "quote": "Мы понимаем, что питомцы — это часть вашей семьи, поэтому создали комфортные условия для проживания с животными",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "ddeef94fac897f4c096f6f700044d47ed5885c14a124d3cdf7a880f5ae0dd792",
+  "robots_url": "https://sochiaparts.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "9983befcf22b6e27ef38202b",
+  "hotel_id": "osm-way-250086722",
+  "url": "https://adlanna-maria.ru/",
+  "quote": "от компактных двухместных до двухкомнатного полулюкса с видом на море",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "8775075f5d59cc239e2c9b08cc0366d1f9f76fe918137c373226ae453d033153",
+  "robots_url": "https://adlanna-maria.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "ea7cf199e52708e9c8adb97c",
+  "hotel_id": "osm-way-207637871",
+  "url": "https://manteracongress.ru",
+  "quote": "Делюкс премиум с видом на море",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "0d1258f2a548af0ace53c35f1cc4b90434824970393f86fabef28007fb5011bb",
+  "robots_url": "https://manteracongress.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

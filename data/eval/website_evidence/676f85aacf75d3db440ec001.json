@@ -1,0 +1,12 @@
+{
+  "id": "676f85aacf75d3db440ec001",
+  "hotel_id": "overture-19a359ae-d6b8-4686-8643-36a55ee46219",
+  "url": "https://metropol-apart.ru/",
+  "quote": "Панорамный вид на море открывается со всех апартаментов комплекса",
+  "retrieved_at": "2026-10-26T14:40:51.657795+00:00",
+  "html_sha256": "c7787ab490dc80efd2f708e5e1aa96796727b5aeb0bafd2264d926e3b033fa77",
+  "robots_url": "https://metropol-apart.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

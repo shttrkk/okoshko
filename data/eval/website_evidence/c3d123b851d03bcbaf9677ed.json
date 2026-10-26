@@ -1,0 +1,12 @@
+{
+  "id": "c3d123b851d03bcbaf9677ed",
+  "hotel_id": "osm-node-8975796817",
+  "url": "https://terminal-hotel.ru/",
+  "quote": "с видом на море",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "ea3ef4cf66d49d3f1e1b07f7e90206fa68673428bcaec9b7888a17ff890047a4",
+  "robots_url": "https://terminal-hotel.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

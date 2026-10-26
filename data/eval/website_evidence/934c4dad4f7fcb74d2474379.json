@@ -1,0 +1,12 @@
+{
+  "id": "934c4dad4f7fcb74d2474379",
+  "hotel_id": "osm-node-5743464666",
+  "url": "https://fenixdeluxe.com/",
+  "quote": "Аренда апартаментов посуточно с видом на море и горы, курорт с собственными бассейнами и сервисом на связи 24/7",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "f76d2a1daa4f8f8712a00f3809c13bbe7fbe648d7e61fdd28c7e1d5cd5cc51dc",
+  "robots_url": "http://fenixdeluxe.com/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

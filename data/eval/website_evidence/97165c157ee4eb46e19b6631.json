@@ -1,0 +1,12 @@
+{
+  "id": "97165c157ee4eb46e19b6631",
+  "hotel_id": "osm-node-4393265790",
+  "url": "https://imperiasochi.ru/",
+  "quote": "(балкон с видом на море, кондиционер \"зима-лето\", холодильник, плазменный телевизор, набор кухонной и мягкой мебели)",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "49c998cd90404b29965cfe8e8cc05a2a3af22d0b832773bbcc58448e456ffdc0",
+  "robots_url": "http://imperiasochi.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

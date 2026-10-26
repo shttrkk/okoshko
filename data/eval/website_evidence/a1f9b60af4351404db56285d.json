@@ -1,0 +1,12 @@
+{
+  "id": "a1f9b60af4351404db56285d",
+  "hotel_id": "overture-5d220661-b1ca-4461-a03b-c89126a98e02",
+  "url": "https://grandhotelrodina.ru/nomera/",
+  "quote": "роскошных номеров с просторными террасами и великолепным видом на Чёрное море или субтропический парк созданы, чтобы дарить незабываемые эмоции и впечатления в любое время года",
+  "retrieved_at": "2026-10-26T14:40:51.657795+00:00",
+  "html_sha256": "8f533a1c5aa60cbe4a21981ec4b1541fcb7f4409b5115d6d7ac6532fcc4a6049",
+  "robots_url": "http://www.grandhotelrodina.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "d70aeaf07d23aee021bd2e6d",
+  "hotel_id": "osm-node-13825400642",
+  "url": "https://siriushotels.ru/gamma/",
+  "quote": "Из окон и с просторных балконов открываются виды на море, вечнозеленый",
+  "retrieved_at": "2026-10-26T14:40:51.657795+00:00",
+  "html_sha256": "b5e629a79066dd3c03914b1b6729c0df0a194461756747fb150fcdfb22c393bf",
+  "robots_url": "https://siriushotels.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

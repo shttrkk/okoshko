@@ -1,0 +1,12 @@
+{
+  "id": "ba32dda812f502c2a79bcbeb",
+  "hotel_id": "osm-way-412914458",
+  "url": "https://hotel-marianna.ru/",
+  "quote": "В отеле допускается проживание с животными весом до 5 кг после согласования с отелем",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "11d524405f7effda161b56337c6b520e0fec0e2e9f3c8b9d4a01ec4ccc095db0",
+  "robots_url": "http://hotel-marianna.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

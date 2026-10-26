@@ -1,0 +1,12 @@
+{
+  "id": "2799e8a0e9e197cc237ceb95",
+  "hotel_id": "osm-node-10759614195",
+  "url": "https://goldentennisclub.ru/",
+  "quote": "Порадовал балкон с живописным видом на море и спортивную зону",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "872960f1606ef1108d58fc0b85dff0488368ddd38ec6cb40bf8b2dcbb4b0e4fd",
+  "robots_url": "https://goldentennisclub.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

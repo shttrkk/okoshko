@@ -1,0 +1,12 @@
+{
+  "retrieved_at": "2026-10-26T14:40:51.657795+00:00",
+  "html_sha256": "07a389c00bbfe56d7d453745b1920216786ca728e32b6a1aaaac0607116339fe",
+  "robots_url": "https://fidan-hotel.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "id": "94ee12728d38e5c44a5095d3",
+  "hotel_id": "overture-961dd6a3-1f1c-4922-9ff0-be9a0887b568",
+  "url": "https://fidan-hotel.ru/",
+  "quote": "Расстояние от отеля до моря меньше 600 метров",
+  "review_status": "weak_quote_reviewed_for_support_only",
+  "label_type": "weak_website"
+}

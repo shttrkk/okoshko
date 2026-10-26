@@ -1,0 +1,12 @@
+{
+  "id": "4d27a7c7b79b4100c54c6cf2",
+  "hotel_id": "osm-node-11331531334",
+  "url": "https://adler.cosmosgroup.ru/rooms",
+  "quote": "Стандарт c видом на море",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "9c276014944aa9104414fa5d3f5412eb7a73e0626beec90260b02f38cef366bb",
+  "robots_url": "https://adler.cosmosgroup.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

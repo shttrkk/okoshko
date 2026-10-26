@@ -1,0 +1,12 @@
+{
+  "id": "9a56f2da916ca6415f5d808f",
+  "hotel_id": "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+  "url": "https://coocooroozasochi.com/rooms/",
+  "quote": "Все номера с видом на море в отеле COOCOOROOZA *** в городе Сочи",
+  "retrieved_at": "2026-10-26T14:40:51.657795+00:00",
+  "html_sha256": "57fa317b1e82c8660be9777f764bacd893417f811111ca7e6ed02ff4910311f7",
+  "robots_url": "http://Coocooroozasochi.com/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

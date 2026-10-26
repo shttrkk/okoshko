@@ -1,0 +1,12 @@
+{
+  "id": "d1d838b69725c3b3e2a5485b",
+  "hotel_id": "osm-node-9764181317",
+  "url": "https://sochi-magnolia.ru/",
+  "quote": "Разрешено проживание с домашними питомцами (кроме номеров с общими удобствами)",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "6493e249825213347a6f4b5b88053b885f35e621e7c81e5c004fb7017a2396e5",
+  "robots_url": "http://www.sochi-magnolia.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

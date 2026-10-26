@@ -1,0 +1,12 @@
+{
+  "id": "20dcfe32f1818c6e9f0ba3b9",
+  "hotel_id": "osm-way-190714781",
+  "url": "https://sochi.cosmosgroup.ru/",
+  "quote": "В отеле хорошая шумоизоляция, окна выходили на жд вокзал, но шума от поездов не слышно) спасибо работникам отеля за гостеприимствоЧитать полностью",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "4f01f1a1ef7bda2481ec72ad108db677e2f92a65343f344f67198b7a9387f263",
+  "robots_url": "https://sochi.cosmosgroup.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

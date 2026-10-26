@@ -1,0 +1,12 @@
+{
+  "id": "aea4cd41d5c560895f3f901f",
+  "hotel_id": "osm-way-218836911",
+  "url": "https://dolphinhotel.ru/rooms%20",
+  "quote": "Делюкс с видом на море",
+  "retrieved_at": "2026-10-26T12:31:12.842319+00:00",
+  "html_sha256": "d4a0b6148593e5ee1a4dcccf1203416d8a49f525114d5eaa772e6ec944c07f2c",
+  "robots_url": "http://dolphinhotel.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}

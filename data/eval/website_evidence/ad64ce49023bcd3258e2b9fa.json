@@ -1,0 +1,12 @@
+{
+  "retrieved_at": "2026-10-26T14:40:51.657795+00:00",
+  "html_sha256": "a8f8989788137a92273820d8a356e4802378cece03bd01d228a0a0f2eeb0c956",
+  "robots_url": "http://www.parusa-hotel.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "id": "ad64ce49023bcd3258e2b9fa",
+  "hotel_id": "osm-way-98649266",
+  "url": "https://parusa-hotel.ru/",
+  "quote": "Гостевой дом расположен в 300 метрах от пляжа и Олимпийской набережной",
+  "review_status": "weak_quote_reviewed_for_support_only",
+  "label_type": "weak_website"
+}

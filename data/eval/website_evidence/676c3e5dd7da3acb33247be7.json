@@ -1,0 +1,21 @@
+{
+  "retrieved_at": "2026-10-26T14:40:51.657795+00:00",
+  "html_sha256": "5daae45536a5fcfec306b287467a989984618671c6fc5f8edd09b6a6e1d62696",
+  "robots_url": "http://www.sochi-raduga.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "id": "676c3e5dd7da3acb33247be7",
+  "hotel_id": "overture-8db95563-548a-436f-8920-31ba9b9a3795",
+  "url": "https://kanikuly-v-sochi.ru/rooms",
+  "quote": "Удобство: Прямой выход к пляжу по живописному терренкуру, экскурсионная стойка и парковка для гостей на территории",
+  "review_status": "weak_quote_reviewed_for_support_only",
+  "label_type": "weak_website",
+  "redirect_destination_robots_review": {
+    "robots_url": "https://kanikuly-v-sochi.ru/robots.txt",
+    "final_robots_url": "https://kanikuly-v-sochi.ru/robots.txt",
+    "http_status": 200,
+    "checked_at": "2026-10-26T15:01:54.204799+00:00",
+    "allowed": true,
+    "sha256": "2218067c0e3570d4c8ddfd43e1eb5c8db78136598e514301e9ee3ac94f0f0649",
+    "reason": "Cross-host redirect destination independently checked during curation."
+  }
+}

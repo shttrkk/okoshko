@@ -1,0 +1,12 @@
+{
+  "id": "c19ca829d90c27d96132fafd",
+  "hotel_id": "overture-84c775c0-79bf-4f63-9f74-6e6382b6245d",
+  "url": "https://chaykasochi.ru/rooms/",
+  "quote": "Номер с живописным видом на море",
+  "retrieved_at": "2026-10-26T14:40:51.657795+00:00",
+  "html_sha256": "ca59615153956986274dd3bb2afc148591c630f9e9266d1eb2a1e53aebb0fa97",
+  "robots_url": "https://chaykasochi.ru/robots.txt",
+  "method": "exact_text_excerpt_v1",
+  "label_type": "weak_website",
+  "review_status": "weak_quote_reviewed_for_support_only"
+}
