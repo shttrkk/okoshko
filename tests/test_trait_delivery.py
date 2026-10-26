@@ -11,6 +11,7 @@ from unittest.mock import patch
 from backend.agents.freshness import simulate_change
 from backend.agents.resolver import resolve_hotel
 from backend.contracts import Claim, ToolCall, ToolContext
+from backend.contracts.validation import validate_value
 from backend.tests.test_api_integration import ApiRepo
 from backend.tests.test_freshness import observation, write_result
 from backend.tools.registry import Registry
@@ -57,12 +58,13 @@ def test_new_building_retires_solar_values_from_old_geometry(tmp_path):
     with patch('geo.service.compute_hotel', return_value=result):
         change = simulate_change(repo, 'test-hotel', data_dir=tmp_path/'data', runtime=tmp_path/'runtime')
     solar = repo.find('facts', characteristic_id='morning_sun')
-    assert solar and all(row['status'] == 'unknown' and row['value'] is None for row in solar)
+    assert solar and all(row['status'] == 'unknown' and row['confidence'] == 0 and row['value']['available'] is None for row in solar)
     retirements = [row for row in repo.find('claims', characteristic_id='morning_sun') if row['method'] == 'geometry_dependency_invalidation_v1']
     assert len(retirements) == 1 and retirements[0]['supersedes_ids'] == ['sun-before']
     assert retirements[0]['synthetic'] and retirements[0]['confidence'] == 0
+    validate_value(retirements[0]['value'], repo.get('characteristics', 'morning_sun')['value_schema'])
     assert repo.get('claims', 'sun-before')['value']['available'] is True
-    assert any(fact.characteristic_id == 'morning_sun' and fact.value is None for fact in change.after)
+    assert any(fact.characteristic_id == 'morning_sun' and fact.value['available'] is None for fact in change.after)
 
 
 def test_precomputed_changed_variant_survives_copy_to_runtime(tmp_path):

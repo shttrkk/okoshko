@@ -181,36 +181,72 @@ class Registry:
             return ToolResult(warnings=["Геометрия здания изменилась; дополнительный признак требует расчёта по актуальному артефакту"])
         existing = self.repo.find("claims", hotel_id=context.hotel_id, characteristic_id=context.characteristic_id)
         superseded = {item for row in existing for item in [row.get("supersedes"), *row.get("supersedes_ids", [])] if item}
-        cached = [Claim.model_validate(row) for row in existing
-                  if row["id"] not in superseded and row.get("source") == "geo_engine" and row.get("method") == METHODS[kind]
-                  and datetime.fromisoformat(row["valid_until"].replace("Z", "+00:00")) > datetime.now(UTC)
-                  and row.get("scope", {}).get("month") in {None, context.month}
-                  and (not artifact or any(e.get("artifact") == artifact for e in row.get("evidence", [])))]
-        digests = {}
+        active = [Claim.model_validate(row) for row in existing
+                  if row["id"] not in superseded and row.get("source") == "geo_engine"
+                  and row.get("scope", {}).get("month") in {None, context.month}]
+        observed = datetime.now(UTC)
+        digests, invalid_inputs = {}, {}
         def current_inputs(claim):
+            checked = False
             for evidence in claim.evidence:
-                for reference, expected in evidence.inputs.get("input_sha256", {}).items():
-                    if not reference.startswith("/data/"):
-                        return False
-                    if reference not in digests:
-                        path = (self.data_dir.parent / "runtime" / reference.removeprefix("/data/runtime/")
-                                if reference.startswith("/data/runtime/") else self.data_dir / reference.removeprefix("/data/"))
-                        try:
-                            digests[reference] = input_digest(path)
-                        except OSError:
-                            return False
-                    if digests[reference] != expected:
-                        return False
-            return True
-        if cached and not all(current_inputs(claim) for claim in cached):
+                # Solar artifacts depend on a saved horizon AND the regional
+                # snapshot behind it. Unchanged JSON/NPZ alone is insufficient.
+                for group in ("input_sha256", "baseline_inputs"):
+                    for reference, expected in evidence.inputs.get(group, {}).items():
+                        checked = True
+                        if reference not in digests:
+                            digests[reference] = None
+                            if reference.startswith("/data/"):
+                                path = (self.data_dir.parent / "runtime" / reference.removeprefix("/data/runtime/")
+                                        if reference.startswith("/data/runtime/") else self.data_dir / reference.removeprefix("/data/"))
+                                try:
+                                    digests[reference] = input_digest(path)
+                                except OSError:
+                                    pass
+                        if not expected or digests[reference] != expected:
+                            invalid_inputs.setdefault(claim.id, {})[reference] = {"expected": expected, "actual": digests[reference]}
+            return checked and claim.id not in invalid_inputs
+        compatible = {claim.id: current_inputs(claim) for claim in active}
+        cached = [claim for claim in active if claim.method == METHODS[kind] and claim.valid_until > observed
+                  and compatible[claim.id] and (not artifact or any(e.artifact == artifact for e in claim.evidence))]
+        if invalid_inputs:
             cached = []
         if cached:
             return ToolResult(claims=[claim.model_copy(update={"id": uid(), "run_id": context.run_id,
                               "supersedes": claim.id, "supersedes_ids": []}) for claim in cached], artifacts={"cache_hit": True})
+        if active and all(claim.valid_until <= observed and compatible[claim.id] for claim in active):
+            return ToolResult(warnings=["Входы архивного расчёта не изменились; срок наблюдения не продлён, значение остаётся устаревшим"])
         try:
             result = compute_trait(hotel, self.data_dir, kind, month=context.month, geo_artifact=artifact)
         except (OSError, ValueError, KeyError):
-            return ToolResult(warnings=["Не удалось проверить локальные входы расчёта; значение остаётся неизвестным"])
+            result = {"claims": [], "warnings": ["Не удалось проверить локальные входы расчёта; значение остаётся неизвестным"], "artifacts": {}}
+        if not result["claims"] and invalid_inputs:
+            groups = {}
+            for claim in active:
+                if claim.value is None or isinstance(claim.value, dict) and claim.value.get("available", True) is None:
+                    continue
+                groups.setdefault(claim.scope.model_dump_json(), []).append(claim)
+            unknowns = []
+            for rows in groups.values():
+                ids = sorted(claim.id for claim in rows)
+                identity = hashlib.sha256(json.dumps([kind, ids, invalid_inputs], sort_keys=True).encode()).hexdigest()
+                original = rows[0].evidence[0]
+                synthetic = any(claim.synthetic for claim in rows)
+                evidence = Evidence(id="ev-trait-invalidate-"+identity, kind="simulation" if synthetic else "calculation",
+                                    label="Входы расчёта изменились или недоступны; значение неизвестно",
+                                    source_ids=sorted({sid for claim in rows for e in claim.evidence for sid in e.source_ids}),
+                                    artifact=artifact or original.artifact, url=original.url, quote=original.quote, message_id=original.message_id,
+                                    inputs={"previous_claim_ids": ids, "input_checks": invalid_inputs,
+                                            "previous_observed_at": {claim.id: claim.observed_at.isoformat() for claim in rows}},
+                                    limitations=["Прежнее значение не относится к доступному набору входов",
+                                                 "Неизвестное значение не является отрицательным результатом расчёта", *result["warnings"]])
+                unknowns.append(Claim(id="trait-invalidate-"+identity, hotel_id=context.hotel_id,
+                                      characteristic_id=context.characteristic_id, scope=rows[0].scope,
+                                      value={"available": None}, source="geo_engine", method="geo_trait_input_invalidation_v1",
+                                      evidence=[evidence], confidence=0, observed_at=observed,
+                                      valid_until=observed+timedelta(days=90), supersedes_ids=ids,
+                                      run_id=context.run_id, synthetic=synthetic))
+            return ToolResult(claims=unknowns, warnings=result["warnings"], artifacts=result["artifacts"])
         previous = [row["id"] for row in existing if row.get("source") == "geo_engine"
                     and row.get("scope", {}).get("month") in {None, context.month}]
         claims = []

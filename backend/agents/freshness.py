@@ -52,7 +52,8 @@ def invalidate_geometry_dependents(old_claims: list[dict], artifact: str, run_id
                             limitations=["Синтетическое изменение здания; старое значение не относится к новой геометрии",
                                          "Замена значения неизвестным не является отрицательным результатом расчёта"])
         claims.append(Claim(id="geo-invalidate-"+identity, hotel_id=rows[0]["hotel_id"], characteristic_id=cid,
-                            scope=rows[0].get("scope", {}), value=None, source="geo_engine", method="geometry_dependency_invalidation_v1",
+                            scope=rows[0].get("scope", {}), value={"available": None, "invalidation_reason": "geometry_changed"},
+                            source="geo_engine", method="geometry_dependency_invalidation_v1",
                             evidence=[evidence], confidence=0, observed_at=observed, valid_until=observed+timedelta(days=90),
                             supersedes_ids=[row["id"] for row in rows], run_id=run_id, synthetic=True))
     return claims
