@@ -151,9 +151,11 @@ class Registry:
         evidence = Evidence(kind="calculation",label="Поиск по локальному снимку OpenStreetMap",source_ids=["osm_geofabrik"],artifact="/data/seed/pois.geojson",
                             inputs={"hotel_id":context.hotel_id,"radius_m":radius,"kind":kind,"matched_osm_ids":[feature["id"] for _,feature in selected]},output=value,
                             limitations=["Расстояния по прямой, не время пешего маршрута", "Отсутствие объекта или opening_hours в OSM не доказывает отсутствие услуги", "Подъезд к фактическому входу, детский профиль больницы и доступность для коляски требуют отдельного подтверждения"])
-        identity = hashlib.sha256(json.dumps([context.hotel_id,context.characteristic_id,kind,radius,observed.isoformat(),value],sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:24]
+        method = "local_poi_lookup@2"
+        identity = hashlib.sha256(json.dumps([method,context.hotel_id,context.characteristic_id,kind,radius,observed.isoformat(),value],sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:24]
         evidence.id = "ev-poi-"+identity
-        claim = Claim(id="poi-"+identity,hotel_id=context.hotel_id,characteristic_id=context.characteristic_id,value=value,source="osm_geofabrik",method="local_poi_lookup@1",evidence=[evidence],confidence=.65 if value["available"] else .35,
+        measured_distance = any(isinstance(value.get(key), int | float) for key in ("distance_m", "parking_distance_m", "ev_distance_m", "playground_distance_m", "hospital_distance_m"))
+        claim = Claim(id="poi-"+identity,hotel_id=context.hotel_id,characteristic_id=context.characteristic_id,value=value,source="osm_geofabrik",method=method,evidence=[evidence],confidence=.65 if value["available"] or measured_distance else .35,
                       observed_at=observed,valid_until=observed+timedelta(days=90),run_id=context.run_id)
         existing = self._known_claims.get(claim.id) if self._known_claims is not None else self.repo.get("claims", claim.id)
         if existing is not None:

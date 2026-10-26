@@ -51,3 +51,15 @@ def test_new_spec_version_cannot_reuse_values_with_old_semantics():
     facts,_=resolve_claims("h",[claim("v1",True)],[spec],[],at=OBSERVED)
     assert len(facts)==1 and facts[0].status=="unknown"
 
+
+
+def test_known_parking_distance_survives_unknown_vehicle_entry():
+    from backend.agents.query_match import evaluate_fact
+    from backend.contracts import Criterion, ParsedQuery
+    observed = claim("parking", None, confidence=.65).model_copy(update={"characteristic_id": "car_access", "value": {"available": None, "parking_distance_m": 350}, "synthetic": True})
+    [fact], _ = resolve_claims("h", [observed], [], [], at=OBSERVED)
+    assert fact.status == "computed" and fact.value["available"] is None
+    parking = Criterion(characteristic_id="car_access", label="Парковка рядом", field="parking_distance_m", op="lte", value=500)
+    entry = Criterion(characteristic_id="car_access", label="Въезд", field="available")
+    assert evaluate_fact(fact, parking, ParsedQuery(text=""), "parking_distance_m").supported
+    assert evaluate_fact(fact, entry, ParsedQuery(text=""), "available").status == "unknown"
