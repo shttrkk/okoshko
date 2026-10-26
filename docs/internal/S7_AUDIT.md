@@ -164,3 +164,85 @@ make audit
 - `scripts/audit.py` теперь всегда запускает все пять независимых scanners; сохраняет отдельный JSON каждого и общий summary с SHA-256 входных locks. Python сканируется с `--require-hashes --disable-pip --strict`, без установки или dependency resolution. Неполный / невалидный JSON, scanner error, timeout, skipped dependency, противоречие exit code и результата блокируют успех. Изменение lock во время scan также блокирует результат.
 - Изолированные проверки: 11 сценариев scanner error / skipped dependency / malformed JSON / timeout PASS; полный путь `main()` с синтетическим сбоем dev scanner возвращает exit 1 и записывает summary `scanner_errors=true`, `passed=false`. Сеть и запись артефактов в этих отрицательных проверках были подменены, успешные реальные отчёты не затёрты.
 - Политика npm сохранена: блокируют High / Critical, при текущем запуске все уровни дают 0. Политика Python блокирует любую найденную уязвимость во всех трёх locks.
+
+## Дополнительный независимый Resolver / conflicts audit
+
+Снимок: main `86eab8b`. Только read-only GET к 8080 / 8081, чтение ledger / artifacts и in-memory fixtures. Код, данные и shared DB не менялись.
+
+### Новый P1-R1: противоположные claims на пересечении этажей не создают конфликт
+
+**Статус:** передано оркестратору; исправление и retest ожидаются.
+
+- Место: `backend/agents/resolver.py:18`–19, 47–52 — группировка по точному Scope JSON; value conflict создаётся только внутри этой группы на строках 114–121. `backend/agents/query_match.py:294`–300 затем выбирает fact с большим числом полей scope.
+- Триггер: positive sea_view, W / этажи 1–5, confidence 0.85, source A; negative sea_view, W / с 5-го этажа, confidence 0.85, source B. Оба свежие, с evidence, без supersedes. Независимая проверка явно synthetic.
+- Текущий результат: два computed facts, confidence 0.85 у каждого; `conflicts=[]`, `conflicting_claim_ids=[]`. Запрос ровно W / этаж 5 → verdict=yes, group=all, «Да, но учитывайте условия: западная сторона, 1–5-й этажи». Противоположный claim на том же этаже исчезает из объяснения, поскольку закрытый диапазон имеет 3 scope keys, открытый — 2.
+- Ожидаемое поведение: при равных весах и отсутствии правила разрешения на пересечении этаж 5 — спор / абстенция с обеими evidence chains; вне пересечения сохраняются соответствующие значения. Наличие более конкретной записи само по себе не разрешает противоречие независимого источника.
+- Минимальное исправление: перед окончательным match проверять противоположные значения всех свежих overlapping scopes для данного context, не отбрасывая их по specificity. Также нужен persisted Conflict. Полное исправление — разбиение областей по facade × floor × room_type × month и Resolver vote внутри пересечения; не объявлять конфликт на непересекающихся комнатах.
+
+Known-answer matrix на текущем коде:
+
+| Случай | Текущий результат | Оценка |
+| --- | --- | --- |
+| Одинаковый точный scope, opposite values | value/open, fact disputed, search unknown | корректно |
+| W 1–5 positive и W 5+ negative | два computed, Conflict отсутствует, floor5=yes | P1-R1 |
+| Пересекающиеся ranges, одинаковое значение | Conflict отсутствует | корректно |
+| W 1–4 positive и W 5+ negative | Conflict отсутствует | корректно |
+| Разные фасады W / E | Conflict отсутствует | корректно |
+| Hotel-wide existence и scoped negative | scope/auto_resolved, конкретный negative сохранён | корректное scope qualification |
+| Hotel-wide explicit universal flag и scoped negative | scope/asked, конкретный negative сохранён | логика корректна при наличии flag |
+
+`pytest -q tests/test_resolver.py backend/tests/test_search.py`: **112 passed**. Это не покрывает найденный overlapping-range P1; зелёные тесты не означают отсутствия дефекта.
+
+### P2-R2: старый open Conflict остаётся после supersedes
+
+`backend/agents/resolver.py:159`–167 и 188 только upsert новых conflicts. Изолированно: A=true / B=false на точном W scope → disputed Fact и open Conflict[A,B]; затем C=true supersedes_ids=[A,B] → новый computed Fact[C], conflicting_claim_ids=[], но в repository остаётся прежний open Conflict[A,B]. Текущее состояние facts и список активных конфликтов расходятся. Минимум — reconcile conflicts отеля после materialization, закрывая уже неактивные как resolved и сохраняя историю. Shared DB для этой проверки не использовалась.
+
+### Реальные примеры и честное покрытие трёх сценариев blueprint
+
+**1. Website / calculation — есть реальные scope qualifications, это не доказательство ошибки сайта.**
+
+RODINA (`overture-5d220661-b1ca-4461-a03b-c89126a98e02`): website claim `website-a1f9b60af4351404db56285d`, evidence `/data/eval/website_evidence/a1f9b60af4351404db56285d.json`, официальный `https://grandhotelrodina.ru/nomera/`. Цитата описывает номера с видом на море **или** парк. Geo evidence `/data/geo/overture-5d220661-b1ca-4461-a03b-c89126a98e02.json`: `geo-a43f8298c7de125acdff`, NW / 1–5, available=false, confidence 0.8438; `geo-a489a0b352d3525e93ac`, NW / этаж 6, available=true, confidence 0.6188. Честное отображение: «Сайт сообщает о видовых номерах; расчёт уточняет фасад и этаж, шестой этаж — предварительная оценка». Не называть это противоречием двух измерений.
+
+На 40 website claims + final geo ledger read-only Resolver даёт **109 scope / auto_resolved qualifications**, не 109 доказанных ошибок сайта. Это offline пересчёт подготовленного набора, без записи в БД. На работающих 8080 / 8081 для Veryhotel (`osm-node-11016638375`) GET действительно вернул website claim `website-1d15bb8f561b27171f0adb86` и 7 scope/auto_resolved. Новые RODINA / Metropol / Coocoorooza quotes на момент GET ещё отсутствовали в обоих images; это ожидаемый pending rebuild после curation commit.
+
+Два source excerpts явно универсальны: Metropol `website-676f85aacf75d3db440ec001` («со всех апартаментов») и Coocoorooza `website-9a56f2da916ca6415f5d808f` («Все номера»). Но `scripts/collect_weak_labels.py` в `curated_records` проставляет universal_scope=false всем 40 claims, поэтому asked не появляется. Это результат консервативного сведения label к existence, а не доказательство отсутствия универсального утверждения в источнике. Рекомендуется разнести `label_semantics=existence_only` и отдельный `source_assertion_universal=true` для этих двух прямых цитат. Scope / confidence не расширять.
+
+При этом geo обоих объектов моделирует только первый уровень: Metropol E / floor1 `geo-19f3af945d3ea1b5631a`, confidence 0.3614; Coocoorooza SW / floor1 `geo-f4ccbb9a8afe3f9ee964`, confidence 0.28. Верхние этажи неизвестны. Корректное asked-сообщение — «Уточните этажи / окна, источник обещает больше, чем подтверждено моделью», не «сайт опровергнут».
+
+**2. Hotelier / calculation — текущие три demo quiet claims не конфликтуют.**
+
+Все synthetic=true, source=hotelier_simulator, evidence `/data/seed/demo_hotelier_claims.jsonl`:
+
+- Cascade SW / этаж 3 / сентябрь: `demo-hotelier-ac15d5162a1fcfdef1176fcf` говорит true; geo `geo-98d98d4a79a128f2ef86` на SW также true.
+- Приморская W / этаж 5 / сентябрь: `demo-hotelier-6544c68b45d0e531e4cbdaa7` говорит true; geo `geo-e7f3f29cc099f26737ad` на W также true.
+- Brevis W / этаж 7 / сентябрь: `demo-hotelier-7785d21c2da9da392b2c0962` говорит true; geo `geo-e4a67e10f5e76036793e` на W также true.
+
+Это демонстрация согласия / уточнения модели синтетическим ответом, не opposition. Чтобы показать второй тип, нужен отдельно явно synthetic opposite-value сценарий на том же проверяемом scope, с сохранённой цитатой и полным ограничением модели наружного шума. Нельзя выдавать такой сценарий за реальное заявление гостиницы. S7 новых claims не создавал.
+
+**3. OSM floors / DSM — обработанный независимый height conflict пока отсутствует.**
+
+Пример реальных metadata: «Островок» `osm-node-10058556917`, building `osm-way-53284172`, `/data/geo/osm-node-10058556917.json`: OSM building:levels=5 → height_m=15, height_source=levels, base_m=7.273477172851562. `dsm.roof_method=replace_with_low_percentile_base_plus_height`. Это явная модель с использованием той же OSM-высоты, не независимая оценка этажности по DSM. `geo/region.py:92`–98 и `geo/terrain.py:127`–168 подтверждают: ground proxy — 10-й перцентиль окружения, roof задаётся base+OSM height. Сравнение такого моделированного roof с исходными OSM levels было бы круговым.
+
+Ни один текущий кодовый путь не создаёт Conflict kind=height_quality. Есть ограничения DSM/canopy/неизвестных высот и Monte Carlo, но третьего обработанного независимого конфликта нет. Честный UI — «Пробел / неопределённость высот: нужен независимый roof/ground источник», либо отдельный явно synthetic known-answer тест детектора после его реализации. Не придумывать «5 этажей против 28 м» ради количества.
+
+Итого: реальная обработка website scope qualification есть; равные exact-scope value conflicts проверены на synthetic fixtures; overlapping-range P1 открыт; type2 opposition и независимый type3 height conflict ещё не представлены реальными данными. Полевая точность, height truth и эмпирическая калибровка этим аудитом не измерялись.
+
+### Дополнительный raw Copernicus DSM proxy screening пяти footprints
+
+По поручению оркестратора независимо проверена **сырая** `data/geo/terrain_30m.npz`, SHA-256 `27000f9047826a66c3cacac2b70cf46fd08aec572b1926d9088655e3e22d1563`. Это Copernicus DSM, перепроецированная bilinear в UTM 37N с ячейкой 30 м (`pipeline/build_dsm.py:31`–43, metadata `/data/geo/terrain_30m.json`). Local `near_dsm` / моделированная OSM-крыша в сравнении не использовались.
+
+Read-only метод: реальные центры raw raster pixels внутри OSM footprint → roof samples. Отдельно считались core pixels, у которых ≥80% площади ячейки лежит внутри footprint. Ground proxy — P10 сырых DSM-пикселей в кольце 30–180 м от здания, исключены центры внутри любых известных building polygons и картированного моря. Число ground pixels ниже: 91 / 160 / 151 / 92 / 112. Это **соседняя DSM-поверхность**, а не независимо измеренная bare-earth поверхность у фундамента.
+
+Для осторожного screening сравнивались OSM envelope `[levels×2.8−3, levels×3.5+3]` и proxy envelope `[max(0, roofP10−groundP20−15), max(0, roofP90−groundP5+15)]` метров. Добавленные ±15 м — выбранный широкий sensitivity buffer, **не калиброванный confidence interval**. Для quality flag дополнительно требовались ≥3 core roof pixels и ≥10 ground pixels. Ни одно здание не прошло этот roof-support порог.
+
+| Объект / building ID | Footprint, м² | Roof / core pixels | OSM nominal, м | Raw median roof − ground P10, м | Proxy envelope, м | OSM envelope, м |
+| --- | ---: | ---: | ---: | ---: | --- | --- |
+| Островок / osm-way-53284172 | 338 | 0 / 0 | 15 | unknown | unknown | 11–20.5 |
+| Swissotel Камелия / osm-way-697170340 | 4868 | 6 / 0 | 21 | 24.024 | 1.586–45.456 | 16.6–27.5 |
+| RODINA / osm-way-52503575 | 3566 | 3 / 1 | 18 | 23.238 | 0.842–43.775 | 13.8–24 |
+| Brevis / osm-way-201474330 | 1294 | 2 / 0 | 48 | 26.250 | 0–44.638 | 41.8–59 |
+| Приморская / osm-way-51676847 | 2318 | 2 / 0 | 15 | 30.366 | 3.189–49.291 | 11–20.5 |
+
+Все четыре доступных proxy envelopes пересекаются с широким OSM envelope; у «Островка» roof sample отсутствует. **Quality flags по этому screening: 0 из 5.** Это не доказательство правильности OSM: разрешение, bilinear resampling, смешение крыши с землёй / деревьями, наклон местности, неизвестная эпоха конкретного пикселя и несовпадающие footprint / roof sections не позволяют получить истинную высоту. Особенно у Brevis оба roof pixels имеют только 28% / 52% площади внутри контура; разницу nominal 48 против proxy 26.25 нельзя честно называть опровержением 16 этажей.
+
+Результат сохраняет gap третьего сценария: независимого обработанного height conflict на этих пяти примерах нет. Данные / seed / код при проверке не менялись.
