@@ -1,0 +1,120 @@
+{"id": "negative-001", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Нужен бар в номере", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-002", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Хочу мини-бар", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-003", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Минибар пополнен?", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-004", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Зарядка для телефона в номере", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-005", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Хочу делать зарядку по утрам", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-006", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Есть зарядка для ноутбука?", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-007", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Площадка для вертолета", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-008", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Площадка для переговоров", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-009", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Северный олень на картине", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-010", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Западная Европа мне нравится", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-011", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Восточная кухня в ресторане", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-012", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Южный ветер сегодня", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-013", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Море проблем с прошлым отелем", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-014", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Море впечатлений от поездки", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-015", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Городской вид из окна", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-016", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Нужен вид на город", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-017", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Горящий тур в Сочи", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-018", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Горячий завтрак каждый день", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-019", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Городской пейзаж", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-020", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Горничная каждый день", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-021", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Гороховый суп", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-022", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Гордимся своим выбором", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-023", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Барышня ищет отель", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-024", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Барсук на фотографии", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-025", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Барселона на открытке", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-026", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Клубника к завтраку", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-027", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Клубный номер", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-028", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Клуб любителей шахмат", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-029", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Паблик отеля в соцсетях", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-030", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Тусовку не ищем", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-031", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Ночная жизнь не интересует", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-032", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Бары не нужны", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-033", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Интернет мне не нужен", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-034", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Не нужен вид на море", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-035", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Не важен закат", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-036", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Не интересуют горы из окна", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-037", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Балкон не нужен", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-038", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Кондиционер не требуется", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-039", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Детей не берем", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-040", "split": "negative", "label_type": "synthetic_authored_negative", "text": "С детьми не едем", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-041", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Собаку оставим дома", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-042", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Не берем питомца", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-043", "split": "negative", "label_type": "synthetic_authored_negative", "text": "С собакой не поедем", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-044", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Без собаки еду один", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-045", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Кошка остается у родителей", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-046", "split": "negative", "label_type": "synthetic_authored_negative", "text": "В связи с отпуском ищу жилье", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-047", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Работа над ошибками", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-048", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Работы художника на стенах", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-049", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Удаленный от города отель", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-050", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Удаленные фотографии не нужны", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-051", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Работает ли ресторан?", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-052", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Работает ли лифт?", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-053", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Подъемник работает зимой?", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-054", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Работа рецепции круглосуточно", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-055", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Оживленная дорога рядом", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-056", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Оживлённая трасса рядом", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-057", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Без перехода через оживленную улицу", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-058", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Движение по улице одностороннее", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-059", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Движок поиска не отвечает", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-060", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Номер договора 12345", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-061", "split": "negative", "label_type": "synthetic_authored_negative", "text": "История переписки", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-062", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Исторический матч по телевизору", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-063", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Фото паспорта нужно?", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-064", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Фото номера на сайте", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-065", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Фотография кота", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-066", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Купить воду в бутылке", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-067", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Вода в кране горячая?", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-068", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Теплый пол в ванной", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-069", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Теплые одеяла", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-070", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Погода в доме важнее", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-071", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Старый анекдот про отель", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-072", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Облако данных", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-073", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Облачное хранилище", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-074", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Качество сервиса", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-075", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Чистый номер", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-076", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Чистота белья", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-077", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Двойная кровать", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-078", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Двойное гражданство", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-079", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Плотный завтрак", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-080", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Плотный график поездки", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-081", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Черный чай", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-082", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Темный шоколад", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-083", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Шторы в цвет стен", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-084", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Окно регистрации закрывается в шесть", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-085", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Окно отпуска с понедельника", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-086", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Этажерка для книг", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-087", "split": "negative", "label_type": "synthetic_authored_negative", "text": "На высоте обслуживание", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-088", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Этажность соседнего дома интересна", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-089", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Номер телефона отеля", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-090", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Машина времени в музее", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-091", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Парковая зона красивая", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-092", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Парковый пейзаж", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-093", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Заряд бодрости", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-094", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Заряженный телефон", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-095", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Детали бронирования", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-096", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Ребенкин рисунок", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-097", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Кошкин дом на открытке", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-098", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Собачий холод на улице", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-099", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Майский жук на балконе фотографии", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-100", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Запад солнца на картинке", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-101", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Закат эпохи бумажных карт", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-102", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Sea of problems", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-103", "split": "negative", "label_type": "synthetic_authored_negative", "text": "A bar of chocolate", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-104", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Charging my phone", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-105", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Northern lights photo", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-106", "split": "negative", "label_type": "synthetic_authored_negative", "text": "City view please", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-107", "split": "negative", "label_type": "synthetic_authored_negative", "text": "No need for wifi", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-108", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Room number 404", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-109", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Blackout poetry book", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-110", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Тишина в чате означает согласие?", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-111", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Тихий океан на карте", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-112", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Шум в ушах после перелета", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-113", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Собрать чемодан", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-114", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Две чашки кофе", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-115", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Люблю читать вечером", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-116", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Какая цена номера?", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-117", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Бюджет до 5000 рублей", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-118", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Пять звезд обязательно", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-119", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Спа и сауна", "expected": {"must": [], "nice": [], "no_data": []}}
+{"id": "negative-120", "split": "negative", "label_type": "synthetic_authored_negative", "text": "Бассейн на крыше", "expected": {"must": [], "nice": [], "no_data": []}}
