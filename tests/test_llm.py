@@ -121,7 +121,8 @@ def test_live_answer_rejects_authority_foreign_fields_and_nonquotes(monkeypatch,
     elif attack.startswith("nested_"):
         payload["updates"][0]["value"][attack.removeprefix("nested_")] = "provider-selected"
     elif attack == "foreign_cid":
-        payload["updates"][0]["characteristic_id"] = "beach_walk"
+        # A characteristic hotels cannot answer (beach walking time now can be answered).
+        payload["updates"][0]["characteristic_id"] = "air_quality"
     elif attack == "invented_quote":
         payload["updates"][0]["quote"] = "С кошкой нельзя."
     repo = MemoryRepo()
