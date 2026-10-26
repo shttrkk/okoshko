@@ -130,3 +130,56 @@ def test_neutral_words_do_not_hide_unsupported_wishes(catalog, text, fragment):
     parsed = parse_query(SearchRequest(text=text), catalog)
     assert any(fragment in value for value in parsed.unmapped)
     assert not parsed.must and not parsed.nice
+
+
+@pytest.mark.parametrize('text', ['Наш коллега держит кошку', 'Подруга обычно любит детские площадки',
+                                 'В аптеке работает моя сестра', 'Она сейчас работает в ночной аптеке',
+                                 'Он любит вид на море', 'Сосед говорит «мне нужна тишина»'])
+def test_present_third_person_report_requires_adoption_as_a_trip_condition(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert not parsed.must and not parsed.nice
+    assert parsed.unmapped and parsed.clarifications
+
+
+@pytest.mark.parametrize(('text', 'ids'), [
+    ('Сосед любит собак, но мне нужен номер с видом на море', {'sea_view'}),
+    ('Нужен балкон, брат живет рядом с аптекой', {'room_orientation'}),
+    ('Сестра работает в аптеке и нам нужна парковка рядом', {'car_access'}),
+    ('Сестра работает в аптеке и нам нужна аптека рядом', {'night_pharmacy'}),
+    ('Сестра работает в аптеке, мне важна тишина ночью', {'quiet_night'}),
+    ('Сестра любит собак и поедет с ребёнком', {'family_nearby'}),
+    ('Сестра едет с собакой', {'pets'}),
+    ('Едем с другом и собакой 25 кг', {'pets'}),
+    ('Маша едет с собакой 25 кг', {'pets'}),
+])
+def test_trip_action_or_separate_desire_keeps_only_adopted_conditions(catalog, text, ids):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert {c.characteristic_id for c in parsed.must} == ids
+
+
+def test_separate_preference_after_a_present_report_stays_optional(catalog):
+    parsed = parse_query(SearchRequest(text='Сосед любит собак, желательно море из окна'), catalog)
+    assert not parsed.must and [c.characteristic_id for c in parsed.nice] == ['sea_view']
+
+
+@pytest.mark.parametrize('text', ['Мне нужен вид на горы для фотографий', 'Хочу вид на море для фотографии',
+                                 'Хочу увидеть закат для фотографии', 'Для картины нужен вид на море',
+                                 'Нужен балкон для съёмки', 'Для фотографии нужен балкон'])
+def test_guest_purpose_does_not_replace_the_property_being_requested(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert len(parsed.must) == 1 and parsed.must[0].value is True
+
+
+@pytest.mark.parametrize('text', ['Нужен рисунок с видом на горы', 'Нужен балкон на открытке',
+                                 'Хочу фотографию балкона', 'Фотография морского вида',
+                                 'Хочу вид на горы в красивой картине',
+                                 'Нужна открытка с песчаным пляжем', 'Хочу фотографию парковки',
+                                 'Жук на балконе фотографии'])
+def test_a_property_depicted_on_the_requested_artifact_is_not_a_hotel_requirement(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert not parsed.must and not parsed.nice and parsed.unmapped
+
+
+def test_requested_nearby_photos_and_a_separate_property_keep_their_own_heads(catalog):
+    parsed = parse_query(SearchRequest(text='Нужны фотографии окрестностей; парковка рядом'), catalog)
+    assert {c.characteristic_id for c in parsed.must} == {'nearby_photos', 'car_access'}
