@@ -214,7 +214,11 @@ def contradiction_note(characteristic_id: str, general: list[Claim], computed: l
     who = "Сайт отеля" if all(claim.source == "hotel_website" for claim in general) else "Отельер"
     claimed = f"{who}: «{quotes[0]}»" if quotes else f"{who} заявляет {label}"
     floors = [(claim.scope.floor_min, claim.scope.floor_max) for claim in computed if claim.scope.floor_min]
-    span = f"на этажах {min(low for low, _ in floors)}–{max(high or low for low, high in floors)}" if floors else "на рассчитанных этажах"
+    if floors:
+        low, high = min(lo for lo, _ in floors), max(hi or lo for lo, hi in floors)
+        span = f"на {low}-м этаже" if low == high else f"на этажах {low}–{high}"
+    else:
+        span = "на рассчитанных этажах"
     confidences = [claim.confidence for claim in computed]
     return (f"Противоречие источников. {claimed} (уверенность {_number(max(c.confidence for c in general))}). "
             f"Расчёт прямой видимости по рельефу и высотам зданий: {target} не видно ни с одного из "
