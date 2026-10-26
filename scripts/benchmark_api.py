@@ -2,7 +2,7 @@
 
 Run against a ready stand, with no rebuild or concurrent load:
   python scripts/benchmark_api.py --base-url http://localhost:8080 --samples 10
-Reports wall-clock HTTP latency, response bytes, cold samples and warm p50/p95.
+Reports wall-clock HTTP latency, response bytes, first samples and warm p50/p95.
 Warm search deliberately includes the repeated-query cache. Full and compact
 profiles are measured separately; no passport/answer/collect/change is created.
 """
