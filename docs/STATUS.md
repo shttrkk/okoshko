@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 02:37 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 02:38 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -143,3 +143,5 @@
 - Полностью отложенное evidence: Brevis 252 939 B / 356 facts, Sochi Black Sea 389 040 B / 490 facts, Apartments v Mayake 358 057 B / 507 facts. Model roundtrip PASS; полные источники и даты открываются по факту. Проверки: 736 tests +125 subtests, Ruff, frontend lint, rebuild, demo-check13, browser smoke и16 сценариев связей PASS.
 
 - 27.10.2026 02:37: fix(search): distinguish property requests from quoted mentions; 775 passed, 1 warning, 125 subtests passed in 53.66s; Ruff и frontend lint PASS.
+
+- 27.10.2026 02:38: fix(search): exclude neutral request words from unmapped; 782 passed, 1 warning, 125 subtests passed in 50.63s; Ruff и frontend lint PASS.

@@ -111,3 +111,22 @@ def test_spelled_floor_pair_scopes_the_view_without_extra_condition(catalog):
     parsed = parse_query(SearchRequest(text='Вид на горы из восточного окна, этаж допустим с четвертого по восьмой'), catalog)
     assert len(parsed.must) == 1 and parsed.min_floor == 4
     assert parsed.must[0].scope == Scope(facade='E', floor_min=4, floor_max=8)
+
+
+@pytest.mark.parametrize('text', ['Подберите варианты с видом на море, пожалуйста',
+                                 'Покажите тихие номера', 'Порекомендуйте варианты с балконом'])
+def test_neutral_selection_words_do_not_require_clarification(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert parsed.must and not parsed.unmapped and not parsed.clarifications
+
+
+@pytest.mark.parametrize(('text', 'fragment'), [
+    ('Предложите варианты с бассейном', 'бассейном'),
+    ('Найдите варианты по цене до 9000 рублей', 'цене'),
+    ('Покажи варианты с сауной', 'сауной'),
+    ('Подбери варианты с room-service', 'room-service'),
+])
+def test_neutral_words_do_not_hide_unsupported_wishes(catalog, text, fragment):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert any(fragment in value for value in parsed.unmapped)
+    assert not parsed.must and not parsed.nice
