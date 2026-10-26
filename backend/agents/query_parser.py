@@ -35,6 +35,12 @@ RULES = {
 OUTSIDE = r"москв\w*|саратов\w*|санкт[ -]?петербург\w*|петербург\w*|спб|казан[ьиь]\w*|анап\w*|геленджик\w*|краснодар\w*|стамбул\w*|париж\w*|дуба[ий]\w*|калининград\w*|екатеринбург\w*|новосибирск\w*|ялт\w*|туапсе|крым\w*|ростов\w*|нижн\w* новгород\w*|самар\w*|твер[ьиь]\w*|минск\w*|батум\w*|красн\w* полян\w*|воронеж\w*|волгоград\w*|омск\w*|томск\w*|перм[ьиь]\w*|уф[аеуы]\w*|челябинск\w*|красноярск\w*|тюмен[ьиь]\w*|иркутск\w*|хабаровск\w*|владивосток\w*|сургут\w*|сочи-парк|тбилиси|ереван\w*|ташкент\w*|белград\w*|антал[ьи]\w*|бишкек\w*|алмат[ыи]|астан\w*|псков\w*|суздал\w*|ярославл\w*|костром\w*|владимир\w*|иванов\w*|смоленск\w*|брянск\w*|ор[её]л\w*|курск\w*|белгород\w*|рязан\w*|тул[аеуы]\w*|тамбов\w*|липецк\w*|пенза|пензе|ижевск\w*|киров\w*|чебоксар\w*|саранск\w*|йошкар\w*|ульяновск\w*|оренбург\w*|барнаул\w*|кемеров\w*|новокузнецк\w*|абакан\w*|чита|чите|улан-удэ|якутск\w*|магадан\w*|мурманск\w*|архангельск\w*|петрозаводск\w*|вологд\w*|сыктывкар\w*|грозн\w*|махачкал\w*|владикавказ\w*|ставропол\w*|пятигорск\w*|кисловодск\w*|ессентук\w*|нальчик\w*|майкоп\w*"
 SOFT = r"желатель\w*|хорошо бы|по возможности|необязатель\w*|не обязател\w*|можно(?: бы)?|не принципиаль\w*"
 HARD = r"(?<!не )обязатель\w*|только|важн\w*|нуж(?:ен|на|но|ны)|долж\w*|необходим\w*"
+NEARBY = {
+    "beach_walk": (r"\b(?:пляж\w*|мор[еяю]|морем)\b", "minutes", 10, "До пляжа", "мин пешком"),
+    "family_nearby": (r"\bплощадк\w*", "playground_distance_m", 500, "Детская площадка", "м"),
+    "car_access": (r"\bпарков\w*", "parking_distance_m", 500, "Парковка", "м"),
+    "night_pharmacy": (r"\bаптек\w*", "distance_m", 500, "Ночная аптека", "м"),
+}
 
 
 def normalized(text: str) -> str:
@@ -104,20 +110,47 @@ def _importance(text: str, start: int, end: int) -> tuple[bool, bool, bool]:
 
 
 def _numeric(text: str, start: int, end: int, field: str, default_op: str, default_value):
-    window = text[max(0, start - 50):min(len(text), end + 70)]
-    units = {"minutes": r"мин(?:ут\w*)?", "water_c": r"(?:°\s*с?|градус\w*)", "download_mbps": r"(?:мбит(?:/с)?|mbps|мб/с)", "european_aqi": r"(?:aqi|единиц\w*)", "night_db_max": r"дб", "parking_distance_m": r"м(?:етр\w*)?\b", "playground_distance_m": r"м(?:етр\w*)?\b"}
+    offset = max(0, start - 50)
+    window = text[offset:min(len(text), end + 70)]
+    units = {"minutes": r"мин(?:ут\w*)?", "water_c": r"(?:°\s*с?|градус\w*)", "download_mbps": r"(?:мбит(?:/с)?|mbps|мб/с)", "european_aqi": r"(?:aqi|единиц\w*)", "night_db_max": r"дб", "parking_distance_m": r"м(?:етр\w*)?\b", "playground_distance_m": r"м(?:етр\w*)?\b", "distance_m": r"м(?:етр\w*)?\b"}
     unit = units.get(field)
     if not unit and field not in {"available", "windows", "blackout", "balcony", "air_conditioning"}:
         unit = r"(?:час\w*|метр\w*|м\b|%|балл\w*|люкс\w*|км\b)"
     if not unit:
         return default_op, default_value
-    found = re.search(r"(?P<op>не менее|не ниже|не холоднее|больше|выше|от|≥|>=|не более|не дальше|не дольше|не выше|не больше|максимум|до|≤|<=)?\s*(?P<num>\d+(?:[.,]\d+)?)\s*" + unit, window)
+    candidates = list(re.finditer(r"(?P<op>не менее|не ниже|не холоднее|больше|выше|от|≥|>=|не более|не дальше|не дольше|не выше|не больше|максимум|до|≤|<=)?\s*(?P<num>\d+(?:[.,]\d+)?)\s*" + unit, window))
+    found = min(candidates, key=lambda m: max(0, start - (offset + m.end()), offset + m.start() - end), default=None)
     if found:
         op = "gte" if found["op"] in {"не менее", "не ниже", "не холоднее", "больше", "выше", "от", "≥", ">="} else default_op
         if found["op"] in {"не более", "не дальше", "не дольше", "не выше", "не больше", "максимум", "до", "≤", "<="}:
             op = "lte"
         return op, float(found["num"].replace(",", "."))
     return default_op, default_value
+
+
+def _nearby_intents(text: str) -> dict:
+    """Attach proximity only to a known POI in the same clause."""
+    targets = [(cid, match) for cid, (pattern, *_) in NEARBY.items() for match in re.finditer(pattern, text)]
+    attached = {}
+    for near in re.finditer(r"\bрядом\b", text):
+        candidates = [(cid, match) for cid, match in targets
+                      if not re.search(r"[,;.!?]", text[min(near.end(), match.end()):max(near.start(), match.start())])
+                      and min(abs(near.start() - match.end()), abs(match.start() - near.end())) <= 40]
+        if candidates:
+            cid, match = min(candidates, key=lambda item: min(abs(near.start() - item[1].end()), abs(item[1].start() - near.end())))
+            attached.setdefault(cid, (match, []))[1].append(near)
+    return attached
+
+
+def _criterion_label(criterion: Criterion, fallback: str) -> str:
+    cid = criterion.characteristic_id
+    if cid in NEARBY and criterion.field == NEARBY[cid][1]:
+        _, _, _, name, unit = NEARBY[cid]
+        sign = {"lte": "≤", "gte": "≥", "eq": "="}.get(criterion.op, criterion.op)
+        threshold = f"{criterion.value:g}".replace(".", ",") if isinstance(criterion.value, int | float) else str(criterion.value)
+        fallback = f"{name} {sign} {threshold} {unit}"
+    flags = [label for active, label in ((criterion.no_stairs, "без лестниц"), (criterion.no_crossings, "без переходов")) if active]
+    return ", ".join([fallback, *flags])
 
 
 def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> ParsedQuery:
@@ -161,12 +194,16 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         if re.search(pattern, text)), None)
     consumed = []
     positions = {}
+    nearby = _nearby_intents(text)
     for spec in catalog:
         if spec.status != "active":
             continue
         matches = [m for phrase in [spec.name_ru, *spec.synonyms] for m in re.finditer(_phrase_pattern(phrase), text)]
         if spec.id in RULES:
             matches += list(re.finditer(RULES[spec.id], text))
+        if spec.id in nearby:
+            matches.append(nearby[spec.id][0])
+            consumed.extend((m.start(), m.end()) for m in nearby[spec.id][1])
         if spec.id == "room_orientation" and (facade_match or floor_match):
             matches += [facade_match[1]] if facade_match else [floor_match]
         if not matches:
@@ -185,7 +222,19 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             field, op, value = "parking_distance_m", "lte", 100
         elif spec.id == "family_nearby" and re.search(r"площадк\w*[^,;.]{0,30}\d+\s*м(?:етр\w*)?\b", text):
             field, op, value = "playground_distance_m", "lte", 300
-        op, value = _numeric(text, match.start(), match.end(), field, op, value)
+        numeric_match = match
+        nearby_preference = None
+        if spec.id in nearby:
+            numeric_match = nearby[spec.id][0]
+            _, nearby_field, nearby_value, _, _ = NEARBY[spec.id]
+            nearby_soft, _, nearby_skip = _importance(text, numeric_match.start(), numeric_match.end())
+            if not nearby_skip and nearby_soft == soft:
+                field, op, value = nearby_field, "lte", nearby_value
+            elif not nearby_skip:
+                nearby_op, nearby_value = _numeric(text, numeric_match.start(), numeric_match.end(), nearby_field, "lte", nearby_value)
+                nearby_preference = (nearby_soft, Criterion(characteristic_id=spec.id, label=spec.name_ru,
+                                                          field=nearby_field, op=nearby_op, value=nearby_value))
+        op, value = _numeric(text, numeric_match.start(), numeric_match.end(), field, op, value)
         if negative and isinstance(value, bool):
             value = not value
         if spec.id == "soundproofing":
@@ -205,7 +254,12 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         if spec.id == "room_orientation" and soft and (facade_match or floor_match):
             scope = Scope(facade=facade_match[0] if facade_match else parsed.facade,
                           floor_min=requested_floor, floor_max=requested_max)
-        (parsed.nice if soft else parsed.must).append(Criterion(characteristic_id=spec.id, label=spec.name_ru, field=field, op=op, value=value, scope=scope))
+        criterion = Criterion(characteristic_id=spec.id, label=spec.name_ru, field=field, op=op, value=value, scope=scope)
+        (parsed.nice if soft else parsed.must).append(criterion)
+        if nearby_preference:
+            nearby_soft, nearby_criterion = nearby_preference
+            nearby_criterion.label = _criterion_label(nearby_criterion, spec.name_ru)
+            (parsed.nice if nearby_soft else parsed.must).append(nearby_criterion)
         if spec.id == "soundproofing":
             for extra_field, pattern, extra_value in [("windows", r"двойн\w* ок\w*", "double"), ("blackout", r"блэкаут\w*|плотн\w* штор\w*", True), ("air_conditioning", r"кондиционер\w*", True)]:
                 extra = re.search(pattern, text)
@@ -215,12 +269,21 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
                         (parsed.nice if extra_soft else parsed.must).append(Criterion(characteristic_id=spec.id, label=spec.name_ru, field=extra_field,
                             value=not extra_negative if isinstance(extra_value, bool) else extra_value, scope=scope))
         if spec.id == "beach_walk":
-            for extra_field, label, pattern, extra_value in [("has_steps", "Без лестниц до пляжа", r"без (?:лестниц\w*|ступен\w*)", False), ("crossings", "Без переходов до пляжа", r"без переход\w*", [])]:
-                extra = re.search(pattern, text)
-                if extra:
+            for flag, extra_field, label, pattern, extra_value in [
+                ("no_stairs", "has_steps", "Без лестниц до пляжа", r"без (?:лестниц\w*|ступен\w*)|\bколяск\w*", False),
+                ("no_crossings", "crossings", "Без переходов до пляжа", r"(?:без (?:переход\w*|пересечени\w*)(?:\s+(?:и\s+)?переход\w*)?|без лестниц\w*\s+и\s+переход\w*)(?:\s+через\s+(?:трасс\w*|дорог\w*|шоссе|железн\w*\s+дорог\w*))?", []),
+            ]:
+                for extra in re.finditer(pattern, text):
                     consumed.append((extra.start(), extra.end()))
                     extra_soft = _importance(text, extra.start(), extra.end())[0]
-                    (parsed.nice if extra_soft else parsed.must).append(Criterion(characteristic_id=spec.id, label=label, field=extra_field, value=extra_value))
+                    if extra_soft == soft:
+                        setattr(criterion, flag, True)
+                    else:
+                        # Preserve an explicitly softer route preference as a preference.
+                        group = parsed.nice if extra_soft else parsed.must
+                        if not any(c.characteristic_id == spec.id and c.field == extra_field and c.value == extra_value for c in group):
+                            group.append(Criterion(characteristic_id=spec.id, label=label, field=extra_field, value=extra_value))
+        criterion.label = _criterion_label(criterion, spec.name_ru)
     residual = list(text)
     for start, end in consumed:
         residual[start:end] = " " * (end-start)

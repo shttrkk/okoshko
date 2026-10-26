@@ -9,8 +9,10 @@ import httpx
 import pytest
 
 from scripts.demo_check import (
+    FAMILY_GUARD_HOTEL_ID,
     CheckFailure,
     Runner,
+    validate_family_route_guard,
     validate_geo,
     validate_hit_scope,
     validate_masha,
@@ -87,6 +89,54 @@ def test_masha_room_evidence_cannot_combine_opposite_facades():
     detail["facts"][1]["scope"] = {"facade": "W", "floor_min": 5}
     with pytest.raises(CheckFailure, match="incompatible required room scopes"):
         validate_hit_scope(hit, detail)
+
+
+def family_guard_response():
+    result = {"parsed": {"must": [
+        {"characteristic_id": "beach_walk", "field": "minutes", "op": "lte", "value": 15, "no_stairs": True, "no_crossings": True},
+        {"characteristic_id": "family_nearby", "field": "playground_distance_m", "op": "lte", "value": 500, "label": "Детская площадка ≤ 500 м"}], "unmapped": []},
+        "results": [{"hotel": {"id": FAMILY_GUARD_HOTEL_ID, "name": "Brevis apartments"}, "group": "unknown", "summary": "Без лестниц не подтверждено",
+                     "verdicts": [{"characteristic_id": "beach_walk", "required": True, "status": "unknown", "confidence": .66,
+                                   "text": "Не подтверждено: на маршруте есть лестницы", "fact_ids": ["real-route"], "evidence_refs": ["ev-route"]}]}]}
+    detail = {"hotel": {"id": FAMILY_GUARD_HOTEL_ID}, "facts": [
+        {"id": "real-route", "characteristic_id": "beach_walk", "value": {"minutes": 8, "has_steps": True}, "synthetic": False,
+         "supporting_claim_ids": ["geo-route"], "evidence": [{"id": "ev-route"}]}],
+        "claims": [{"id": "geo-route", "source": "geo_engine", "synthetic": False}]}
+    return result, detail
+
+
+def test_family_known_stairs_rejection_is_an_acceptance_requirement():
+    result, detail = family_guard_response()
+    assert validate_family_route_guard(result, detail)["route_status"] == "unknown"
+    result["results"][0]["verdicts"][0]["status"] = "no"
+    assert validate_family_route_guard(result, detail)["route_status"] == "no"
+
+
+@pytest.mark.parametrize("defect", ["duplicate", "no_stairs", "no_crossings", "nearby", "unmapped", "all", "partial", "synthetic", "missing_stairs", "evidence", "evidence_reference"])
+def test_family_guard_rejects_parser_ranking_or_provenance_regressions(defect):
+    result, detail = family_guard_response()
+    if defect == "duplicate":
+        result["parsed"]["must"].append(result["parsed"]["must"][0].copy())
+    elif defect in {"no_stairs", "no_crossings"}:
+        result["parsed"]["must"][0][defect] = False
+    elif defect == "nearby":
+        result["parsed"]["must"][1]["field"] = "available"
+    elif defect == "unmapped":
+        result["parsed"]["unmapped"] = ["рядом"]
+    elif defect == "all":
+        result["results"][0]["group"] = "all"
+    elif defect == "partial":
+        result["results"][0]["verdicts"][0]["status"] = "partial"
+    elif defect == "synthetic":
+        detail["facts"][0]["synthetic"] = True
+    elif defect == "missing_stairs":
+        del detail["facts"][0]["value"]["has_steps"]
+    elif defect == "evidence_reference":
+        result["results"][0]["verdicts"][0]["evidence_refs"] = ["invented-reference"]
+    else:
+        result["results"][0]["verdicts"][0]["fact_ids"] = []
+    with pytest.raises(CheckFailure):
+        validate_family_route_guard(result, detail)
 
 
 def synthetic_detail():

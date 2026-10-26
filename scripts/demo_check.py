@@ -20,6 +20,7 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "data/eval/persona_acceptance.json"
 SUPPORTED = {"yes", "partial"}
+FAMILY_GUARD_HOTEL_ID = "osm-way-201474330"  # Brevis: real computed route contains stairs.
 
 
 class CheckFailure(AssertionError):
@@ -93,6 +94,40 @@ def validate_persona(result: dict, spec: dict) -> dict:
     return {"query": spec["text"], "meaningful_count": len(meaningful), "sample_hotel_ids": [h["hotel"]["id"] for h in meaningful[:3]],
             "recognized_ids": sorted({c["characteristic_id"] for c in [*result["parsed"].get("must", []), *result["parsed"].get("nice", [])]}),
             "unmapped": result["parsed"].get("unmapped", []), "clarifications": result["parsed"].get("clarifications", []), "limitation": spec.get("limitation")}
+
+
+def validate_family_route_guard(result: dict, detail: dict) -> dict:
+    """Known negative: a real route with stairs cannot satisfy the family request."""
+    must = result.get("parsed", {}).get("must", [])
+    routes = [c for c in must if c.get("characteristic_id") == "beach_walk"]
+    require(len(routes) == 1, "Family request must have exactly one mandatory beach_walk criterion")
+    require(routes[0].get("field") == "minutes" and routes[0].get("op") == "lte" and number(routes[0].get("value")) and routes[0]["value"] > 0 and routes[0].get("no_stairs") is True
+            and routes[0].get("no_crossings") is True, "Family beach criterion lost its numeric/AND route constraints")
+    playground = [c for c in must if c.get("characteristic_id") == "family_nearby"]
+    require(any(c.get("field") == "playground_distance_m" and c.get("op") == "lte" and c.get("value") == 500
+                and "500" in c.get("label", "") and "м" in c.get("label", "") for c in playground), "Family 'nearby playground' has no explicit 500 m threshold")
+    require(not any(re.search(r"\bрядом\b", fragment, re.I) for fragment in result.get("parsed", {}).get("unmapped", [])), "Mapped proximity remains unmapped")
+    require(detail.get("hotel", {}).get("id") == FAMILY_GUARD_HOTEL_ID, "Family guard returned the wrong hotel")
+    claims = {c["id"]: c for c in detail.get("claims", [])}
+    real_routes = [f for f in detail.get("facts", []) if f.get("characteristic_id") == "beach_walk"
+                   and f.get("synthetic") is False and f.get("value", {}).get("has_steps") is True]
+    require(real_routes, "Brevis known-negative guard has no real route with stairs")
+    for fact in real_routes:
+        supporting = [claims[cid] for cid in fact.get("supporting_claim_ids", []) if cid in claims]
+        require(supporting and len(supporting) == len(fact.get("supporting_claim_ids", [])) and all(c.get("source") == "geo_engine" and c.get("synthetic") is False for c in supporting)
+                and fact.get("evidence"), "Brevis stairs lack real geo provenance")
+    hits = validate_cards(result)
+    hit = next((h for h in hits if h.get("hotel", {}).get("id") == FAMILY_GUARD_HOTEL_ID), None)
+    require(hit is not None, "Brevis is absent from the full family search response")
+    require(hit.get("group") != "all", "Brevis route with stairs incorrectly satisfies all family conditions")
+    verdicts = [v for v in hit.get("verdicts", []) if v.get("required") and v.get("characteristic_id") == "beach_walk"]
+    require(len(verdicts) == 1 and verdicts[0].get("status") in {"no", "unknown"}, "Brevis stairs incorrectly support a no-stairs route")
+    route = verdicts[0]
+    require(set(route.get("fact_ids", [])) & {f["id"] for f in real_routes} and route.get("evidence_refs"), "Family rejection lost the real route evidence")
+    require(set(route["evidence_refs"]) & {e["id"] for f in real_routes if f["id"] in route["fact_ids"] for e in f["evidence"]}, "Family route evidence reference does not resolve")
+    require("лестниц" in (route.get("text", "") + " " + str(route.get("caveat") or "")).lower(), "Family rejection does not explain stairs")
+    return {"hotel_id": FAMILY_GUARD_HOTEL_ID, "group": hit["group"], "route_status": route["status"],
+            "fact_ids": route["fact_ids"], "criterion": routes[0]}
 
 
 def fact_scope(fact: dict) -> dict:
@@ -270,6 +305,11 @@ class Runner:
         response, _ = self.request("/api/search", {"text": spec["text"], "limit": 20})
         return validate_persona(response.json(), spec)
 
+    def family_route_guard(self):
+        spec = next(p for p in self.config["personas"] if p["id"] == "family_stroller")
+        response, _ = self.request("/api/search", {"text": spec["text"], "limit": 250})
+        return validate_family_route_guard(response.json(), self.detail(FAMILY_GUARD_HOTEL_ID))
+
     def run(self):
         self.check("health", lambda: self._health())
         self.check("masha", self.masha_search)
@@ -278,6 +318,7 @@ class Runner:
         self.check("hero_geo_evidence", self.hero)
         for spec in self.config["personas"]:
             self.check("persona:" + spec["id"], lambda spec=spec: self.persona(spec))
+        self.check("family_route_known_negative", self.family_route_guard)
         return {"mode": "synthetic-demo", "passed": all(c["passed"] for c in self.checks), "checked_at": datetime.now(UTC).isoformat(),
                 "checks": self.checks, "requests": self.requests, "limitations": self.config["limitations"]}
 

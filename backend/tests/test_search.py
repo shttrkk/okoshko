@@ -10,7 +10,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from backend.agents.explainer import disappointments, recommend_room
+from backend.agents.explainer import disappointments, number, recommend_room
+from backend.agents.query_match import route_constraints, sunset_aspect
 from backend.agents.query_parser import parse_query
 from backend.agents.ranker import rank_hotels
 from backend.agents.similarity import similar_hotels
@@ -151,10 +152,92 @@ def test_preferred_side_does_not_become_a_hard_constraint(catalog):
 
 def test_stroller_route_can_explicitly_require_no_steps(catalog):
     parsed = parse_query(SearchRequest(text="до пляжа без лестниц"), catalog)
-    assert any(c.field == "has_steps" and c.value is False for c in parsed.must)
+    [criterion] = parsed.must
+    assert criterion.field == "minutes" and criterion.value == 10 and criterion.no_stairs
     hit = rank_hotels([hotel("h")], [fact("h", "beach_walk", {"available": True, "minutes": 7, "has_steps": True})], parsed, catalog)[0]
-    assert hit.group == "almost"
-    assert next(v for v in hit.verdicts if v.label == "Без лестниц до пляжа").status == "no"
+    assert hit.group != "all"
+    assert hit.verdicts[0].status == "no"
+
+
+@pytest.mark.parametrize("value,expected", [
+    ({"has_steps": False, "crossings": []}, True),
+    ({"has_steps": False, "crossings": 0}, True),
+    ({"has_steps": True, "crossings": []}, False),
+    ({"has_steps": False, "crossings": ["railway"]}, False),
+    ({"has_steps": True}, False),
+    ({"crossings": []}, None),
+    ({"has_steps": False}, None),
+    ({"has_steps": None, "crossings": []}, None),
+    ({"has_steps": False, "crossings": False}, None),
+    ({"has_steps": False, "crossings": -1}, None),
+    ({}, None),
+])
+def test_route_constraints_known_answers_and_missing_flags(value, expected):
+    criterion = Criterion(characteristic_id="beach_walk", label="route", no_stairs=True, no_crossings=True)
+    item = fact("h", "beach_walk", value)
+    before = item.model_dump()
+    assert route_constraints(item, criterion) is expected
+    assert item.model_dump() == before
+
+
+@pytest.mark.parametrize("minutes,steps,crossings,group,status", [
+    (7, False, [], "all", "partial"),
+    (7, True, [], "unknown", "unknown"),
+    (7, False, ["railway"], "unknown", "unknown"),
+    (7, None, [], "unknown", "unknown"),
+    (7, False, None, "unknown", "unknown"),
+    (12, False, [], "unknown", "unknown"),
+])
+def test_family_route_constraints_are_and_at_real_route_confidence(minutes, steps, crossings, group, status, catalog):
+    parsed = parse_query(SearchRequest(text="до пляжа с коляской без лестниц и без переходов"), catalog)
+    route = next(c for c in parsed.must if c.characteristic_id == "beach_walk")
+    query = ParsedQuery(text=parsed.text, must=[route])
+    item = fact("h", "beach_walk", {"available": True, "minutes": minutes, "has_steps": steps, "crossings": crossings}, confidence=.66)
+    hit = rank_hotels([hotel("h")], [item], query, catalog)[0]
+    assert hit.group == group and hit.verdicts[0].status == status
+    if steps is True:
+        assert "без лестниц" in hit.verdicts[0].caveat and "отмечены лестницы" in hit.verdicts[0].caveat
+
+
+def test_soft_route_preference_is_not_promoted_to_a_requirement(catalog):
+    parsed = parse_query(SearchRequest(text="до пляжа 8 минут, желательно без лестниц"), catalog)
+    assert len(parsed.must) == len(parsed.nice) == 1
+    assert parsed.must[0].field == "minutes" and not parsed.must[0].no_stairs
+    assert parsed.nice[0].field == "has_steps" and parsed.nice[0].value is False
+    hit = rank_hotels([hotel("h")], [fact("h", "beach_walk", {"minutes": 7, "has_steps": True})], parsed, catalog)[0]
+    assert hit.group == "all" and hit.verdicts[1].status == "no"
+
+
+@pytest.mark.parametrize("text,cid,field,value,unit", [
+    ("рядом детская площадка", "family_nearby", "playground_distance_m", 500, "м"),
+    ("парковка рядом", "car_access", "parking_distance_m", 500, "м"),
+    ("ночная аптека рядом", "night_pharmacy", "distance_m", 500, "м"),
+    ("пляж рядом", "beach_walk", "minutes", 10, "мин"),
+    ("рядом парковка до 150 м", "car_access", "parking_distance_m", 150, "м"),
+])
+def test_nearby_has_visible_numeric_threshold(text, cid, field, value, unit, catalog):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    [criterion] = parsed.must
+    assert (criterion.characteristic_id, criterion.field, criterion.op, criterion.value) == (cid, field, "lte", value)
+    assert str(value) in criterion.label and unit in criterion.label
+    assert parsed.unmapped == []
+
+
+def test_nearby_attaches_to_closest_known_poi_and_preserves_unknown_poi(catalog):
+    parsed = parse_query(SearchRequest(text="рядом детская площадка и круглосуточная аптека"), catalog)
+    assert next(c for c in parsed.must if c.characteristic_id == "family_nearby").field == "playground_distance_m"
+    assert next(c for c in parsed.must if c.characteristic_id == "night_pharmacy").field == "available"
+    unknown = parse_query(SearchRequest(text="кофейня рядом, до пляжа 8 минут"), catalog)
+    assert unknown.unmapped == ["кофейня рядом"]
+    assert [c.characteristic_id for c in unknown.must] == ["beach_walk"]
+
+
+def test_nearby_does_not_lose_explicit_preference_or_neighbouring_threshold(catalog):
+    parsed = parse_query(SearchRequest(text="с детьми, желательно рядом детская площадка"), catalog)
+    assert parsed.must[0].field == "available"
+    assert parsed.nice[0].field == "playground_distance_m" and parsed.nice[0].value == 500
+    multiple = parse_query(SearchRequest(text="рядом парковка до 100 м и детская площадка до 300 м"), catalog)
+    assert {c.field: c.value for c in multiple.must} == {"parking_distance_m": 100, "playground_distance_m": 300}
 
 
 def test_value_and_scope_disagreement_abstains(catalog):
@@ -332,6 +415,51 @@ def test_walk_return_ascent_steps_and_crossings_are_not_hidden(catalog):
     text = " ".join([v.text + (v.caveat or "") for v in hit.verdicts] + hit.disappointments)
     assert "13 мин" in text and "40 м" in text
     assert "лестниц" in text and "переход" in text and "Тоблера" in text
+
+
+def test_route_numbers_are_rounded_and_osm_limitations_visible(catalog):
+    item = fact("h", "beach_walk", {"minutes": 2.42, "return_minutes": 4.17, "return_ascent_m": 37.5}, confidence=.66)
+    hit = rank_hotels([hotel("h")], [item], parse_query(SearchRequest(text="до пляжа"), catalog), catalog)[0]
+    text = " ".join([hit.verdicts[0].text, *hit.disappointments])
+    assert "≈ 3 мин" in text and "≈ 5 мин" in text and "≈ 38 м" in text
+    assert "2.42" not in text and "37.5" not in text
+    assert "OSM" in hit.verdicts[0].caveat and "неполными" in hit.verdicts[0].caveat and "стыки" in hit.verdicts[0].caveat
+    assert number(23.5) == "23,5"
+
+
+def test_oblique_sunset_uses_honest_compass_range_and_lower_score(catalog):
+    values = {"available": True, "azimuth_deg": 300, "visible_minutes": 28}
+    north = fact("north", "sunset_view", values, side="N", low=1, high=4, month=9)
+    west = fact("west", "sunset_view", values, side="W", low=1, high=4, month=9)
+    before = north.model_dump()
+    hits = rank_hotels([hotel("north"), hotel("west")], [north, west], required("sunset_view"), catalog)
+    direct, oblique = hits
+    assert direct.hotel.id == "west" and direct.score > oblique.score
+    assert oblique.group == "all" and oblique.verdicts[0].confidence == .9
+    assert "закат сбоку" in oblique.verdicts[0].text and "38–83°" in oblique.verdicts[0].text
+    assert "точная нормаль окна неизвестна" in oblique.verdicts[0].text
+    assert "±75°" in oblique.verdicts[0].caveat and "±22,5°" in oblique.verdicts[0].caveat
+    assert "перед закатом солнце видно ≈ 28 мин" in oblique.verdicts[0].text
+    assert "не гарантия непрерывного" in oblique.verdicts[0].caveat
+    assert north.model_dump() == before  # Presentation never rewrites scientific facts.
+
+
+def test_sunset_actual_normal_from_evidence_overrides_compass_sector(catalog):
+    item = fact("h", "sunset_view", {"available": True, "azimuth_deg": 300}, side="N", low=1, high=4, month=9)
+    item.evidence[0].inputs = {"facade_azimuth_deg": 335, "window_half_angle_deg": 75}
+    aspect = sunset_aspect(item)
+    assert aspect.exact_normal and aspect.angle_deg == 35 and not aspect.oblique
+    hit = rank_hotels([hotel("h")], [item], required("sunset_view"), catalog)[0]
+    assert "нормали окна ≈ 35°" in hit.verdicts[0].text
+    assert "закат сбоку" not in hit.verdicts[0].text and "±22,5°" not in hit.verdicts[0].caveat
+    item.evidence[0].inputs["facade_azimuth_deg"] = 10
+    assert sunset_aspect(item).angle_deg == 70 and sunset_aspect(item).oblique
+
+
+def test_sunset_without_geometry_does_not_invent_an_angle(catalog):
+    item = fact("h", "sunset_view", {"available": True}, side="N", low=1, high=4, month=9)
+    hit = rank_hotels([hotel("h")], [item], required("sunset_view"), catalog)[0]
+    assert sunset_aspect(item) is None and "угол" not in hit.verdicts[0].text
 
 
 def test_every_nonunknown_verdict_has_fact_and_evidence_references(catalog):

@@ -1,14 +1,23 @@
 """Russian explanations assembled only from resolved facts and their evidence."""
 from __future__ import annotations
 
-from backend.agents.query_match import Assessment, Match, assess_hotel, fresh, scope_values
+import math
+
+from backend.agents.query_match import Assessment, Match, assess_hotel, fresh, scope_values, sunset_aspect
 from backend.contracts import Criterion, CriterionVerdict, Fact, ParsedQuery
 
 SIDES = {"N": "северная", "NE": "северо-восточная", "E": "восточная", "SE": "юго-восточная", "S": "южная", "SW": "юго-западная", "W": "западная", "NW": "северо-западная"}
 
 
 def number(value) -> str:
-    return f"{value:g}" if isinstance(value, int | float) else str(value)
+    return f"{value:g}".replace(".", ",") if isinstance(value, int | float) else str(value)
+
+
+def approximate(value, *, minutes=False) -> str:
+    if not isinstance(value, int | float) or isinstance(value, bool) or not math.isfinite(value):
+        return number(value)
+    rounded = math.ceil(value) if minutes else math.floor(value + .5)
+    return f"≈ {rounded}"
 
 
 def scope_text(fact: Fact) -> str:
@@ -42,19 +51,31 @@ def _details(fact: Fact, criterion: Criterion) -> str:
             details.append(f"модель наружного шума {number(low)}–{number(high)} дБ ночью")
     elif cid == "beach_walk":
         if value.get("minutes") is not None:
-            details.append(f"до пляжа {number(value['minutes'])} мин пешком")
+            details.append(f"до пляжа {approximate(value['minutes'], minutes=True)} мин пешком")
         if value.get("return_minutes") is not None:
-            details.append(f"обратно {number(value['return_minutes'])} мин")
+            details.append(f"обратно {approximate(value['return_minutes'], minutes=True)} мин")
         if value.get("return_ascent_m") is not None:
-            details.append(f"подъём обратно {number(value['return_ascent_m'])} м")
+            details.append(f"подъём обратно {approximate(value['return_ascent_m'])} м")
         if value.get("has_steps"):
             details.append("на маршруте есть лестницы")
+        elif value.get("has_steps") is False and criterion.no_stairs:
+            details.append("по данным маршрута лестниц нет")
         crossings = value.get("crossings")
         if crossings:
             details.append(f"переходов на маршруте: {len(crossings) if isinstance(crossings, list) else number(crossings)}")
+        elif crossings is not None and not isinstance(crossings, bool) and criterion.no_crossings:
+            details.append("по данным маршрута переходов нет")
     elif cid == "sunset_view":
+        aspect = sunset_aspect(fact)
+        if aspect and value.get("available") is True:
+            if aspect.oblique:
+                details.append("закат сбоку")
+            if aspect.exact_normal:
+                details.append(f"угол к нормали окна {approximate(aspect.angle_deg)}° по геометрии фасада")
+            else:
+                details.append(f"ориентировочный угол к направлению стороны {approximate(aspect.minimum_deg)}–{math.ceil(aspect.maximum_deg)}°; точная нормаль окна неизвестна")
         if value.get("visible_minutes") is not None:
-            details.append(f"расчётная видимость заката {number(value['visible_minutes'])} мин")
+            details.append(f"перед закатом солнце видно {approximate(value['visible_minutes'])} мин по модели последних 5° над горизонтом")
     elif cid == "climate":
         month = fact.scope.month or value.get("month")
         if month:
@@ -80,7 +101,11 @@ def _details(fact: Fact, criterion: Criterion) -> str:
     elif cid == "air_quality" and value.get("european_aqi") is not None:
         details.append(f"European AQI {number(value['european_aqi'])}")
     elif cid == "night_pharmacy" and value.get("minutes") is not None:
-        details.append(f"до аптеки {number(value['minutes'])} мин")
+        details.append(f"до аптеки {approximate(value['minutes'], minutes=True)} мин")
+    if cid in {"family_nearby", "car_access", "night_pharmacy"} and criterion.field and value.get(criterion.field) is not None:
+        labels = {"playground_distance_m": "до детской площадки", "parking_distance_m": "до парковки", "distance_m": "до ночной аптеки"}
+        if criterion.field in labels:
+            details.append(f"{labels[criterion.field]} {approximate(value[criterion.field])} м")
     if not details and criterion.field and value.get(criterion.field) is not None:
         actual = value[criterion.field]
         if not isinstance(actual, dict | list | bool):
@@ -105,6 +130,14 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
         caveats.append("Климатические данные за прошлые периоды, не прогноз погоды на даты поездки")
     if selected and selected.characteristic_id == "beach_walk":
         caveats.append("Расчёт времени ходьбы по модели Тоблера; лестницы и переходы могут замедлить путь")
+        caveats.append("Маршрут по OSM: теги лестниц и переходов могут быть неполными, а стыки графа и короткие участки у входа и пляжа не подтверждены. Отсутствие отметки не гарантирует доступность с коляской")
+    if selected and selected.characteristic_id == "sunset_view":
+        caveats.append("Минуты — сумма видимых интервалов перед закатом по модели, а не гарантия непрерывного вида или видимости до самого заката")
+        aspect = sunset_aspect(selected)
+        if aspect:
+            caveats.append(f"Сектор окна в геомодели ±{number(aspect.window_half_angle_deg)}°; угол оценивает направление взгляда, а не уверенность в расчёте")
+            if not aspect.exact_normal:
+                caveats.append("Для оценки угла использован компасный сектор фасада ±22,5°, точной нормали окна в evidence нет; диапазон ориентировочный")
     if any(f.synthetic or any(e.kind == "simulation" for e in f.evidence) for f in facts):
         caveats.append("Синтетические данные демонстрационного симулятора; реальный ответ отеля ещё нужно получить")
     if conflict:
@@ -187,9 +220,9 @@ def disappointments_from_assessment(facts: list[Fact], parsed: ParsedQuery, asse
             notes.append("Наружный шум рассчитан приближённо (около ±8 дБ); это не гарантия сна. Шумоизоляцию номера уточните отдельно.")
         if fact.characteristic_id == "beach_walk":
             if isinstance(value.get("return_minutes"), int | float) and isinstance(value.get("minutes"), int | float) and value["return_minutes"] > value["minutes"]:
-                notes.append(f"Обратно с пляжа дольше: {number(value['return_minutes'])} мин вместо {number(value['minutes'])} мин.")
+                notes.append(f"Обратно с пляжа дольше: {approximate(value['return_minutes'], minutes=True)} мин вместо {approximate(value['minutes'], minutes=True)} мин.")
             if value.get("return_ascent_m"):
-                notes.append(f"На обратном пути подъём {number(value['return_ascent_m'])} м.")
+                notes.append(f"На обратном пути подъём {approximate(value['return_ascent_m'])} м.")
             if value.get("has_steps"):
                 notes.append("На пути к пляжу есть лестницы — проверьте маршрут, если едете с коляской.")
             if value.get("crossings"):
