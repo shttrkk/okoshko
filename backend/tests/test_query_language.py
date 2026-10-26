@@ -110,6 +110,48 @@ def test_extended_catalogue_keeps_solar_scope_and_explicit_beach_surface(catalog
     assert parsed.month == 6 and beach.field == 'surface' and beach.value == 'pebblestone'
 
 
+@pytest.mark.parametrize('text', [
+    'вид на море, западная сторона не нужна',
+    'вид на море, с 5 этажа неважно',
+])
+def test_declined_room_scope_does_not_constrain_other_hard_conditions(catalog, text):
+    parsed = parse_query(SearchRequest(text=text), catalog)
+    assert parsed.facade is None and parsed.min_floor is None
+    assert [(c.characteristic_id, c.scope) for c in parsed.must] == [('sea_view', None)]
+
+
+def test_excluded_facade_is_an_explicit_limitation_instead_of_an_inverted_hotel_trait(catalog):
+    parsed = parse_query(SearchRequest(text='без западной стороны, морской вид'), catalog)
+    assert parsed.facade is None and [c.characteristic_id for c in parsed.must] == ['sea_view']
+    assert any('Исключение' in fragment for fragment in parsed.unmapped)
+    assert any('пока не применяется' in message for message in parsed.clarifications)
+
+
+def test_adult_wheelchair_does_not_invent_a_family_persona(catalog):
+    parsed = parse_query(SearchRequest(text='до пляжа на инвалидной коляске'), catalog)
+    assert 'family_nearby' not in {c.characteristic_id for c in parsed.must}
+    assert parsed.persona is None
+    assert any(c.characteristic_id == 'beach_walk' and c.no_stairs for c in parsed.must)
+
+
+def test_pet_staying_home_does_not_set_a_pet_persona_or_weight(catalog):
+    parsed = parse_query(SearchRequest(text='собаку 14 кг оставим дома'), catalog)
+    assert not parsed.must and parsed.persona is None and parsed.pet_weight_kg is None
+
+
+def test_catalogue_spelling_hint_keeps_the_original_unknown_condition(catalog):
+    parsed = parse_query(SearchRequest(text='шумоизолляция'), catalog)
+    assert parsed.unmapped == ['шумоизолляция'] and not parsed.must and not parsed.nice
+    assert any('Возможно' in message and 'Шумоизоляция и окна' in message for message in parsed.clarifications)
+    assert len(parsed.clarifications) <= 2
+
+
+def test_short_unknown_amenity_is_not_converted_into_a_catalogue_suggestion(catalog):
+    parsed = parse_query(SearchRequest(text='спа'), catalog)
+    assert not parsed.must and not parsed.nice and parsed.unmapped == ['спа']
+    assert not any('Возможно' in message for message in parsed.clarifications)
+
+
 def test_negative_corpus_false_criteria_rate_is_at_most_one_percent(catalog):
     rows = load_jsonl(ROOT/'data/eval/queries_negative.jsonl')
     false_queries = []

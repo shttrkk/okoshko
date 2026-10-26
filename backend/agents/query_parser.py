@@ -12,6 +12,7 @@ from functools import lru_cache
 
 from backend.agents.query_rules import validate_query_plan
 from backend.agents.query_text import (
+    catalogue_suggestions,
     clause_bounds,
     facade_is_explicit,
     normalize_query_text,
@@ -131,7 +132,7 @@ def _dates(text: str, request: SearchRequest) -> tuple[date | None, date | None,
 def _importance(text: str, start: int, end: int) -> tuple[bool, bool, bool]:
     left, right = clause_bounds(text, start, end)
     before, after = text[left:start], text[end:right]
-    if re.search(r"\bне (?:нуж\w*|важ\w*|интерес\w*|треб\w*|ищ\w*)\s*(?:мне\s*)?(?:вид\w*\s*(?:на\s*)?)?$", before) or re.match(r"\s*(?:мне )?не (?:важ\w*|нуж\w*|интерес\w*|треб\w*|ищ\w*)", after):
+    if re.search(r"\bне\s*(?:нуж\w*|важ\w*|интерес\w*|треб\w*|ищ\w*)\s*(?:мне\s*)?(?:вид\w*\s*(?:на\s*)?)?$", before) or re.match(r"\s*(?:мне )?не\s*(?:важ\w*|нуж\w*|интерес\w*|треб\w*|ищ\w*)", after):
         return False, False, True
     markers = [(m.start(), True) for m in re.finditer(SOFT, before)] + [(m.start(), False) for m in re.finditer(HARD, before)]
     soft = max(markers, default=(-1, False))[1]
@@ -249,8 +250,10 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         parsed.unmapped.append("region_out_of_scope")
         parsed.clarifications = ["Сейчас данные собраны для Сочи (центр, Адлер и Сириус). Укажите этот регион; для другого города нужен отдельный сбор данных."]
     facade_match = next(((side, match) for side, pattern in SIDE_PATTERNS.items()
-                         for match in re.finditer(pattern + r'\w*', text) if facade_is_explicit(text, match)), None)
-    if facade_match and not _importance(text, facade_match[1].start(), facade_match[1].end())[0]:
+                         for match in re.finditer(pattern + r'\w*(?:\s+(?:сторон\w*|фасад\w*))?', text)
+                         if facade_is_explicit(text, match)), None)
+    facade_importance = _importance(text, facade_match[1].start(), facade_match[1].end()) if facade_match else (False, False, False)
+    if facade_match and not any(facade_importance):
         parsed.facade = facade_match[0]
     floor = re.search(r"(?:с|от|не ниже)\s*(\d{1,2})(?:\s*[-–]?(?:го|ого))?\s*(?:этажа?|эт\b)|\b(\d{1,2})\s*\+\s*этаж", text)
     reversed_floor = re.search(r'этаж\w*\s*(?:не ниже|от)\s*(\d{1,2})\b', text)
@@ -265,18 +268,16 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
     if requested_floor and requested_max and requested_floor > requested_max:
         warnings.append("Минимальный этаж не может быть выше максимального.")
         requested_floor, requested_max = None, None
-    floor_is_soft = bool(floor_match and _importance(text, floor_match.start(), floor_match.end())[0])
-    if not floor_is_soft:
+    floor_importance = _importance(text, floor_match.start(), floor_match.end()) if floor_match else (False, False, False)
+    if not any(floor_importance):
         parsed.min_floor = requested_floor or None
-    hard_floor_max = None if floor_is_soft else requested_max
+    hard_floor_max = None if any(floor_importance) else requested_max
+    if facade_importance[1] or floor_importance[1]:
+        parsed.unmapped.append('Исключение стороны или этажа номера')
+        warnings.append('Исключение стороны или этажа пока не применяется. Укажите допустимую сторону или диапазон этажей.')
     weight = re.search(r"(?:собак\w*|питом\w*|лабрадор\w*|кошк\w*|кот(?:ом|енк\w*))[^,;.]{0,35}?(\d+(?:[.,]\d+)?)\s*(?:кг|килограмм\w*)", text)
     if weight and float(weight[1].replace(",", ".")) <= 100:
         parsed.pet_weight_kg = float(weight[1].replace(",", "."))
-    parsed.persona = next((name for name, pattern in [
-        ("семья с детьми", r"дет(?:и|ьми|ей)|ребен|коляск|малыш"),
-        ("путешествие с питомцем", RULES["pets"]), ("удалённая работа", RULES["connectivity"]),
-        ("чуткий сон", RULES["quiet_night"]), ("романтическая поездка", r"годовщин|романти|двоих|пары")]
-        if re.search(pattern, text)), None)
     consumed = []
     positions = {}
     nearby = _nearby_intents(text)
@@ -291,6 +292,11 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             consumed.extend((m.start(), m.end()) for m in nearby[spec.id][1])
         if spec.id == "room_orientation" and (facade_match or floor_match):
             matches += [facade_match[1]] if facade_match else [floor_match]
+        if spec.id == 'room_orientation':
+            # An exclusion cannot be encoded as a positive global room scope.
+            matches = [m for m in matches if not (
+                facade_importance[1] and facade_match and m.start() <= facade_match[1].start() < m.end()
+                or floor_importance[1] and floor_match and m.start() <= floor_match.start() < m.end())]
         matches = [m for m in matches if valid_intent_match(spec.id, text, m)]
         if not matches:
             continue
@@ -443,10 +449,21 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
     if re.search(r"высок\w* этаж", text) and not parsed.min_floor:
         parsed.clarifications.append("Какой минимальный этаж вам подходит?")
     if parsed.unmapped and not outside and len(parsed.clarifications) < 2:
-        parsed.clarifications.append("Не удалось сопоставить с каталогом: " + parsed.unmapped[-1] + ". Уточните, что здесь обязательно.")
+        suggestions = catalogue_suggestions(text, parsed.unmapped, catalog,
+                                            {c.characteristic_id for c in [*parsed.must, *parsed.nice]})
+        hint = (' Возможно, вы имели в виду ' + ' или '.join('«' + name + '»' for name in suggestions) + '.') if suggestions else ''
+        parsed.clarifications.append("Не удалось сопоставить с каталогом: " + parsed.unmapped[-1] + "." + hint + " Уточните, что здесь обязательно.")
     parsed.clarifications = list(dict.fromkeys(parsed.clarifications))[:2]
     parsed.must.sort(key=lambda c: positions[c.characteristic_id])
     parsed.nice.sort(key=lambda c: positions[c.characteristic_id])
+    criteria = [*parsed.must, *parsed.nice]
+    parsed.persona = next((name for cid, name in [
+        ('family_nearby', 'семья с детьми'), ('pets', 'путешествие с питомцем'),
+        ('connectivity', 'удалённая работа'), ('quiet_night', 'чуткий сон')]
+        if any(c.characteristic_id == cid and c.value is not False for c in criteria)),
+        'романтическая поездка' if re.search(r'годовщин|романти|медов\w* месяц', text) else None)
+    if not any(c.characteristic_id == 'pets' and c.value is True for c in criteria):
+        parsed.pet_weight_kg = None
     return parsed
 
 
