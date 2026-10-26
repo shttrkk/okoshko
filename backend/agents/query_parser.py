@@ -155,7 +155,8 @@ def _nearby_intents(text: str) -> dict:
 def _criterion_label(criterion: Criterion, fallback: str, unit: str | None = None) -> str:
     cid = criterion.characteristic_id
     if (cid, criterion.field) in FIELD_LABELS or unit and criterion.op in {"lte", "gte"}:
-        name, unit = FIELD_LABELS.get((cid, criterion.field), (fallback, unit))
+        # A spec name may carry its default threshold in parentheses; the chip shows the actual one.
+        name, unit = FIELD_LABELS.get((cid, criterion.field), (re.sub(r"\s*\([^)]*\)$", "", fallback), unit))
         sign = {"lte": "≤", "gte": "≥", "eq": "="}.get(criterion.op, criterion.op)
         threshold = f"{criterion.value:g}".replace(".", ",") if isinstance(criterion.value, int | float) else str(criterion.value)
         fallback = f"{name} {sign} {threshold} {unit}"
