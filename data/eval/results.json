@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-10-26T17:15:29.584131+00:00",
+  "generated_at": "2026-10-26T18:52:07.254358+00:00",
   "hotel_count": 250,
-  "characteristic_count": 16,
-  "fact_count": 25884,
+  "characteristic_count": 17,
+  "fact_count": 26134,
   "label_count": 40,
   "manual_label_count": 0,
   "coverage": {
-    "known_pairs": 1853,
-    "total_pairs": 4000,
-    "ratio": 0.46325
+    "known_pairs": 1849,
+    "total_pairs": 4250,
+    "ratio": 0.4350588235294118
   },
   "synthetic_fact_count": 10,
   "question_share": 0.0,
@@ -133,12 +133,12 @@
   "ndcg_at_5": null,
   "provenance": {
     "unit": "materialized_facts",
-    "known": 23744,
-    "non_synthetic": 23734,
+    "known": 23732,
+    "non_synthetic": 23722,
     "synthetic": 10,
     "mixed": 3,
-    "unknown_stale_disputed": 2140,
-    "synthetic_share": 0.0004211590296495957
+    "unknown_stale_disputed": 2402,
+    "synthetic_share": 0.00042137198719029156
   },
   "status": "measured",
   "limitations": [

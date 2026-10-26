@@ -126,7 +126,7 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
 | GET | /api/compare?ids=a,b,c | `{hotels:HotelDetail[],characteristics:CharacteristicSpec[]}` |
 | POST | /api/hotelier/login | `{username,password}` → `{token,username,role,hotel_ids,synthetic:true}` |
 | POST | /api/hotelier/logout | → `{logged_out:true,synthetic:true}`, удаление read-only SSE cookie |
-| GET | /api/hotelier/{id} | `{hotel,facts,claims,questions,conflicts,passports,strengths,demand_synthetic:true}` |
+| GET | /api/hotelier/{id} | `{hotel,facts,claims,questions,conflicts,passports,strengths,search_demand,demand_synthetic:false}`; спрос — число запросов из журнала поиска с этим условием, где отель был в выдаче |
 | POST | /api/questions | `{hotel_id,characteristic_id}` → Question (идемпотентно для pending пары) |
 | POST | /api/questions/{id}/answer | `{text,confirm:false,synthetic}` (demo server принудительно synthetic=true) → Answer; предпросмотр, без claims до confirm |
 | POST | /api/questions/{id}/simulate | → Answer с synthetic=true, без сохранения claims до confirm |
