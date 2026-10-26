@@ -18,7 +18,8 @@ CYR = str.maketrans(dict(zip("абвгдеёжзийклмнопрстуфхцч
 
 def norm(name):
     s = name.lower().translate(CYR)
-    s = re.sub(r"\b(hotel|otel|gostinitsa|gostevoi|dom|guest|house|resort|spa|sochi|sanatorii|sanatorium|apart|apartments)\b", " ", s)
+    region_name = re.escape(CONFIG["name"].lower().translate(CYR))
+    s = re.sub(r"\b(hotel|otel|gostinitsa|gostevoi|dom|guest|house|resort|spa|sanatorii|sanatorium|apart|apartments|" + region_name + r")\b", " ", s)
     return "".join(re.findall(r"[a-z0-9]+", s))
 
 

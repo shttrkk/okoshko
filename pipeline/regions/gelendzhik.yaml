@@ -1,0 +1,55 @@
+id: gelendzhik
+name: Геленджик
+description: Bounded second-region probe; northern bay and central/eastern bay, 2026-10-26
+zones:
+  A:
+    bbox: [38.020, 44.575, 38.100, 44.615]
+    coverage_bbox: [37.995, 44.560, 38.150, 44.650]
+    hotel_limit: 15
+    meteo: [44.59, 38.06, 38.02]
+    commons: [44.59, 38.06]
+  B:
+    bbox: [38.040, 44.540, 38.110, 44.575]
+    coverage_bbox: [37.995, 44.510, 38.150, 44.560]
+    hotel_limit: 15
+    meteo: [44.56, 38.08, 38.04]
+    commons: [44.56, 38.08]
+osm:
+  url: https://download.geofabrik.de/russia/south-fed-district-261025.osm.pbf
+  snapshot: '2026-10-25T21:21:21Z'
+  lodging: [hotel, guest_house, hostel, apartment, motel, resort]
+overture:
+  release: 2026-10-21.0
+  lodging: [hotel, lodging, resort, hostel, motel]
+dem:
+  tiles: [[44, 37], [44, 38]]
+  dataset: copernicus-dem-30m
+  release: '2021'
+height:
+  floor_height_m: 3
+  tagged_uncertainty_m: 1
+  levels_uncertainty_m: 3
+  missing: unknown
+merge:
+  max_distance_m: 150
+  exact_name_distance_m: 120
+  fuzzy_distance_m: 100
+  name_ratio: 0.79
+  same_full_website_min_name_ratio: 0.45
+meteo:
+  archive_start: '2016-01-01'
+  archive_end: '2025-12-31'
+  aq_start: '2026-10-21'
+  aq_end: '2026-10-26'
+  timezone: Europe/Moscow
+ookla:
+  year: 2026
+  quarter: 3
+  quarter_start: '2026-07-01'
+tiles:
+  url: https://build.protomaps.com/20261025.pmtiles
+  snapshot: '2026-10-25'
+  maxzoom: 15
+photos:
+  radius_m: 1500
+  offline_thumbnails_per_zone: 0
