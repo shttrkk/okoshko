@@ -15,7 +15,7 @@ import {
   Sparkles,
   Upload,
 } from "lucide-react";
-import { api, dateText, record, textValue, useResource } from "../api";
+import { api, dateText, record, useResource } from "../api";
 import { useApp } from "../state";
 import {
   Empty,
@@ -53,6 +53,15 @@ export function HotelierPage() {
   useEffect(() => {
     if (!hotelId && hotels.data?.[0]) setHotelId(hotels.data[0].id);
   }, [hotels.data, hotelId]);
+  useEffect(() => {
+    const expired = () => {
+      setToken("");
+      setPreview(null);
+      setError(new Error("Сессия демо-кабинета завершилась. Войдите снова."));
+    };
+    window.addEventListener("okno-auth-expired", expired);
+    return () => window.removeEventListener("okno-auth-expired", expired);
+  }, []);
   const data = useResource(
     () => (token && hotelId ? api.hotelier(hotelId) : Promise.resolve(null)),
     [token, hotelId],
@@ -429,18 +438,44 @@ export function HotelierPage() {
                   {data.data.strengths.length > 0 && (
                     <>
                       <h4>Ваши сильные стороны</h4>
-                      {data.data.strengths.map((s, i) => (
-                        <p key={i}>
-                          {textValue(
-                            typeof s === "object" && s
-                              ? record(s).text ||
-                                  record(s).label ||
-                                  record(s).name ||
-                                  s
-                              : s,
-                          )}
-                        </p>
-                      ))}
+                      {data.data.strengths
+                        .map(record)
+                        .filter(
+                          (strength, index, all) =>
+                            typeof strength.characteristic_id === "string" &&
+                            all.findIndex(
+                              (item) =>
+                                item.characteristic_id ===
+                                strength.characteristic_id,
+                            ) === index,
+                        )
+                        .slice(0, 4)
+                        .map((strength, i) => {
+                          const cid = String(strength.characteristic_id);
+                          const fact = data.data!.facts.find(
+                            (f) =>
+                              f.characteristic_id === cid &&
+                              JSON.stringify(f.value) ===
+                                JSON.stringify(strength.value),
+                          );
+                          return (
+                            <div className="hotelier-strength" key={i}>
+                              <strong>{names[cid] || cid}</strong>
+                              {fact && (
+                                <>
+                                  <span>{scopeText(fact.scope)}</span>
+                                  <EvidenceButton
+                                    fact={fact}
+                                    claims={data.data!.claims}
+                                  />
+                                </>
+                              )}
+                              {strength.synthetic === true && (
+                                <Synthetic>Синтетика</Synthetic>
+                              )}
+                            </div>
+                          );
+                        })}
                     </>
                   )}
                 </section>
