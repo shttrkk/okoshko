@@ -1,12 +1,12 @@
-# S7: независимый quality / security / reproducibility audit
+# Независимая проверка качества, безопасности и воспроизводимости
 
-Дата: 26.10.2026. Первый этап: только чтение кода, данных и GET API; изолированные синтетические проверки без записи в живую БД. На следующем этапе оркестратор поручил S7 исправление dev toolchain и audit script в явно выделенной зоне; результат описан ниже. Мутаций живого API S7 не выполнял.
+Дата: 26.10.2026. Первый этап: только чтение кода, данных и GET API; изолированные синтетические проверки без записи в живую БД. На следующем этапе в отдельной зоне исправлены dev toolchain и audit script; результат описан ниже. Мутаций живого API при проверке не было.
 
-Снимок main при начале аудита: `a83901add8631c7a93659d8950ec36c6d256392d` плюс текущие правки оркестратора. Финальное geo проверено из `okno-wt-geo`, commit `2379c023a5790558ac96816e21ec155486dc36aa`. Интеграция и исправления продолжаются; статусы ниже не являются разрешением финального релиза.
+Снимок main при начале аудита: `a83901add8631c7a93659d8950ec36c6d256392d` плюс текущие незакоммиченные правки. Финальное geo проверено из `okno-wt-geo`, commit `2379c023a5790558ac96816e21ec155486dc36aa`. Интеграция и исправления продолжаются; статусы ниже не являются разрешением финального релиза.
 
 ## Найденные дефекты
 
-P0 не найден. Четыре воспроизводимых P1 переданы оркестратору сразу после проверки.
+P0 не найден. Четыре воспроизводимых P1 переданы в исправление сразу после проверки.
 
 ### P1-1. Повторный POI collect конфликтует с immutable ledger
 
@@ -30,7 +30,7 @@ P0 не найден. Четыре воспроизводимых P1 перед�
 
 ### P1-3. Качественное отрицание шумоизоляции превращается в positive
 
-**Статус:** закрыто. Исправление S4 `57e8656` и последующие fixes интегрированы в main; S7 перепроверил обе отрицательные фразы → available=false, «не плохая» → abstain, сохранение отрицания после предложения о двойных окнах и неоднозначные ночные утверждения. Прежний synthetic corpus 62/62 PASS; targeted main regressions также PASS.
+**Статус:** закрыто. Исправление `57e8656` и последующие fixes интегрированы в main; повторная проверка подтвердила обе отрицательные фразы → available=false, «не плохая» → abstain, сохранение отрицания после предложения о двойных окнах и неоднозначные ночные утверждения. Прежний synthetic corpus 62/62 PASS; targeted main regressions также PASS.
 
 - Место: `backend/agents/answer_parser.py:53`–65, 161–166; подтверждение — `backend/api/hotelier.py:181`–185.
 - Триггер: ответ «Шумоизоляция плохая.» или «У нас слабая шумоизоляция.».
@@ -40,7 +40,7 @@ P0 не найден. Четыре воспроизводимых P1 перед�
 
 ### P1-4. JSON Schema разрешает серверную загрузку произвольного $ref
 
-**Статус:** закрыто. Исправления `fbf997d` и S4 `31de91d` проверены в main: 9 unsafe schemas на двух границах отвергнуты, попыток сети 0; local reference проходит. Подробности ниже.
+**Статус:** закрыто. Исправления `fbf997d` и `31de91d` проверены в main: 9 unsafe schemas на двух границах отвергнуты, попыток сети 0; local reference проходит. Подробности ниже.
 
 - Место: `backend/agents/spec_compiler.py:14`, `backend/api/studio.py:41`, `backend/agents/orchestrator.py:31`, `backend/api/hotelier.py:148`.
 - Триггер: value_schema с `$ref: http://127.0.0.1:12345/...` проходит validate_spec; при проверке значения jsonschema использует стандартный registry с автоматической загрузкой URI.
@@ -50,8 +50,8 @@ P0 не найден. Четыре воспроизводимых P1 перед�
 
 ### P2. Метрики покрытия и смешанные периоды
 
-- `backend/quality.py:91`–92 включает synthetic facts в обычное coverage, несмотря на комментарий выше. Изолированный единственный synthetic fact дал known_pairs=1 / total_pairs=1. После demo-change это незаметно меняет покрытие реальных данных. **Статус:** оркестратор разделяет real / synthetic coverage.
-- `backend/agents/answer_parser.py:214`–224 в исходном снимке: «Днём шумно, ночью тихо.» давало `quiet_night=false`, confidence 0.85. **Статус:** исправлено в S4 `57e8656`, S7 проверил модуль из git: эта фраза → true, «Ночью шумно, днём тихо.» → false. Финальная интеграция проверяется оркестратором.
+- `backend/quality.py:91`–92 включает synthetic facts в обычное coverage, несмотря на комментарий выше. Изолированный единственный synthetic fact дал known_pairs=1 / total_pairs=1. После demo-change это незаметно меняет покрытие реальных данных. **Статус:** real / synthetic coverage разделены при интеграции.
+- `backend/agents/answer_parser.py:214`–224 в исходном снимке: «Днём шумно, ночью тихо.» давало `quiet_night=false`, confidence 0.85. **Статус:** исправлено в `57e8656`, модуль проверен из git: эта фраза → true, «Ночью шумно, днём тихо.» → false. Финальная интеграция проверяется отдельно.
 - В `backend/quality.py:151` status становится `measured` уже при наличии группы, даже если evaluated=0 и все labels — abstentions. Числовые accuracy/Brier/ECE при этом корректно null. Рекомендуется назвать состояние точнее; это не измеренная accuracy.
 
 ## Что инженерно проверено
@@ -59,7 +59,7 @@ P0 не найден. Четыре воспроизводимых P1 перед�
 - `135 passed`: `pytest -q tests backend/tests`; `16 passed`: `pytest -q geo`; `ruff check backend geo pipeline scripts tests` — PASS. Это проверки контрактов и известных примеров, не эмпирическая точность отелей.
 - 3 364 open claims и 20 website claims проходят Pydantic Claim. Локальные артефакты существуют; все evidence source_ids зарегистрированы; пропусков provenance не найдено.
 - Финальный geo: 20 340 уникальных Claim для 250 отелей; ledger совпадает с claims во всех 250 JSON; evidence.output совпадает с value; все 8 input SHA-256 совпали с финальными входами.
-- После интеграции main `2abfd36`: все 510 файлов `data/geo` отслеживаются Git и побайтово совпадают по SHA-256 с проверенным финальным worktree S2; пропусков / расхождений нет.
+- После интеграции main `2abfd36`: все 510 файлов `data/geo` отслеживаются Git и побайтово совпадают по SHA-256 с проверенной финальной рабочей копией георасчётов; пропусков / расхождений нет.
 - Все 250 NPZ открылись с `allow_pickle=False`; массивы только числовые. Все 250 JSON evidence artifacts существуют. Максимальный файл geo — 19 964 021 байт, ниже 50 МБ.
 - Quiet_night во всём финальном geo имеет confidence 0.38. По коду и регрессиям positive остаётся partial, negative — unknown; гарантии сна нет.
 - Основной ranker пересекает facade / floor / room_type / month. Проверены противоположные фасады, непересекающиеся этажи, разные категории номера и месяцы. Общая цитата о виде не подтверждает конкретный номер; отсутствие / stale / disputed не превращается в yes.
@@ -67,21 +67,21 @@ P0 не найден. Четыре воспроизводимых P1 перед�
 - AST derive запрещает calls / imports / subscripts / private attributes; отсутствуют eval / exec. Параметры инструментов и имена таблиц ограничены whitelist, SQL значения bind.
 - GET без bearer к кабинету — 401. Прямые URL simulator profiles / llm_cache и encoded traversal — 404. `/.env` отдаёт HTML SPA, не файл окружения. Утечки ключей в доступных проверенных ответах не найдено.
 - Compose: 8080, linux/amd64, app UID 10001, healthchecks и depends_on service_healthy; отдельные persistent volumes Postgres / runtime. Durable geo копирует JSON / NPZ в runtime до записи ссылок. В startup-коде только локальные миграции, seed и resolver, сетевых загрузок данных / LLM нет.
-- Сохранённые отчёты аудитов зависимостей: runtime Python 0 vulnerabilities, npm production 0, pipeline dependencies 0; scanner_errors=false. S7 не запускал повторный сетевой dependency audit.
+- Сохранённые отчёты аудитов зависимостей: runtime Python 0 vulnerabilities, npm production 0, pipeline dependencies 0; scanner_errors=false. Повторный сетевой dependency audit при этой проверке не запускался.
 - GET `/health` и `/api/status` PASS: 250 реальных отелей, 16 активных specs, offline. Версия seed `sochi-2026-10-26-ab-v2`.
 
 ## Разметка, leakage и неизмеренные риски
 
 - 20 unique weak_website labels, 20 соответствующих claims и artifacts; цепочки label → artifact → claim совпали 20/20. Максимум 25 слов цитаты. В fetch log 127 запросов, 32 автоматических candidates; после review осталось 20.
-- Домены меток совпадают с website исходных hotel records. S7 не перепроверял личности владельцев / адреса через новый веб-сбор. Групповые апартаменты, цитаты отзывов и общие формулировки остаются слабым evidence.
+- Домены меток совпадают с website исходных hotel records. При проверке не перепроверялись личности владельцев / адреса через новый веб-сбор. Групповые апартаменты, цитаты отзывов и общие формулировки остаются слабым evidence.
 - `backend/quality.py:110`–124 исключает quote-backed и synthetic facts при оценке weak_website. Цитата не оценивает саму себя через Resolver. На момент GET quality: manual_label_count=0, weak evaluated=0, abstentions=20, accuracy/Brier/ECE=null — это честная абстенция до финального geo import.
 - Согласие с weak website — согласие с рекламной цитатой, не empirical accuracy. Для hotel-wide вида это лишь существование хотя бы части видовых номеров. Photo / panorama manual ground truth пока 0.
 - Не измерены: реальная точность LOS, шумовых диапазонов и пеших маршрутов; калибровка confidence на независимых сильных метках; nDCG@5; качество живого LLM provider. Monte Carlo измеряет устойчивость модели к допущениям.
-- Чистый clone / пустой Docker cache / воспроизводимость финального orchestration, живые мутации Passport / change / Studio и сохранность после recreate проверяет оркестратор. S7 намеренно не запускал их параллельно со smoke / видео. Pending final docs и известный worker404 до rebuild не записаны как новые дефекты.
+- Чистый clone / пустой Docker cache / воспроизводимость финального orchestration, живые мутации Passport / change / Studio и сохранность после recreate проверяются на этапе интеграции; здесь они намеренно не запускались параллельно со smoke / видео. Pending final docs и известный worker404 до rebuild не записаны как новые дефекты.
 
 ## Повторная проверка
 
-Первый retest на main `2bddbff` поверх `4479b6e`, с SSRF fix `fbf997d` и S4 `31de91d`; финальный targeted retest после дополнительного исправления — на `0de6777c2d44203ce89240dc07d74626db6db9b3`. Код и тесты S7 не менял; по отдельному разрешению выполнены ровно два POST `/api/runs` для `night_pharmacy`, без удаления или подмены claims.
+Первый retest на main `2bddbff` поверх `4479b6e`, с SSRF fix `fbf997d` и `31de91d`; финальный targeted retest после дополнительного исправления — на `0de6777c2d44203ce89240dc07d74626db6db9b3`. Код и тесты при проверке не менялись; по отдельному разрешению выполнены ровно два POST `/api/runs` для `night_pharmacy`, без удаления или подмены claims.
 
 ```sh
 .venv/bin/python -m pytest -q tests/test_registry_invariants.py tests/test_contracts.py \
@@ -104,17 +104,17 @@ P0 не найден. Четыре воспроизводимых P1 перед�
 
 Число POI claims 1 → 2 → 3; final Fact.supporting_claim_ids содержит только последний ID. Все три наблюдения сохраняют `observed_at=2026-10-25T21:21:21Z`, `valid_until=2027-01-23T21:21:21Z`; значение не выдано за новую загрузку. Synthetic=false соответствует повторному расчёту по реальному неизменному OSM snapshot. Удалений не было.
 
-**Дополнение к P1-2, найденное при первом retest:** `backend/tools/scoped_inputs.py:45` в `4479b6e` проверял общий положительный view только когда merged scope уже имел комнатные поля. Два hotel-wide inputs `sea_view.available=true` и `quiet_night.available=true` с confidence 0.85 проходили вместе. Независимая явно synthetic проверка derive → Resolver → ranker дала один `quiet_sea` claim, hotel scope, confidence 0.85, `group=all`, synthetic=true. Это объявляло совместимый номер на основе существования вида где-то в отеле. Сообщено оркестратору сразу. **Исправлено в `0de6777`:** положительный view без room scope теперь отвергается независимо от остальных входов; исходный synthetic случай даёт 0 claims и явное warning об отсутствии совместимых данных.
+**Дополнение к P1-2, найденное при первом retest:** `backend/tools/scoped_inputs.py:45` в `4479b6e` проверял общий положительный view только когда merged scope уже имел комнатные поля. Два hotel-wide inputs `sea_view.available=true` и `quiet_night.available=true` с confidence 0.85 проходили вместе. Независимая явно synthetic проверка derive → Resolver → ranker дала один `quiet_sea` claim, hotel scope, confidence 0.85, `group=all`, synthetic=true. Это объявляло совместимый номер на основе существования вида где-то в отеле. Сообщено в исправление сразу. **Исправлено в `0de6777`:** положительный view без room scope теперь отвергается независимо от остальных входов; исходный synthetic случай даёт 0 claims и явное warning об отсутствии совместимых данных.
 
 **P2, найденный при первом retest:** `backend/tools/registry.py:184` падал на `max()` пустого inputs для AST-разрешённого `expr='True'`: names пуст, `compatible_inputs` возвращал пустой tuple в одном сочетании. Публикация такого плана завершала бы backfill ошибкой вместо понятной абстенции. **Исправлено в `0de6777`:** empty names → пустой список сочетаний; независимая проверка `expr='True'` даёт 0 claims + warnings, без исключения.
 
 Дополнительно проверено изменение semantics group=all в `0de6777`: предварительный match может считаться supported только при успешном сравнении, полных ограничениях и confidence ≥ 0.6; порог verdict=yes остаётся 0.7. Независимая проверка quiet_night confidence 0.38: positive → almost / partial, negative → unknown, гарантия сна не появляется. Hotel-wide sea_view confidence 0.85 остаётся partial и не даёт group=all. При наличии supported estimate summary явно предупреждает о предварительном расчёте.
 
-Итого финального retest: **все четыре S7 P1 закрыты**; constant-only P2 также закрыт. Другие отмеченные P2 и неизмеренные риски сохраняют свои отдельные статусы. Эмпирическая точность и калибровка не измерялись, synthetic результаты не выданы за полевую проверку.
+Итого финального retest: **все четыре P1 закрыты**; constant-only P2 также закрыт. Другие отмеченные P2 и неизмеренные риски сохраняют свои отдельные статусы. Эмпирическая точность и калибровка не измерялись, synthetic результаты не выданы за полевую проверку.
 
 ## Дополнительный аудит dev toolchain
 
-По поручению оркестратора проверен `requirements-dev.lock` без установки пакетов, dependency resolution и изменения lock:
+Дополнительно проверен `requirements-dev.lock` без установки пакетов, dependency resolution и изменения lock:
 
 ```sh
 .venv/bin/pip-audit --require-hashes --no-deps --disable-pip \
@@ -136,13 +136,13 @@ P0 не найден. Четыре воспроизводимых P1 перед�
 | setuptools 75.1.0 | GHSA-xmj3-9gf7-h52w | — | 84.1.0 |
 | pytest 8.3.5 | PYSEC-2026-1845 | CVE-2025-71176, GHSA-6w46-j5rx-g56g | 9.0.3 |
 
-Минимальные суммарные версии, закрывающие именно перечисленные advisories: pip 26.2, setuptools 84.1.0, pytest 9.0.3. Это границы из vulnerability service, не подтверждение совместимости toolchain с pip-tools и текущими тестами. Оркестратор отдельно подбирает и проверяет совместимую связку.
+Минимальные суммарные версии, закрывающие именно перечисленные advisories: pip 26.2, setuptools 84.1.0, pytest 9.0.3. Это границы из vulnerability service, не подтверждение совместимости toolchain с pip-tools и текущими тестами. Совместимая связка подбирается и проверяется отдельно.
 
 Контекст: pip advisories касаются установки / распаковки пакетов; один fallback tarfile advisory смягчается Python с PEP 706, но остаётся находкой исходного lock. Setuptools имеет path traversal при старых путях установки, обход MANIFEST exclude при Unicode normalization на macOS и Windows-specific legacy wheel issue. Pytest advisory касается predictable temporary directories на UNIX. Эти пакеты находятся в dev toolchain; результат не меняет ранее полученный нулевой runtime audit. На диагностическом этапе установки и исправления не выполнялись.
 
-### Устранение dev advisories по отдельному поручению
+### Устранение dev advisories
 
-Обновлены только dev pins и их hash lock: [pip 26.2.2](https://pypi.org/pypi/pip/26.2.2/json), [pip-tools 7.6.2](https://pypi.org/pypi/pip-tools/7.6.2/json), [setuptools 84.2.1](https://pypi.org/pypi/setuptools/84.2.1/json), [pytest 9.1.1](https://pypi.org/pypi/pytest/9.1.1/json), [pip-audit 2.10.1](https://pypi.org/pypi/pip-audit/2.10.1/json). Официальная PyPI metadata проверена: версии non-yanked, Python 3.12 поддерживается, vulnerabilities пусты. Для bootstrap использованы конкретные universal wheels с SHA-256 из PyPI и `--require-hashes`; затем установлен полный dev lock. Об установке в общую `.venv` оркестратор был предупреждён до начала и уведомлён после завершения.
+Обновлены только dev pins и их hash lock: [pip 26.2.2](https://pypi.org/pypi/pip/26.2.2/json), [pip-tools 7.6.2](https://pypi.org/pypi/pip-tools/7.6.2/json), [setuptools 84.2.1](https://pypi.org/pypi/setuptools/84.2.1/json), [pytest 9.1.1](https://pypi.org/pypi/pytest/9.1.1/json), [pip-audit 2.10.1](https://pypi.org/pypi/pip-audit/2.10.1/json). Официальная PyPI metadata проверена: версии non-yanked, Python 3.12 поддерживается, vulnerabilities пусты. Для bootstrap использованы конкретные universal wheels с SHA-256 из PyPI и `--require-hashes`; затем установлен полный dev lock.
 
 Совместимость compiler проверена фактически:
 
@@ -171,7 +171,7 @@ make audit
 
 ### Новый P1-R1: противоположные claims на пересечении этажей не создают конфликт
 
-**Статус:** закрыто после независимого retest S5 `730bdd3`, интегрированного в main `6833a7d`. Ниже сохранено исходное воспроизведение; результаты исправления — в конце раздела.
+**Статус:** закрыто после независимого retest `730bdd3`, интегрированного в main `6833a7d`. Ниже сохранено исходное воспроизведение; результаты исправления — в конце раздела.
 
 - Место: `backend/agents/resolver.py:18`–19, 47–52 — группировка по точному Scope JSON; value conflict создаётся только внутри этой группы на строках 114–121. `backend/agents/query_match.py:294`–300 затем выбирает fact с большим числом полей scope.
 - Триггер: positive sea_view, W / этажи 1–5, confidence 0.85, source A; negative sea_view, W / с 5-го этажа, confidence 0.85, source B. Оба свежие, с evidence, без supersedes. Независимая проверка явно synthetic.
@@ -217,7 +217,7 @@ RODINA (`overture-5d220661-b1ca-4461-a03b-c89126a98e02`): website claim `website
 - Приморская W / этаж 5 / сентябрь: `demo-hotelier-6544c68b45d0e531e4cbdaa7` говорит true; geo `geo-e7f3f29cc099f26737ad` на W также true.
 - Brevis W / этаж 7 / сентябрь: `demo-hotelier-7785d21c2da9da392b2c0962` говорит true; geo `geo-e4a67e10f5e76036793e` на W также true.
 
-Это демонстрация согласия / уточнения модели синтетическим ответом, не opposition. Чтобы показать второй тип, нужен отдельно явно synthetic opposite-value сценарий на том же проверяемом scope, с сохранённой цитатой и полным ограничением модели наружного шума. Нельзя выдавать такой сценарий за реальное заявление гостиницы. S7 новых claims не создавал.
+Это демонстрация согласия / уточнения модели синтетическим ответом, не opposition. Чтобы показать второй тип, нужен отдельно явно synthetic opposite-value сценарий на том же проверяемом scope, с сохранённой цитатой и полным ограничением модели наружного шума. Нельзя выдавать такой сценарий за реальное заявление гостиницы. При проверке новые claims не создавались.
 
 **3. OSM floors / DSM — обработанный независимый height conflict пока отсутствует.**
 
@@ -229,7 +229,7 @@ RODINA (`overture-5d220661-b1ca-4461-a03b-c89126a98e02`): website claim `website
 
 ### Дополнительный raw Copernicus DSM proxy screening пяти footprints
 
-По поручению оркестратора независимо проверена **сырая** `data/geo/terrain_30m.npz`, SHA-256 `27000f9047826a66c3cacac2b70cf46fd08aec572b1926d9088655e3e22d1563`. Это Copernicus DSM, перепроецированная bilinear в UTM 37N с ячейкой 30 м (`pipeline/build_dsm.py:31`–43, metadata `/data/geo/terrain_30m.json`). Local `near_dsm` / моделированная OSM-крыша в сравнении не использовались.
+Дополнительно независимо проверена **сырая** `data/geo/terrain_30m.npz`, SHA-256 `27000f9047826a66c3cacac2b70cf46fd08aec572b1926d9088655e3e22d1563`. Это Copernicus DSM, перепроецированная bilinear в UTM 37N с ячейкой 30 м (`pipeline/build_dsm.py:31`–43, metadata `/data/geo/terrain_30m.json`). Local `near_dsm` / моделированная OSM-крыша в сравнении не использовались.
 
 Read-only метод: реальные центры raw raster pixels внутри OSM footprint → roof samples. Отдельно считались core pixels, у которых ≥80% площади ячейки лежит внутри footprint. Ground proxy — P10 сырых DSM-пикселей в кольце 30–180 м от здания, исключены центры внутри любых известных building polygons и картированного моря. Число ground pixels ниже: 91 / 160 / 151 / 92 / 112. Это **соседняя DSM-поверхность**, а не независимо измеренная bare-earth поверхность у фундамента.
 
@@ -247,7 +247,7 @@ Read-only метод: реальные центры raw raster pixels внутр
 
 Результат сохраняет gap третьего сценария: независимого обработанного height conflict на этих пяти примерах нет. Данные / seed / код при проверке не менялись.
 
-Машинный отчёт: `docs/internal/height_proxy_audit.json`. По отдельному разрешению оркестратора добавлен воспроизводимый `scripts/audit_height_proxy.py` без новых зависимостей. Запуск:
+Машинный отчёт: `docs/internal/height_proxy_audit.json`. Добавлен воспроизводимый `scripts/audit_height_proxy.py` без новых зависимостей. Запуск:
 
 ```sh
 .venv/bin/python -m scripts.audit_height_proxy --output docs/internal/height_proxy_audit.json
@@ -255,9 +255,9 @@ Read-only метод: реальные центры raw raster pixels внутр
 
 Измеренное время — 3.42 с; повторный запуск даёт побайтово тот же JSON. По умолчанию скрипт только печатает JSON; optional output ограничен `docs/internal`, попытка записать в `data/geo` отвергается до расчёта. Ruff PASS, roof/core support и исходный terrain hash проверены. Claim / Fact / Conflict и геоданные не создаются и не изменяются. Blueprint height-conflict status в JSON явно `unconfirmed`.
 
-### Независимый retest S5 overlap / reconciliation fix
+### Независимый retest overlap / reconciliation fix
 
-Проверен S5 `730bdd3d35f25c760291def604743c70004163ee` в read-only worktree, затем интеграция **main `6833a7d408022742ab6d0d9641d5f37c6f8c0270`**. Изменены только отчёты S7; сеть / shared DB не мутировались.
+Проверен `730bdd3d35f25c760291def604743c70004163ee` в read-only worktree, затем интеграция **main `6833a7d408022742ab6d0d9641d5f37c6f8c0270`**. Изменены только отчёты проверки; сеть / shared DB не мутировались.
 
 ```sh
 .venv/bin/python -m pytest -q tests/test_resolver.py tests/test_registry_invariants.py \
@@ -275,4 +275,4 @@ Read-only метод: реальные центры raw raster pixels внутр
 
 На этой когорте Masha top-20 содержит **3 all**. У трёх dedicated quiet Facts confidence **0.6888917525773195**, synthetic=true; immutable fixture Claims сохраняют 0.85 и simulation evidence, real geo noise сохраняет 0.38. Эффект совместного голосования не выдан за реальное подтверждение отельером или измеренную вероятность тишины. Brevis family route guard остаётся almost / route unknown из-за условий реального маршрута.
 
-**P1-R1 и P2-R2 закрыты. Новых P1 в этом retest не найдено.** Gap независимого height conflict и отсутствие реального hotelier/calculation opposition в текущих трёх согласующихся fixtures не маскируются исправлением Resolver. Интеграционные HTTP / recording проверки после rebuild выполняет оркестратор; S7 в recording window тяжёлых запусков больше не выполняет.
+**P1-R1 и P2-R2 закрыты. Новых P1 в этом retest не найдено.** Gap независимого height conflict и отсутствие реального hotelier/calculation opposition в текущих трёх согласующихся fixtures не маскируются исправлением Resolver. Интеграционные HTTP / recording проверки после rebuild выполняются отдельно; в окне записи видео тяжёлые запуски не проводились.

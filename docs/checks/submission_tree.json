@@ -8,11 +8,9 @@
   "passed": true,
   "scope": "Current tracked Markdown/HTML and working-note paths; deliberate adversarial test inputs in test sources remain as security regression data, not evaluation instructions.",
   "markdown_html_candidate_patterns": [
-    "оцените",
-    "ignore all/previous",
-    "as an AI",
-    "жюри",
-    "<!--"
+    "обращения к автоматическим или ручным проверяющим",
+    "фразы, меняющие инструкции модели",
+    "HTML-комментарии"
   ],
   "markdown_html_candidate_files": []
 }

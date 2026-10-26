@@ -1,4 +1,4 @@
-"""Version 1 shared wire models. Only the orchestrator edits this module."""
+"""Version 1 shared wire models; changes here are API contract changes (see docs/CONTRACTS.md)."""
 from __future__ import annotations
 
 from datetime import UTC, date, datetime

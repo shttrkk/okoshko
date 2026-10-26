@@ -2,7 +2,7 @@
 
 Публичный адаптер: `geo.service.compute_hotel(hotel: dict, data_dir: Path, *, new_building: dict | None = None) -> {claims, geo}`. `data_dir` содержит `seed/` с реальными геослоями S1 и `geo/terrain_30m.npz`. Runtime использует только standard library, numpy, numba, shapely, pyproj и astral из общего lock. Сетевых вызовов нет. Расчёт пишет инспектируемые JSON и numeric NPZ в `data/geo`; каталог должен быть доступен на запись.
 
-Базовый JSON имеет все поля Geo из контракта и `claims` для загрузки готовых claims без повторного расчёта. Промежуточный `geo_claims.jsonl.gz` объединяется оркестратором с остальными claims. Это не альтернативный seed отелей. В NPZ нет object arrays: читать только `np.load(path, allow_pickle=False)`.
+Базовый JSON имеет все поля Geo из контракта и `claims` для загрузки готовых claims без повторного расчёта. Промежуточный `geo_claims.jsonl.gz` объединяется загрузчиком seed с остальными claims. Это не альтернативный seed отелей. В NPZ нет object arrays: читать только `np.load(path, allow_pickle=False)`.
 
 Воспроизведение из скачанных GeoTIFF (rasterio нужен только отдельному окружению пайплайна):
 
