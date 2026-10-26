@@ -3086,6 +3086,11 @@
         "default": false,
         "title": "Synthetic",
         "type": "boolean"
+      },
+      "disputed": {
+        "default": false,
+        "title": "Disputed",
+        "type": "boolean"
       }
     },
     "required": [
@@ -3689,6 +3694,11 @@
             "default": false,
             "title": "Synthetic",
             "type": "boolean"
+          },
+          "disputed": {
+            "default": false,
+            "title": "Disputed",
+            "type": "boolean"
           }
         },
         "required": [
@@ -4086,6 +4096,11 @@
           "synthetic": {
             "default": false,
             "title": "Synthetic",
+            "type": "boolean"
+          },
+          "disputed": {
+            "default": false,
+            "title": "Disputed",
             "type": "boolean"
           }
         },
@@ -4915,6 +4930,11 @@
           "synthetic": {
             "default": false,
             "title": "Synthetic",
+            "type": "boolean"
+          },
+          "disputed": {
+            "default": false,
+            "title": "Disputed",
             "type": "boolean"
           }
         },

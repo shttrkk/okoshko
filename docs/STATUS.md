@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 26.10.2026 16:54 МСК. Интегрированы API, поиск, кабинет, SPA и финальные 20 340 гео-claims. Пересборка стенда и demo-check — текущая P0. `[x]` означает проверено, не обещано.
+Обновлено: 26.10.2026 17:00 МСК. Интегрированы API, поиск, кабинет, SPA и финальные 20 340 гео-claims. Пересборка стенда и demo-check — текущая P0. `[x]` означает проверено, не обещано.
 
 ## Контрольные точки
 
@@ -87,3 +87,5 @@
 - 26.10 15:41 повторный make audit PASS: Python0, npm production0, scanner_errors=false; docs/audits/*.json. Новые Python версии прошли23 tests.
 
 - 26.10 16:54 интеграция: 2abfd36 final geo data; fbf997d schema retrieval forbidden + parsed-query API (20 tests PASS); frontend worker/map/evidence интегрированы. Пересборка и demo-check ещё не PASS.
+
+- 26.10 17:00 интегрированы S4 parser/паспорт/SSRF fixes (141 targeted tests у S4) и S6 default month/disputed badges (build/lint/browser month12 PASS). Независимый retest и новый Docker image ещё в работе.

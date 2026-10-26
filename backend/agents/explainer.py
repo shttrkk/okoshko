@@ -117,6 +117,7 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
                             text=text, confidence=match.confidence, fact_ids=[f.id for f in facts],
                             evidence_refs=list(dict.fromkeys(e.id for f in facts for e in f.evidence)),
                             caveat="; ".join(dict.fromkeys(caveats)) or None,
+                            disputed=any(f.status == "disputed" for f in facts),
                             synthetic=any(f.synthetic or any(e.kind == "simulation" for e in f.evidence) for f in facts))
 
 

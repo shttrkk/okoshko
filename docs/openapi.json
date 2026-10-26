@@ -2333,6 +2333,11 @@
             "type": "boolean",
             "title": "Synthetic",
             "default": false
+          },
+          "disputed": {
+            "type": "boolean",
+            "title": "Disputed",
+            "default": false
           }
         },
         "additionalProperties": false,

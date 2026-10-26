@@ -291,6 +291,7 @@ class CriterionVerdict(Model):
     evidence_refs: list[str] = Field(default_factory=list)
     caveat: str | None = None
     synthetic: bool = False
+    disputed: bool = False
 
 
 class ComparisonRequest(Model):

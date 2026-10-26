@@ -153,37 +153,41 @@ class Registry:
         evidence.id = "ev-poi-"+identity
         claim = Claim(id="poi-"+identity,hotel_id=context.hotel_id,characteristic_id=context.characteristic_id,value=value,source="osm_geofabrik",method="local_poi_lookup@1",evidence=[evidence],confidence=.65 if value["available"] else .35,
                       observed_at=observed,valid_until=observed+timedelta(days=90),run_id=context.run_id)
-        return ToolResult(claims=[claim])
+        existing = self.repo.get("claims", claim.id)
+        if existing is not None:
+            # Reuse the observation date, not its primary key. Append-only claims
+            # retain an explicit supersession chain across manual collections.
+            previous = self.repo.find("claims", hotel_id=context.hotel_id, characteristic_id=context.characteristic_id)
+            equivalent = [row["id"] for row in previous if row.get("method") == claim.method and row.get("value") == value]
+            claim = claim.model_copy(update={"id": uid(), "supersedes": existing["id"], "supersedes_ids": equivalent})
+        return ToolResult(claims=[claim], artifacts={"cache_hit": existing is not None})
 
     def _derive(self, context, call):
         expression = call.params.get("expr")
         if not expression:
             raise ValueError("derive requires expr")
-        values, supporting, supporting_by_id = {}, [], {}
-        for fact in self.repo.find("facts",hotel_id=context.hotel_id):
-            if fact.get("status") in {"unknown","stale","disputed"} or fact.get("scope",{}).get("month") not in {None,context.month}:
-                continue
-            cid = fact["characteristic_id"]
-            if cid not in values or fact["confidence"]>supporting_by_id[cid]["confidence"]:
-                values[cid] = fact["value"]
-                supporting_by_id[cid] = fact
-        try:
-            result = evaluate_expression(expression,values)
-        except MissingInput as error:
-            return ToolResult(warnings=["Недостаточно входных фактов: "+str(error)])
         import ast
-        names = {node.id for node in ast.walk(ast.parse(expression,mode="eval")) if isinstance(node,ast.Name)}
-        supporting = [supporting_by_id[name] for name in names if name in supporting_by_id]
-        if not supporting:
-            return ToolResult(warnings=["Характеристика должна зависеть от наблюдаемых фактов"])
-        value = {"available":result,"month":context.month,"minutes":values.get("beach_walk",{}).get("minutes"),"water_c":values.get("climate",{}).get("water_c")}
-        source_ids = sorted({source for fact in supporting for evidence in fact.get("evidence",[]) for source in evidence.get("source_ids",[])})
-        observed = max(datetime.fromisoformat(fact["updated_at"].replace("Z","+00:00")) for fact in supporting)
-        valid_until = min(datetime.fromisoformat(fact["valid_until"].replace("Z","+00:00")) for fact in supporting if fact.get("valid_until"))
-        evidence = Evidence(kind="calculation",label="Логическое условие над подтверждёнными входными фактами",source_ids=source_ids or ["geo_engine"],url="/api/runs/"+context.run_id,
-                            inputs={"expression":expression,"values":{name:values[name] for name in names},"fact_ids":[fact["id"] for fact in supporting]},output=value,
-                            limitations=["Составное условие наследует ограничения и уверенность входных данных"])
-        claim = Claim(hotel_id=context.hotel_id,characteristic_id=context.characteristic_id,value=value,source="geo_engine",method="safe_expression@1",evidence=[evidence],confidence=min(fact["confidence"] for fact in supporting),observed_at=observed,valid_until=valid_until,run_id=context.run_id,
-                      synthetic=any(fact.get("synthetic") for fact in supporting))
-        return ToolResult(claims=[claim])
 
+        from backend.tools.scoped_inputs import compatible_inputs
+        names = sorted({node.id for node in ast.walk(ast.parse(expression, mode="eval")) if isinstance(node, ast.Name)})
+        combinations = compatible_inputs(self.repo.find("facts", hotel_id=context.hotel_id), names, context.month)
+        claims = []
+        for scope, facts in combinations:
+            supporting = [fact.model_dump(mode="json") for fact in facts]
+            values = {fact.characteristic_id: fact.value for fact in facts}
+            try:
+                result = evaluate_expression(expression, values)
+            except MissingInput:
+                continue
+            value = {"available": result, "month": context.month, "minutes": values.get("beach_walk", {}).get("minutes"), "water_c": values.get("climate", {}).get("water_c")}
+            source_ids = sorted({source for fact in facts for evidence in fact.evidence for source in evidence.source_ids})
+            observed = max(fact.updated_at for fact in facts)
+            deadlines = [fact.valid_until for fact in facts if fact.valid_until]
+            if not deadlines:
+                continue
+            valid_until = min(deadlines)
+            limitations = list(dict.fromkeys(["Составное условие наследует ограничения и уверенность входных данных"] + [limit for fact in facts for ev in fact.evidence for limit in ev.limitations]))
+            evidence = Evidence(kind="calculation", label="Логическое условие над совместимыми входными фактами", source_ids=source_ids or ["geo_engine"], url="/api/runs/"+context.run_id,
+                                inputs={"expression": expression, "values": values, "fact_ids": [fact["id"] for fact in supporting], "scope": scope.model_dump(mode="json")}, output=value, limitations=limitations)
+            claims.append(Claim(hotel_id=context.hotel_id, characteristic_id=context.characteristic_id, scope=scope, value=value, source="geo_engine", method="safe_expression@1", evidence=[evidence], confidence=min(fact.confidence for fact in facts), observed_at=observed, valid_until=valid_until, run_id=context.run_id, synthetic=any(fact.synthetic for fact in facts)))
+        return ToolResult(claims=claims, warnings=[] if claims else ["Недостаточно совместимых свежих входных фактов; общий номер не подтверждён"])
