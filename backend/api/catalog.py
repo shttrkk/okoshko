@@ -12,10 +12,12 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from backend.contracts import (
     CharacteristicSpec,
+    ComparisonRequest,
     Fact,
     Hotel,
     HotelDetail,
     LabelRequest,
+    ParsedQuery,
     SearchRequest,
     SearchResult,
     Source,
@@ -78,18 +80,18 @@ def read_geo(hotel_id: str, repo) -> dict:
             "limitations": ["Георасчёт для этого отеля ещё не подготовлен; отсутствие данных не означает отсутствие вида."]}
 
 
-def detail(hotel_id: str, repo, *, text: str = "", month: int | None = None) -> HotelDetail:
+def detail(hotel_id: str, repo, *, text: str = "", month: int | None = None, parsed: ParsedQuery | None = None) -> HotelDetail:
     hotel = Hotel.model_validate(required(repo, "hotels", hotel_id, "Отель"))
     facts = [Fact.model_validate(row) for row in repo.find("facts", hotel_id=hotel_id)]
     from backend.agents.explainer import disappointments, recommend_room
-    parsed = None
     verdicts = []
-    if text:
+    if text and parsed is None:
         from backend.agents.query_parser import parse_query
-        from backend.agents.ranker import rank_hotels
         parsed = parse_query(SearchRequest(text=text), catalog(repo))
         if month is not None:
             parsed.month = month
+    if parsed is not None:
+        from backend.agents.ranker import rank_hotels
         hits = rank_hotels([hotel], facts, parsed, catalog(repo))
         verdicts = hits[0].verdicts if hits else []
     return HotelDetail(hotel=hotel, facts=facts, claims=repo.find("claims", hotel_id=hotel_id),
@@ -125,12 +127,22 @@ def geo(hotel_id: str, repo=_REPO):
     return read_geo(hotel_id, repo)
 
 
+@router.post("/hotels/{hotel_id}/evaluate", response_model=HotelDetail)
+def evaluate_hotel(hotel_id: str, body: ParsedQuery, repo=_REPO):
+    return detail(hotel_id, repo, parsed=body)
+
+
 @router.get("/compare")
-def compare(ids: str, repo=_REPO):
+def compare(ids: str, text: str = "", month: int | None = None, repo=_REPO):
     selected = list(dict.fromkeys(part.strip() for part in ids.split(",") if part.strip()))
     if not 2 <= len(selected) <= 4:
         raise HTTPException(422, "Для сравнения выберите от 2 до 4 разных отелей")
-    return {"hotels": [detail(item_id, repo) for item_id in selected], "characteristics": catalog(repo)}
+    return {"hotels": [detail(item_id, repo, text=text, month=month) for item_id in selected], "characteristics": catalog(repo)}
+
+
+@router.post("/compare")
+def compare_parsed(body: ComparisonRequest, repo=_REPO):
+    return {"hotels": [detail(item_id, repo, parsed=body.parsed) for item_id in body.ids], "characteristics": catalog(repo)}
 
 
 @router.post("/search", response_model=SearchResult)

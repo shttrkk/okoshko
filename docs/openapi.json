@@ -5,30 +5,11 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/health": {
-      "get": {
-        "summary": "Health",
-        "operationId": "health_health_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "type": "object",
-                  "title": "Response Health Health Get"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/status": {
       "get": {
+        "tags": [
+          "catalog"
+        ],
         "summary": "Status",
         "operationId": "status_api_status_get",
         "responses": {
@@ -36,11 +17,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Status Api Status Get"
-                }
+                "schema": {}
               }
             }
           }
@@ -49,6 +26,9 @@
     },
     "/api/hotels": {
       "get": {
+        "tags": [
+          "catalog"
+        ],
         "summary": "Hotels",
         "operationId": "hotels_api_hotels_get",
         "responses": {
@@ -69,8 +49,274 @@
         }
       }
     },
+    "/api/hotels/{hotel_id}": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Hotel",
+        "operationId": "hotel_api_hotels__hotel_id__get",
+        "parameters": [
+          {
+            "name": "hotel_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hotel Id"
+            }
+          },
+          {
+            "name": "text",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Text"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HotelDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hotels/{hotel_id}/geo": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Geo",
+        "operationId": "geo_api_hotels__hotel_id__geo_get",
+        "parameters": [
+          {
+            "name": "hotel_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hotel Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hotels/{hotel_id}/evaluate": {
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Evaluate Hotel",
+        "operationId": "evaluate_hotel_api_hotels__hotel_id__evaluate_post",
+        "parameters": [
+          {
+            "name": "hotel_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hotel Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParsedQuery-Input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HotelDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/compare": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Compare",
+        "operationId": "compare_api_compare_get",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ids"
+            }
+          },
+          {
+            "name": "text",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Text"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Compare Parsed",
+        "operationId": "compare_parsed_api_compare_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComparisonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/search": {
       "post": {
+        "tags": [
+          "catalog"
+        ],
         "summary": "Search",
         "operationId": "search_api_search_post",
         "requestBody": {
@@ -107,38 +353,24 @@
         }
       }
     },
-    "/api/hotels/{hotel_id}": {
+    "/api/characteristics": {
       "get": {
-        "summary": "Hotel",
-        "operationId": "hotel_api_hotels__hotel_id__get",
-        "parameters": [
-          {
-            "name": "hotel_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Hotel Id"
-            }
-          }
+        "tags": [
+          "catalog"
         ],
+        "summary": "Characteristics",
+        "operationId": "characteristics_api_characteristics_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HotelDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "items": {
+                    "$ref": "#/components/schemas/CharacteristicSpec"
+                  },
+                  "type": "array",
+                  "title": "Response Characteristics Api Characteristics Get"
                 }
               }
             }
@@ -146,21 +378,13 @@
         }
       }
     },
-    "/api/hotels/{hotel_id}/geo": {
+    "/api/tools": {
       "get": {
-        "summary": "Geo",
-        "operationId": "geo_api_hotels__hotel_id__geo_get",
-        "parameters": [
-          {
-            "name": "hotel_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Hotel Id"
-            }
-          }
+        "tags": [
+          "catalog"
         ],
+        "summary": "Tools",
+        "operationId": "tools_api_tools_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -169,13 +393,28 @@
                 "schema": {}
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
+          }
+        }
+      }
+    },
+    "/api/sources": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Sources",
+        "operationId": "sources_api_sources_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "items": {
+                    "$ref": "#/components/schemas/Source"
+                  },
+                  "type": "array",
+                  "title": "Response Sources Api Sources Get"
                 }
               }
             }
@@ -183,21 +422,59 @@
         }
       }
     },
-    "/api/compare": {
+    "/api/quality": {
       "get": {
-        "summary": "Compare",
-        "operationId": "compare_api_compare_get",
-        "parameters": [
-          {
-            "name": "ids",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Ids"
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Quality",
+        "operationId": "quality_api_quality_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
             }
           }
+        }
+      }
+    },
+    "/api/quality/label": {
+      "get": {
+        "tags": [
+          "catalog"
         ],
+        "summary": "Label Queue",
+        "operationId": "label_queue_api_quality_label_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Label",
+        "operationId": "label_api_quality_label_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabelRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -222,6 +499,9 @@
     },
     "/api/hotelier/login": {
       "post": {
+        "tags": [
+          "hotelier"
+        ],
         "summary": "Login",
         "operationId": "login_api_hotelier_login_post",
         "requestBody": {
@@ -258,6 +538,9 @@
     },
     "/api/hotelier/{hotel_id}": {
       "get": {
+        "tags": [
+          "hotelier"
+        ],
         "summary": "Cabinet",
         "operationId": "cabinet_api_hotelier__hotel_id__get",
         "parameters": [
@@ -268,6 +551,22 @@
             "schema": {
               "type": "string",
               "title": "Hotel Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -295,6 +594,9 @@
     },
     "/api/questions": {
       "post": {
+        "tags": [
+          "hotelier"
+        ],
         "summary": "Ask",
         "operationId": "ask_api_questions_post",
         "requestBody": {
@@ -333,8 +635,11 @@
     },
     "/api/questions/{question_id}/answer": {
       "post": {
-        "summary": "Answer",
-        "operationId": "answer_api_questions__question_id__answer_post",
+        "tags": [
+          "hotelier"
+        ],
+        "summary": "Answer Question",
+        "operationId": "answer_question_api_questions__question_id__answer_post",
         "parameters": [
           {
             "name": "question_id",
@@ -343,6 +648,22 @@
             "schema": {
               "type": "string",
               "title": "Question Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -382,8 +703,11 @@
     },
     "/api/questions/{question_id}/simulate": {
       "post": {
-        "summary": "Simulate",
-        "operationId": "simulate_api_questions__question_id__simulate_post",
+        "tags": [
+          "hotelier"
+        ],
+        "summary": "Simulate Question",
+        "operationId": "simulate_question_api_questions__question_id__simulate_post",
         "parameters": [
           {
             "name": "question_id",
@@ -392,6 +716,22 @@
             "schema": {
               "type": "string",
               "title": "Question Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -421,6 +761,9 @@
     },
     "/api/answers/{answer_id}/confirm": {
       "post": {
+        "tags": [
+          "hotelier"
+        ],
         "summary": "Confirm",
         "operationId": "confirm_api_answers__answer_id__confirm_post",
         "parameters": [
@@ -431,6 +774,22 @@
             "schema": {
               "type": "string",
               "title": "Answer Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -460,8 +819,11 @@
     },
     "/api/passports": {
       "post": {
-        "summary": "Create Passport",
-        "operationId": "create_passport_api_passports_post",
+        "tags": [
+          "passports"
+        ],
+        "summary": "Create",
+        "operationId": "create_api_passports_post",
         "requestBody": {
           "required": true,
           "content": {
@@ -496,8 +858,11 @@
         }
       },
       "get": {
-        "summary": "Passports",
-        "operationId": "passports_api_passports_get",
+        "tags": [
+          "passports"
+        ],
+        "summary": "List Passports",
+        "operationId": "list_passports_api_passports_get",
         "parameters": [
           {
             "name": "hotel_id",
@@ -526,7 +891,7 @@
                   "items": {
                     "$ref": "#/components/schemas/ExpectationPassport"
                   },
-                  "title": "Response Passports Api Passports Get"
+                  "title": "Response List Passports Api Passports Get"
                 }
               }
             }
@@ -546,8 +911,11 @@
     },
     "/api/passports/{passport_id}": {
       "get": {
-        "summary": "Passport",
-        "operationId": "passport_api_passports__passport_id__get",
+        "tags": [
+          "passports"
+        ],
+        "summary": "Get Passport",
+        "operationId": "get_passport_api_passports__passport_id__get",
         "parameters": [
           {
             "name": "passport_id",
@@ -585,8 +953,11 @@
     },
     "/api/passports/{passport_id}/action": {
       "post": {
-        "summary": "Passport Action",
-        "operationId": "passport_action_api_passports__passport_id__action_post",
+        "tags": [
+          "passports"
+        ],
+        "summary": "Action",
+        "operationId": "action_api_passports__passport_id__action_post",
         "parameters": [
           {
             "name": "passport_id",
@@ -595,6 +966,22 @@
             "schema": {
               "type": "string",
               "title": "Passport Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -632,10 +1019,13 @@
         }
       }
     },
-    "/api/characteristics": {
+    "/api/runs": {
       "get": {
-        "summary": "Characteristics",
-        "operationId": "characteristics_api_characteristics_get",
+        "tags": [
+          "runs"
+        ],
+        "summary": "Runs",
+        "operationId": "runs_api_runs_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -643,10 +1033,147 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/CharacteristicSpec"
+                    "$ref": "#/components/schemas/AgentRun"
                   },
                   "type": "array",
-                  "title": "Response Characteristics Api Characteristics Get"
+                  "title": "Response Runs Api Runs Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Start",
+        "operationId": "start_api_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRun"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Run",
+        "operationId": "run_api_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRun"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{run_id}/stream": {
+      "get": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Stream",
+        "operationId": "stream_api_runs__run_id__stream_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "last-event-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -656,8 +1183,11 @@
     },
     "/api/characteristics/compile": {
       "post": {
-        "summary": "Compile Spec",
-        "operationId": "compile_spec_api_characteristics_compile_post",
+        "tags": [
+          "studio"
+        ],
+        "summary": "Compile Characteristic",
+        "operationId": "compile_characteristic_api_characteristics_compile_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -692,6 +1222,9 @@
     },
     "/api/characteristics/dry-run": {
       "post": {
+        "tags": [
+          "studio"
+        ],
         "summary": "Dry Run",
         "operationId": "dry_run_api_characteristics_dry_run_post",
         "requestBody": {
@@ -728,6 +1261,9 @@
     },
     "/api/characteristics/publish": {
       "post": {
+        "tags": [
+          "studio"
+        ],
         "summary": "Publish",
         "operationId": "publish_api_characteristics_publish_post",
         "requestBody": {
@@ -762,132 +1298,11 @@
         }
       }
     },
-    "/api/runs": {
-      "get": {
-        "summary": "Runs",
-        "operationId": "runs_api_runs_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "summary": "Run",
-        "operationId": "run_api_runs_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RunRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/runs/{run_id}": {
-      "get": {
-        "summary": "Get Run",
-        "operationId": "get_run_api_runs__run_id__get",
-        "parameters": [
-          {
-            "name": "run_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Run Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/runs/{run_id}/stream": {
-      "get": {
-        "summary": "Stream",
-        "operationId": "stream_api_runs__run_id__stream_get",
-        "parameters": [
-          {
-            "name": "run_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Run Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/changes": {
       "get": {
+        "tags": [
+          "changes"
+        ],
         "summary": "Changes",
         "operationId": "changes_api_changes_get",
         "responses": {
@@ -910,8 +1325,11 @@
     },
     "/api/changes/simulate": {
       "post": {
-        "summary": "Change",
-        "operationId": "change_api_changes_simulate_post",
+        "tags": [
+          "changes"
+        ],
+        "summary": "Simulate",
+        "operationId": "simulate_api_changes_simulate_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -948,6 +1366,9 @@
     },
     "/api/changes/refresh": {
       "post": {
+        "tags": [
+          "changes"
+        ],
         "summary": "Refresh",
         "operationId": "refresh_api_changes_refresh_post",
         "responses": {
@@ -962,98 +1383,22 @@
         }
       }
     },
-    "/api/sources": {
+    "/health": {
       "get": {
-        "summary": "Sources",
-        "operationId": "sources_api_sources_get",
+        "summary": "Health",
+        "operationId": "health_health_get",
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/quality": {
-      "get": {
-        "summary": "Quality",
-        "operationId": "quality_api_quality_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/quality/label": {
-      "get": {
-        "summary": "Label Queue",
-        "operationId": "label_queue_api_quality_label_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "summary": "Label",
-        "operationId": "label_api_quality_label_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LabelRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
                 }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/tools": {
-      "get": {
-        "summary": "Tools",
-        "operationId": "tools_api_tools_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
               }
             }
           }
@@ -1063,6 +1408,212 @@
   },
   "components": {
     "schemas": {
+      "AgentRun": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "collect",
+              "interview",
+              "search",
+              "compile_spec",
+              "refresh",
+              "backfill"
+            ],
+            "title": "Kind"
+          },
+          "hotel_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hotel Id"
+          },
+          "characteristic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Characteristic Id"
+          },
+          "trigger": {
+            "type": "string",
+            "title": "Trigger",
+            "default": "user"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "completed",
+              "failed",
+              "waiting"
+            ],
+            "title": "Status",
+            "default": "running"
+          },
+          "llm_mode": {
+            "type": "string",
+            "enum": [
+              "offline",
+              "cache",
+              "live"
+            ],
+            "title": "Llm Mode",
+            "default": "offline"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/AgentStep"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "title": "AgentRun"
+      },
+      "AgentStep": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Seq"
+          },
+          "agent": {
+            "type": "string",
+            "title": "Agent"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "input": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input"
+          },
+          "output": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Output"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence Refs"
+          },
+          "duration_ms": {
+            "type": "number",
+            "title": "Duration Ms",
+            "default": 0
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "offline",
+              "cache",
+              "live"
+            ],
+            "title": "Mode",
+            "default": "offline"
+          },
+          "cache_hit": {
+            "type": "boolean",
+            "title": "Cache Hit",
+            "default": false
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "seq",
+          "agent",
+          "type",
+          "name",
+          "rationale"
+        ],
+        "title": "AgentStep"
+      },
       "Answer": {
         "properties": {
           "id": {
@@ -1518,6 +2069,35 @@
         ],
         "title": "Claim"
       },
+      "ComparisonRequest": {
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 2,
+            "title": "Ids"
+          },
+          "parsed": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ParsedQuery-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "title": "ComparisonRequest"
+      },
       "CompileRequest": {
         "properties": {
           "text": {
@@ -1748,6 +2328,11 @@
               }
             ],
             "title": "Caveat"
+          },
+          "synthetic": {
+            "type": "boolean",
+            "title": "Synthetic",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -3300,6 +3885,77 @@
         "additionalProperties": false,
         "type": "object",
         "title": "SearchSpec"
+      },
+      "Source": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "license": {
+            "type": "string",
+            "title": "License"
+          },
+          "attribution": {
+            "type": "string",
+            "title": "Attribution"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          },
+          "retrieved_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Retrieved At"
+          },
+          "used": {
+            "type": "boolean",
+            "title": "Used",
+            "default": true
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes",
+            "default": ""
+          },
+          "alpha": {
+            "type": "number",
+            "title": "Alpha",
+            "default": 7
+          },
+          "beta": {
+            "type": "number",
+            "title": "Beta",
+            "default": 3
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "url",
+          "license",
+          "attribution",
+          "observed_at",
+          "retrieved_at"
+        ],
+        "title": "Source"
       },
       "ToolCall": {
         "properties": {

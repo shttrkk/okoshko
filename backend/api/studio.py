@@ -6,13 +6,13 @@ import threading
 
 import yaml
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from jsonschema import validate
 
 from backend.agents.planner import plan_characteristic
 from backend.agents.resolver import resolve_claims
 from backend.agents.spec_compiler import compile_spec, validate_spec
 from backend.api.catalog import catalog
 from backend.contracts import CharacteristicSpec, Claim, CompileRequest, ToolContext, now
+from backend.contracts.validation import validate_value as validate
 from backend.db.repository import get_repo
 from backend.tools.registry import Registry
 from backend.tracing import Trace

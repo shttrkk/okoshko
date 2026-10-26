@@ -7,12 +7,12 @@ from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 
-from jsonschema import validate
 from shapely.geometry import Point, shape
 from shapely.ops import transform
 from shapely.strtree import STRtree
 
 from backend.contracts import Claim, Evidence, ToolCall, ToolContext, ToolResult, ToolSpec, uid
+from backend.contracts.validation import validate_value as validate
 from backend.settings import DATA
 from backend.tools.derive import MissingInput, evaluate_expression
 from geo.coordinates import TO_UTM

@@ -116,7 +116,8 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
                             required=required, status=match.status, symbol={"yes": "✓", "partial": "≈", "no": "✗", "unknown": "?"}[match.status],
                             text=text, confidence=match.confidence, fact_ids=[f.id for f in facts],
                             evidence_refs=list(dict.fromkeys(e.id for f in facts for e in f.evidence)),
-                            caveat="; ".join(dict.fromkeys(caveats)) or None)
+                            caveat="; ".join(dict.fromkeys(caveats)) or None,
+                            synthetic=any(f.synthetic or any(e.kind == "simulation" for e in f.evidence) for f in facts))
 
 
 def _default_query(facts: list[Fact]) -> ParsedQuery:

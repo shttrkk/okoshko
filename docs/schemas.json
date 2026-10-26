@@ -3081,6 +3081,11 @@
         ],
         "default": null,
         "title": "Caveat"
+      },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
+        "type": "boolean"
       }
     },
     "required": [
@@ -3092,6 +3097,344 @@
       "confidence"
     ],
     "title": "CriterionVerdict",
+    "type": "object"
+  },
+  "ComparisonRequest": {
+    "$defs": {
+      "Criterion": {
+        "additionalProperties": false,
+        "properties": {
+          "characteristic_id": {
+            "title": "Characteristic Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "op": {
+            "default": "eq",
+            "enum": [
+              "eq",
+              "lte",
+              "gte",
+              "contains"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "value": {
+            "default": true,
+            "title": "Value"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Field"
+          },
+          "weight": {
+            "default": 1,
+            "exclusiveMinimum": 0,
+            "maximum": 10,
+            "title": "Weight",
+            "type": "number"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Scope"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "characteristic_id",
+          "label"
+        ],
+        "title": "Criterion",
+        "type": "object"
+      },
+      "ParsedQuery": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "Must",
+            "type": "array"
+          },
+          "nice": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "Nice",
+            "type": "array"
+          },
+          "check_in": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Check In"
+          },
+          "check_out": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Check Out"
+          },
+          "month": {
+            "default": 9,
+            "maximum": 12,
+            "minimum": 1,
+            "title": "Month",
+            "type": "integer"
+          },
+          "persona": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Persona"
+          },
+          "pet_weight_kg": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Pet Weight Kg"
+          },
+          "min_floor": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Min Floor"
+          },
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "unmapped": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmapped",
+            "type": "array"
+          },
+          "clarifications": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2,
+            "title": "Clarifications",
+            "type": "array"
+          },
+          "mode": {
+            "default": "offline",
+            "enum": [
+              "offline",
+              "cache",
+              "live"
+            ],
+            "title": "Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "ParsedQuery",
+        "type": "object"
+      },
+      "Scope": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "default": "hotel",
+            "enum": [
+              "hotel",
+              "facade",
+              "floor_range",
+              "room_type"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "Scope",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "ids": {
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 4,
+        "minItems": 2,
+        "title": "Ids",
+        "type": "array"
+      },
+      "parsed": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ParsedQuery"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      }
+    },
+    "required": [
+      "ids"
+    ],
+    "title": "ComparisonRequest",
     "type": "object"
   },
   "Hotel": {
@@ -3341,6 +3684,11 @@
             ],
             "default": null,
             "title": "Caveat"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
           }
         },
         "required": [
@@ -3734,6 +4082,11 @@
             ],
             "default": null,
             "title": "Caveat"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
           }
         },
         "required": [
@@ -4558,6 +4911,11 @@
             ],
             "default": null,
             "title": "Caveat"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
           }
         },
         "required": [
