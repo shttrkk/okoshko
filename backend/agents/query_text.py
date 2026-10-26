@@ -6,6 +6,8 @@ conversion are explicit; ordinary homonyms stay outside hotel-search criteria.
 from __future__ import annotations
 
 import re
+from difflib import SequenceMatcher
+from functools import lru_cache
 
 _NUMBER_WORDS = {
     1: r'один|одна|одну|одного|одной',
@@ -87,7 +89,8 @@ def clause_bounds(text: str, start: int, end: int) -> tuple[int, int]:
 def facade_is_explicit(text: str, match: re.Match) -> bool:
     left, right = clause_bounds(text, match.start(), match.end())
     before, after = text[max(left, match.start()-35):match.start()], text[match.end():min(right, match.end()+35)]
-    return bool(re.search(r'(?:окн\w*|номер\w*|сторон\w*|фасад\w*|этаж\w*)[^,;]{0,30}$', before)
+    return bool(re.search(r'\b(?:сторон\w*|фасад\w*)\b', match[0])
+                or re.search(r'(?:окн\w*|номер\w*|сторон\w*|фасад\w*|этаж\w*)[^,;]{0,30}$', before)
                 or re.match(r'\w*\s+(?:сторон\w*|фасад\w*|окн\w*)\b', after))
 
 
@@ -111,6 +114,9 @@ def valid_intent_match(cid: str, text: str, match: re.Match) -> bool:
         return False
     if cid == 'family_nearby' and re.search(r'площадк\w*\s+для\s+(?:вертолет\w*|переговор\w*|строитель\w*|мусор\w*)', clause):
         return False
+    if cid == 'family_nearby' and re.search(r'инвалидн\w*\s+коляск\w*|кресл\w*[ -]коляск\w*', clause) and not re.search(
+            r'\bдет\w*|ребен\w*|малыш\w*', clause):
+        return False
     if cid == 'family_nearby' and re.search(r'\b(?:не\s+(?:едем|поедем|берем|возьмем)|без\s+дет\w*)\b|дет\w*\s+не\s+(?:берем|едут|поедут)', clause):
         return False
     if cid == 'pets' and (re.search(r'\b(?:дома|родител\w*|остав\w*|остает\w*)\b', clause)
@@ -126,3 +132,33 @@ def valid_intent_match(cid: str, text: str, match: re.Match) -> bool:
     if cid == 'climate' and re.search(r'погод\w*\s+в\s+дом\w*', clause):
         return False
     return True
+
+
+@lru_cache(maxsize=1024)
+def _catalogue_words(phrases: tuple[str, ...]) -> frozenset[str]:
+    return frozenset(word for phrase in phrases for word in re.findall(r'[а-яa-z]{5,}', normalize_query_text(phrase)))
+
+
+def catalogue_suggestions(text: str, unknown: list[str], catalog: list,
+                          excluded_ids: set[str] | None = None) -> list[str]:
+    """Suggest at most two close catalogue names; never create a criterion.
+
+    This requires a long, near-identical word. Related amenities, short words and
+    numeric guesses are unsuitable spelling hints.
+    """
+    tokens = [token for fragment in unknown for token in re.findall(r'[а-яa-z]{5,}', fragment) if len(token) <= 40][:12]
+    excluded_ids = excluded_ids or set()
+    scored = []
+    for spec in catalog:
+        if spec.status != 'active' or spec.id in excluded_ids:
+            continue
+        words = _catalogue_words((spec.name_ru, *spec.synonyms))
+        score = 0.0
+        for token in tokens:
+            matches = list(re.finditer(r'\b' + re.escape(token) + r'\b', text))
+            if not any(valid_intent_match(spec.id, text, match) for match in matches):
+                continue
+            score = max(score, max((SequenceMatcher(None, token, word).ratio() for word in words), default=0))
+        if .86 <= score < 1:
+            scored.append((-score, spec.id, spec.name_ru))
+    return [name for _, _, name in sorted(scored)[:2]]
