@@ -46,6 +46,13 @@ export const names: Record<string, string> = {
   building_history: "История здания",
   nearby_photos: "Фото вокруг",
   morning_swim: "Купание до завтрака",
+  nightlife: "В гуще событий",
+  morning_sun: "Утреннее солнце",
+  evening_heat: "Вечернее солнце и нагрев",
+  railway_noise: "Железнодорожный шум",
+  beach_surface: "Покрытие пляжа",
+  accessible_route: "Доступность маршрута",
+  green_nearby: "Зелень рядом",
 };
 const sides: Record<string, string> = {
   N: "север",
@@ -309,11 +316,13 @@ export function VerdictList({
   verdicts,
   hotelId,
   onEvidence,
+  onFocusFact,
   compact = false,
 }: {
   verdicts: Verdict[];
   hotelId: string;
   onEvidence?: (v: Verdict) => void;
+  onFocusFact?: (v: Verdict) => void;
   /** Search cards: the gist only; caveats live on the hotel page. */
   compact?: boolean;
 }) {
@@ -355,6 +364,16 @@ export function VerdictList({
                 <small>{v.caveat.split(";")[0].slice(0, 220)}</small>
               )}
             </button>
+            {!compact && onFocusFact && (
+              <button
+                className="text-button"
+                data-testid={`verdict-fact-${v.characteristic_id}`}
+                aria-controls={`fact-card-${v.characteristic_id}`}
+                onClick={() => onFocusFact(v)}
+              >
+                К факту <ArrowRight size={12} />
+              </button>
+            )}
             {!compact &&
               v.caveat &&
               (v.caveat.includes(";") || v.caveat.length > 220) && (
