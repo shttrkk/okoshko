@@ -116,6 +116,54 @@ def notify_passports(repo, hotel_id, before, after, change_id):
     return notifications
 
 
+CHANGE_TITLE = "Демо: новый 16-этажный дом — видимость пересчитана"
+
+
+def change_id_for(hotel_id: str) -> str:
+    return hashlib.sha256(("new_building_fixture_v1:"+hotel_id).encode()).hexdigest()[:32]
+
+
+def apply_change(repo, hotel_id: str, fixture: dict, result: dict, trace: Trace, *, runtime=RUNTIME_DIR, seeded: bool = False) -> ChangeEvent:
+    """Store recomputed synthetic claims, re-resolve, notify passports and record было/стало."""
+    change_id = change_id_for(hotel_id)
+    before = [Fact.model_validate(row) for row in repo.find("facts", hotel_id=hotel_id)]
+    if not any(row["characteristic_id"] in {"sea_view", "sunset_view", "mountain_view"} for row in result["claims"]):
+        raise ValueError("Для пересчёта видимости не хватает геовходов; отсутствие вида не утверждается")
+    old_claims = repo.find("claims", hotel_id=hotel_id)
+    supersedes = {cid: [row["id"] for row in old_claims if row["characteristic_id"] == cid and row["source"] == "geo_engine"]
+                  for cid in GEO_CHARACTERISTICS}
+    claims = []
+    for row in result["claims"]:
+        claim = Claim.model_validate({**row, "run_id": trace.run.id, "synthetic": True,
+                                      "supersedes_ids": supersedes.get(row["characteristic_id"], [])})
+        if repo.get("claims", claim.id) is None:
+            claims.append(claim)
+    if not claims:
+        raise ValueError("Геосервис не смог пересчитать затронутые характеристики; событие не опубликовано")
+    repo.insert_claims(claims)
+    after = resolve_hotel(hotel_id, repo)
+    notifications = notify_passports(repo, hotel_id, before, after, change_id)
+    event = ChangeEvent(id=change_id, kind="osm_building_new", title=CHANGE_TITLE,
+                        geometry=fixture["geometry"], payload={"hotel_id": hotel_id, "fixture": fixture, "run_id": trace.run.id,
+                        "scenario": "new_building_fixture_v1", "geo_artifact": result["geo"]["artifact"], "seeded": seeded,
+                        "claim_ids": [claim.id for claim in claims]}, affected_hotel_ids=[hotel_id],
+                        before=[fact for fact in before if fact.characteristic_id in GEO_CHARACTERISTICS],
+                        after=[fact for fact in after if fact.characteristic_id in GEO_CHARACTERISTICS], notifications=notifications)
+    artifact = result["geo"]["artifact"]
+    if artifact.startswith("/data/runtime/geo/"):
+        # Persist the final claims, including supersession and run provenance, in the same artifact.
+        document = {**result["geo"], "claims": [claim.model_dump(mode="json") for claim in claims]}
+        (Path(runtime) / "geo" / Path(artifact).name).write_text(json.dumps(document, ensure_ascii=False) + "\n")
+    repo.insert("change_events", event.model_dump(mode="json"))
+    trace.step("collector", "tool_call", "Пересчёт с синтетическим новым домом", input={"fixture": fixture},
+               output={"claim_ids": [claim.id for claim in claims], "change_id": event.id, "notifications": len(notifications)},
+               evidence_refs=[e.id for claim in claims for e in claim.evidence],
+               rationale=("Сохранённый воспроизводимый пересчёт LOS с синтетическим домом применён при первом запуске"
+                          if seeded else "Новый полигон реально включён в LOS; все старые диапазоны заменены новыми наблюдениями"))
+    trace.finish()
+    return event
+
+
 def simulate_change(repo, hotel_id=None, *, data_dir=DATA, runtime=RUNTIME_DIR):
     from geo.changes import new_building_fixture
     from geo.service import compute_hotel
@@ -124,53 +172,47 @@ def simulate_change(repo, hotel_id=None, *, data_dir=DATA, runtime=RUNTIME_DIR):
         hotel = repo.get("hotels", hotel_id)
         if hotel is None:
             raise LookupError("Отель не найден")
-        change_id = hashlib.sha256(("new_building_fixture_v1:"+hotel_id).encode()).hexdigest()[:32]
-        existing = repo.get("change_events", change_id)
+        existing = repo.get("change_events", change_id_for(hotel_id))
         if existing:
             return ChangeEvent.model_validate(existing)
         base_path = Path(data_dir) / "geo" / (hotel_id + ".json")
         base_geo = json.loads(base_path.read_text()) if base_path.is_file() else {}
         base_geo = base_geo.get("geo", base_geo)
         fixture = new_building_fixture(hotel, base_geo)
-        before = [Fact.model_validate(row) for row in repo.find("facts", hotel_id=hotel_id)]
         trace = Trace(repo, "refresh", hotel_id=hotel_id, trigger="synthetic_new_building")
         try:
             result = durable_geo(compute_hotel(hotel, Path(data_dir), new_building=fixture), data_dir, runtime)
-            if not any(row["characteristic_id"] in {"sea_view", "sunset_view", "mountain_view"} for row in result["claims"]):
-                raise ValueError("Для пересчёта видимости не хватает геовходов; отсутствие вида не утверждается")
-            old_claims = repo.find("claims", hotel_id=hotel_id)
-            supersedes = {cid: [row["id"] for row in old_claims if row["characteristic_id"] == cid and row["source"] == "geo_engine"]
-                          for cid in GEO_CHARACTERISTICS}
-            claims = []
-            for row in result["claims"]:
-                claim = Claim.model_validate({**row, "run_id": trace.run.id, "synthetic": True,
-                                              "supersedes_ids": supersedes.get(row["characteristic_id"], [])})
-                if repo.get("claims", claim.id) is None:
-                    claims.append(claim)
-            if not claims:
-                raise ValueError("Геосервис не смог пересчитать затронутые характеристики; событие не опубликовано")
-            repo.insert_claims(claims)
-            after = resolve_hotel(hotel_id, repo)
-            notifications = notify_passports(repo, hotel_id, before, after, change_id)
-            event = ChangeEvent(id=change_id, kind="osm_building_new", title="Демо: новый дом — видимость пересчитана",
-                                geometry=fixture["geometry"], payload={"hotel_id": hotel_id, "fixture": fixture, "run_id": trace.run.id,
-                                "scenario": "new_building_fixture_v1", "geo_artifact": result["geo"]["artifact"],
-                                "claim_ids": [claim.id for claim in claims]}, affected_hotel_ids=[hotel_id],
-                                before=[fact for fact in before if fact.characteristic_id in GEO_CHARACTERISTICS],
-                                after=[fact for fact in after if fact.characteristic_id in GEO_CHARACTERISTICS], notifications=notifications)
-            # Persist the final claims, including supersession and run provenance, in the same artifact.
-            document = {**result["geo"], "claims": [claim.model_dump(mode="json") for claim in claims]}
-            (Path(runtime) / "geo" / Path(result["geo"]["artifact"]).name).write_text(json.dumps(document, ensure_ascii=False) + "\n")
-            repo.insert("change_events", event.model_dump(mode="json"))
-            trace.step("collector", "tool_call", "Пересчёт с синтетическим новым домом", input={"fixture": fixture},
-                       output={"claim_ids": [claim.id for claim in claims], "change_id": event.id, "notifications": len(notifications)},
-                       evidence_refs=[e.id for claim in claims for e in claim.evidence],
-                       rationale="Новый полигон реально включён в LOS; все старые диапазоны заменены новыми наблюдениями")
-            trace.finish()
-            return event
+            return apply_change(repo, hotel_id, fixture, result, trace, runtime=runtime)
         except Exception as error:
-            trace.finish("failed", str(error)[:300])
+            if trace.run.status == "running":
+                trace.finish("failed", str(error)[:300])
             raise
+
+
+def seed_change_event(repo, data_dir=DATA, runtime=RUNTIME_DIR):
+    """Apply the shipped, precomputed synthetic new-building scenario once on first start."""
+    from backend.api.passports import create_passport
+    from backend.contracts import Criterion, ParsedQuery, PassportCreate
+    path = Path(data_dir) / "seed" / "demo_change_event.json"
+    if not path.is_file():
+        return None
+    document = json.loads(path.read_text())
+    if document.get("schema_version") != 1 or document.get("synthetic") is not True:
+        raise ValueError("Shipped change scenario must be explicitly synthetic version 1")
+    hotel_id = document["hotel_id"]
+    if repo.get("hotels", hotel_id) is None or repo.get("change_events", change_id_for(hotel_id)):
+        return None
+    if not (Path(data_dir) / "geo" / Path(document["geo"]["artifact"]).name).is_file():
+        raise ValueError("Shipped change artifact is missing")
+    with _LOCK:
+        passport = document.get("passport")
+        if passport and not repo.find("expectation_passports", hotel_id=hotel_id):
+            criterion = Criterion(**passport["criterion"])
+            create_passport(PassportCreate(hotel_id=hotel_id, guest_name=passport["guest_name"],
+                                           parsed=ParsedQuery(text=passport["text"], must=[criterion])), repo)
+        trace = Trace(repo, "refresh", hotel_id=hotel_id, trigger="seed_synthetic_new_building")
+        return apply_change(repo, hotel_id, document["fixture"], {"geo": document["geo"], "claims": document["claims"]},
+                            trace, runtime=runtime, seeded=True)
 
 
 def refresh_expired(repo, *, data_dir=DATA, runtime=RUNTIME_DIR):

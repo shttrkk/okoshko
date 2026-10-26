@@ -40,6 +40,7 @@ def _rows(path: Path):
 def shipped_claims() -> list[dict]:
     rows = [row for path in LEDGERS for row in _rows(path)]
     rows.extend(json.loads((DATA / "seed/demo_hotelier_dialogues.json").read_text())["claims"])
+    rows.extend(json.loads((DATA / "seed/demo_change_event.json").read_text())["claims"])
     return rows
 
 

@@ -109,6 +109,10 @@ def load_seed(data_dir: Path = DATA):
         bootstrap_poi(get_repo(),data_dir)
         logging.info("Resolver materialized %s", resolve_all(get_repo()))
         seed_collect_run(get_repo())
+        from backend.agents.freshness import seed_change_event
+        event = seed_change_event(get_repo(), data_dir)
+        if event is not None:
+            logging.info("Synthetic new-building scenario applied to %s: %s notifications", event.affected_hotel_ids[0], len(event.notifications))
 
 
 # A real, completed collection trace on first start, so the agent page is not empty.

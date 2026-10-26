@@ -66,6 +66,9 @@ def read_geo(hotel_id: str, repo) -> dict:
         if artifact.startswith("/data/runtime/geo/"):
             filename = Path(artifact).name
             paths.append(runtime_dir() / "geo" / filename)
+        elif artifact.startswith("/data/geo/"):
+            # A shipped, precomputed synthetic change artifact.
+            paths.append(DATA / "geo" / Path(artifact).name)
     paths.extend([runtime_dir() / "geo" / (hotel_id + ".json"), DATA / "geo" / (hotel_id + ".json")])
     for path in paths:
         if path.is_file():
