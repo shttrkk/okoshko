@@ -24,7 +24,7 @@ import {
   photoLabel,
   type HotelPhoto,
 } from "./Photos";
-import { humanFact, MONTHS } from "./facts";
+import { humanFact, METHOD_NAMES, MONTHS, SOURCE_NAMES } from "./facts";
 import { useApp } from "../state";
 import type { Claim, Fact, Hotel, Scope, Verdict } from "../types";
 export const names: Record<string, string> = {
@@ -603,15 +603,32 @@ export function EvidenceModal({
         <div>
           <dt>Метод</dt>
           <dd>
-            {supporting.map((c) => c.method).join(", ") ||
-              "Метод не передан API"}
+            {[...new Set(supporting.map((c) => c.method))].map((m) => (
+              <span className="named-id" key={m}>
+                {METHOD_NAMES[m] || m}
+                {METHOD_NAMES[m] && <code>{m}</code>}
+              </span>
+            ))}
+            {!supporting.length && "Метод не передан API"}
           </dd>
         </div>
         <div>
           <dt>Источник</dt>
           <dd>
-            {supporting.map((c) => c.source).join(", ") ||
-              fact.evidence.flatMap((e) => e.source_ids).join(", ") ||
+            {[
+              ...new Set(
+                supporting.length
+                  ? supporting.map((c) => c.source)
+                  : fact.evidence.flatMap((e) => e.source_ids),
+              ),
+            ].map((src) => (
+              <span className="named-id" key={src}>
+                {SOURCE_NAMES[src] || src}
+                {SOURCE_NAMES[src] && <code>{src}</code>}
+              </span>
+            ))}
+            {!supporting.length &&
+              !fact.evidence.some((e) => e.source_ids.length) &&
               "Нет подтверждающего источника"}
           </dd>
         </div>

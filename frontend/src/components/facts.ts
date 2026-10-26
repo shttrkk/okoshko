@@ -262,3 +262,35 @@ export function humanFact(fact: Fact): string | null {
       return null;
   }
 }
+
+/** Plain-language names for claim methods and sources (ids stay visible). */
+export const METHOD_NAMES: Record<string, string> = {
+  two_scale_dsm_los_mc_v1:
+    "Линия видимости по рельефу и высотам зданий, 64 симуляции",
+  astral_monthly_horizon_mc_v1:
+    "Положение солнца по месяцам и закрытый горизонт, 64 симуляции",
+  outdoor_noise_proxy_v1: "Модель уличного шума по дорогам и железной дороге",
+  directed_graph_dijkstra_tobler_v1:
+    "Пеший маршрут по графу OSM с учётом уклона",
+  exact_quote_v1: "Дословная цитата с сайта отеля",
+  "local_poi_lookup@2": "Поиск ближайших объектов OSM",
+  "hotelier_answer@1": "Ответ отеля с цитатой",
+  "simulated_hotelier_quote@1": "Синтетический ответ отеля с цитатой",
+};
+export const SOURCE_NAMES: Record<string, string> = {
+  geo_engine: "Расчёт О!кно по OSM и Copernicus",
+  osm_geofabrik: "OpenStreetMap",
+  overture_buildings: "Overture Maps · здания",
+  overture_places: "Overture Maps · места",
+  copernicus_dem: "Copernicus DEM GLO-30",
+  open_meteo_aq: "Open-Meteo · качество воздуха",
+  open_meteo_archive: "Open-Meteo · архив погоды",
+  open_meteo_climate: "Open-Meteo · климат",
+  open_meteo_marine: "Open-Meteo · море",
+  hotel_website: "Официальный сайт отеля",
+  hotelier_simulator: "Синтетический отельер (демо)",
+  wikimedia_commons: "Wikimedia Commons",
+  wikidata: "Wikidata",
+  ookla: "Ookla Open Data",
+  protomaps: "Protomaps",
+};

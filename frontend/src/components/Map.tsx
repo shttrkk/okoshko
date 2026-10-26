@@ -21,6 +21,7 @@ import { api } from "../api";
 import type { Geo, Hotel } from "../types";
 import { useApp } from "../state";
 import { Empty, Modal } from "./ui";
+import { SIDES } from "./facts";
 const empty: GeoJSON.FeatureCollection = {
   type: "FeatureCollection",
   features: [],
@@ -1043,7 +1044,9 @@ export function GeoModal({
             onChange={(e) => setFacade(e.target.value)}
           >
             {geo.facades?.map((f) => (
-              <option key={f.code}>{f.code}</option>
+              <option key={f.code} value={f.code}>
+                {SIDES[f.code] || f.code}
+              </option>
             ))}
             {!geo.facades?.length && <option value="">Нет данных</option>}
           </select>
