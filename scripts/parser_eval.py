@@ -53,8 +53,8 @@ def criterion_multiset(value: dict) -> Counter:
                    for group in GROUPS for c in value.get(group, []))
 
 
-def parse_case(row: dict, catalog: list[CharacteristicSpec], hotels: list[Hotel]) -> dict:
-    parsed = parse_query(SearchRequest(text=row['text'], **row.get('request', {})), catalog)
+def parse_case(row: dict, catalog: list[CharacteristicSpec], hotels: list[Hotel], llm=None) -> dict:
+    parsed = parse_query(SearchRequest(text=row['text'], **row.get('request', {})), catalog, llm=llm)
     context = row.get('context', {})
     unavailable = set(context.get('no_data_ids', []))
     if unavailable:
