@@ -183,3 +183,5 @@
 - 27.10.2026 04:52: fix(ui): distinguish source reports from geometry models; 1133 passed, 1 warning, 125 subtests passed in 59.07s; Ruff и frontend lint PASS.
 
 - 27.10.2026 05:04: POI использует versioned bounded cache расстояний и targeted reader; 1000 Claim payloads и полный materialized output 250 объектов совпали. QA SQL reader 55 343 → 1 004 rows, 8,795 → 0,117 с (не HTTP SLA). 1156 passed, 1 warning, 125 subtests passed in 58.75s; Ruff/lint, rebuild,13demo-check/browser PASS.
+
+- 27.10.2026 05:48: family.crossings сохраняется как unknown без расчёта переходов; rail preflight проверяет реальные фасадные observers и сохраняет payload всех 250 объектов. 1163 tests + 125 subtests, Ruff/frontend lint, rebuild, 13 demo-check и Chrome browser smoke PASS. После заполнения host disk Docker восстановлен без сброса volumes; очищен только build cache, free 21 GiB.

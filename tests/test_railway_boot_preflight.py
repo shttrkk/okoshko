@@ -1,7 +1,9 @@
 """No-source boot shortcut keeps exact rail selection and unknown semantics."""
+import csv
 import gzip
 import json
 import os
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -49,8 +51,8 @@ def test_no_rail_sources_skips_full_region_with_the_identical_unknown_result(tmp
     assert actual == expected and actual["claims"] == [] and actual["warnings"] == [UNKNOWN]
 
 
-@pytest.mark.parametrize("distance,shortcut", [(249, False), (600, False), (649, False), (651, True)])
-def test_candidate_buffer_is_the_same_650m_domain_as_the_original_engine(tmp_path, distance, shortcut):
+@pytest.mark.parametrize("distance,shortcut", [(249, False), (600, True), (649, True), (651, True)])
+def test_candidate_buffer_and_actual_facade_observer_range_match_the_original_engine(tmp_path, distance, shortcut):
     rail = feature("rail", LineString([(X+distance, Y-10), (X+distance, Y+10)]), railway="rail")
     inputs(tmp_path, [rail])
     assert _railway_no_sources(HOTEL, tmp_path) is shortcut
@@ -61,6 +63,17 @@ def test_candidate_buffer_is_the_same_650m_domain_as_the_original_engine(tmp_pat
     if distance == 249:
         assert actual["claims"] and all(row["confidence"] == .32 for row in actual["claims"])
         assert all(row["scope"]["type"] == "facade" and row["value"]["sources"] == ["rail"] for row in actual["claims"])
+
+
+def test_sources_outside_500m_from_hotel_but_inside_observer_range_keep_known_noise(tmp_path):
+    rail = feature("rail", LineString([(X+600, Y-10), (X+600, Y+10)]), railway="rail")
+    inputs(tmp_path, [rail], building=box(X-120, Y-12, X+120, Y+12))
+    assert not _railway_no_sources(HOTEL, tmp_path)
+    with patch("geo.traits._railway_no_sources", return_value=False):
+        expected = compute_trait(HOTEL, tmp_path, "railway_noise")
+    actual = compute_trait(HOTEL, tmp_path, "railway_noise")
+    assert actual == expected and actual["claims"]
+    assert any(row["scope"]["facade"] == "E" for row in actual["claims"])
 
 
 def test_requested_building_outside_actual_1600m_domain_keeps_building_first_warning(tmp_path):
@@ -127,3 +140,13 @@ def test_changed_geometry_still_abstains_before_any_baseline_preflight(tmp_path)
     with patch("geo.traits._railway_no_sources", side_effect=AssertionError("Baseline must not be used")):
         result = compute_trait(HOTEL, tmp_path, "railway_noise", geo_artifact="/data/geo/rail-test-change.json")
     assert not result["claims"] and "Изменённая геометрия" in result["warnings"][0]
+
+
+def test_real_gamma_boot_case_abstains_without_initializing_full_region():
+    root = Path(__file__).resolve().parents[1]
+    with gzip.open(root / "data/seed/hotels.csv.gz", "rt", newline="") as stream:
+        hotel = next(json.loads(row["payload"]) for row in csv.DictReader(stream)
+                     if json.loads(row["payload"])["id"] == "osm-node-13825400642")
+    with patch("geo.traits.get_region", side_effect=AssertionError("Gamma needs no full Region for an unknown result")):
+        result = compute_trait(hotel, root / "data", "railway_noise")
+    assert result["claims"] == [] and result["warnings"] == [UNKNOWN]

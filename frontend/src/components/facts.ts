@@ -466,6 +466,7 @@ export function humanFact(
 
 /** Plain-language names for claim methods and sources (ids stay visible). */
 export const METHOD_NAMES: Record<string, string> = {
+  "local_poi_family@1": "Площадка и больница по OSM; переходы на пути не рассчитывались",
   osm_property_internet_access_v1:
     "Тег интернета у того же объекта OSM; без измерения скорости",
   two_scale_dsm_los_mc_v1:
