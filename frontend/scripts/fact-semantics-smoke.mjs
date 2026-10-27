@@ -547,7 +547,9 @@ try {
       resolveDir: new URL("..", import.meta.url).pathname,
       contents: `import React,{useState} from 'react';import {createRoot} from 'react-dom/client';
       import {FactsPanel,headline} from './src/components/FactsPanel.tsx';import {AppProvider} from './src/state.tsx';
+      import {humanFact} from './src/components/facts.ts';
       const seed=${JSON.stringify(seed)};
+      window.beachSummary=(name)=>humanFact({...seed.facts[0],characteristic_id:'beach_walk',value:{available:true,minutes:5,distance_m:380,beach_name:name}});
       function App(){const [normals,setNormals]=useState({N:340.9590477273491});const [facts,setFacts]=useState(seed.facts);
         window.normalFixture={setNormals,evidence:(values)=>setFacts(seed.facts.map(f=>({...f,evidence:values.map((n,i)=>({id:'e'+i,kind:'calculation',label:'Fixture',source_ids:['geo_engine'],inputs:{facade_azimuth_deg:n},output:{},limitations:[]}))}))),summary:()=>headline('sunset_view',facts,9,normals)};
         return React.createElement('div',{className:'page-container'},React.createElement(FactsPanel,{...seed,facts,claims:[],onEvidence:()=>{},facadeAzimuths:normals}));}
@@ -575,6 +577,25 @@ try {
     type: "module",
     content: bundled.outputFiles[0].text,
   });
+  await normalPage.waitForFunction(
+    () => typeof window.beachSummary === "function",
+  );
+  for (const name of [
+    "OSM osm-way-248628882",
+    "Пляж OSM osm-way-248628882",
+    "",
+  ]) {
+    const text = await normalPage.evaluate(
+      (value) => window.beachSummary(value),
+      name,
+    );
+    assert.match(text, /до ближайшего пляжа/);
+    assert.doesNotMatch(text, /osm-way|«»/i);
+  }
+  assert.match(
+    await normalPage.evaluate(() => window.beachSummary("Ривьера")),
+    /до пляжа «Ривьера»/,
+  );
   const panel = normalPage.getByTestId("fact-card-sunset_view");
   await panel.waitFor();
   await openTechnicalFact(panel);

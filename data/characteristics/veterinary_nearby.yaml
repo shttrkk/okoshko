@@ -1,0 +1,54 @@
+id: veterinary_nearby
+version: 1
+name_ru: Ветклиника рядом
+display_name: Ветклиника рядом
+description: Пеший маршрут по карте до ветклиники, не более 15 минут. Часы и наличие
+  экстренной помощи неизвестны.
+category: Окружение
+synonyms:
+- ветклиника рядом
+- ветеринар рядом
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+    minutes:
+      type:
+      - number
+      - 'null'
+    distance_m:
+      type:
+      - number
+      - 'null'
+    ascent_m:
+      type:
+      - number
+      - 'null'
+  required:
+  - available
+  additionalProperties: true
+methods:
+- tool: prepared_observation
+  params:
+    kind: veterinary_nearby
+    near_minutes: 15
+    snap_limit_m: 120
+  rationale: Пеший маршрут по карте до ветклиники, не более 15 минут. Часы и наличие
+    экстренной помощи неизвестны.
+ttl_days: 90
+change_triggers:
+- kind: source_snapshot_changed
+search:
+  kind: numeric
+  field: minutes
+  default_op: lte
+  default_value: 15
+  explain_ok: Ветклиника рядом — есть данные по карте
+  explain_bad: Условие не подтверждено рассчитанным значением; отсутствие данных остаётся
+    неизвестным
+hotelier_answerable: false
+status: active

@@ -37,3 +37,33 @@ def test_geo_reads_only_requested_hotel_facts(tmp_path, monkeypatch):
     with patch('backend.nearby.linked_places', return_value={'type': 'FeatureCollection', 'features': []}) as points:
         catalog.read_geo('test-hotel', repo)
     assert [fact['id'] for fact in points.call_args.args[0]] == ['ours']
+
+
+def test_geo_passes_selected_room_and_durable_changes_to_saved_landmark_layer(tmp_path, monkeypatch):
+    repo = ApiRepo()
+    directory = tmp_path / 'geo'
+    directory.mkdir()
+    (directory / 'test-hotel.json').write_text(json.dumps({'hotel_id': 'test-hotel', 'facades': []}))
+    monkeypatch.setattr(catalog, 'DATA', tmp_path)
+    monkeypatch.setattr(catalog, 'runtime_dir', lambda: tmp_path / 'runtime')
+    changes = [{'id': 'event', 'kind': 'osm_building_new', 'affected_hotel_ids': ['test-hotel'],
+                'payload': {'geo_artifact': '/data/geo/test-hotel.json'}}]
+    layer = {'landmark_rays': {'type': 'FeatureCollection', 'features': []},
+             'landmark_metadata': [{'landmark_id': 'fisht', 'height_available': False}]}
+    with patch('geo.tz_overlay.landmark_overlay', return_value=layer) as overlay:
+        result = catalog.read_geo('test-hotel', repo, month=10, facade='W', floor=5, events=changes)
+    assert overlay.call_args.args == ('test-hotel', 10, 'W', 5)
+    assert overlay.call_args.kwargs == {'data_dir': tmp_path, 'events': changes}
+    assert result['landmark_metadata'][0]['height_available'] is False
+
+
+def test_compact_values_keep_unknowns_route_metrics_and_target_identity_without_raw_indexes():
+    value = {'available': None, 'unknown_reason': 'height unavailable', 'landmark_id': 'fisht',
+             'target': {'raw': [1, 2]}, 'blocking_building_ids': ['b'],
+             'route': {'minutes': 6.7, 'distance_m': 500, 'has_steps': False, 'node_ids': [1, 2]},
+             'water_c': 22.1, 'annual_samples': [{'year': 2025}], 'rainy_days': 10}
+    result = catalog.compact_fact_value(value)
+    assert result == {'available': None, 'unknown_reason': 'height unavailable', 'landmark_id': 'fisht',
+                      'route': {'minutes': 6.7, 'distance_m': 500, 'has_steps': False},
+                      'water_c': 22.1, 'rainy_days': 10}
+    assert value['blocking_building_ids'] == ['b'] and value['route']['node_ids'] == [1, 2]

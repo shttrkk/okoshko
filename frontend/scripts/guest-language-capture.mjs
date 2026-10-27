@@ -467,6 +467,7 @@ export async function captureGuestPages({
           isMobile: viewport.width === 390,
           hasTouch: viewport.width === 390,
         });
+        await blockYandex(context);
         await context.addInitScript((value) => {
           localStorage.setItem("okno-theme", value);
         }, theme);

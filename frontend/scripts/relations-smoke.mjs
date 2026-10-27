@@ -513,7 +513,7 @@ try {
     (query) => sessionStorage.setItem("okno-parsed", JSON.stringify(query)),
     parsed,
   );
-  await page.route("https://yandex.ru/**", (route) =>
+  await page.route(/yandex\.|ya\.ru|mapillary/i, (route) =>
     route.fulfill({
       contentType: "text/html",
       body: "<p>Panorama embed intercepted by the browser test.</p>",

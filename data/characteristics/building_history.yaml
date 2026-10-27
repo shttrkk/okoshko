@@ -2,7 +2,8 @@ id: building_history
 version: 1
 name_ru: История здания
 display_name: История здания
-description: История здания — подтверждённые данные с указанием источника и ограничений
+description: 'История точно связанного OSM объекта: метаданные отдельно от явного
+  исторического/охранного статуса. start_date отеля не равен дате постройки.'
 category: Окружение
 synonyms:
 - история
@@ -16,12 +17,37 @@ value_schema:
       type:
       - boolean
       - 'null'
+    history_information:
+      type:
+      - boolean
+      - 'null'
+    historic_designation:
+      type:
+      - boolean
+      - 'null'
+    explicit_building_date:
+      type:
+      - string
+      - 'null'
+    architecture:
+      type:
+      - string
+      - 'null'
+    records:
+      type: array
+      items:
+        type: object
   additionalProperties: true
 methods:
 - tool: wikidata_lookup
   params: {}
   rationale: История здания — подтверждённые данные с указанием источника и ограничений
   when: null
+- tool: prepared_observation
+  params:
+    kind: building_history
+  rationale: Дополнительные явные поля открытых данных; исходное available и прямая
+    дистанция не переопределяются
 combine: null
 ttl_days: 180
 change_triggers: []
@@ -30,7 +56,8 @@ search:
   field: available
   default_op: eq
   default_value: true
-  explain_ok: История здания — условие выполнено
+  explain_ok: Для исторического здания требуется явный historic_designation; метаданные
+    history_information не доказывают возраст
   explain_bad: История здания — условие не выполняется
 hotelier_answerable: false
 status: active

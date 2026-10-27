@@ -125,6 +125,7 @@ class Registry:
                   "kind":{"type":"string","enum":["pharmacy","family","car","nightlife"]},"radius_m":{"type":"number","minimum":50,"maximum":5000},
                   "category":{"type":"string","enum":sorted(POI_CATEGORIES)},"near_m":{"type":"number","minimum":50,"maximum":5000},
                   "open_at":{"type":"string","enum":["02:00"]},"expr":{"type":"string","maxLength":2000}},"additionalProperties":False}
+        schema["properties"]["landmark_id"] = {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$", "maxLength": 64}
         for id, description in {
             "viewshed_facade":"Лучевая видимость по DSM, фасаду и этажу, Monte Carlo и список препятствий",
             "sun_window":"Положение солнца и профиль горизонта по месяцам",
@@ -149,6 +150,25 @@ class Registry:
                                "required": ["kind"], "additionalProperties": False}, prior_reliability=.5,
         )
         self.handlers["geo_trait"] = self._geo_trait
+        from backend.tools.tz_observation import STAGES, prepared_observations
+        extra_parameters = {
+            "corridor_extension_m": (1000, 20000), "corridor_half_width_m": (100, 3000), "nearby_m": (100, 10000),
+            "near_minutes": (1, 90), "snap_limit_m": (1, 200), "radius_m": (50, 5000),
+            "sunny_hours": (1, 24), "rainy_mm": (.1, 100), "wet_month_days": (1, 31),
+            "comfortable_c": (10, 35), "cool_c": (0, 30), "arrival_threshold_m": (1, 100),
+            "sector_deg": (1, 90), "max_distance_m": (100, 30000),
+            "facade_distance_m": (1, 500), "facade_sector_deg": (1, 90), "max_verification_age_days": (1, 365),
+            "airport_radius_m": (50, 1500), "airport_walk_minutes": (1, 60), "hotel_walk_minutes": (1, 60),
+        }
+        self.specs["prepared_observation"] = ToolSpec(
+            id="prepared_observation", description="Подготовленные дополнительные расчёты по открытым данным; без догадок и сети",
+            parameters_schema={"type": "object", "properties": {"kind": {"type": "string", "enum": sorted(STAGES)},
+                               "airport_iata": {"type": "string", "pattern": "^[A-Z]{3}$", "maxLength": 3},
+                               "landmark_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$", "maxLength": 64},
+                               **{name: {"type": "number", "minimum": low, "maximum": high} for name, (low, high) in extra_parameters.items()}},
+                               "required": ["kind"], "additionalProperties": False}, prior_reliability=.55,
+        )
+        self.handlers["prepared_observation"] = lambda context, call: prepared_observations(self.data_dir, context, call.params, events=self.repo.all("change_events") if self.repo is not None else ())
 
     def list(self):
         return list(self.specs.values())
@@ -163,6 +183,9 @@ class Registry:
         return self.handlers[call.tool](context, call)
 
     def _cached(self, context, call):
+        if call.tool == "viewshed_facade" and call.params.get("target") == "landmark":
+            from backend.tools.tz_observation import prepared_observations
+            return prepared_observations(self.data_dir, context, {"kind": "landmark_view", **call.params}, events=self.repo.all("change_events") if self.repo is not None else ())
         canonical = {"sun_window":"sunset_view","noise_facade":"quiet_night","walk_route":"beach_walk",
                      "climate":"climate","air_quality":"air_quality","connectivity":"connectivity",
                      "wikidata_lookup":"building_history","photos_nearby":"nearby_photos"}.get(call.tool)

@@ -9,6 +9,9 @@ import json
 import re
 from datetime import date
 from functools import lru_cache
+from pathlib import Path
+
+import yaml
 
 from backend.agents.query_rules import validate_query_plan
 from backend.agents.query_text import (
@@ -74,6 +77,7 @@ RULES['evening_heat'] += r'|\b(?:поменьше\s+вечерн\w*\s+солнц
 RULES['beach_surface'] += r'|\bпесок\b[^,;.!?]{0,30}\bна\s+пляж\w*'
 RULES['nearby_photos'] += r'|\b(?:фотографи\w*|снимк\w*)\s+(?:его\s+)?(?:окрестност\w*|район\w*)'
 RULES['beach_walk'] += r'|\b(?:море|пляж\w*)\s+(?:совсем\s+)?(?:недалеко|близко)\b|\bблизко\s+к\s+(?:морю|пляжу)\b'
+RULES['climate'] += r'|еще\s+купа\w*|тепло\s+в\s+(?:октябр\w*|ноябр\w*|сентябр\w*)'
 # "подальше от баров" asks for a calm area: the same measurement, opposite threshold.
 AWAY = r"(?:подальше|вдали|далеко|подальш\w*)\s+от\s+$"
 CALM_VENUES_MAX = 10
@@ -94,6 +98,201 @@ FIELD_LABELS.update({('nightlife', 'bars_500m'): ('Бары и клубы в 500
                      ('night_pharmacy', 'minutes'): ('Ночная аптека', 'мин пешком')})
 CAR_PARKING = r"\bпарков\w*|\bприпарков\w*|на машин\w*|на авто\w*|\bподъезд\w*|\bподъехать\b"
 CAR_CHARGING = r"\bзарядк\w*\s+для\s+(?:электромобил|электрокар)\w*|\bэлектромобил\w*|\bэлектрокар\w*|\bзарядк\w*|\bзарядн\w* станц\w*"
+
+# These patterns select facts/fields, never supply hotel observations. Keeping
+# the new domains separate avoids changing the meaning of old catalogue nouns.
+LANDMARK_NAMES = {
+    'sea_terminal': r'морск\w*\s+вокзал\w*|sea terminal',
+    'winter_theatre': r'зимн\w*\s+театр\w*|winter theat(?:re|er)',
+    'bolshoy': r'(?:ледов\w*\s+двор\w*\s+)?[«"]?большой[»"]?|bolshoy',
+    'fisht': r'фишт\w*|fisht',
+    'olympic_park': r'олимпийск\w*\s+парк\w*|olympic park',
+    'sochi_lighthouse': r'(?:сочинск\w*\s+)?маяк\w*|lighthouse',
+    'akhun_tower': r'(?:башн\w*\s+(?:на\s+)?)?ахун\w*|akhun tower',
+    'olympic_flame': r'чаш\w*\s+олимпийск\w*\s+огн\w*',
+}
+LANDMARK_CATALOGUE = Path(__file__).resolve().parents[2] / 'data/landmarks/sochi.yaml'
+BLACKOUT_PATTERN = r'бл[эе]каут\w*|blackout|(?:плотн\w*|светонепроницаем\w*)\s+штор\w*|штор\w*[^,;.]{0,30}затемня\w*|темно\s+в\s+номер\w*|затемнени\w*\s*(?:номер\w*)?'
+TZ_PATTERNS = {
+    'airport_noise': r'(?:далеко|подальше|вдали|рядом|близко|недалеко)\s+(?:с\s+|к\s+|от\s+)?аэропорт\w*|(?:без\s+шума|не\s+слыш\w*)\s+самолет\w*|шум\w*\s+самолет\w*',
+    'airport_transfer': r'(?:из|от)\s+аэропорт\w*[^,;.!?]{0,65}(?:пересад\w*|транспорт\w*|ночью|добират\w*)|(?:удобно\s+)?(?:добират\w*|дорог\w*|трансфер\w*)\s+(?:из|от)\s+аэропорт\w*',
+    'landmark_view': r'вид\w*\s+на\s+достопримечательност\w*',
+    'night_open': r'(?:круглосуточн\w*|ночн\w*)\s+(?:магазин\w*|супермаркет\w*|кафе|ресторан\w*)|(?:магазин\w*|супермаркет\w*|кафе|ресторан\w*)\s+(?:работа\w*\s+)?ночью|(?:где\s+)?поесть\s+ночью|ед\w*\s+ночью',
+    'car_arrival': r'подъехать\s+(?:на\s+машин\w*\s+)?(?:прямо\s+)?к\s+(?:вход\w*|отел\w*|двер\w*)|подъезд\w*\s+к\s+(?:вход\w*|отел\w*)|пешеходн\w*\s+зон\w*',
+    'hotel_parking': r'(?:сво\w*|собственн\w*|частн\w*)\s+парковк\w*|парковк\w*\s+(?:самого\s+)?отел\w*',
+    'mobile_masts': r'(?:мобильн\w*\s+)?вышк\w*\s+(?:связ\w*|рядом)|мачт\w*\s+связ\w*',
+    'mobile_internet': r'\b[45]g\b|мобильн\w*\s+(?:интернет\w*|связ\w*|покрыти\w*)',
+    'photo_features': r'(?:по\s+фото|на\s+фото|фотографи\w*\s+здани\w*)[^,;.!?]{0,45}(?:балкон\w*|террас\w*|бассейн\w*)|террас\w*\s+на\s+крыш\w*',
+    'events_nearby': r'(?:без\s+)?(?:мероприяти\w*|событи\w*|перекрыти\w*)\s+(?:рядом|поблизости|в\s+даты\w*)',
+    'construction_nearby': r'(?:без\s+)?стройк\w*\s+(?:под\s+окн\w*|рядом|поблизости)|строительств\w*\s+(?:под\s+окн\w*|рядом)',
+    'dog_walk': r'площадк\w*\s+для\s+выгул\w*|(?:выгул\w*|гулять)\s+(?:с\s+)?собак\w*\s+рядом|собач\w*\s+площадк\w*',
+    'veterinary_nearby': r'ветклиник\w*|ветеринар\w*(?:\s+рядом)?',
+    'pet_shop_nearby': r'зоомагазин\w*',
+    'climate_days': r'солнечн\w*\s+дн\w*|(?:без\s+)?дожд\w*|сезон\w*\s+дожд\w*',
+    'location_access': r'\bметро\b|(?:рядом|близко|недалеко)\s+(?:с\s+|к\s+|от\s+)?(?:станци\w*|остановк\w*)|(?:станци\w*|остановк\w*)\s+рядом|(?:до|у)\s+(?:станци\w*|остановк\w*)|(?:в\s+)?центр\w*',
+}
+
+
+@lru_cache(maxsize=8)
+def _catalogue_landmark_patterns(path: str, _version: tuple[int, ...]) -> tuple[tuple[str, str], ...]:
+    try:
+        catalogue = yaml.safe_load(Path(path).read_text(encoding='utf-8'))
+    except (OSError, ValueError, yaml.YAMLError):
+        return ()
+    if not isinstance(catalogue, dict) or not isinstance(catalogue.get('landmarks'), list):
+        return ()
+    result = []
+    for row in catalogue['landmarks']:
+        if not isinstance(row, dict) or not isinstance(row.get('id'), str) or not re.fullmatch(r'[a-z][a-z0-9_]{0,79}', row['id']):
+            continue
+        aliases = [row.get('name')]
+        for key in ('aliases', 'synonyms'):
+            if isinstance(row.get(key), list):
+                aliases.extend(row[key])
+        patterns = {_phrase_pattern(re.sub(r'\([^)]*\)|\bсочи\b', '', alias, flags=re.IGNORECASE)) for alias in aliases
+                    if isinstance(alias, str) and alias.strip() and len(alias) <= 240}
+        if patterns:
+            result.append((row['id'], '(?:' + '|'.join(sorted(patterns, key=len, reverse=True)) + ')'))
+    return tuple(result)
+
+
+def landmark_patterns() -> dict[str, str]:
+    """Recognize curated names/aliases; legacy forms remain language compatibility.
+
+    Names select a target only. Height, contour and calculated visibility still
+    have to come from the prepared observations, including for a new YAML row.
+    """
+    patterns = dict(LANDMARK_NAMES)
+    try:
+        stat = LANDMARK_CATALOGUE.stat()
+    except OSError:
+        return patterns
+    version = (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+    for identity, pattern in _catalogue_landmark_patterns(str(LANDMARK_CATALOGUE), version):
+        patterns[identity] = '(?:' + patterns[identity] + '|' + pattern + ')' if identity in patterns else pattern
+    return patterns
+
+
+def landmark_mentions(text: str) -> list[tuple[str, re.Match]]:
+    return [(identity, match) for identity, pattern in landmark_patterns().items()
+            for match in re.finditer(pattern, text)]
+
+
+def _tz_conditions(spec: CharacteristicSpec, text: str):
+    """Return explicit local intents, or None for the established parser path."""
+    cid = spec.id
+    if cid not in TZ_PATTERNS:
+        return None
+    pattern = TZ_PATTERNS[cid]
+    if cid == 'landmark_view':
+        pattern = r'вид\w*\s+на\s+(?:достопримечательност\w*|' + '|'.join(landmark_patterns().values()) + ')'
+    matches = list(re.finditer(pattern, text))
+    result = []
+    for match in matches:
+        if not valid_intent_match(cid, text, match):
+            continue
+        soft, negative, skip = _importance(text, match.start(), match.end())
+        if skip:
+            continue
+        field, op, value, label, scope = 'available', 'eq', True, spec.name_ru, None
+        phrase = match[0]
+        left, right = clause_bounds(text, match.start(), match.end())
+        clause = text[left:right]
+        if cid == 'airport_noise':
+            avoid = bool(re.search(r'далеко|подальше|вдали|без\s+шума|не\s+слыш', phrase))
+            if re.search(r'без\s+шума|не\s+слыш', phrase):
+                # No public acoustic measurement establishes audibility. This
+                # hard condition deliberately remains unknown; geometry is a
+                # separate, explicitly approximate preference.
+                field, op, value, label = 'noise_db', 'lte', 0, 'Не слышно самолётов (измерений нет)'
+                proxy = Criterion(characteristic_id=cid, label='Дальше от аэропорта по карте',
+                                  field='runway_distance_m', op='gte', value=3000)
+                result.append((match, True, proxy))
+            else:
+                field, op, value = 'runway_distance_m', 'gte' if avoid else 'lte', 3000
+                label = 'До взлётной полосы по карте'
+        elif cid == 'airport_transfer':
+            if re.search(r'без\s+пересад', clause):
+                field, op, value, label = 'transfers', 'lte', 0, 'Из аэропорта без пересадок по карте'
+            elif re.search(r'ночью|ночн', clause):
+                field, label = 'night_service', 'Транспорт из аэропорта ночью'
+            elif re.search(r'\d+\s*мин', clause):
+                field, op, value = 'scheduled_minutes', 'lte', 60
+                label = 'Время транспорта из аэропорта'
+        elif cid == 'landmark_view':
+            identities = landmark_mentions(phrase)
+            if identities:
+                identity = identities[0][0]
+                scope = Scope(landmark_id=identity)
+                label = 'Вид на ' + identities[0][1][0]
+            value = not negative
+        elif cid == 'night_open':
+            kind = 'shop' if re.search(r'магазин|супермаркет', phrase) else 'food'
+            field, label = kind + '.available', 'Магазин ночью' if kind == 'shop' else 'Где поесть ночью'
+            numeric = _numeric(text, match.start(), match.end(), 'minutes', 'lte', None)
+            if numeric[1] is not None:
+                field, (op, value) = kind + '.minutes', numeric
+        elif cid == 'hotel_parking':
+            field, label, value = 'private_parking', 'Своя парковка отеля', not negative
+        elif cid == 'car_arrival':
+            label, value = 'Подъезд к входу по карте', not bool(re.search(r'пешеходн', phrase))
+        elif cid == 'mobile_masts':
+            if re.search(r'вышк|мачт', phrase):
+                field, op, value, label = 'mapped_count', 'gte', 1, 'Мачты связи, отмеченные на карте'
+            else:
+                label = 'Мобильное покрытие ' + (re.search(r'[45]g', phrase)[0].upper() if re.search(r'[45]g', phrase) else 'и скорость')
+        elif cid == 'mobile_internet':
+            generation = re.search(r'[45]g', phrase)
+            if generation:
+                field, value, label = 'radio_generation', generation[0].upper(), 'Мобильное покрытие ' + generation[0].upper()
+            else:
+                field, op, value = 'download_mbps', 'gte', spec.search.default_value
+                op, value = _numeric(text, match.start(), match.end(), field, op, value)
+                label = 'Мобильный интернет в районе'
+        elif cid == 'photo_features':
+            field = 'terrace' if re.search(r'террас', phrase) else 'pool' if re.search(r'бассейн', phrase) else 'balcony'
+            label = {'terrace': 'Терраса по явным данным', 'pool': 'Бассейн по явным данным', 'balcony': 'Балконы по явным данным'}[field]
+        elif cid == 'events_nearby':
+            value, label = not bool(re.search(r'без', phrase) or negative), 'Мероприятия рядом в даты поездки'
+        elif cid == 'construction_nearby':
+            value, label = not bool(re.search(r'без', phrase) or negative), 'Текущая стройка рядом'
+        elif cid == 'dog_walk':
+            field = 'dog_park.available'
+        elif cid == 'climate_days':
+            if re.search(r'солнечн', phrase):
+                field, op, value, label = 'sunny_days', 'gte', 1, 'Солнечные дни по климатическим данным'
+            else:
+                field, value = 'wet_month_proxy', not bool(re.search(r'без', phrase) or negative)
+                label = 'Без дождливого сезона' if not value else 'Дождливый сезон'
+        elif cid == 'location_access':
+            if re.search(r'метро', phrase):
+                field, label = 'metro.available', 'Рядом с метро'
+            elif re.search(r'станци', phrase):
+                field, label = 'station_route.available', 'Станция электрички рядом'
+            elif re.search(r'остановк', phrase):
+                field, label = 'bus_stop_route.available', 'Остановка рядом'
+            elif re.search(r'до\s+центр\w*', clause):
+                field, label = 'center_route.available', 'Пеший путь до центра'
+            else:
+                field, label = 'in_central_sochi', 'В центре Сочи'
+            route = field.split('.')[0]
+            if route.endswith('_route'):
+                numeric = _numeric(text, match.start(), match.end(), 'minutes', 'lte', None)
+                if numeric[1] is not None:
+                    field, (op, value) = route + '.minutes', numeric
+        if cid in {'veterinary_nearby', 'pet_shop_nearby'}:
+            numeric = _numeric(text, match.start(), match.end(), 'minutes', 'lte', None)
+            if numeric[1] is not None:
+                field, (op, value) = 'minutes', numeric
+        if negative and isinstance(value, bool) and cid not in {'airport_noise', 'landmark_view', 'hotel_parking', 'construction_nearby', 'climate_days'}:
+            value = not value
+        if field in {'scheduled_minutes', 'sunny_days'}:
+            op, value = _numeric(text, match.start(), match.end(), 'minutes' if field == 'scheduled_minutes' else field, op, value)
+        criterion = Criterion(characteristic_id=cid, label=label, field=field, op=op, value=value, scope=scope)
+        if op in {'lte', 'gte'} and field.endswith('minutes'):
+            criterion.label = _criterion_label(criterion, label, 'мин пешком' if field != 'scheduled_minutes' else 'мин по расписанию')
+        result.append((match, soft, criterion))
+    return result
 
 
 def normalized(text: str) -> str:
@@ -382,6 +581,8 @@ def _numeric_range(text: str, start: int, end: int, field: str) -> list[tuple[st
 
 
 def _unsupported_measurement(text: str, match, cid: str) -> tuple[str, str] | None:
+    if cid == 'family_nearby' and re.search(r'детск\w*\s+больниц\w*|пешеходн\w*\s+улиц\w*', match[0]):
+        return None
     unsupported = {
         'car_access': r'мин(?:ут\w*)?|час\w*|секунд\w*|шаг\w*|остановк\w*|руб\w*|₽|мест\w*',
         'family_nearby': r'мин(?:ут\w*)?|час\w*|секунд\w*|шаг\w*',
@@ -667,9 +868,30 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
     for spec in catalog:
         if spec.status != "active":
             continue
+        additions = _tz_conditions(spec, text)
+        if additions is not None:
+            for mention, soft, criterion in additions:
+                positions.setdefault(spec.id, mention.start())
+                consumed.append((mention.start(), mention.end()))
+                left, right = clause_bounds(text, mention.start(), mention.end())
+                consumed.extend((m.start(), m.end()) for m in re.finditer(r'\bрядом\b|\bпоблизости\b', text, )
+                                if left <= m.start() < right and min(abs(m.start()-mention.end()), abs(mention.start()-m.end())) < 25)
+                if criterion.scope and spec.scope != 'hotel':
+                    criterion.scope = criterion.scope.model_copy(update={
+                        'facade': parsed.facade, 'floor_min': parsed.min_floor, 'floor_max': hard_floor_max})
+                (parsed.nice if soft else parsed.must).append(criterion)
+            if spec.id == 'location_access' and any(c.field == 'metro.available' for _, _, c in additions):
+                warnings.append('В Сочи нет метро. Показываем сведения о пешем пути до станции электрички и остановки.')
+            continue
         matches = [m for phrase in [spec.name_ru, *spec.synonyms] for m in re.finditer(_phrase_pattern(phrase), text)]
         if spec.id in RULES:
             matches += list(re.finditer(RULES[spec.id], text))
+        if spec.id == 'soundproofing':
+            matches += list(re.finditer(BLACKOUT_PATTERN, text))
+        if spec.id == 'building_history':
+            matches += list(re.finditer(r'историческ\w*\s+здани\w*|старинн\w*\s+(?:отел\w*|здани\w*)|в\s+особняк\w*|\bсталинк\w*', text))
+        if spec.id == 'family_nearby':
+            matches += list(re.finditer(r'детск\w*\s+больниц\w*|пешеходн\w*\s+улиц\w*\s+рядом', text))
         matches += _contextual_nouns(spec.id, text)
         if spec.id == 'car_access':
             matches += list(re.finditer(CAR_CHARGING, text))
@@ -733,6 +955,8 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             noise_op, noise_value = _numeric(text, match.start(), match.end(), 'night_db_max', 'lte', None)
             if noise_value is not None:
                 field, op, value = 'night_db_max', noise_op, noise_value
+        elif spec.id == 'climate' and re.search(r'тепло\s+в', match[0]):
+            field, op, value = 'air_c', 'gte', 20
         elif spec.id == "car_access" and re.search(CAR_CHARGING, text) and not re.search(CAR_PARKING, text):
             field, op, value = "ev_distance_m", "lte", EV_CHARGING_NEAR_M
         anchors = {
@@ -799,11 +1023,18 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             matched_text = match[0]
             if re.search(r"двойн\w* (?:ок|стеклопакет)", matched_text):
                 field, value = "windows", "double"
-            elif re.search(r"блэкаут|(?:плотн\w*|светонепроницаем\w*) штор|штор\w*.*затемня", matched_text):
+            elif re.search(BLACKOUT_PATTERN, matched_text):
                 predicate_negative = bool(re.search(r'\bне\s+(?:(?:долж\w*|полностью)\s+){0,2}затемня\w*', matched_text))
                 field, value = "blackout", not (negative ^ predicate_negative)
             elif re.search(r"кондиционер", matched_text):
                 field, value = "air_conditioning", not negative
+        if spec.id == 'family_nearby' and re.search(r'детск\w*\s+больниц', match[0]):
+            field, op, value = 'walk_children_hospital.available', 'eq', not negative
+            comparison = _numeric(text, match.start(), match.end(), 'minutes', 'lte', None)
+            if comparison[1] is not None:
+                field, (op, value) = 'walk_children_hospital.minutes', comparison
+        if spec.id == 'family_nearby' and re.search(r'пешеходн\w*\s+улиц', match[0]):
+            field, op, value = 'walk_promenade.available', 'eq', not negative
         if spec.id == "room_orientation" and re.search(r"балкон", match[0]):
             field, value = "balcony", not negative
         if spec.id == 'beach_surface':
@@ -824,14 +1055,28 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             scope = Scope(facade=facade_match[0] if facade_match else parsed.facade,
                           floor_min=requested_floor, floor_max=requested_max)
         criterion = Criterion(characteristic_id=spec.id, label=spec.name_ru, field=field, op=op, value=value, scope=scope)
+        target = next((call.params.get('landmark_id') for call in spec.methods
+                       if call.tool == 'viewshed_facade' and call.params.get('target') == 'landmark'), None)
+        if target:
+            criterion.scope = (scope or Scope()).model_copy(update={'landmark_id': target})
         if not unsupported_negative:
             (parsed.nice if soft else parsed.must).append(criterion)
+        if spec.id == 'building_history':
+            left, right = clause_bounds(text, match.start(), match.end())
+            for extra in re.finditer(r'\b(1[5-9]\d{2})\s*(?:года|год\b|г\.)', text[left:right]):
+                consumed.append((left+extra.start(), left+extra.end()))
+                (parsed.nice if soft else parsed.must).append(Criterion(characteristic_id=spec.id,
+                    label='Год постройки по источнику: ' + extra[1], field='explicit_building_date', op='contains', value=extra[1]))
+            for extra in re.finditer(r'\bмодерн(?:а|е|ом)?\b|\bart nouveau\b', text[left:right]):
+                consumed.append((left+extra.start(), left+extra.end()))
+                (parsed.nice if soft else parsed.must).append(Criterion(characteristic_id=spec.id,
+                    label='Архитектура: модерн', field='architecture', op='contains', value='art_nouveau'))
         if nearby_preference:
             nearby_soft, nearby_criterion = nearby_preference
             nearby_criterion.label = _criterion_label(nearby_criterion, spec.name_ru)
             (parsed.nice if nearby_soft else parsed.must).append(nearby_criterion)
         if spec.id == "soundproofing":
-            for extra_field, pattern, extra_value in [("windows", r"двойн\w* (?:ок\w*|стеклопакет\w*)", "double"), ("blackout", r"блэкаут\w*|(?:плотн\w*|светонепроницаем\w*) штор\w*|штор\w*[^,;.]{0,30}затемня\w*", True), ("air_conditioning", r"кондиционер\w*", True)]:
+            for extra_field, pattern, extra_value in [("windows", r"двойн\w* (?:ок\w*|стеклопакет\w*)", "double"), ("blackout", BLACKOUT_PATTERN, True), ("air_conditioning", r"кондиционер\w*", True)]:
                 for extra in re.finditer(pattern, text):
                     extra_soft, extra_negative, extra_skip = _importance(text, extra.start(), extra.end())
                     if extra_field == 'blackout' and re.search(r'\bне\s+(?:(?:долж\w*|полностью)\s+){0,2}затемня\w*', extra[0]):
@@ -1027,6 +1272,11 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
     if not any(c.characteristic_id == 'pets' and c.value is True for c in criteria):
         parsed.pet_weight_kg = None
     parsed.suggestions = _query_suggestions(parsed, catalog)
+    if (re.search(r'\bвыспаться\b', text) and not re.search(BLACKOUT_PATTERN, text)
+            and any(spec.id == 'soundproofing' and spec.status == 'active' for spec in catalog)):
+        parsed.suggestions = [QuerySuggestion(label='Добавить: плотные шторы',
+            criterion=Criterion(characteristic_id='soundproofing', label='Плотные шторы',
+                                field='blackout', value=True), fragment='выспаться'), *parsed.suggestions][:2]
     return parsed
 
 

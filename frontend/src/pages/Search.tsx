@@ -47,6 +47,7 @@ import {
   Empty,
   ErrorState,
   EvidenceModal,
+  ContextEvidence,
   HotelVisual,
   Art,
   Loading,
@@ -1203,10 +1204,18 @@ function SearchCard({
                 </ul>
               )}
               {hit.verdicts.map((verdict, index) => (
-                <p key={index}>
-                  {guestText(verdict.text, verdict.synthetic)}{" "}
-                  {verdictCaveat(verdict)}
-                </p>
+                <div key={index}>
+                  <p>
+                    {guestText(verdict.text, verdict.synthetic)}{" "}
+                    {verdictCaveat(verdict)}
+                  </p>
+                  {!!verdict.context_fact_ids?.length && (
+                    <ContextEvidence
+                      hotelId={hit.hotel.id}
+                      factIds={verdict.context_fact_ids}
+                    />
+                  )}
+                </div>
               ))}
               {reasons.length > 0 && (
                 <details data-testid={`search-reasons-${hit.hotel.id}`}>

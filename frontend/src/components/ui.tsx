@@ -29,6 +29,7 @@ import {
   type HotelPhoto,
 } from "./Photos";
 import { humanFact, METHOD_NAMES, MONTHS, SOURCE_NAMES } from "./facts";
+import { landmarkLabel, PLACE_NAMES } from "./tz-facts";
 import {
   DEMO_REPLY,
   DEMO_EXPLANATION,
@@ -50,6 +51,7 @@ import {
 import { useApp } from "../state";
 import type { Claim, Fact, Hotel, Scope, Verdict } from "../types";
 export const names: Record<string, string> = {
+  ...PLACE_NAMES,
   sea_view: "Вид на море",
   sunset_view: "Закат из окна",
   mountain_view: "Вид на горы",
@@ -98,6 +100,7 @@ export function scopeText(scope: Scope) {
             : `с ${scope.floor_min}-го этажа`),
       scope.room_type,
       scope.month && MONTHS[scope.month - 1],
+      scope.landmark_id && `цель: ${landmarkLabel(scope.landmark_id)}`,
     ]
       .filter(Boolean)
       .join(" · ") || "Весь отель"
@@ -335,6 +338,7 @@ export function AskButton({
           scope.floor_max ?? null,
           scope.room_type ?? null,
           scope.month ?? null,
+          scope.landmark_id ?? null,
         ]
       : null,
   ]);
@@ -478,6 +482,49 @@ export function AskButton({
     </span>
   );
 }
+export function ContextEvidence({
+  hotelId,
+  factIds,
+}: {
+  hotelId: string;
+  factIds?: string[];
+}) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const proof = useResource(
+    () =>
+      selected
+        ? api
+            .factEvidence(hotelId, selected)
+            .then((value) => ({ id: selected, value }))
+        : Promise.resolve(null),
+    [hotelId, selected],
+  );
+  const evidence = proof.data?.id === selected ? proof.data.value : null;
+  return (
+    <>
+      {(factIds || []).map((factId, index) => (
+        <button
+          key={factId}
+          className="text-button small"
+          data-testid="context-evidence"
+          onClick={() => setSelected(factId)}
+          disabled={proof.loading && selected === factId}
+        >
+          Риск по карте{factIds && factIds.length > 1 ? ` ${index + 1}` : ""}
+        </button>
+      ))}
+      {selected && <ErrorState error={proof.error} retry={proof.reload} />}
+      {selected && evidence && (
+        <EvidenceModal
+          fact={evidence.fact}
+          claims={evidence.claims}
+          onClose={() => setSelected(null)}
+        />
+      )}
+    </>
+  );
+}
+
 export function VerdictList({
   verdicts,
   hotelId,
@@ -584,6 +631,9 @@ export function VerdictList({
                 characteristicId={v.characteristic_id}
                 scope={questionScope?.(v)}
               />
+            )}
+            {!!v.context_fact_ids?.length && (
+              <ContextEvidence hotelId={hotelId} factIds={v.context_fact_ids} />
             )}
           </div>
         </li>
@@ -728,8 +778,6 @@ export function FactValue({ fact }: { fact: Fact }) {
   const v = record(fact.value);
   if (fact.status === "disputed" && fact.value === null)
     return <span className="disputed-text">! Есть противоречие</span>;
-  if (fact.status === "unknown" || fact.value === null)
-    return <span className="unknown-text">? Нет данных</span>;
   const human = humanFact(fact);
   if (human)
     return (
@@ -740,6 +788,8 @@ export function FactValue({ fact }: { fact: Fact }) {
         {human}
       </span>
     );
+  if (fact.status === "unknown" || fact.value === null)
+    return <span className="unknown-text">? Нет данных</span>;
   const fields: Record<string, string> = {
     min_floor: "с этажа",
     facade: "фасад",

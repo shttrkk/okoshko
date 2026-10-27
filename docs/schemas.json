@@ -535,6 +535,20 @@
         ],
         "default": null,
         "title": "Month"
+      },
+      "landmark_id": {
+        "anyOf": [
+          {
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]{1,63}$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Landmark Id"
       }
     },
     "title": "Scope",
@@ -843,6 +857,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -1169,6 +1197,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -1534,6 +1576,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -1894,6 +1950,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -2299,6 +2369,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -2503,6 +2587,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -2667,6 +2765,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -2854,6 +2966,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -3098,6 +3224,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -3483,6 +3623,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -3899,6 +4053,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -4324,6 +4492,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -4760,6 +4942,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -5528,6 +5724,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -5597,6 +5807,11 @@
         "minimum": 1,
         "title": "Limit",
         "type": "integer"
+      },
+      "compact": {
+        "default": false,
+        "title": "Compact",
+        "type": "boolean"
       }
     },
     "title": "SearchRequest",
@@ -5660,6 +5875,20 @@
           "type": "string"
         },
         "title": "Evidence Refs",
+        "type": "array"
+      },
+      "context_fact_ids": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Context Fact Ids",
+        "type": "array"
+      },
+      "context_evidence_refs": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Context Evidence Refs",
         "type": "array"
       },
       "caveat": {
@@ -6351,6 +6580,20 @@
               "type": "string"
             },
             "title": "Evidence Refs",
+            "type": "array"
+          },
+          "context_fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Fact Ids",
+            "type": "array"
+          },
+          "context_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Evidence Refs",
             "type": "array"
           },
           "caveat": {
@@ -7210,6 +7453,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -7479,6 +7736,20 @@
               "type": "string"
             },
             "title": "Evidence Refs",
+            "type": "array"
+          },
+          "context_fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Fact Ids",
+            "type": "array"
+          },
+          "context_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Evidence Refs",
             "type": "array"
           },
           "caveat": {
@@ -8187,6 +8458,20 @@
               "type": "string"
             },
             "title": "Evidence Refs",
+            "type": "array"
+          },
+          "context_fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Fact Ids",
+            "type": "array"
+          },
+          "context_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Evidence Refs",
             "type": "array"
           },
           "caveat": {
@@ -9060,6 +9345,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -9480,6 +9779,20 @@
               "type": "string"
             },
             "title": "Evidence Refs",
+            "type": "array"
+          },
+          "context_fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Fact Ids",
+            "type": "array"
+          },
+          "context_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Evidence Refs",
             "type": "array"
           },
           "caveat": {
@@ -10360,6 +10673,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -10884,6 +11211,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -11000,6 +11341,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -11227,6 +11582,20 @@
               "type": "string"
             },
             "title": "Evidence Refs",
+            "type": "array"
+          },
+          "context_fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Fact Ids",
+            "type": "array"
+          },
+          "context_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Evidence Refs",
             "type": "array"
           },
           "caveat": {
@@ -11812,6 +12181,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -12242,6 +12625,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -13384,6 +13781,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -13656,6 +14067,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",
@@ -13861,6 +14286,20 @@
             ],
             "default": null,
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
           }
         },
         "title": "Scope",

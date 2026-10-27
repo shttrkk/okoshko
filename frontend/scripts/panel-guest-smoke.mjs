@@ -43,6 +43,7 @@ const seed = await api("/api/search", {
   check_in: "2027-09-14",
   check_out: "2027-09-21",
   limit: 40,
+  compact: true,
 });
 assert(seed.results.length > 1);
 const first = seed.results[0],
@@ -53,7 +54,7 @@ async function context(viewport, fixture = false, colorScheme = "light") {
   const page = await ctx.newPage();
   page.on("pageerror", (error) => errors.push(error.message));
   // Install before any page action; never navigate to providers automatically.
-  await page.route(/https?:\/\/([^/]*\.)?yandex\.[^/]+\//i, (route) => {
+  await page.route(/yandex\.|ya\.ru|mapillary/i, (route) => {
     blocked.push(route.request().url());
     return route.abort();
   });
@@ -111,7 +112,7 @@ try {
   assert.equal(await page.locator(".result-card").count(), seed.results.length);
   assert.match(
     await page.locator(".results-footnote").innerText(),
-    /Показаны 40 лучших из \d+/,
+    new RegExp(`Показаны ${seed.results.length} лучших из \\d+`),
   );
   assert(
     !/подтверждено|подтверждены/i.test(

@@ -1,5 +1,6 @@
 import { record } from "../api";
 import type { Fact, Side } from "../types";
+import { PLACE_NAMES, tzHumanFact } from "./tz-facts";
 export const MONTHS = [
   "январь",
   "февраль",
@@ -64,6 +65,7 @@ export const SIDES_SHORT: Record<string, string> = {
   NW: "СЗ",
 };
 export const TRAIT_NAMES: Record<string, string> = {
+  ...PLACE_NAMES,
   morning_sun: "Утреннее солнце",
   evening_heat: "Вечернее солнце",
   railway_noise: "Железнодорожный шум",
@@ -208,6 +210,8 @@ export function humanFact(
   facadeAzimuths?: FacadeAzimuths,
 ): string | null {
   const v = record(fact.value);
+  const supplementary = tzHumanFact(fact);
+  if (supplementary) return supplementary;
   if (fact.value === null || fact.status === "unknown") return null;
   const id = fact.characteristic_id;
   const month = num(fact.scope.month);
@@ -341,7 +345,7 @@ export function humanFact(
       const crossings = Array.isArray(v.crossings) ? v.crossings.length : 0;
       const beachName =
         typeof v.beach_name === "string" &&
-        !/^(?:OSM\s*)?osm-(way|node|relation)-/i.test(v.beach_name)
+        !/\bosm-(way|node|relation)-\d+\b/i.test(v.beach_name)
           ? v.beach_name
               .replace(/^Пляж\s*/i, "")
               .replace(/["«»]/g, "")

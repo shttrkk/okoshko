@@ -2,7 +2,8 @@ id: car_access
 version: 1
 name_ru: На машине
 display_name: На машине
-description: Общедоступная парковка OSM не дальше 500 м и зарядка для электромобиля не дальше 1000 м по прямой; собственная парковка отеля и въезд к двери не подтверждаются
+description: Общедоступная парковка OSM не дальше 500 м и зарядка для электромобиля
+  не дальше 1000 м по прямой; собственная парковка отеля и въезд к двери не подтверждаются
 category: Доступ
 synonyms:
 - парковка
@@ -18,6 +19,41 @@ value_schema:
       type:
       - boolean
       - 'null'
+    walk_parking: &id001
+      type:
+      - object
+      - 'null'
+      properties:
+        available:
+          type:
+          - boolean
+          - 'null'
+        minutes:
+          type:
+          - number
+          - 'null'
+        distance_m:
+          type:
+          - number
+          - 'null'
+        ascent_m:
+          type:
+          - number
+          - 'null'
+        has_steps:
+          type:
+          - boolean
+          - 'null'
+        crossings:
+          type: array
+          items:
+            type: object
+      additionalProperties: true
+    walk_ev: *id001
+    mapped_road_access:
+      type:
+      - boolean
+      - 'null'
   additionalProperties: true
 methods:
 - tool: poi_nearby
@@ -25,6 +61,11 @@ methods:
     kind: car
   rationale: На машине — подтверждённые данные с указанием источника и ограничений
   when: null
+- tool: prepared_observation
+  params:
+    kind: car_access
+  rationale: Дополнительные явные поля открытых данных; исходное available и прямая
+    дистанция не переопределяются
 combine: null
 ttl_days: 180
 change_triggers: []

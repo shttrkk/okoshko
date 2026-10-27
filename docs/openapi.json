@@ -421,6 +421,62 @@
               "type": "string",
               "title": "Hotel Id"
             }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 12,
+              "minimum": 1,
+              "default": 9,
+              "title": "Month"
+            }
+          },
+          {
+            "name": "facade",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "N",
+                    "NE",
+                    "E",
+                    "SE",
+                    "S",
+                    "SW",
+                    "W",
+                    "NW"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Facade"
+            }
+          },
+          {
+            "name": "floor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 100,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Floor"
+            }
           }
         ],
         "responses": {
@@ -3004,6 +3060,20 @@
             "type": "array",
             "title": "Evidence Refs"
           },
+          "context_fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Context Fact Ids"
+          },
+          "context_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Context Evidence Refs"
+          },
           "caveat": {
             "anyOf": [
               {
@@ -5488,6 +5558,19 @@
               }
             ],
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Landmark Id"
           }
         },
         "additionalProperties": false,
@@ -5653,6 +5736,11 @@
             "minimum": 1.0,
             "title": "Limit",
             "default": 20
+          },
+          "compact": {
+            "type": "boolean",
+            "title": "Compact",
+            "default": false
           }
         },
         "additionalProperties": false,

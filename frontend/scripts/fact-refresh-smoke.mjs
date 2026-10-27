@@ -1,3 +1,4 @@
+import { blockYandex } from "./panel-guest-smoke-ui.mjs";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { mkdir, readFile } from "node:fs/promises";
@@ -219,6 +220,7 @@ try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
   });
+  await blockYandex(context);
   let version = 0,
     revision = 0,
     instance = "fixture-instance-a";
@@ -548,6 +550,7 @@ try {
       check_out: query.check_out,
       parsed: { ...query, similar_to: hotel.id, similar_to_name: hotel.name },
       limit: 3,
+      compact: true,
     }),
   );
   checks.push(
@@ -640,6 +643,7 @@ try {
   });
   const openHarness = async (unsupported = false) => {
     const ctx = await browser.newContext();
+    await blockYandex(ctx);
     const page = await ctx.newPage();
     watch(page);
     const state = {

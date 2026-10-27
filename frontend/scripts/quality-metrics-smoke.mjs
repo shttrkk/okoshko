@@ -1,3 +1,4 @@
+import { blockYandex } from "./panel-guest-smoke-ui.mjs";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { mkdir, readFile } from "node:fs/promises";
@@ -78,6 +79,7 @@ try {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
   });
+  await blockYandex(page);
   const errors = [],
     failures = [],
     apiMethods = [];

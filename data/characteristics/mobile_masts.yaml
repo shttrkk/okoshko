@@ -1,0 +1,48 @@
+id: mobile_masts
+version: 1
+name_ru: Мачты связи рядом
+display_name: Мачты связи рядом
+description: Число отмеченных мачт связи в 1 км. Количество не доказывает покрытие,
+  4G/5G, скорость или Wi-Fi отеля.
+category: Окружение
+synonyms:
+- мобильные вышки рядом
+- мачты связи рядом
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+    mapped_count:
+      type: integer
+      minimum: 0
+    quality_unknown:
+      const: true
+    radius_m:
+      type: number
+  required:
+  - available
+  additionalProperties: true
+methods:
+- tool: prepared_observation
+  params:
+    kind: mobile_masts
+    radius_m: 1000
+  rationale: Число отмеченных мачт связи в 1 км. Количество не доказывает покрытие,
+    4G/5G, скорость или Wi-Fi отеля.
+ttl_days: 90
+change_triggers:
+- kind: source_snapshot_changed
+search:
+  kind: numeric
+  field: mapped_count
+  default_op: gte
+  default_value: 1
+  explain_ok: По OSM отмечена мачта связи в заданном радиусе; это не качество сети
+  explain_bad: Условие не подтверждено рассчитанным значением; отсутствие данных остаётся
+    неизвестным
+hotelier_answerable: false
+status: active

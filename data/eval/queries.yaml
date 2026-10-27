@@ -239,3 +239,221 @@ queries:
     expected:
       must: [{id: room_orientation}]
       clarification_contains: минимальный этаж
+
+  # TZ stage 2 authored training: existing examples and labels above are unchanged.
+  - id: tz_airport_far
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: далеко от аэропорта
+    expected:
+      must:
+      - id: airport_noise
+        field: runway_distance_m
+        op: gte
+        value: 3000
+  - id: tz_airport_near
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: рядом с аэропортом
+    expected:
+      must:
+      - id: airport_noise
+        field: runway_distance_m
+        op: lte
+        value: 3000
+  - id: tz_airport_direct
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: из аэропорта без пересадок
+    expected:
+      must:
+      - id: airport_transfer
+        field: transfers
+        op: lte
+        value: 0
+  - id: tz_airport_night
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: из аэропорта на транспорте ночью
+    expected:
+      must:
+      - id: airport_transfer
+        field: night_service
+        op: eq
+        value: true
+  - id: tz_landmark_fisht
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: вид на Фишт
+    expected:
+      must:
+      - id: landmark_view
+        field: available
+        op: eq
+        value: true
+  - id: tz_landmark_terminal
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: вид на морской вокзал
+    expected:
+      must:
+      - id: landmark_view
+        field: available
+        op: eq
+        value: true
+  - id: tz_landmark_any
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: вид на достопримечательность
+    expected:
+      must:
+      - id: landmark_view
+        field: available
+        op: eq
+        value: true
+  - id: tz_history
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: старинный отель
+    expected:
+      must:
+      - id: building_history
+        field: available
+        op: eq
+        value: true
+  - id: tz_night_shop
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: круглосуточный магазин рядом
+    expected:
+      must:
+      - id: night_open
+        field: shop.available
+        op: eq
+        value: true
+  - id: tz_night_food
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: где поесть ночью
+    expected:
+      must:
+      - id: night_open
+        field: food.available
+        op: eq
+        value: true
+  - id: tz_children_hospital
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: детская больница рядом
+    expected:
+      must:
+      - id: family_nearby
+        field: walk_children_hospital.available
+        op: eq
+        value: true
+  - id: tz_arrival
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: подъехать к входу
+    expected:
+      must:
+      - id: car_arrival
+        field: available
+        op: eq
+        value: true
+  - id: tz_private_parking
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: своя парковка
+    expected:
+      must:
+      - id: hotel_parking
+        field: private_parking
+        op: eq
+        value: true
+  - id: tz_metro
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: у метро
+    expected:
+      must:
+      - id: location_access
+        field: metro.available
+        op: eq
+        value: true
+  - id: tz_mobile_masts
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: мачты связи рядом
+    expected:
+      must:
+      - id: mobile_masts
+        field: mapped_count
+        op: gte
+        value: 1
+  - id: tz_mobile_5g
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: нужен 5G
+    expected:
+      must:
+      - id: mobile_internet
+        field: radio_generation
+        op: eq
+        value: 5G
+  - id: tz_construction
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: без стройки рядом
+    expected:
+      must:
+      - id: construction_nearby
+        field: available
+        op: eq
+        value: false
+  - id: tz_events
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: мероприятия рядом
+    expected:
+      must:
+      - id: events_nearby
+        field: available
+        op: eq
+        value: true
+  - id: tz_photo_terrace
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: терраса на крыше
+    expected:
+      must:
+      - id: photo_features
+        field: terrace
+        op: eq
+        value: true
+  - id: tz_blackout
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: темно в номере
+    expected:
+      must:
+      - id: soundproofing
+        field: blackout
+        op: eq
+        value: true
+  - id: tz_dog_walk
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: площадка для выгула рядом
+    expected:
+      must:
+      - id: dog_walk
+        field: dog_park.available
+        op: eq
+        value: true
+  - id: tz_vet
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: ветклиника рядом
+    expected:
+      must:
+      - id: veterinary_nearby
+        field: available
+        op: eq
+        value: true
+  - id: tz_pet_shop
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: зоомагазин рядом
+    expected:
+      must:
+      - id: pet_shop_nearby
+        field: available
+        op: eq
+        value: true
+  - id: tz_rain
+    persona: Примеры ТЗ — authored training, не слепая проверка
+    text: без дождей в октябре
+    expected:
+      must:
+      - id: climate_days
+        field: wet_month_proxy
+        op: eq
+        value: false

@@ -15,9 +15,7 @@ try {
       viewport: { width: 1280, height: 800 },
     });
     const page = await context.newPage();
-    await page.route(/https?:\/\/([^/]*\.)?yandex\.[^/]+\//i, (route) =>
-      route.abort(),
-    );
+    await page.route(/yandex\.|ya\.ru|mapillary/i, (route) => route.abort());
     await page.route("**/api/**", (route) =>
       route.request().method() === "GET" ? route.continue() : route.abort(),
     );

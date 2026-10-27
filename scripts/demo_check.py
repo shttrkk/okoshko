@@ -147,6 +147,10 @@ def validate_hit_scope(hit: dict, detail: dict) -> dict:
     facts = {fact["id"]: fact for fact in detail.get("facts", [])}
     scopes = []
     for verdict in hit["verdicts"]:
+        for fid in verdict.get("context_fact_ids", []):
+            require(fid in facts, f"{hit['hotel']['id']}: risk context references missing fact {fid}")
+            require(set(verdict.get("context_evidence_refs", [])) & {e.get("id") for e in facts[fid].get("evidence", [])},
+                    f"{fid}: risk context evidence does not resolve")
         if not verdict.get("required"):
             continue
         for fid in verdict.get("fact_ids", []):
@@ -325,6 +329,41 @@ class Runner:
         response, _ = self.request("/api/search", {"text": spec["text"], "limit": 250})
         return validate_family_route_guard(response.json(), self.detail(FAMILY_GUARD_HOTEL_ID))
 
+    def regional_search(self, text, cid, field=None):
+        response, _ = self.request("/api/search", {"text": text, "limit": 250})
+        result = response.json()
+        expected_ids(result, [cid])
+        hits = validate_cards(result)
+        matched = [(hit, verdict) for hit in hits for verdict in hit["verdicts"]
+                   if verdict.get("characteristic_id") == cid and verdict.get("status") in SUPPORTED
+                   and verdict.get("fact_ids") and verdict.get("evidence_refs")]
+        require(matched, f"{cid}: no supported result with factual references")
+        if field:
+            criteria = [*result["parsed"].get("must", []), *result["parsed"].get("nice", [])]
+            require(any(c.get("characteristic_id") == cid and c.get("field") == field for c in criteria),
+                    f"{cid}: requested field {field} was lost")
+        return {"query": text, "supported_hotels": len({hit["hotel"]["id"] for hit, _ in matched}),
+                "sample_hotel_ids": [hit["hotel"]["id"] for hit, _ in matched[:3]],
+                "source": "prepared open-data observations; support does not imply field verification"}
+
+    def regional_studio(self):
+        response, _ = self.request("/api/characteristics/compile", {"text": "вид на Морской вокзал"})
+        compiled = response.json()
+        spec = compiled["spec"]
+        methods = spec.get("methods", [])
+        require(any(m.get("tool") == "viewshed_facade" and m.get("params", {}).get("target") == "landmark"
+                    and m["params"].get("landmark_id") == "sea_terminal" for m in methods),
+                "Studio lost the exact curated landmark target")
+        response, _ = self.request("/api/characteristics/dry-run", spec)
+        preview = response.json()
+        claims = [claim for row in preview.get("results", []) for claim in row.get("claims", [])]
+        require(preview.get("valid") and claims, "Studio landmark preview has no saved calculations")
+        require(all(c.get("scope", {}).get("landmark_id") == "sea_terminal" and c.get("evidence")
+                    and c.get("value", {}).get("landmark_id") == "sea_terminal" for c in claims),
+                "Studio preview mixed landmark targets or lost provenance")
+        return {"spec_id": spec["id"], "processed": preview.get("processed"), "claims": len(claims),
+                "published": False, "limitation": "Preview checks three samples; no publication or invented target height"}
+
     def run(self):
         self.check("health", lambda: self._health())
         self.check("masha", self.masha_search)
@@ -334,6 +373,13 @@ class Runner:
         for spec in self.config["personas"]:
             self.check("persona:" + spec["id"], lambda spec=spec: self.persona(spec))
         self.check("family_route_known_negative", self.family_route_guard)
+        self.check("regional:airport_distance", lambda: self.regional_search(
+            "Адлер, тихо ночью, далеко от аэропорта", "airport_noise", "runway_distance_m"))
+        self.check("regional:landmark_view", lambda: self.regional_search("вид на Морской вокзал", "landmark_view"))
+        self.check("regional:landmark_studio", self.regional_studio)
+        self.check("regional:night_shop", lambda: self.regional_search("круглосуточный магазин рядом", "night_open", "shop.available"))
+        self.check("regional:dog_park", lambda: self.regional_search("с собакой, площадка для выгула рядом", "dog_walk", "dog_park.available"))
+        self.check("regional:airport_direct", lambda: self.regional_search("из аэропорта без пересадок", "airport_transfer", "transfers"))
         return {"mode": "synthetic-demo", "passed": all(c["passed"] for c in self.checks), "checked_at": datetime.now(UTC).isoformat(),
                 "checks": self.checks, "requests": self.requests, "limitations": self.config["limitations"]}
 

@@ -22,7 +22,7 @@ export interface HotelPhoto {
   captured_at?: string | null;
   image_id?: string | null;
 }
-export interface Scope {
+export interface Scope extends LandmarkScope {
   type: "hotel" | "facade" | "floor_range" | "room_type";
   facade?: Side | null;
   floor_min?: number | null;
@@ -193,6 +193,8 @@ export interface Verdict {
   confidence: number;
   fact_ids: string[];
   evidence_refs: string[];
+  context_fact_ids?: string[];
+  context_evidence_refs?: string[];
   caveat?: string | null;
   synthetic?: boolean;
   hotelier_confirmed?: boolean;
@@ -223,6 +225,7 @@ export interface SearchResult {
   mode: Mode;
 }
 export interface SearchRequest {
+  compact?: boolean;
   text: string;
   check_in?: string | null;
   check_out?: string | null;
@@ -466,7 +469,7 @@ export interface LabelTarget {
   evidence_links: unknown[];
   existing_labels: unknown[];
 }
-export interface Geo {
+export interface Geo extends LandmarkGeo {
   hotel_id?: string;
   center?: [number, number];
   building?: GeoJSON.Feature;
@@ -614,4 +617,17 @@ export interface RoomAdvice {
   status: "yes" | "partial";
   synthetic: boolean;
   caveats: string[];
+}
+
+/** Curated visibility target; independent of the requested room side and floor. */
+export interface LandmarkScope {
+  landmark_id?: string | null;
+}
+
+/** Optional layers contain only saved, target-specific visibility calculations. */
+export interface LandmarkGeo {
+  landmark_targets?: GeoJSON.FeatureCollection;
+  landmark_rays?: GeoJSON.FeatureCollection;
+  landmark_metadata?: Record<string, unknown>[];
+  warnings?: string[];
 }

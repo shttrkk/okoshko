@@ -6,7 +6,7 @@ from typing import Any, Literal, Protocol
 from urllib.parse import parse_qsl, urlsplit
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
 from backend.contracts.schema_safety import check_schema_safety
 
@@ -93,6 +93,14 @@ class Scope(Model):
     floor_max: int | None = Field(default=None, ge=1, le=100)
     room_type: str | None = None
     month: int | None = Field(default=None, ge=1, le=12)
+    landmark_id: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_]{1,63}$", max_length=64)
+
+    @model_serializer(mode="wrap")
+    def preserve_legacy_shape(self, handler):
+        value = handler(self)
+        if self.landmark_id is None:
+            value.pop("landmark_id", None)
+        return value
 
     @model_validator(mode="after")
     def bounds(self) -> Scope:
@@ -401,6 +409,7 @@ class SearchRequest(Model):
     parsed: ParsedQuery | None = None
     similar_to: str | None = None
     limit: int = Field(default=20, ge=1, le=250)
+    compact: bool = False
 
     @model_validator(mode="after")
     def dates(self) -> SearchRequest:
@@ -419,6 +428,8 @@ class CriterionVerdict(Model):
     confidence: float = Field(ge=0, le=1)
     fact_ids: list[str] = Field(default_factory=list)
     evidence_refs: list[str] = Field(default_factory=list)
+    context_fact_ids: list[str] = Field(default_factory=list)
+    context_evidence_refs: list[str] = Field(default_factory=list)
     caveat: str | None = None
     synthetic: bool = False
     disputed: bool = False

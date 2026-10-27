@@ -115,7 +115,7 @@ def durable_geo(result, data_dir: Path = DATA, runtime: Path = RUNTIME_DIR):
 
 
 def notify_passports(repo, hotel_id, before, after, change_id, *, affected=None):
-    from backend.api.passports import _all_hold, _stored_criteria, scopes_compatible
+    from backend.api.passports import _all_hold, _stored_criteria, same_target, scopes_compatible
     before_by_id = {fact.id: fact for fact in before}
     changed = {fact.characteristic_id for fact in before + after
                if fact.characteristic_id in (affected if affected is not None else GEO_CHARACTERISTICS)}
@@ -130,7 +130,7 @@ def notify_passports(repo, hotel_id, before, after, change_id, *, affected=None)
             criteria = _stored_criteria(repo.get("passport_items", item.id) or {})
             scopes = [item.scope, *[fact.scope for fact in old]]
             candidates = [fact for fact in after if fact.characteristic_id == item.characteristic_id
-                          and scopes_compatible([item.scope, fact.scope])]
+                          and scopes_compatible([item.scope, fact.scope]) and same_target(item.scope, fact.scope)]
             overlapping_negative = any(not _all_hold(fact, criteria) and any(scopes_compatible([scope, fact.scope]) for scope in scopes) for fact in candidates)
             if not candidates or not any(_all_hold(fact, criteria) for fact in candidates) or overlapping_negative:
                 item.status = "at_risk"
@@ -219,7 +219,13 @@ def apply_change(repo, hotel_id: str, fixture: dict, result: dict, trace: Trace,
     affected = GEO_CHARACTERISTICS | GEOMETRY_DEPENDENTS | {
         claim.characteristic_id for claim in historical if claim.id in invalidated}
     repo.insert_claims(claims)
-    after = resolve_hotel(hotel_id, repo)
+    # The event is persisted below; resolve against its geometry before sending
+    # passport notifications, rather than reviving the earlier landmark LOS.
+    pending_event = {"id": change_id, "kind": "osm_building_new", "detected_at": now().isoformat(),
+                     "affected_hotel_ids": [hotel_id], "payload": {"geo_artifact": result["geo"]["artifact"]}}
+    after = resolve_hotel(hotel_id, repo, events=[pending_event])
+    affected |= {fact.characteristic_id for fact in [*before, *after]
+                 if fact.scope.landmark_id is not None or fact.characteristic_id == "landmark_view"}
     notifications = notify_passports(repo, hotel_id, before, after, change_id, affected=affected)
     event = ChangeEvent(id=change_id, kind="osm_building_new", title=CHANGE_TITLE,
                         geometry=fixture["geometry"], payload={"hotel_id": hotel_id, "fixture": fixture, "run_id": trace.run.id,

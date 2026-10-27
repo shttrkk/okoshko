@@ -1,0 +1,58 @@
+id: construction_nearby
+version: 1
+name_ru: Стройки рядом
+display_name: Стройки рядом
+description: Архивные отметки строительства в 500 м. Current-enough требует явной
+  проверки construction или survey за 90 дней, близости к фасаду до 150 м и направления
+  ±60°. Это строгая политика допуска, не доказательство работ или шума; последняя
+  правка элемента и дата скачивания не подтверждают актуальность.
+category: Окружение
+synonyms:
+- стройка под окнами
+- без стройки рядом
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+    current_eligible_count:
+      type: integer
+      minimum: 0
+    mapped_count:
+      type: integer
+      minimum: 0
+    candidates:
+      type: array
+      items:
+        type: object
+  required:
+  - available
+  additionalProperties: true
+methods:
+- tool: prepared_observation
+  params:
+    kind: construction_nearby
+    radius_m: 500
+    facade_distance_m: 150
+    facade_sector_deg: 60
+    max_verification_age_days: 90
+  rationale: 500 м — полный архивный инвентарь; 150 м и сектор ±60° — явный порог
+    близкого фасада. 90 дней — консервативный квартальный срок перепроверки быстро
+    меняющегося признака, не эмпирическая точность. Generic check_date, element.timestamp
+    и будущий срок открытия сами по себе не допускают current yes.
+ttl_days: 14
+change_triggers:
+- kind: source_snapshot_changed
+search:
+  kind: boolean
+  field: available
+  default_op: eq
+  default_value: true
+  explain_ok: Есть датированное evidence близкого фасаду строительства
+  explain_bad: Условие не подтверждено рассчитанным значением; отсутствие данных остаётся
+    неизвестным
+hotelier_answerable: false
+status: active
