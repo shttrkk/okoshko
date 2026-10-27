@@ -94,18 +94,33 @@ export function Loading({
     </div>
   );
 }
+/** A resort illustration from public/illustrations; purely decorative. */
+export function Art({ name, className }: { name: string; className?: string }) {
+  return (
+    <img
+      className={className}
+      src={`/illustrations/${name}.webp`}
+      alt=""
+      loading="lazy"
+      width={1200}
+      height={900}
+    />
+  );
+}
 export function Empty({
   title = "Пока нет данных",
   children,
   action,
+  art,
 }: {
   title?: string;
   children?: ReactNode;
   action?: ReactNode;
+  art?: string;
 }) {
   return (
-    <div className="empty">
-      <CircleHelp size={28} />
+    <div className={art ? "empty has-art" : "empty"}>
+      {art ? <Art name={art} className="empty-art" /> : <CircleHelp size={28} />}
       <h3>{title}</h3>
       {children && <p>{children}</p>}
       {action}
@@ -153,19 +168,22 @@ export function PageIntro({
   title,
   children,
   action,
+  art,
 }: {
   eyebrow: string;
   title: string;
   children?: ReactNode;
   action?: ReactNode;
+  art?: string;
 }) {
   return (
-    <div className="page-intro">
+    <div className={art ? "page-intro has-art" : "page-intro"}>
       <div>
         <div className="eyebrow">{eyebrow}</div>
         <h1>{title}</h1>
         {children && <p>{children}</p>}
       </div>
+      {art && <Art name={art} className="page-intro-art" />}
       {action}
     </div>
   );

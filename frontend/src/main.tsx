@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 import "@fontsource-variable/manrope";
+import "@fontsource-variable/nunito";
 import { AppProvider } from "./state";
 import { Layout } from "./components/Layout";
 import { Home, SearchPage } from "./pages/Search";

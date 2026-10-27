@@ -4,6 +4,7 @@ import { record } from "../api";
 import type { Claim, Fact, Scope } from "../types";
 import { NearbyPhotos } from "./Photos";
 import {
+  Art,
   AskButton,
   EvidenceButton,
   FactValue,
@@ -41,6 +42,19 @@ const CATEGORY_ORDER = [
   "Номер",
   "Окружение",
 ];
+/** Colour family of each category, shared with the home scenarios. */
+const CATEGORY_TONE: Record<string, string> = {
+  Вид: "sea",
+  Сон: "night",
+  Шум: "night",
+  Рядом: "coral",
+  Атмосфера: "sun",
+  Доступ: "green",
+  Сезон: "sun",
+  Работа: "sky",
+  Номер: "sea",
+  Окружение: "green",
+};
 const SOLAR = new Set(["morning_sun", "evening_heat"]);
 const WIDE = new Set(["sunset_view", "climate", "nearby_photos", ...SOLAR]);
 const VIEWS = new Set(["sunset_view", "sea_view", "mountain_view"]);
@@ -794,10 +808,16 @@ export function FactsPanel({
       ((CATEGORY_ORDER.indexOf(b) + 99) % 99),
   );
   const unknown = ids.filter((id) => !isKnown(id));
+  // Sea and mountain views lead; the sunset matrix closes the view block.
+  const sunsetLast = (a: string, b: string) =>
+    Number(a === "sunset_view") - Number(b === "sunset_view");
   return (
     <div className="facts-panel">
       {categories.map((category) => (
-        <div className="fact-category" key={category}>
+        <div
+          className={`fact-category tone-${CATEGORY_TONE[category] || "green"}`}
+          key={category}
+        >
           <h3>{category}</h3>
           <div className="facts-grid">
             {ids
@@ -806,6 +826,7 @@ export function FactsPanel({
                   isKnown(id) &&
                   (spec(id)?.category || "Окружение") === category,
               )
+              .sort(sunsetLast)
               .map((id) => (
                 <FactCard
                   key={id}
@@ -829,6 +850,7 @@ export function FactsPanel({
       ))}
       {unknown.length > 0 && (
         <div className="fact-category unknown-facts">
+          <Art name="ask-hotel" className="unknown-art" />
           <h3>Пока неизвестно</h3>
           <p className="muted">
             {hotelier

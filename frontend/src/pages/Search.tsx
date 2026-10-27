@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowDown,
@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   Footprints,
   Heart,
+  Laptop,
   MapPin,
   Moon,
   PawPrint,
@@ -25,6 +26,7 @@ import {
   ErrorState,
   EvidenceModal,
   HotelVisual,
+  Art,
   Loading,
   Modal,
   Synthetic,
@@ -76,40 +78,82 @@ const exampleQueries = [
 const personas = [
   {
     icon: Moon,
+    image: "persona-sleep",
+    tone: "night",
     title: "Выспаться",
     text: "Тихий номер, окна во двор и плотные шторы",
     query: "тихий номер с хорошей шумоизоляцией и плотными шторами",
   },
   {
-    icon: Sun,
-    title: "Закат для двоих",
-    text: "Море в окне. И никаких случайностей.",
-    query: mashaQuery,
+    icon: Waves,
+    image: "persona-sea-view",
+    tone: "sea",
+    title: "Море из окна",
+    text: "Вид на море с нужного этажа и пляж в паре шагов",
+    query: "вид на море из окна и пляж рядом",
   },
   {
     icon: Footprints,
+    image: "persona-family",
+    tone: "green",
     title: "С детьми и коляской",
     text: "До пляжа без лестниц и сложных переходов",
     query:
       "до пляжа с коляской без лестниц и перехода трассы, рядом детская площадка",
   },
   {
-    icon: Waves,
+    icon: Laptop,
+    image: "persona-work",
+    tone: "sky",
     title: "Работать у моря",
     text: "Связь для созвонов, тишина для мыслей",
     query: "стабильный интернет не меньше 30 Мбит, тихо днём, рядом море",
   },
   {
     icon: PawPrint,
+    image: "persona-car-dog",
+    tone: "coral",
     title: "На машине с собакой",
     text: "Парковка рядом и место для прогулок",
     query: "с собакой 30 кг, парковка у отеля, рядом где выгулять",
   },
   {
     icon: Heart,
+    image: "persona-evening",
+    tone: "sun",
     title: "В гуще событий",
     text: "Кафе, вечерние прогулки и живая набережная",
     query: "кафе и бары рядом, в центре событий, недалеко от набережной",
+  },
+];
+const promises = [
+  {
+    image: "compare",
+    title: "Сравниваем номера, а не отели",
+    text: "Фасад, этаж и месяц решают. Каждый факт раскрывается до источника, метода и даты.",
+    link: "/compare",
+    action: "Сравнить отели",
+  },
+  {
+    image: "ask-hotel",
+    title: "Чего не знаем — спросим",
+    text: "«?» значит, что данных пока нет. Вопрос уйдёт отелю, а ответ увидят все гости.",
+    link: "/hotelier",
+    action: "Кабинет отеля",
+  },
+  {
+    image: "passport",
+    title: "Паспорт ожиданий",
+    text: "При бронировании фиксируем, что для вас важно, и с чем согласился отель.",
+    link: `/search?q=${encodeURIComponent(mashaQuery)}`,
+    action: "Подобрать и забронировать",
+  },
+  {
+    image: "changes",
+    title: "Следим за переменами",
+    text: "Построили дом напротив или закрыли пляж — предупредим до заезда.",
+    link: "/changes",
+    action: "Что изменилось",
   },
 ];
 export function SearchForm({
@@ -228,11 +272,9 @@ export function Home() {
             <i className="tiny-dot" /> ОТДЫХ, В КОТОРОМ ВСЁ СОШЛОСЬ
           </span>
           <h1>
-            Ваше море.
-            <br />
-            Ваш закат.
-            <br />
-            <em>Ваше окно.</em>
+            <span className="hero-line hero-sea">Ваше море.</span>
+            <span className="hero-line hero-quiet">Ваша тишина.</span>
+            <em className="hero-line">Ваше окно.</em>
           </h1>
           <p className="hero-description">
             Отель может быть прекрасным.
@@ -250,22 +292,23 @@ export function Home() {
             </span>
           </div>
         </div>
-        <div className="hero-map-wrap">
-          <TravelMap hero hotels={hotels.data || []} />
-          <div className="hero-map-note">
-            <span className="note-sun">
-              <Sun size={23} />
-            </span>
-            <div>
-              <strong>У каждого окна — своя история</strong>
-              <span>Рельеф, фасады, солнце и дорога к морю</span>
-            </div>
-          </div>
-          <div className="map-stamp">
-            СОЧИ
-            <br />
-            <span>МЕЖДУ ГОРАМИ И МОРЕМ</span>
-          </div>
+        <div className="hero-art">
+          <img
+            src="/illustrations/hero.webp"
+            alt="Побережье Сочи: отель, пальмы и дорожка к пляжу"
+            width={1600}
+            height={1200}
+            fetchPriority="high"
+          />
+          <span className="hero-chip hero-chip-sea">
+            <Waves size={16} /> Вид на море · с 5-го этажа
+          </span>
+          <span className="hero-chip hero-chip-walk">
+            <Footprints size={16} /> До пляжа 7 мин пешком
+          </span>
+          <span className="hero-chip hero-chip-quiet">
+            <Moon size={16} /> Тихо ночью: окна во двор
+          </span>
         </div>
       </section>
       <section className="home-search">
@@ -295,40 +338,103 @@ export function Home() {
           {personas.map((p, i) => (
             <button
               key={p.title}
-              className={`scenario-card scenario-${i}`}
+              className={`scenario-card tone-${p.tone}`}
+              style={{ "--i": i } as CSSProperties}
               onClick={() =>
                 navigate(
                   `/search?q=${encodeURIComponent(p.query)}`,
                 )
               }
             >
-              <p.icon size={25} strokeWidth={1.3} />
-              <span className="scenario-number">0{i + 1}</span>
-              <h3>{p.title}</h3>
-              <p>{p.text}</p>
-              <ArrowUpRight className="scenario-arrow" size={20} />
+              <span className="scenario-art">
+                <img
+                  src={`/illustrations/${p.image}.webp`}
+                  alt=""
+                  loading="lazy"
+                  width={1200}
+                  height={900}
+                />
+              </span>
+              <span className="scenario-body">
+                <span className="scenario-icon">
+                  <p.icon size={19} strokeWidth={1.8} />
+                </span>
+                <h3>{p.title}</h3>
+                <p>{p.text}</p>
+                <ArrowUpRight className="scenario-arrow" size={20} />
+              </span>
             </button>
           ))}
         </div>
       </section>
       <section className="promise-section">
-        <span className="eyebrow">ЗНАТЬ ДО ЗАЕЗДА</span>
-        <h2>
-          «Вид на море» —<br />
-          это ещё не вся картина.
-        </h2>
-        <div>
+        <div className="promise-intro">
+          <span className="eyebrow">ЗНАТЬ ДО ЗАЕЗДА</span>
+          <h2>
+            «Вид на море» —<br />
+            это ещё не вся картина.
+          </h2>
           <p>
-            Какой фасад? С какого этажа? Видно ли закат в сентябре? Сколько идти
-            обратно с пляжа?
-          </p>
-          <p className="muted">
-            Каждое утверждение можно раскрыть до источника, метода и даты. Что
-            нельзя рассчитать — спросим у отеля.
+            Какой фасад? С какого этажа? Не шумит ли улица ночью? Сколько идти
+            обратно с пляжа? Что нельзя рассчитать — спросим у отеля.
           </p>
           <Link to="/sources" className="text-button">
             Как устроено О!кно <ArrowRight size={17} />
           </Link>
+        </div>
+        <div className="promise-grid">
+          {promises.map((item, i) => (
+            <Link
+              key={item.title}
+              to={item.link}
+              className="promise-card"
+              style={{ "--i": i } as CSSProperties}
+            >
+              <img
+                src={`/illustrations/${item.image}.webp`}
+                alt=""
+                loading="lazy"
+                width={1200}
+                height={900}
+              />
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+              <span className="promise-action">
+                {item.action} <ArrowRight size={15} />
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+      <section className="region-section">
+        <div className="region-copy">
+          <span className="eyebrow">ГДЕ ИЩЕМ</span>
+          <h2>Сочи: центр и Адлер — Имеретинка</h2>
+          <p>
+            {status.data?.hotel_count ?? hotels.data?.length ?? "…"} отелей. Для
+            каждого по открытым данным посчитаны фасады, солнце, шум и дорога к
+            морю.
+          </p>
+          <Link to="/sources" className="text-button">
+            Данные и источники <ArrowRight size={17} />
+          </Link>
+        </div>
+        <div className="hero-map-wrap">
+          <TravelMap hero hotels={hotels.data || []} />
+          <div className="hero-map-note">
+            <span className="note-sun">
+              <Sun size={23} />
+            </span>
+            <div>
+              <strong>У каждого окна — своя история</strong>
+              <span>Рельеф, фасады, солнце и дорога к морю</span>
+            </div>
+          </div>
+          <div className="map-stamp">
+            СОЧИ
+            <br />
+            <span>МЕЖДУ ГОРАМИ И МОРЕМ</span>
+          </div>
         </div>
       </section>
       <section className="home-data-note">
@@ -653,12 +759,18 @@ function CriteriaEditor({
           })}
         </div>
       )}
-      {parsed.unmapped.length > 0 && (
-        <p className="fine-print">
-          Не удалось превратить в условие: {parsed.unmapped.join(", ")}. Эта
-          часть запроса пока не влияет на выдачу.
-        </p>
-      )}
+      {(() => {
+        // The region marker is explained by the empty state, not as a phrase.
+        const phrases = parsed.unmapped.filter(
+          (u) => u !== "region_out_of_scope",
+        );
+        return phrases.length > 0 ? (
+          <p className="fine-print">
+            Не удалось превратить в условие: {phrases.join(", ")}. Эта часть
+            запроса пока не влияет на выдачу.
+          </p>
+        ) : null;
+      })()}
     </section>
   );
 }
@@ -959,6 +1071,7 @@ export function SearchPage() {
             })()}
           {!resource.loading && resource.data && !results.length && (
             <Empty
+              art="empty-search"
               title={
                 resource.data.parsed.unmapped.includes("region_out_of_scope")
                   ? "Этот регион пока не собран"
@@ -990,6 +1103,7 @@ export function SearchPage() {
           )}
           {noCriteria && results.length > 0 && (
             <div className="no-criteria" data-testid="no-criteria">
+              <Art name="empty-search" className="no-criteria-art" />
               <strong>Пока подбираем без ваших условий</strong>
               <p>
                 {resource.data?.parsed.clarifications[0] ||
