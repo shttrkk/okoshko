@@ -40,10 +40,18 @@ JSON Schema всех общих моделей: `docs/schemas.json`. Все пу
 | `room_orientation` | `{available, facade, min_floor, max_floor, rooms, balcony}` | available=true |
 | `pets` | `{available: bool|null, species, max_weight_kg, fee_rub_night, walking_area}` | available=true, вес из запроса |
 | `air_quality` | `{pm2_5, european_aqi, period, model}` | european_aqi <= 40 |
-| `connectivity` | `{download_mbps, upload_mbps, latency_ms, tests, kind, quarter}` | download_mbps >= 30 |
+| `connectivity` | `{available, wifi_reported, internet_access, fee, download_mbps, upload_mbps, latency_ms, tests, kind, quarter}` | download_mbps >= 30 |
 | `building_history` | `{available, wikidata_id, inception, architecture, text}` | available=true |
 | `nearby_photos` | `{available, photos:[{url, thumbnail, title, author, license, source_url}]}` | available=true |
-| `morning_swim` | `{available, minutes, water_c, month}` | available=true (studio example) |
+| `nightlife` | `{available, venues_500m, bars_500m, promenade_distance_m}` | venues_500m gte 30 |
+| `morning_sun` | `{available, visible_minutes, exposure_index, visible_minutes_min, visible_minutes_max, exposure_index_min, exposure_index_max, value_semantics}` | available eq true |
+| `evening_heat` | `{available, visible_minutes, exposure_index, visible_minutes_min, visible_minutes_max, exposure_index_min, exposure_index_max, value_semantics}` | exposure_index lte 0.35 |
+| `railway_noise` | `{available, night_db_min, night_db_max, day_db_min, day_db_max}` | night_db_max lte 50 |
+| `beach_surface` | `{available, distance_m, surface, beach_id, selection_kind}` | surface eq sand |
+| `accessible_route` | `{available, distance_m, has_steps, wheelchair_suitable}` | available eq true |
+| `green_nearby` | `{available, distance_m}` | distance_m lte 500 |
+
+`morning_swim` — пример публикации из студии, а не предустановленная характеристика. Для всех 23 текущих спецификаций authoritative schema и поисковые настройки находятся в YAML.
 
 Наблюдение по фасаду/этажам — отдельный Claim со `scope`; не сводить морскую и тихую стороны к одному номеру. Ranker обязан проверять совместимость scope для всех обязательных условий.
 Неизвестные POI/часы работы не означают «нет». Характеристики с `null` требуют вопроса/ограничения.
@@ -182,7 +190,7 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
 
 ## Компактные профили и ленивые доказательства
 
-`HotelDetail` имеет необязательные флаги `evidence_deferred` и `geometry_deferred` (по умолчанию false). Они отличают компактную проекцию от отсутствующих данных. Компактный профиль сохраняет ID, значения, scope, confidence, статус, supporting/conflicting claim IDs; evidence в компактном профиле может быть пустым при evidence_deferred=true, полные inputs/output, ограничения и claims загружаются отдельно. Полные подписи и URL/artifact/quote/message references доступны через GET /api/hotels/{hotel_id}/facts/{fact_id}/evidence; пустой deferred evidence не означает отсутствие доказательства. supporting IDs и непустые conflicting IDs сохраняются. Пустые optional defaults, null scope-поля и false synthetic могут отсутствовать; resolution стратегии доступна в полном evidence, а в preview не заявляется. Значения, confidence, статус, даты актуальности и ID фактов сохраняются. JSON остаётся валидным по общей модели Evidence. Два малых геометрических входа (facade_azimuth_deg и window_half_angle_deg) сохраняются, чтобы компактная оценка не меняла объяснение бокового заката. Derived verdicts и предупреждения считаются до проекции доказательств. `FactEvidence` возвращает полный `fact` и его `claims`; hotel_id и принадлежность fact проверяются вместе. Геометрия имеет отдельный маршрут `/api/hotels/{id}/geo`. Полная проекция по умолчанию сохраняет совместимость API.
+`HotelDetail` имеет необязательные флаги `evidence_deferred` и `geometry_deferred` (по умолчанию false). Они отличают компактную проекцию от отсутствующих данных. Компактный профиль сохраняет ID, значения, scope, confidence, статус, supporting/conflicting claim IDs; evidence в компактном профиле может быть пустым при evidence_deferred=true, полные inputs/output, ограничения и claims загружаются отдельно. Полные подписи и URL/artifact/quote/message references доступны через GET /api/hotels/{hotel_id}/facts/{fact_id}/evidence; пустой deferred evidence не означает отсутствие доказательства. supporting IDs и непустые conflicting IDs сохраняются. Пустые optional defaults, null scope-поля и false synthetic могут отсутствовать; resolution стратегии доступна в полном evidence, а в preview не заявляется. Значения, confidence, статус, даты актуальности и ID фактов сохраняются. JSON остаётся валидным по общей модели Evidence. Внутренняя поисковая проекция сохраняет facade_azimuth_deg и window_half_angle_deg для объяснения бокового заката. Публичный compact HotelDetail откладывает evidence целиком; точная нормаль UI поступает из отдельно загруженной Geo, если она единственная и непротиворечивая. Derived verdicts и предупреждения считаются до проекции доказательств. `FactEvidence` возвращает полный `fact` и его `claims`; hotel_id и принадлежность fact проверяются вместе. Геометрия имеет отдельный маршрут `/api/hotels/{id}/geo`. Полная проекция по умолчанию сохраняет совместимость API.
 
 `SearchHit.why_not_higher` и `similarity_reasons` — списки коротких текстов, подкреплённых verdict/evidence ссылками. Неизвестные поля и неподтверждённые условия не становятся выполненными ради похожести.
 

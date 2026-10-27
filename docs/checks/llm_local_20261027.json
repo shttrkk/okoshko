@@ -1,0 +1,97 @@
+{
+  "methodology": "Authored synthetic intent benchmark without independent human validation. Identical catalogue, request text and deterministic context projection in both arms. No hotel factual values, database writes, raw provider responses or prompt logs. Provider fallback is reported as offline, not as live success.",
+  "provenance": {
+    "started_at": "2026-10-26T21:33:18.465525+00:00",
+    "finished_at": "2026-10-26T21:42:01.907989+00:00",
+    "code_commit": "ec2e3b055d73e4fb48af3a0ce8f57370b09accf6",
+    "proof_kind": "host_native_local_provider",
+    "docker_bridge_validated": false,
+    "model_reset_before_run": false,
+    "model": "qwen2.5:3b",
+    "base_url": "http://localhost:11434/v1",
+    "configured_timeout_s": 12.0,
+    "cache": "standalone_memory_initially_empty",
+    "cache_entries_after_run": 4,
+    "catalog_traits": 17,
+    "catalog_sha256": "d9da69910e18699c991f6278af35dc1e6c83c11f504bcbb45d0fc79a0488ed70",
+    "gold_sha256": "011f9520f296a2ebed352557998d60f79de09d71e667ec36f05b51d24cb6a7c1",
+    "experimental_budget_override_s": null,
+    "product_deadline_unchanged": true
+  },
+  "observability": {
+    "counts": {
+      "structured_calls": 236,
+      "requests": 236,
+      "timeouts": 232
+    },
+    "http_statuses": {
+      "200": 4
+    },
+    "max_requests_in_flight": 1,
+    "requested_product_budgets_s": [
+      2.2
+    ],
+    "effective_budgets_s": [
+      2.2
+    ],
+    "queries_with_timeout": 232,
+    "queries_with_schema_failure": 0,
+    "queries_with_json_failure": 0,
+    "provider_skipped_queries": 3,
+    "offline_fallback_queries": 232
+  },
+  "comparison": {
+    "changed_intent_queries": 0,
+    "changed_ids": [],
+    "exact_gained": 0,
+    "exact_lost": 0
+  },
+  "artifact_sha256": "a0cb51000e7e91cc6770e40c7afb3b0fed409f0bfcff583d9651d3a327afd892",
+  "offline": {
+    "gold": {
+      "queries": 239,
+      "exact_matches": 218,
+      "exact_match_rate": 0.912134,
+      "criterion_precision": 0.990132,
+      "criterion_recall": 0.990132,
+      "criterion_true_positive": 301,
+      "criterion_expected": 304,
+      "criterion_actual": 304,
+      "criteria_exact_match_rate": 0.979079,
+      "unmapped_expectation_accuracy": 0.924686,
+      "queries_with_unmapped": 24
+    },
+    "latency": {
+      "queries": 239,
+      "p50_ms": 0.805,
+      "p95_ms": 3.702,
+      "total_s": 0.512
+    }
+  },
+  "live_path": {
+    "gold": {
+      "queries": 239,
+      "exact_matches": 218,
+      "exact_match_rate": 0.912134,
+      "criterion_precision": 0.990132,
+      "criterion_recall": 0.990132,
+      "criterion_true_positive": 301,
+      "criterion_expected": 304,
+      "criterion_actual": 304,
+      "criteria_exact_match_rate": 0.979079,
+      "unmapped_expectation_accuracy": 0.924686,
+      "queries_with_unmapped": 24
+    },
+    "latency": {
+      "queries": 239,
+      "p50_ms": 2209.299,
+      "p95_ms": 2240.379,
+      "total_s": 520.923
+    },
+    "mode_counts": {
+      "live": 4,
+      "cache": 0,
+      "offline": 235
+    }
+  }
+}

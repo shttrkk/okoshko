@@ -1,0 +1,198 @@
+{
+  "methodology": "Authored synthetic intent cases, without independent human validation; not hotel accuracy or nDCG. no_data uses explicit authoritative fixture context; similarity uses existing catalogue resolver.",
+  "source_revision": "48091f0",
+  "human_labeled": false,
+  "synthetic": true,
+  "authored239": {
+    "gold": {
+      "queries": 239,
+      "exact_matches": 212,
+      "exact_match_rate": 0.887029,
+      "criterion_precision": 0.993243,
+      "criterion_recall": 0.967105,
+      "criterion_true_positive": 294,
+      "criterion_expected": 304,
+      "criterion_actual": 296,
+      "criteria_exact_match_rate": 0.949791,
+      "unmapped_expectation_accuracy": 0.92887,
+      "unmapped_evaluated_queries": 239,
+      "queries_with_unmapped": 23
+    },
+    "splits": {
+      "development": {
+        "queries": 189,
+        "exact_matches": 183,
+        "exact_match_rate": 0.968254,
+        "criterion_precision": 0.995745,
+        "criterion_recall": 0.979079,
+        "criterion_true_positive": 234,
+        "criterion_expected": 239,
+        "criterion_actual": 235,
+        "criteria_exact_match_rate": 0.968254,
+        "unmapped_expectation_accuracy": 1.0,
+        "unmapped_evaluated_queries": 189,
+        "queries_with_unmapped": 4
+      },
+      "holdout": {
+        "queries": 50,
+        "exact_matches": 29,
+        "exact_match_rate": 0.58,
+        "criterion_precision": 0.983607,
+        "criterion_recall": 0.923077,
+        "criterion_true_positive": 60,
+        "criterion_expected": 65,
+        "criterion_actual": 61,
+        "criteria_exact_match_rate": 0.88,
+        "unmapped_expectation_accuracy": 0.66,
+        "unmapped_evaluated_queries": 50,
+        "queries_with_unmapped": 19
+      }
+    },
+    "negative": {
+      "queries": 120,
+      "queries_with_false_criteria": 0,
+      "false_criteria_rate": 0.0,
+      "criteria_emitted": 0
+    },
+    "input_fingerprint": {
+      "version": 1,
+      "parser_sha256": {
+        "backend/agents/query_parser.py": "b9d0e33e0c347c8e3d009899d0004009e2b7364254342024a2e93984124dee9e",
+        "backend/agents/query_text.py": "15108938280a04d1ec81ac5b8c59938a0519925d0f3e099d3e3f1a95173e4f0a",
+        "backend/agents/query_rules.py": "365e18f3db37b1c189a8c4bd73689c9654f16b14ce4f3d09e8053085cb98e278",
+        "backend/agents/similarity.py": "0de3585c135fb98d3de03abdeb69147135b8467ba537768a4a58c721165c8b7e",
+        "backend/contracts/__init__.py": "c7a5746ac4519ef52c85b62f9346a0537f39db8604ee732237f08cd2055bc8f1",
+        "backend/contracts/models.py": "a45316911dd2c10f59470c4ddb4528b67990a0d406d42329dc8d10d0014e5874",
+        "backend/tools/registry.py": "8d5de1d0071e13f37075413d8b0a6009a32c7b9fade06b6e641a7bdac98dc424",
+        "backend/parser_quality.py": "9c344dd516b14098833c9bf3f44496288566e0651fdd041afbe1a8376fa65eec",
+        "scripts/parser_eval.py": "694851c50ef1509832c6af6cacbdc2b127c17e395a1b415c3f5324802569ad70"
+      },
+      "catalogue_sha256": {
+        "characteristics/accessible_route.yaml": "45b7a1398fe812bc6476c146ef375b78e8362efe2f91ea6e7b51e3e0662a31eb",
+        "characteristics/air_quality.yaml": "8274ca2105d7ddc7b8492345f308edf535fe9f1ac0c1639bd4f72e37b94bb624",
+        "characteristics/beach_surface.yaml": "56a8cf203467382292a9dba9e5ea18a3a7198734c0befd7dbf0f5e691a5f2fe7",
+        "characteristics/beach_walk.yaml": "d48ab3787424d1618850ceb98a1c21914e15c85953ac7fcee1c8edf8e9016e00",
+        "characteristics/building_history.yaml": "b2779cb2d316639e1b7fc0f20a41dde4cd4fcea7c3b5c1314ae30b35d12569d4",
+        "characteristics/car_access.yaml": "2d222f35494c9f9b487d5476d7767f77b60e5dd7731531328c49c6525e30b72a",
+        "characteristics/climate.yaml": "a4a5790abcffbcfce0df8a7f66f64a38edc9679043d23e5cbc3bd7f2b580b86e",
+        "characteristics/connectivity.yaml": "8f8d8670173d545647b0cb9d0dbf6ffd28f08a9af7e80cdd8ed9ad7246576d1b",
+        "characteristics/evening_heat.yaml": "39f8330f813083ccf98294b78c0e4793dd520550590900c94d6b7d63e08b558a",
+        "characteristics/family_nearby.yaml": "0c7d0f251ad8cbd3845d41200bda1107c7b66e5044b0e7e585686500f5f302e5",
+        "characteristics/green_nearby.yaml": "ba2e92d90f516f0c245ef14e6404f45d6ab91a2187b2e6b8cb6d2e6fa2b4d9b6",
+        "characteristics/morning_sun.yaml": "dcdd9077c1644a9385d81b907d1fb35413920ebc0f8275a03a8a9018eb6d30ca",
+        "characteristics/mountain_view.yaml": "901bcddf4b4d51d3ae2c7a10d337852402c575774454958bde33cf632d6f5ffa",
+        "characteristics/nearby_photos.yaml": "51f7d624104511a8cf9bc282e8277470c916b9f08a156903fd28ba3a4dcbbd6a",
+        "characteristics/night_pharmacy.yaml": "a285682ef25dbfc7a39d51fc59166ea9825d2a278cf8cacb16dbd128a722a4a5",
+        "characteristics/nightlife.yaml": "a6e55617a59c8a928c6e5b45c28e2b31c183134aa1692292b03ac6a663a3c94a",
+        "characteristics/pets.yaml": "854e116f1a2b4fb6302f58844bbe4eb32c04717ebc034e079d968d5416cc9ddb",
+        "characteristics/quiet_night.yaml": "6e0464cfdef7d899e0122adb580ac29d9963ccfb4becb97032da97dbd2465a0c",
+        "characteristics/railway_noise.yaml": "145be9a3575b68d3f3fc0676548533bc249348f3df775e9d170a9843bd0b1b1e",
+        "characteristics/room_orientation.yaml": "681a86bb19a8af0dc5d288e58aa8278e29e94458c44267b789029db76649b517",
+        "characteristics/sea_view.yaml": "a9fecf6bca68144ec4ecccb5b264a31e1b413f0912a9af80ac737ec03ae8de51",
+        "characteristics/soundproofing.yaml": "35de37f3b4f0bd390472cdbfaa2eacce58fdb9def55dec514946558717be10ad",
+        "characteristics/sunset_view.yaml": "149b80cc5f55745e05d3d64aa44bc689ed26ab6954bffaaeb593e4653ac8feca"
+      },
+      "corpora": {
+        "gold": {
+          "path": "eval/queries_gold.jsonl",
+          "sha256": "011f9520f296a2ebed352557998d60f79de09d71e667ec36f05b51d24cb6a7c1"
+        },
+        "negative": {
+          "path": "eval/queries_negative.jsonl",
+          "sha256": "878608f627319c53c960848bfcc264abcadfb13ed5d919fbfc2b5dc23fc41f1e"
+        }
+      },
+      "fixture_sha256": {
+        "seed/hotels.json": "45cd3b05b6f5b0129864278b648ea4991e439593d0cd63a8a571388af0a1a6f6"
+      },
+      "selection": {
+        "split": null
+      },
+      "evaluation_year": 2026
+    }
+  },
+  "additional": {
+    "release": {
+      "gold": {
+        "queries": 60,
+        "exact_matches": 33,
+        "exact_match_rate": 0.55,
+        "criterion_precision": 0.764706,
+        "criterion_recall": 0.684211,
+        "criterion_true_positive": 52,
+        "criterion_expected": 76,
+        "criterion_actual": 68,
+        "criteria_exact_match_rate": 0.566667,
+        "unmapped_expectation_accuracy": null,
+        "unmapped_evaluated_queries": 0,
+        "queries_with_unmapped": 52
+      },
+      "negative": {
+        "queries": 60,
+        "queries_with_false_criteria": 14,
+        "false_criteria_rate": 0.233333,
+        "criteria_emitted": 14
+      },
+      "corpus_sha256": {
+        "gold": "3f48db24f86e29802cd80d35d1ae826f2f4e0e84e257f8f27d3764949d3bcd6b",
+        "negative": "b46327697789d45164ff82810834c917f888fb34330e5944581ea8f1544eef89"
+      },
+      "exposure": "texts/labels withheld from parser implementation; aggregate measured after general fixes"
+    },
+    "validation": {
+      "gold": {
+        "queries": 50,
+        "exact_matches": 50,
+        "exact_match_rate": 1.0,
+        "criterion_precision": 1.0,
+        "criterion_recall": 1.0,
+        "criterion_true_positive": 75,
+        "criterion_expected": 75,
+        "criterion_actual": 75,
+        "criteria_exact_match_rate": 1.0,
+        "unmapped_expectation_accuracy": null,
+        "unmapped_evaluated_queries": 0,
+        "queries_with_unmapped": 41
+      },
+      "negative": {
+        "queries": 50,
+        "queries_with_false_criteria": 0,
+        "false_criteria_rate": 0.0,
+        "criteria_emitted": 0
+      },
+      "corpus_sha256": {
+        "gold": "e4aaa291a806c9b414af22b857cf9b311bf52d1d82f1bb1ec4e0195037402096",
+        "negative": "fabafa593c6a0af2621121950d0da51e1dcdb7c782e3147b32bac725af8d1c40"
+      },
+      "exposure": "seen during development; not independent validation"
+    },
+    "external": {
+      "gold": {
+        "queries": 50,
+        "exact_matches": 46,
+        "exact_match_rate": 0.92,
+        "criterion_precision": 0.913043,
+        "criterion_recall": 0.933333,
+        "criterion_true_positive": 42,
+        "criterion_expected": 45,
+        "criterion_actual": 46,
+        "criteria_exact_match_rate": 0.92,
+        "unmapped_expectation_accuracy": null,
+        "unmapped_evaluated_queries": 0,
+        "queries_with_unmapped": 33
+      },
+      "negative": {
+        "queries": 120,
+        "queries_with_false_criteria": 0,
+        "false_criteria_rate": 0.0,
+        "criteria_emitted": 0
+      },
+      "corpus_sha256": {
+        "gold": "26ba7660fba18d38169aa7e3e1e8696d2bffa826b14acf0572cad2b5d22aad90",
+        "negative": "878608f627319c53c960848bfcc264abcadfb13ed5d919fbfc2b5dc23fc41f1e"
+      },
+      "exposure": "seen during development; not independent validation",
+      "negative_note": "Reuses authored120 negatives; no separate external negative corpus."
+    }
+  }
+}

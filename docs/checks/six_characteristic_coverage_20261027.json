@@ -1,0 +1,37 @@
+{
+  "checked_at": "2026-10-27T03:01:47.513557+00:00",
+  "month": 9,
+  "characteristic_ids": [
+    "sea_view",
+    "sunset_view",
+    "mountain_view",
+    "quiet_night",
+    "beach_walk",
+    "night_pharmacy"
+  ],
+  "method": "Current known computed/confirmed values, including true and false, any facade/floor; month absent or selected. NOT same-room satisfaction or field accuracy.",
+  "confidence_semantics": "Declared heuristic confidence, uncalibrated; non_synthetic excludes mixed synthetic facts.",
+  "input_sha256": {
+    "backend/quality.py": "c26bded598f0692d6f40c147bcaf07fd4ba6c53ee5976201bf9abf622a6516e6",
+    "backend/catalogue.py": "3b982d74eeb022db0d559ed6b585d03163b7fc81883cbab97fa25369bbcf8e72",
+    "data/seed/catalogue_reviews.json": "fd797a28aaf1ce34ca67d415f3e00dbddb6e6d93ffdde99a0c3e22dd69871090"
+  },
+  "source_objects": {
+    "hotels": 250,
+    "complete": {
+      "confidence_gte_0_including_synthetic": 171,
+      "confidence_gte_0_non_synthetic": 170,
+      "confidence_gte_0.6_including_synthetic": 3,
+      "confidence_gte_0.6_non_synthetic": 0
+    }
+  },
+  "searchable": {
+    "hotels": 247,
+    "complete": {
+      "confidence_gte_0_including_synthetic": 169,
+      "confidence_gte_0_non_synthetic": 168,
+      "confidence_gte_0.6_including_synthetic": 3,
+      "confidence_gte_0.6_non_synthetic": 0
+    }
+  }
+}

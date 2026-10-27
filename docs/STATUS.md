@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 05:54 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 06:06 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -66,7 +66,7 @@
 | E19 | [x] | POSIX-совместимые команды в рантайме контейнера (не bash-специфика) | CMD python; RUN стандартный sh, bash в runtime не используется. |
 | E20 | [~] | Рекомендуется: Makefile (`make up/down/seed`), `docker-compose.override.yml`, CI (docker build + линтер), ссылка на развёрнутый сервис | Makefile, dev override, CI только workflow_dispatch, make check/audit/demo-check. Внешний хостинг не настроен и не требуется для локального старта. |
 
-## Текущие проверки и ограничения
+## Исторические проверки 26.10 и ограничения
 
 - `make check` на clean clone `9ac03ec`: lint/test/audit/smoke/demo-check PASS за 33,49 с; 365 tests +125 subtests. Четыре Python locks и три npm scopes: 0 advisories/scanner errors.
 - `scripts/audit_repository.py --history`: 12/12 release guards PASS, полная история сохранена.
@@ -189,3 +189,5 @@
 - 27.10.2026 05:51: parser различает повествование, наличие Wi-Fi и измеренную скорость; typed bounds связываются только с соседним однозначным условием. 1252 tests + 125 subtests, Ruff/frontend lint, rebuild, demo-check 13/13 и Chrome smoke PASS. Authored239: strict212/239, criteria227/239, negatives0/120; ранее закрытый release: strict33/60, negatives14/60. Ограничение обобщения сохраняется, labels не менялись.
 
 - 27.10.2026 05:54: clean-clone checker выполняет make check и Chrome smoke после Docker-only readiness; startup key принудительно пустой, свободное место фиксируется. Dev lock содержит оба исходно заданных toolchain pins с публичными hashes. 1254 tests + 125 subtests, Ruff/frontend lint, dev pip-audit 0 vulnerabilities PASS. Filter comparison исправлен под текущий floor domain и catalogue policy: 54 совместимых scope из 247 доступных объектов, 18 за пределами 500 м; это модельное сравнение, не полевая точность.
+
+- 27.10.2026 06:06: документация синхронизирована с каталогом 23 характеристик, eligibility и scope/revision. Опубликованы агрегаты независимого intent-набора, исторического локального LLM-эксперимента и текущего покрытия шести признаков: raw171/170, confidence≥0,6 3/0; searchable169/168 и3/0. 1254 tests +125 subtests, Ruff/frontend lint PASS; line coverage7388/8220=89,88% (без тестов). Полный read-only history/secret/size guard PASS; исходные данные и выводы о поле не расширяются этими метриками.
