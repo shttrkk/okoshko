@@ -618,12 +618,14 @@ try {
   );
   const familyExplanation = familyRow.locator("details.verdict-caveats");
   await familyExplanation.locator(":scope > summary").click();
+  await familyExplanation.locator(":scope > details > summary").click();
   check(
     /Пока неточно — лучше уточнить у отеля/.test(
       await familyExplanation.innerText(),
     ),
-    "Primorskaya family uncertainty is explained in the second layer",
+    "Primorskaya family uncertainty is explained in the detailed layer",
   );
+  await familyExplanation.locator(":scope > summary").click();
   await igor.page.getByTestId("fact-map-beach_walk").click();
   const routeContext = igor.page.getByTestId("hotel-map-context");
   await routeContext.waitFor();

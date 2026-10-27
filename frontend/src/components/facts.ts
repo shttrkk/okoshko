@@ -345,7 +345,7 @@ export function humanFact(
       const crossings = Array.isArray(v.crossings) ? v.crossings.length : 0;
       const beachName =
         typeof v.beach_name === "string" &&
-        !/^(?:OSM\s*)?osm-(way|node|relation)-/i.test(v.beach_name)
+        !/\bosm-(way|node|relation)-\d+\b/i.test(v.beach_name)
           ? v.beach_name
               .replace(/^Пляж\s*/i, "")
               .replace(/["«»]/g, "")
