@@ -111,7 +111,7 @@ _RUSSIAN_MONTHS = ('январе', 'феврале', 'марте', 'апреле
 
 
 def normalize_query_text(value: str) -> str:
-    value = re.sub(r'\b(?:МБ/с|MB/s)\b', 'мегабайт/с', value)
+    value = re.sub(r'(?<![а-яА-ЯёЁa-zA-Z])(?:МБ/с|MB/s)\b', 'мегабайт/с', value)
     text = value.casefold().replace('ё', 'е')
     text = re.sub(r'\bвай[ -]?фай\b', 'wi-fi', text)
     text = re.sub(r'\bтишын([ауые])\b', r'тишин\1', text)
