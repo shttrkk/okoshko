@@ -34,7 +34,7 @@ VENUE_NOUN = (r'(?:кафе\b|ресторан(?:а|у|ом|е|ы|ов|ам|ам
               r'бар(?:а|у|ом|е|ы|ов|ам|ами|ах)?\b|паб(?:а|у|ом|е|ы|ов|ам|ами|ах)?\b|'
               r'клуб(?:а|у|ом|е|ы|ов|ам|ами|ах)?\b)')
 RULES = {
-    "quiet_night": r"\bтих\w*|\bтишин\w*|выспаться|сплю чутко|чутк\w* сон|без (?:посторонн\w* )?шума|не (?:было |будет )?шумн\w*",
+    "quiet_night": r"\bтих\w*|\bтишин\w*|\b(?:по)?тише\b|\b(?:по)?спокойнее\b|\bменее шумн\w*|выспаться|сплю чутко|чутк\w* сон|без (?:посторонн\w* )?шума|не (?:было |будет )?шумн\w*",
     "sunset_view": r"\bзакат\w*|\bзаходящ\w*\s+солнц\w*",
     "sea_view": r"(?:вид\w* (?:на |из окна на )?море|море (?:из окна|за окном|в окне|долж\w* быть видн\w* из номер\w*)|морск\w* вид|морем за окном|(?:вид\w*|горы)\s+и\s+на море|море\s+по возможности)",
     "mountain_view": r"\bгор(?:ы|ный|ного|ным|ам|ами)\b|вид\w* на гор(?!од)\w*",
@@ -236,6 +236,13 @@ def _numeric(text: str, start: int, end: int, field: str, default_op: str, defau
     operators = r'не менее|не меньше|не ниже|не холоднее|не ближе|хотя бы|минимум|больше|выше|от|≥|>=|не более|не дальше|не длиннее|не далее|не дольше|не выше|не больше|не быстрее|максимум|менее|меньше|ниже|до|≤|<='
     pattern = r'(?<![-\w.,])(?P<op>' + operators + r')?\s*(?P<num>\d+(?:[.,]\d+)?)\s*(?P<unit>' + unit + ')'
     candidates = list(re.finditer(pattern, window))
+    # Colloquial inversion «минут 5», «метров 300» names an approximate amount;
+    # in «минут 5-10» the upper end is the limit.
+    inverted = {'minutes': r'мин\b|минут\w*', 'visible_minutes': r'мин\b|минут\w*'}.get(
+        field, r'метр\w*|километр\w*|км\b' if unit.startswith(r'(?:километр') else None)
+    if inverted:
+        candidates += list(re.finditer(r'(?<![\d.,])(?<![\d.,]\s)(?P<op>)(?P<unit>' + inverted + r')\s+(?:\d+(?:[.,]\d+)?\s*(?:[-–—]|до)\s*)?(?P<num>\d+(?:[.,]\d+)?)'
+                                       r'(?![\d.,]|\s*(?:мин|час|метр|м\b|км|километр|%|°|градус|мбит|дб))', window))
     if field == 'european_aqi':
         candidates += list(re.finditer(r'(?P<unit>aqi)\s*(?:в районе\s+)?(?:нуж\w*\s+)?(?P<op>' + operators + r')?\s*(?P<num>\d+(?:[.,]\d+)?)', window))
     if field == 'exposure_index':
