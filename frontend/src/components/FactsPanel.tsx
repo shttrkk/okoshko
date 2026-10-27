@@ -4,6 +4,13 @@ import { record } from "../api";
 import { factDemoLabel, reliability } from "./panel-guest-presentation";
 import type { Claim, Fact, Scope } from "../types";
 import { NearbyPhotos } from "./Photos";
+import { TzFactDetails } from "./TzFactDetails";
+import {
+  isPlaceTrait,
+  isSupplementalFact,
+  tzDetail,
+  tzSummary,
+} from "./tz-facts";
 import {
   Art,
   AskButton,
@@ -29,7 +36,13 @@ import {
   TRAIT_NAMES,
   type FacadeAzimuths,
 } from "./facts";
-type Spec = { id: string; name_ru?: string; category?: string };
+type Spec = {
+  id: string;
+  name_ru?: string;
+  display_name?: string | null;
+  category?: string;
+  hotelier_answerable?: boolean;
+};
 const CATEGORY_ORDER = [
   "Вид",
   "Сон",
@@ -491,6 +504,8 @@ export function headline(
   month: number,
   facadeAzimuths?: FacadeAzimuths,
 ): ReactNode {
+  const supplementary = tzSummary(id, facts, month);
+  if (supplementary) return supplementary;
   const shown = facts.filter(reliable);
   if (!shown.length) {
     if (facts.some((f) => f.status === "disputed"))
@@ -602,6 +617,7 @@ function FactCard({
   canAsk,
   onPanorama,
   onShowOnMap,
+  onOpenWindow,
   selectedTrait,
   questionScope,
   facadeAzimuths,
@@ -616,6 +632,7 @@ function FactCard({
   canAsk: boolean;
   onPanorama?: (side: string) => void;
   onShowOnMap?: (fact: Fact) => void;
+  onOpenWindow?: (fact: Fact) => void;
   selectedTrait?: string;
   questionScope?: (characteristicId: string, fact?: Fact) => Scope | undefined;
   facadeAzimuths?: FacadeAzimuths;
@@ -625,7 +642,8 @@ function FactCard({
     id === "quiet_night"
       ? facts.filter((fact) => reportedQuiet(fact) !== null)
       : [];
-  const rep = representative(facts, month);
+  const supplemental = facts.filter(isSupplementalFact);
+  const rep = representative(supplemental.length ? supplemental : facts, month);
   const disputed = facts.some((f) => f.status === "disputed");
   const confidence = Math.max(...shown.map((f) => f.confidence), 0);
   const multi = shown.length > 1;
@@ -655,14 +673,28 @@ function FactCard({
       </p>
       <details
         className="room-caveats-details fact-details"
-        open={!canAsk || undefined}
+        open={!canAsk && !isPlaceTrait(id) ? true : undefined}
       >
         <summary>Подробнее</summary>
         <p>
-          {humanFact(rep, facadeAzimuths) ||
+          {(supplemental.length
+            ? tzDetail(rep)
+            : humanFact(rep, facadeAzimuths)) ||
             "Подробности зависят от стороны, этажа и месяца; источник можно открыть ниже."}
         </p>
-        <details className="room-caveats-details" open={!canAsk || undefined}>
+        {supplemental.length > 0 && (
+          <TzFactDetails
+            facts={supplemental}
+            claims={claims}
+            month={month}
+            onShowOnMap={onShowOnMap}
+            onOpenWindow={onOpenWindow}
+          />
+        )}
+        <details
+          className="room-caveats-details"
+          open={!canAsk && !isPlaceTrait(id) ? true : undefined}
+        >
           <summary>Для дотошных</summary>
           {id === "accessible_route" &&
             typeof v(rep).wheelchair_tag_coverage === "number" && (
@@ -745,17 +777,19 @@ function FactCard({
                 ))}
               </ul>
             )}
-          <details className="room-caveats-details fact-reliability">
-            <summary>Надёжность данных</summary>
-            <p>
-              {reliability(
-                confidence,
-                shown.some((fact) => fact.synthetic),
-              )}{" "}
-              · оценка полноты и согласованности источников, без гарантии
-              условий в номере.
-            </p>
-          </details>
+          {!supplemental.length && (
+            <details className="room-caveats-details fact-reliability">
+              <summary>Надёжность данных</summary>
+              <p>
+                {reliability(
+                  confidence,
+                  shown.some((fact) => fact.synthetic),
+                )}{" "}
+                · оценка полноты и согласованности источников, без гарантии
+                условий в номере.
+              </p>
+            </details>
+          )}
         </details>
       </details>
       <div className="fact-card-foot">
@@ -833,6 +867,7 @@ export function FactsPanel({
   hotelier = false,
   onPanorama,
   onShowOnMap,
+  onOpenWindow,
   selectedTrait,
   questionScope,
   facadeAzimuths,
@@ -850,6 +885,7 @@ export function FactsPanel({
   onPanorama?: (side: string) => void;
   /** Focus a characteristic and its actual scope on the hotel map. */
   onShowOnMap?: (fact: Fact) => void;
+  onOpenWindow?: (fact: Fact) => void;
   selectedTrait?: string;
   questionScope?: (characteristicId: string, fact?: Fact) => Scope | undefined;
   facadeAzimuths?: FacadeAzimuths;
@@ -872,6 +908,7 @@ export function FactsPanel({
       hotelier,
       onPanorama,
       onShowOnMap,
+      onOpenWindow,
       selectedTrait,
       questionScope,
       facadeAzimuths,
@@ -900,9 +937,15 @@ export function FactsPanel({
   const ids = [...new Set(facts.map((f) => f.characteristic_id))];
   const spec = (id: string) => specs.find((s) => s.id === id);
   const nameOf = (id: string) =>
-    spec(id)?.name_ru || names[id] || TRAIT_NAMES[id] || id;
+    spec(id)?.display_name ||
+    spec(id)?.name_ru ||
+    names[id] ||
+    TRAIT_NAMES[id] ||
+    id;
   const isKnown = (id: string) =>
-    facts.some((f) => f.characteristic_id === id && known(f));
+    facts.some(
+      (f) => f.characteristic_id === id && (known(f) || isSupplementalFact(f)),
+    );
   const categories = [
     ...new Set(
       ids.filter(isKnown).map((id) => spec(id)?.category || "Окружение"),
@@ -942,9 +985,14 @@ export function FactsPanel({
                   hotelId={hotelId}
                   month={month}
                   onEvidence={onEvidence}
-                  canAsk={!hotelier}
+                  canAsk={
+                    !hotelier &&
+                    (!isPlaceTrait(id) ||
+                      spec(id)?.hotelier_answerable !== false)
+                  }
                   onPanorama={onPanorama}
                   onShowOnMap={onShowOnMap}
+                  onOpenWindow={onOpenWindow}
                   selectedTrait={selectedTrait}
                   questionScope={questionScope}
                   facadeAzimuths={facadeAzimuths}
