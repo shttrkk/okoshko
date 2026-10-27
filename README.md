@@ -14,7 +14,7 @@ docker compose up --build
 # Открыть http://localhost:8080
 ```
 
-`.env` необязателен: дефолты запускают offline-демо. Чистый клон `a13b12f` без `.env`, с пустым build cache: до `/health` 253,1 с, от старта контейнера 98,2 с, перезапусков 0; `make check`, `demo-check` 13/13 и все 18 browser smoke — PASS ([отчёт](docs/checks/panel_clean_clone.json)). Для изменения настроек можно скопировать `.env.example` в `.env`.
+`.env` необязателен: дефолты запускают offline-демо. Чистый клон `f253c03` без `.env`, с пустым build cache: до `/health` 182,8 с, от старта контейнера 115,2 с, перезапусков 0; `make check`, все 18 проверок `demo-check` и все 20 browser smoke — PASS ([отчёт](docs/checks/tz_clean_clone.json)). Для изменения настроек можно скопировать `.env.example` в `.env`.
 
 ## Проверка за 5 минут
 
@@ -107,7 +107,9 @@ curl -N "$BASE/api/runs/<run_id>/stream" -H "Authorization: Bearer $TOKEN"
 
 Нужны Docker Desktop/Engine и Docker Compose; проверено на Docker 29.4.0 / Compose 5.1.1. Настройки передаются интерполяцией `${VAR:-default}`, файл `.env` необязателен. Рекомендовано 4 CPU, 8 ГБ RAM и 10 ГБ диска с учётом сборки. Всё приложение работает в Docker: PostgreSQL 17 с PostGIS 3.6, Python 3.12/FastAPI и собранный интерфейс React/Vite/MapLibre. Версии базовых образов и зависимости закреплены; используются публичные реестры.
 
-Проверенный образ: 327 797 900 байт (≈312,6 МиБ по `docker image inspect`), `linux/amd64`, UID `10001:10001`. Чистый клон `a13b12f`: без `.env`, LLM-ключа, пустой build-кэш, новая БД/Compose-проект и Docker-only PATH дали `/health` через **253,08 с**. От старта контейнера до health — **98,23 с**, перезапусков 0. `make check`, demo-check 13/13 и все 18 browser smoke — PASS; полная проверка 853,4 с. Host QA-зависимости подключались после готовности продукта. [Отчёт](docs/checks/panel_clean_clone.json). Это запуск подготовленного seed; сбор региона и локальная LLM измеряются отдельно.
+Проверенный образ: 336 708 809 байт (≈321,1 МиБ по `docker image inspect`), `linux/amd64`, UID `10001:10001`. Чистый клон `f253c03`: без `.env`, LLM-ключа и токенов, пустой build-кэш, новая БД/Compose-проект и Docker-only PATH дали `/health` через **182,80 с**. От старта контейнера до health — **115,20 с**, перезапусков 0. `make check` (2051 тест и 125 подтестов), все 18 проверок demo-check и все 20 browser smoke — PASS; полная проверка 894,5 с. Host QA-зависимости подключались после готовности продукта. [Отчёт](docs/checks/tz_clean_clone.json). Это запуск подготовленного seed; сбор региона и локальная LLM измеряются отдельно.
+
+Прогретый последовательный HTTP-замер: p95 поиска 193,6 мс, максимальная страница поиска 386 374 Б; все 247 компактных профилей меньше 400 000 Б (максимум 368 392 Б, p95 ответа 104,2 мс). Гостевая выдача сохраняет полный ранжированный префикс в бюджете 390 000 Б и показывает действительное число вариантов. Это замер без параллельной нагрузки, не SLA. [Метрики и метод](docs/checks/tz_runtime_metrics.json); повтор: `.venv/bin/python scripts/tz_metrics.py --url http://localhost:8080 --output /tmp/okno-metrics.json`.
 
 | Переменная | Значение по умолчанию |
 |---|---|

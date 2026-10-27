@@ -1,0 +1,88 @@
+{
+  "checked_at": "2026-10-27T23:04:26.984395+00:00",
+  "revision": "98097662290d3fa46c0a9395bc7f44409d3b5874",
+  "passed": true,
+  "health": {
+    "status": "ok"
+  },
+  "mode": "offline",
+  "hotel_count": 247,
+  "characteristic_count": 39,
+  "masha_hotel_evaluations_read_only": [
+    {
+      "hotel_id": "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+      "required_statuses": [
+        "partial",
+        "yes",
+        "partial"
+      ],
+      "minimum_confidence": 0.66,
+      "wall_ms": 158.8
+    },
+    {
+      "hotel_id": "osm-way-201474330",
+      "required_statuses": [
+        "partial",
+        "yes",
+        "partial"
+      ],
+      "minimum_confidence": 0.66,
+      "wall_ms": 99.6
+    },
+    {
+      "hotel_id": "osm-node-11866202895",
+      "required_statuses": [
+        "partial",
+        "yes",
+        "partial"
+      ],
+      "minimum_confidence": 0.66,
+      "wall_ms": 77.0
+    }
+  ],
+  "created_search_runs": 0,
+  "preserved_tables": {
+    "questions": {
+      "before": 56,
+      "after": 56,
+      "all_previous_ids_preserved": true
+    },
+    "answers": {
+      "before": 16,
+      "after": 16,
+      "all_previous_ids_preserved": true
+    },
+    "expectation_passports": {
+      "before": 4,
+      "after": 4,
+      "all_previous_ids_preserved": true
+    },
+    "passport_items": {
+      "before": 11,
+      "after": 11,
+      "all_previous_ids_preserved": true
+    },
+    "agent_runs": {
+      "before": 1807,
+      "after": 1808,
+      "all_previous_ids_preserved": true
+    },
+    "agent_steps": {
+      "before": 3670,
+      "after": 3672,
+      "all_previous_ids_preserved": true
+    },
+    "search_queries": {
+      "before": 1791,
+      "after": 1792,
+      "all_previous_ids_preserved": true
+    }
+  },
+  "preservation_method": "Count and sorted identifier hash for rows created before the pre-update snapshot; no guest identifiers or texts exported",
+  "snapshot_cutoff": "2026-10-27T22:57:28.060438+00:00",
+  "runtime_image_id": "sha256:aae034c4cf36737967c74a4b6bf83abbf0896688b8897d0cf4e4b019411bffd3",
+  "container_restart_count": 0,
+  "container_health": "healthy",
+  "deleted_records": 0,
+  "protected_volumes_removed": false
+}
