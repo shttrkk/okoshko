@@ -360,6 +360,10 @@ try {
         },
       });
     }
+    if (path === "/api/hotelier")
+      return route.fulfill({
+        json: [{ hotel_id: hotel.id, pending_count: 1 }],
+      });
     if (path === `/api/hotelier/${hotel.id}`)
       return route.fulfill({
         json: {

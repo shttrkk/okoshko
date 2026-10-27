@@ -245,6 +245,8 @@ try {
     else if (key === "GET /api/characteristics") value = specs;
     else if (key === "GET /api/status") value = status;
     else if (key === "GET /api/revision") value = revision;
+    else if (key === "GET /api/hotelier")
+      value = [{ hotel_id: hotel.id, pending_count: 1 }];
     else if (
       request.method() === "GET" &&
       (url.pathname.endsWith("/rooms") || url.pathname.endsWith("/room-advice"))
@@ -608,7 +610,7 @@ async function liveAuthSmoke() {
     assert(await publicPage.getByTestId("simulate-change").isDisabled());
     assert(
       await publicPage
-        .getByRole("button", { name: /Перепроверить истёкшие TTL/ })
+        .getByRole("button", { name: /Перепроверить устаревшие сведения/ })
         .isDisabled(),
     );
     assert.equal(await publicPage.locator('a[href*="?passport="]').count(), 0);
@@ -735,6 +737,19 @@ async function liveAuthSmoke() {
     );
     const start = Date.now();
     await qualityPage.goto(base + "/quality");
+    await qualityPage
+      .getByTestId("quality-summary")
+      .waitFor({ timeout: 60000 });
+    assert.match(
+      await qualityPage.getByTestId("quality-summary").innerText(),
+      /Вручную проверено/,
+    );
+    await qualityPage
+      .getByText(
+        "Подробности для команды и разработчиков: методика и метрики",
+        { exact: true },
+      )
+      .click();
     await qualityPage
       .getByTestId("filter-comparison")
       .waitFor({ timeout: 60000 });

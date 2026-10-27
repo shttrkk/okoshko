@@ -29,7 +29,6 @@ import {
   EvidenceButton,
   EvidenceModal,
   Loading,
-  names,
   PageIntro,
   scopeText,
   Synthetic,
@@ -65,6 +64,11 @@ const hotelierFields: Record<string, string> = {
   fee_rub_night: "доплата за сутки",
   species: "виды питомцев",
 };
+function searchDemandText(count: number) {
+  const tail = count % 100,
+    last = count % 10;
+  return `${count} ${tail < 11 || tail > 14 ? (last >= 2 && last <= 4 ? "раза" : "раз") : "раз"} искали`;
+}
 function hotelierRooms(value: unknown): string {
   if (!Array.isArray(value)) return "";
   const rooms = value.filter((v): v is string => typeof v === "string");
@@ -172,6 +176,7 @@ function hotelierValue(cid: string, raw: unknown): string[] {
 
 export function HotelierPage() {
   const { hotels, specs } = useApp();
+  const questionStack = useRef<HTMLElement | null>(null);
   const [evidence, setEvidence] = useState<Fact | null>(null);
   const [token, setToken] = useState(
       sessionStorage.getItem("okno-token") || "",
@@ -189,12 +194,7 @@ export function HotelierPage() {
     [preview, setPreview] = useState<Answer | null>(null);
   const characteristicName = (cid: string) => {
     const spec = specs.data?.find((item) => item.id === cid);
-    return (
-      spec?.display_name ||
-      spec?.name_ru ||
-      names[cid] ||
-      "Характеристика отеля"
-    );
+    return spec?.name_ru || "Характеристика отеля";
   };
   const unknownName = (field: string) => {
     const [cid, key] = field.split(".");
@@ -207,29 +207,118 @@ export function HotelierPage() {
     session?.role === "hotelier"
       ? hotels.data?.filter((hotel) => session.hotel_ids.includes(hotel.id))
       : hotels.data;
+  const summaries = useResource(
+    () => (token ? api.hotelierSummaries() : Promise.resolve([])),
+    [token],
+  );
   useEffect(() => {
+    if (token && summaries.loading) return;
     if (!allowedHotels?.some((hotel) => hotel.id === hotelId)) {
-      setHotelId(allowedHotels?.[0]?.id || "");
+      const candidates = [...(allowedHotels || [])].sort((a, b) => {
+        const count = (id: string) =>
+          summaries.data?.find((item) => item.hotel_id === id)?.pending_count ||
+          0;
+        return (
+          Number(b.name !== "Островок" && count(b.id) > 0) -
+            Number(a.name !== "Островок" && count(a.id) > 0) ||
+          count(b.id) - count(a.id) ||
+          Number(a.name === "Островок") - Number(b.name === "Островок")
+        );
+      });
+      setHotelId(candidates[0]?.id || "");
     }
-  }, [hotels.data, hotelId, session]);
+  }, [hotels.data, hotelId, session, summaries.data, summaries.loading, token]);
   useEffect(() => {
     const expired = () => {
       setToken("");
       setSession(null);
       setPreview(null);
+      setText("");
+      setQuestionId("");
+      setSimulatedText(null);
+      setEvidence(null);
       setError(new Error("Сессия демо-кабинета завершилась. Войдите снова."));
     };
+    const changed = () => {
+      const nextToken = sessionStorage.getItem("okno-token") || "";
+      setToken(nextToken);
+      setSession(readHotelierSession());
+      if (!nextToken) {
+        setHotelId("");
+        setQuestionId("");
+        setPreview(null);
+        setText("");
+        setSimulatedText(null);
+        setConfirmationMessage("");
+        setEvidence(null);
+      }
+    };
     window.addEventListener("okno-auth-expired", expired);
-    return () => window.removeEventListener("okno-auth-expired", expired);
+    window.addEventListener("okno-auth-changed", changed);
+    return () => {
+      window.removeEventListener("okno-auth-expired", expired);
+      window.removeEventListener("okno-auth-changed", changed);
+    };
   }, []);
   const data = useResource(
     () => (token && hotelId ? api.hotelier(hotelId) : Promise.resolve(null)),
     [token, hotelId],
   );
-  const pendingQuestions =
-    data.data?.questions.filter((q) => q.status === "pending") || [];
+  const pendingQuestions = [
+    ...(data.data?.questions.filter((q) => q.status === "pending") || []),
+  ].sort(
+    (a, b) =>
+      Number(a.demand_synthetic) - Number(b.demand_synthetic) ||
+      b.demand_estimate - a.demand_estimate ||
+      b.priority - a.priority,
+  );
   const question =
     pendingQuestions.find((q) => q.id === questionId) || pendingQuestions[0];
+  const knownCharacteristics = new Set(
+    data.data?.facts
+      .filter((fact) => fact.status !== "unknown" && fact.value !== null)
+      .map((fact) => fact.characteristic_id),
+  );
+  const unknownCharacteristics = [
+    ...new Set(data.data?.facts.map((fact) => fact.characteristic_id)),
+  ].filter(
+    (cid) =>
+      !knownCharacteristics.has(cid) &&
+      specs.data?.find((spec) => spec.id === cid)?.hotelier_answerable !==
+        false,
+  );
+  const selectQuestion = (id: string) => {
+    setQuestionId(id);
+    setPreview(null);
+    setText("");
+    setSimulatedText(null);
+    setConfirmationMessage("");
+    questionStack.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+  const openUnknown = async (cid: string) => {
+    const existing = pendingQuestions.find((item) =>
+      item.characteristic_ids.includes(cid),
+    );
+    if (existing) {
+      selectQuestion(existing.id);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const created = await api.ask(hotelId, cid);
+      selectQuestion(created.id);
+      data.reload();
+      summaries.reload();
+    } catch (e) {
+      setError(e as Error);
+    } finally {
+      setBusy(false);
+    }
+  };
   const currentEvidence = evidence
     ? data.data?.facts.find((fact) => fact.id === evidence.id) ||
       data.data?.facts.find(
@@ -256,6 +345,7 @@ export function HotelierPage() {
       setSession(nextSession);
       if (nextSession?.role === "hotelier")
         setHotelId(nextSession.hotel_ids[0] || "");
+      else setHotelId("");
       setToken(r.token);
       window.dispatchEvent(new Event("okno-auth-changed"));
     } catch (e) {
@@ -273,6 +363,7 @@ export function HotelierPage() {
       sessionStorage.removeItem("okno-hotelier-session");
       setToken("");
       setSession(null);
+      setHotelId("");
       setPreview(null);
       setText("");
       setQuestionId("");
@@ -324,6 +415,7 @@ export function HotelierPage() {
       setText("");
       setSimulatedText(null);
       data.reload();
+      summaries.reload();
     } catch (e) {
       setError(e as Error);
     } finally {
@@ -356,14 +448,14 @@ export function HotelierPage() {
       <PageIntro
         eyebrow="ОТВЕТИТЬ ОДИН РАЗ. ПОМОЧЬ МНОГИМ."
         title="Ваш отель — точнее."
-        art="ask-hotel"
+        art={token ? undefined : "ask-hotel"}
       >
         Уточняйте факты, подтверждайте ожидания и помогайте гостям выбрать
         подходящий номер.
       </PageIntro>
       {!token ? (
         <div className="login-layout">
-          <form className="login-card" onSubmit={login}>
+          <form className="login-card" onSubmit={login} style={{ minWidth: 0 }}>
             <span className="eyebrow">ТЕСТОВЫЙ КАБИНЕТ</span>
             <h2>Вход для отеля</h2>
             <label>
@@ -398,7 +490,10 @@ export function HotelierPage() {
             </p>
             <ErrorState error={error} />
           </form>
-          <div className="login-note">
+          <div
+            className="login-note"
+            style={{ minWidth: 0, overflowWrap: "anywhere" }}
+          >
             <span className="editorial-mark">
               Один ответ.
               <br />
@@ -443,15 +538,23 @@ export function HotelierPage() {
               Выйти
             </button>
           </div>
+          {session?.role === "demo_admin" && (
+            <p className="fine-print">
+              Демо-кабинет: можно переключаться между{" "}
+              {allowedHotels?.length || 0} отелями каталога. Учётная запись
+              отеля видит только свой объект.
+            </p>
+          )}
           {hotels.error && (
             <ErrorState error={hotels.error} retry={hotels.reload} />
           )}
           <ErrorState error={data.error} retry={data.reload} />
+          <ErrorState error={summaries.error} retry={summaries.reload} />
           {data.loading && <Loading />}
           {data.data && (
             <div className="hotelier-grid">
-              <div>
-                <section className="question-stack">
+              <div style={{ minWidth: 0 }}>
+                <section className="question-stack" ref={questionStack}>
                   <div className="section-heading">
                     <div>
                       <span className="eyebrow">
@@ -459,14 +562,52 @@ export function HotelierPage() {
                       </span>
                       <h2>Уточним по существу.</h2>
                     </div>
-                    <span className="badge">
-                      {
-                        data.data.questions.filter(
-                          (q) => q.status === "pending",
-                        ).length
-                      }{" "}
-                      ожидают
+                    <span className="badge" data-testid="hotelier-remaining">
+                      Осталось вопросов: {pendingQuestions.length}
                     </span>
+                  </div>
+                  <p className="fine-print">
+                    Сначала темы, которые чаще искали гости. Счётчик показывает
+                    число поисковых запросов, а не уникальных людей.
+                  </p>
+                  <div
+                    className="run-list"
+                    style={{ display: "block" }}
+                    role="group"
+                    aria-label="Очередь вопросов по спросу"
+                    data-testid="hotelier-question-queue"
+                  >
+                    {pendingQuestions.map((item) => (
+                      <button
+                        key={item.id}
+                        style={{ width: "100%" }}
+                        className={question?.id === item.id ? "selected" : ""}
+                        aria-pressed={question?.id === item.id}
+                        onClick={() => selectQuestion(item.id)}
+                        data-testid={`queue-question-${item.characteristic_ids[0]}`}
+                      >
+                        <div>
+                          <strong>
+                            {item.characteristic_ids
+                              .map(characteristicName)
+                              .join(" · ")}
+                          </strong>
+                          <small>
+                            {item.demand_estimate > 0
+                              ? searchDemandText(item.demand_estimate)
+                              : "Пока нет поисков с таким условием"}
+                            {item.reason === "guest"
+                              ? " · вопрос гостя"
+                              : item.reason === "conflict"
+                                ? " · источники расходятся"
+                                : ""}
+                          </small>
+                          {item.demand_synthetic && (
+                            <Synthetic>Спрос · демо</Synthetic>
+                          )}
+                        </div>
+                      </button>
+                    ))}
                   </div>
                   {pendingQuestions.length > 1 && (
                     <label className="question-select">
@@ -529,7 +670,7 @@ export function HotelierPage() {
                         <Sparkles size={17} />
                         <span>
                           {question.demand_estimate > 0
-                            ? `Гости уже искали это ${question.demand_estimate} раз`
+                            ? `В журнале это условие ${searchDemandText(question.demand_estimate)}`
                             : "После подтверждения ответ поможет гостям с таким запросом"}
                         </span>
                         {question.demand_synthetic && (
@@ -596,7 +737,11 @@ export function HotelierPage() {
                     </Empty>
                   )}
                   {preview && (
-                    <div className="answer-preview" data-testid="answer-fields">
+                    <div
+                      className="answer-preview"
+                      data-testid="answer-fields"
+                      style={{ minWidth: 0, overflowWrap: "anywhere" }}
+                    >
                       <span className="eyebrow">
                         ПРОВЕРЬТЕ ПЕРЕД СОХРАНЕНИЕМ
                       </span>
@@ -739,7 +884,7 @@ export function HotelierPage() {
                   </section>
                 )}
               </div>
-              <aside>
+              <aside style={{ minWidth: 0 }}>
                 <section className="hotelier-summary">
                   <span className="eyebrow">ЗНАКОМСТВО С ПРОФИЛЕМ</span>
                   <h3>{data.data.hotel.name}</h3>
@@ -814,11 +959,39 @@ export function HotelierPage() {
                     </div>
                   ))}
               </aside>
-              <section className="hotelier-facts">
+              <section className="hotelier-facts" style={{ minWidth: 0 }}>
+                {!!unknownCharacteristics.length && (
+                  <div
+                    className="fact-category unknown-facts"
+                    data-testid="hotelier-unknowns"
+                  >
+                    <h2>Пока неизвестно</h2>
+                    <p className="muted">
+                      Выберите тему, чтобы открыть её вопрос. Ответ с условиями
+                      уточнит профиль; «Нет» и «Не знаю» тоже полезны.
+                    </p>
+                    <ul>
+                      {unknownCharacteristics.map((cid) => (
+                        <li key={cid}>
+                          <button
+                            className="text-button"
+                            disabled={busy}
+                            onClick={() => openUnknown(cid)}
+                            data-testid={`unknown-question-${cid}`}
+                          >
+                            {characteristicName(cid)} <ArrowRight size={15} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <h2>Что уже известно</h2>
                 <FactsPanel
                   hotelier
-                  facts={data.data.facts}
+                  facts={data.data.facts.filter((fact) =>
+                    knownCharacteristics.has(fact.characteristic_id),
+                  )}
                   claims={data.data.claims}
                   specs={specs.data || []}
                   hotelId={hotelId}
@@ -848,7 +1021,7 @@ const studioExamples = [
   "Можно ли утром дойти до пляжа и искупаться до завтрака",
 ];
 export function StudioPage() {
-  const { specs, status } = useApp();
+  const { specs, status, hotels } = useApp();
   const [text, setText] = useState(
       "Можно ли утром дойти до пляжа и искупаться до завтрака: пляж ≤ 10 минут пешком и вода ≥ 20 °C в месяц поездки",
     ),
@@ -952,6 +1125,23 @@ export function StudioPage() {
       setBusy("");
     }
   };
+  const conversionWarnings =
+    compiled?.warnings.filter((warning) => /прям|метр|минут/iu.test(warning)) ||
+    [];
+  if (
+    compiled &&
+    /минут|\d+\s*мин/iu.test(text) &&
+    /по\s+прямой/iu.test(compiled.spec.description) &&
+    conversionWarnings.length === 0
+  ) {
+    conversionWarnings.push(
+      "Вы запросили время пешком. Здесь будет расстояние по прямой, а не минуты маршрута. Перед публикацией проверьте, что такое условие подходит гостю.",
+    );
+  }
+  const hotelName = (id: string, supplied?: string | null) =>
+    supplied ||
+    hotels.data?.find((hotel) => hotel.id === id)?.name ||
+    "Отель из пробной выборки";
   return (
     <div className="page-container operations">
       <PageIntro
@@ -1036,13 +1226,16 @@ export function StudioPage() {
               Собрать спецификацию
             </button>
             <p className="fine-print">
-              Без ключа LLM работает офлайн-компилятор шаблонов «‹место› рядом /
-              в N минутах / ближе N м» для 15 типов мест из OpenStreetMap и
-              ручной YAML. С ключом — свободный текст. Инструменты вне реестра
-              не исполняются.
+              Сначала проверим описание и покажем, как оно будет рассчитано.
+              Каталог отелей изменится только после публикации.
             </p>
-            <details open={!!compiled || !!yaml} className="yaml-editor">
-              <summary>YAML · можно редактировать</summary>
+            <details className="yaml-editor">
+              <summary>Для разработчиков: описание в YAML</summary>
+              <p className="fine-print">
+                Без внешней модели доступны шаблоны для мест из OpenStreetMap.
+                YAML — текстовая схема расчёта; допускаются только инструменты
+                из реестра.
+              </p>
               <textarea
                 aria-label="YAML спецификации"
                 rows={16}
@@ -1063,12 +1256,9 @@ export function StudioPage() {
             <section className="compiled-spec">
               <div className="section-heading">
                 <div>
-                  <span className="eyebrow">
-                    ПЛАН ИСПОЛНЕНИЯ · {compiled.mode}
-                  </span>
-                  <h2>{compiled.spec.name_ru}</h2>
+                  <span className="eyebrow">КАК БУДЕТ ПРОВЕРЕНО УСЛОВИЕ</span>
+                  <h2>{compiled.spec.display_name || compiled.spec.name_ru}</h2>
                 </div>
-                <span className="badge">{compiled.spec.id}</span>
               </div>
               <p>{compiled.spec.description}</p>
               <dl className="metadata compact-metadata">
@@ -1083,21 +1273,50 @@ export function StudioPage() {
                   <dd>каждые {compiled.spec.ttl_days} дней</dd>
                 </div>
               </dl>
-              {compiled.plan.map((p, i) => (
-                <div className="tool-plan" key={`${p.tool}-${i}`}>
-                  <span>0{i + 1}</span>
-                  <div>
-                    <strong>{p.tool}</strong>
-                    <p>{p.rationale}</p>
-                    <code>{JSON.stringify(p.params)}</code>
-                  </div>
+              {conversionWarnings.length > 0 && (
+                <div
+                  className="limitations"
+                  role="note"
+                  data-testid="studio-distance-warning"
+                >
+                  <strong>Проверьте способ измерения до публикации</strong>
+                  {conversionWarnings.map((warning) => (
+                    <p key={warning}>{warning}</p>
+                  ))}
                 </div>
-              ))}
-              {compiled.warnings.map((w) => (
-                <p className="warning-note" key={w}>
-                  {w}
+              )}
+              <details>
+                <summary>Для разработчиков: инструменты и параметры</summary>
+                <p>
+                  Режим: {compiled.mode}; код характеристики: {compiled.spec.id}
                 </p>
-              ))}
+                {compiled.plan.map((p, i) => (
+                  <div className="tool-plan" key={`${p.tool}-${i}`}>
+                    <span>0{i + 1}</span>
+                    <div>
+                      <strong>{p.tool}</strong>
+                      <p>{p.rationale}</p>
+                      <code>{JSON.stringify(p.params)}</code>
+                    </div>
+                  </div>
+                ))}
+                {compiled.warnings
+                  .filter((warning) => /офлайн|LLM|YAML|шаблон/iu.test(warning))
+                  .map((warning) => (
+                    <p key={warning}>{warning}</p>
+                  ))}
+              </details>
+              {compiled.warnings
+                .filter(
+                  (warning) =>
+                    !conversionWarnings.includes(warning) &&
+                    !/офлайн|LLM|YAML|шаблон/iu.test(warning),
+                )
+                .map((w) => (
+                  <p className="warning-note" key={w}>
+                    {w}
+                  </p>
+                ))}
               <button
                 className="button secondary"
                 onClick={() => run("dry")}
@@ -1107,6 +1326,10 @@ export function StudioPage() {
                 <Play size={16} />
                 Проверить на отелях
               </button>
+              <p className="fine-print">
+                Проверка рассчитает примеры для небольшой выборки и сохранит
+                журнал. Новых сведений в профилях гостей пока не будет.
+              </p>
             </section>
           )}
           {dry && (
@@ -1115,15 +1338,36 @@ export function StudioPage() {
               <h2>
                 {dry.valid ? "Спецификация прошла проверку" : "Нужна доработка"}
               </h2>
+              <p className="notice" data-testid="studio-sample-summary">
+                {typeof dry.matched_count === "number"
+                  ? `В выборке подходит ${dry.matched_count} из ${dry.processed ?? dry.results.length}. `
+                  : "Число подходящих отелей API пока не передал. "}
+                Проверено {dry.processed ?? dry.results.length} из{" "}
+                {dry.total ||
+                  status.data?.hotel_count ||
+                  hotels.data?.length ||
+                  "каталога"}{" "}
+                отелей. Это пробная выборка, а не оценка всего каталога.
+              </p>
               {dry.results.map((r) => (
                 <div className="dry-hotel" key={r.hotel_id}>
-                  <Link to={`/hotel/${r.hotel_id}`}>{r.hotel_id}</Link>
-                  <span>{r.claims.length} утверждений</span>
+                  <Link to={`/hotel/${r.hotel_id}`}>
+                    {hotelName(r.hotel_id, r.hotel_name)}
+                  </Link>
+                  <span>
+                    {r.matched === true
+                      ? "В пробном расчёте условие выполнено"
+                      : r.matched === false
+                        ? "Условие не подтверждено в пробном расчёте"
+                        : "Результат сопоставления не передан"}
+                  </span>
                   {r.warnings.map((w) => (
                     <p key={w}>{w}</p>
                   ))}
                   <details>
-                    <summary>Доказательства и входные данные</summary>
+                    <summary>
+                      Для разработчиков: доказательства и входные данные
+                    </summary>
                     <pre>{JSON.stringify(r.claims, null, 2)}</pre>
                   </details>
                 </div>
@@ -1138,8 +1382,9 @@ export function StudioPage() {
                 Опубликовать в поиске
               </button>
               <p className="fine-print">
-                Демонстрационное действие: новая характеристика будет сохранена
-                в локальном каталоге.
+                После публикации характеристика появится в поиске у всех гостей.
+                Расчёт заполнит доступные профили; неизвестные исходные данные
+                останутся неизвестными.
               </p>
             </section>
           )}
@@ -1149,7 +1394,7 @@ export function StudioPage() {
               <h2>{published.spec.name_ru} — в каталоге</h2>
               <p>
                 Обработано {published.processed} из {published.total} отелей ·{" "}
-                {published.status}
+                {runStatuses[published.status] || "ожидает завершения"}
               </p>
               <progress
                 value={published.processed}
@@ -1183,9 +1428,7 @@ export function StudioPage() {
                 <span>{scopeNames[s.scope] || s.scope}</span>
               </summary>
               <p>{s.description}</p>
-              <small>
-                TTL {s.ttl_days} дней · v{s.version} · {s.status}
-              </small>
+              <small>Перепроверка каждые {s.ttl_days} дней</small>
               <p className="fine-print">
                 {s.methods.map((m) => m.tool).join(" + ")}
               </p>
@@ -1205,6 +1448,7 @@ const runKinds: Record<string, string> = {
   refresh: "Перепроверка",
   freshness: "Перепроверка",
   change: "Изменение на местности",
+  compile_spec: "Проверка характеристики",
 };
 const runStatuses: Record<string, string> = {
   completed: "готово",
@@ -1212,8 +1456,9 @@ const runStatuses: Record<string, string> = {
   running: "идёт",
   failed: "ошибка",
   error: "ошибка",
+  waiting: "ждёт ответа",
 };
-const runKind = (kind: string) => runKinds[kind] || kind;
+const runKind = (kind: string) => runKinds[kind] || "Служебная проверка";
 const scopeNames: Record<string, string> = {
   hotel: "весь отель",
   facade: "по сторонам здания",
@@ -1228,12 +1473,19 @@ const stepAgents: Record<string, string> = {
   interviewer: "интервьюер",
   answer_parser: "разбор ответа",
   spec_compiler: "компилятор",
+  compiler: "проверка описания",
   freshness: "актуализация",
 };
 function runTitle(run: AgentRun, hotelName?: string) {
+  if (run.kind === "search") return "Запрос гостя";
   const text = run.steps.find((s) => typeof s.input?.text === "string")?.input
     .text;
-  return hotelName || (typeof text === "string" && text ? `«${text}»` : "");
+  return (
+    hotelName ||
+    (run.kind === "compile_spec" && typeof text === "string" && text
+      ? "Проверка описания характеристики"
+      : "")
+  );
 }
 const timeText = (value: string) =>
   new Intl.DateTimeFormat("ru-RU", {
@@ -1328,7 +1580,9 @@ export function AgentPage() {
   const select = async (id: string) => {
     setError(null);
     try {
-      setSelected(await api.run(id));
+      const run = await api.run(id);
+      setSelected(run);
+      if (run.hotel_id) setHotelId(run.hotel_id);
     } catch (e) {
       setError(e as Error);
     }
@@ -1346,6 +1600,7 @@ export function AgentPage() {
       runs.data.find((r) => r.kind !== "search" && r.steps.length) ||
       runs.data[0];
     setSelected(first);
+    if (first.hotel_id) setHotelId(first.hotel_id);
   }, [runs.data, selected]);
   return (
     <div className="page-container operations">
@@ -1354,8 +1609,35 @@ export function AgentPage() {
         title="Как факт становится фактом."
       >
         План, инструменты, доказательства и решение по каждому утверждению.
-        Сохранённые шаги и живой поток SSE.
+        Последние проверки показывают, откуда взяты сведения и где ещё нужен
+        ответ отеля.
       </PageIntro>
+      {runs.data && (
+        <section className="limitations" data-testid="agent-summary">
+          <p>
+            В журнале {runs.data.length} проверок: завершено{" "}
+            {
+              runs.data.filter((run) =>
+                ["completed", "done"].includes(run.status),
+              ).length
+            }
+            , сейчас выполняется{" "}
+            {runs.data.filter((run) => run.status === "running").length}.
+          </p>
+          <p>
+            Ждут ответа:{" "}
+            {runs.data.filter((run) => run.status === "waiting").length};
+            завершились с ошибкой:{" "}
+            {
+              runs.data.filter((run) =>
+                ["failed", "error"].includes(run.status),
+              ).length
+            }
+            . Это сводка загруженного журнала, а не всей истории.
+          </p>
+          <p>Личные тексты поисковых запросов гостей скрыты.</p>
+        </section>
+      )}
       <div className="operations-toolbar">
         <label>
           Отель для прогона
@@ -1377,6 +1659,10 @@ export function AgentPage() {
           Пересобрать профиль
         </button>
       </div>
+      <p className="fine-print">
+        Пересборка заново проверит открытые данные выбранного отеля и обновит
+        его профиль для всех гостей. Журнал проверки сохранится здесь.
+      </p>
       <ErrorState error={error} />
       <div className="agent-layout">
         <aside className="run-list">
@@ -1447,7 +1733,11 @@ export function AgentPage() {
                 </div>
                 <span className={`badge ${live ? "live" : ""}`}>
                   <Activity size={13} />
-                  {live ? "В эфире" : selected.llm_mode}
+                  {live
+                    ? "Идёт проверка"
+                    : selected.llm_mode === "offline"
+                      ? "Локальный расчёт"
+                      : "Режим с языковой моделью"}
                 </span>
               </div>
               {selected.error && (
@@ -1466,29 +1756,36 @@ export function AgentPage() {
                     <div>
                       <div className="step-top">
                         <span className="badge">
-                          {stepAgents[step.agent] || step.agent}
+                          {stepAgents[step.agent] || "Обработка данных"}
                         </span>
-                        <span>
-                          {step.duration_ms.toFixed(0)} мс · {step.mode}
-                          {step.cache_hit ? " · кэш" : ""}
-                        </span>
+                        <span>{step.duration_ms.toFixed(0)} мс</span>
                       </div>
                       <h3>{step.name}</h3>
-                      <p>{step.rationale}</p>
+                      <p>
+                        {step.evidence_refs.length
+                          ? `Сохранено подтверждающих материалов: ${step.evidence_refs.length}.`
+                          : "Для этого шага отдельные подтверждающие материалы не указаны."}
+                      </p>
                       {step.error && (
-                        <p className="inline-error">{step.error}</p>
+                        <p className="inline-error">
+                          Шаг завершился с ошибкой. Подробности доступны ниже.
+                        </p>
                       )}
                       <details>
                         <summary>
-                          Вход → результат · {step.evidence_refs.length}{" "}
-                          доказательств
+                          Для разработчиков: вход и результат ·{" "}
+                          {step.evidence_refs.length} доказательств
                         </summary>
+                        <p>{step.rationale}</p>
+                        {step.error && <p>{step.error}</p>}
                         <pre>
                           {JSON.stringify(
                             {
                               input: step.input,
                               output: step.output,
                               evidence_refs: step.evidence_refs,
+                              mode: step.mode,
+                              cache_hit: step.cache_hit,
                             },
                             null,
                             2,
@@ -1531,6 +1828,14 @@ export function SourcesPage() {
         Реестр использованных источников, даты получения и лицензии. Планируемые
         источники не считаются покрытием.
       </PageIntro>
+      {sources.data && (
+        <p className="fine-print">
+          Использовано источников:{" "}
+          {sources.data.filter((source) => source.used).length}. Даты и лицензии
+          помогают проверить происхождение сведений; наличие источника не
+          гарантирует точность каждого расчёта.
+        </p>
+      )}
       {sources.loading && <Loading />}
       <ErrorState error={sources.error} retry={sources.reload} />
       <div className="sources-list">
@@ -1542,10 +1847,25 @@ export function SourcesPage() {
                 {String(i + 1).padStart(2, "0")}
               </span>
               <div>
-                <span className="eyebrow">{s.kind}</span>
+                <span className="eyebrow">
+                  {{
+                    open_data: "Открытые данные",
+                    computed: "Расчёт",
+                    hotelier: "Ответы отеля",
+                    simulation: "Демонстрационные данные",
+                    mock: "Проверочные данные",
+                  }[s.kind] || "Источник данных"}
+                </span>
                 <h2>{s.name}</h2>
                 <p>{s.attribution}</p>
-                {s.notes && <p className="muted">{s.notes}</p>}
+                {s.notes && (
+                  <details>
+                    <summary>
+                      Для команды: описание источника и ограничения
+                    </summary>
+                    <p className="muted">{s.notes}</p>
+                  </details>
+                )}
                 <a
                   className="text-button"
                   href={s.url}
