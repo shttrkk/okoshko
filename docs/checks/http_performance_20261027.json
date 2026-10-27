@@ -1,0 +1,336 @@
+{
+  "base_url": "http://localhost:8080",
+  "status": {
+    "name": "О!кно",
+    "mode": "offline",
+    "version": "1.0.0",
+    "hotel_count": 247,
+    "source_object_count": 250,
+    "held_object_count": 3,
+    "characteristic_count": 23,
+    "region_coverage": {
+      "air_quality": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "beach_walk": {
+        "known_hotels": 231,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "building_history": {
+        "known_hotels": 0,
+        "hotels": 247,
+        "status": "no_data",
+        "note": "нет данных в регионе"
+      },
+      "car_access": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "climate": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "connectivity": {
+        "known_hotels": 0,
+        "hotels": 247,
+        "status": "no_data",
+        "note": "нет данных в регионе"
+      },
+      "family_nearby": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "mountain_view": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "nearby_photos": {
+        "known_hotels": 111,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "night_pharmacy": {
+        "known_hotels": 180,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "pets": {
+        "known_hotels": 12,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "quiet_night": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "room_orientation": {
+        "known_hotels": 2,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "sea_view": {
+        "known_hotels": 241,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "soundproofing": {
+        "known_hotels": 1,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "sunset_view": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "nightlife": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "accessible_route": {
+        "known_hotels": 0,
+        "hotels": 247,
+        "status": "awaiting_hotels",
+        "note": null
+      },
+      "beach_surface": {
+        "known_hotels": 150,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "evening_heat": {
+        "known_hotels": 197,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "green_nearby": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "morning_sun": {
+        "known_hotels": 197,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "railway_noise": {
+        "known_hotels": 71,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      }
+    },
+    "no_data_characteristics": [
+      "building_history",
+      "connectivity"
+    ],
+    "seed_version": "sochi-2026-10-26-ab-v2",
+    "region_name": "Сочи: центр + Адлер–Имеретинка"
+  },
+  "method": "serial urllib HTTP; no gzip requested; nearest-rank p95",
+  "search_cache": "Warm samples repeat each query after warmups; normal per-request trace/log remains enabled.",
+  "samples_per_case": 20,
+  "warmups_per_case": 5,
+  "search": [
+    {
+      "text": "тихий номер с видом на закат недалеко от моря",
+      "first_sample": {
+        "ms": 124.41545799083542,
+        "bytes": 220804
+      },
+      "warm": {
+        "samples": 20,
+        "p50_ms": 83.21,
+        "p95_ms": 99.25,
+        "min_ms": 77.4,
+        "max_ms": 125.58,
+        "bytes_max": 220804
+      },
+      "all_in_top20": 3
+    },
+    {
+      "text": "вид на море с западной стороны не ниже 7 этажа",
+      "first_sample": {
+        "ms": 131.57183400471695,
+        "bytes": 105069
+      },
+      "warm": {
+        "samples": 20,
+        "p50_ms": 67.35,
+        "p95_ms": 72.14,
+        "min_ms": 62.5,
+        "max_ms": 265.49,
+        "bytes_max": 105069
+      },
+      "all_in_top20": 14
+    },
+    {
+      "text": "рядом с пляжем и парковкой",
+      "first_sample": {
+        "ms": 90.9831659955671,
+        "bytes": 129637
+      },
+      "warm": {
+        "samples": 20,
+        "p50_ms": 62.01,
+        "p95_ms": 74.68,
+        "min_ms": 53.72,
+        "max_ms": 79.36,
+        "bytes_max": 129638
+      },
+      "all_in_top20": 20
+    },
+    {
+      "text": "в гуще событий, бары и ночная жизнь",
+      "first_sample": {
+        "ms": 92.07049998803996,
+        "bytes": 93651
+      },
+      "warm": {
+        "samples": 20,
+        "p50_ms": 58.28,
+        "p95_ms": 63.69,
+        "min_ms": 52.51,
+        "max_ms": 63.71,
+        "bytes_max": 93653
+      },
+      "all_in_top20": 20
+    },
+    {
+      "text": "похожий на Brevis apartments",
+      "first_sample": {
+        "ms": 594.6804999985034,
+        "bytes": 129001
+      },
+      "warm": {
+        "samples": 20,
+        "p50_ms": 167.98,
+        "p95_ms": 206.29,
+        "min_ms": 158.29,
+        "max_ms": 426.18,
+        "bytes_max": 129002
+      },
+      "all_in_top20": 0
+    }
+  ],
+  "profiles": {
+    "detail_full": {
+      "first_sample": {
+        "ms": 159.41616699274164,
+        "bytes": 3603487
+      },
+      "warm": {
+        "samples": 20,
+        "p50_ms": 132.64,
+        "p95_ms": 325.45,
+        "min_ms": 126.73,
+        "max_ms": 354.72,
+        "bytes_max": 3603487
+      }
+    },
+    "compare_full": {
+      "first_sample": {
+        "ms": 1126.9373329996597,
+        "bytes": 10141037
+      },
+      "warm": {
+        "samples": 20,
+        "p50_ms": 1105.21,
+        "p95_ms": 1308.69,
+        "min_ms": 901.29,
+        "max_ms": 1426.01,
+        "bytes_max": 10141037
+      }
+    },
+    "detail_compact": {
+      "first_sample": {
+        "ms": 66.75566699414048,
+        "bytes": 253327
+      },
+      "warm": {
+        "samples": 20,
+        "p50_ms": 55.26,
+        "p95_ms": 72.77,
+        "min_ms": 52.23,
+        "max_ms": 253.77,
+        "bytes_max": 253327
+      }
+    },
+    "compare_compact": {
+      "first_sample": {
+        "ms": 146.13204200577457,
+        "bytes": 753740
+      },
+      "warm": {
+        "samples": 20,
+        "p50_ms": 138.92,
+        "p95_ms": 323.35,
+        "min_ms": 131.2,
+        "max_ms": 360.44,
+        "bytes_max": 753740
+      }
+    }
+  },
+  "search_warm": {
+    "samples": 100,
+    "p50_ms": 69.35,
+    "p95_ms": 181.0,
+    "min_ms": 52.51,
+    "max_ms": 426.18,
+    "bytes_max": 220804
+  },
+  "targets": {
+    "warm_search_p95_under_800ms": true,
+    "compact_detail_under_400KB": true,
+    "compact_compare_p95_under_1s": true
+  },
+  "measured_at": "2026-10-27T03:11:19.291186+00:00",
+  "source_parent": "6ba019f",
+  "implementation_commit": "65e10457c5f0c2f9af20804d490ab090ccab1811",
+  "source_sha256": {
+    "backend/db/repository.py": "43fc2d61202cd6ff261b3237288e5949fc6980f693e9c0ddc44b21b3ab531d43",
+    "backend/agents/query_parser.py": "b9d0e33e0c347c8e3d009899d0004009e2b7364254342024a2e93984124dee9e",
+    "backend/agents/ranker.py": "66b28ead6aecce9a681ae1ed12d180b97f8f300bd919126ccf342f678d2df88d",
+    "scripts/benchmark_api.py": "89be53a360289bccf87b40e52956e46f140d06ae9824759ed98556631a1215b8"
+  },
+  "image": {
+    "Id": "sha256:63b6c800b86c5701ef09830c6cd201042c8eab1a5441d8c48394d89ef175cce9",
+    "Architecture": "amd64",
+    "Os": "linux",
+    "Size": 327449622
+  },
+  "environment": {
+    "host": "Apple M4; Docker Desktop linux/amd64 emulation",
+    "concurrent_tests_or_builds": false,
+    "provider_mode": "offline",
+    "transport": "localhost HTTP, no gzip requested"
+  }
+}

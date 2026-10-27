@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 06:06 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 06:14 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -27,7 +27,7 @@
 | A3 | [x] | Систематизировать, хранить и показывать пользователю | PostgreSQL JSONB, типизированные API; browser S6: поиск, карточка, evidence, compare, cabinet PASS. |
 | A4 | [x] | Список отелей, данные, инструменты агентов, логику, интерфейс собираем сами | pipeline/rebuild.py: источники → DEM/DSM → geo → seed; Docker pipeline, hashed lock. Сочи 175 A + 75 B; второй регион изолирован. |
 | A5 | [x] | «Агент, который просит LLM угадать — не решение». Нужно знать: откуда агент берёт значение, насколько уверен, как проверить, когда устареет | Claim validation + NOT NULL/checks + immutable trigger; rollback SQL-тест и S7 audit всех geo/open/website claims PASS. Срок действия задаётся одним правилом (ttl_days характеристики; георасчёты — раз в квартал); поставленные claims переизданы с `supersedes_ids`, ни один не истекает до 01.12.2026 (time-travel тесты на 30.10 и 30.11). |
-| A6 | [x] | Один регион, проработанный глубоко | Сочи/Адлер, 250 реальных объектов, region YAML и bbox в UI. Неизвестные значения сохранены; близость к морю не подменяет вид из окна. |
+| A6 | [~] | Один регион, проработанный глубоко | Сочи/Адлер, 250 реальных объектов, region YAML и bbox в UI. Неизвестные значения сохранены; близость к морю не подменяет вид из окна. |
 | A7 | [x] | Запуск по README без многочасовой загрузки; демо-данные заранее собраны и лежат в репо | Clean clone `9ac03ec`: без .env, уникальный project/пустые volumes, prune, Docker-only PATH. Health 174,98 с, full 249,07 с, smoke/demo-check/browser PASS. |
 | A8 | [x] | Если нужен ключ LLM — описать в README и приложить `.env.example` | .env.example LLM_MODE=offline; unit test запрещает сеть без ключа; live provider опционален. |
 | B1 | [x] | **Сбор характеристик**: агент сам решает, какие источники и инструменты нужны для конкретной характеристики, и получает значение | Tool Registry + Planner/Executor; S6 browser /agent: running→33 durable SSE steps→completed. Первый старт сам выполняет обычный collect для «Гамма сириус»: 36 шагов planner → tools → resolver → interviewer видны на `/agent` без ручных действий. План в offline берётся из методов YAML; LLM может только переупорядочить разрешённые шаги. |
@@ -191,3 +191,5 @@
 - 27.10.2026 05:54: clean-clone checker выполняет make check и Chrome smoke после Docker-only readiness; startup key принудительно пустой, свободное место фиксируется. Dev lock содержит оба исходно заданных toolchain pins с публичными hashes. 1254 tests + 125 subtests, Ruff/frontend lint, dev pip-audit 0 vulnerabilities PASS. Filter comparison исправлен под текущий floor domain и catalogue policy: 54 совместимых scope из 247 доступных объектов, 18 за пределами 500 м; это модельное сравнение, не полевая точность.
 
 - 27.10.2026 06:06: документация синхронизирована с каталогом 23 характеристик, eligibility и scope/revision. Опубликованы агрегаты независимого intent-набора, исторического локального LLM-эксперимента и текущего покрытия шести признаков: raw171/170, confidence≥0,6 3/0; searchable169/168 и3/0. 1254 tests +125 subtests, Ruff/frontend lint PASS; line coverage7388/8220=89,88% (без тестов). Полный read-only history/secret/size guard PASS; исходные данные и выводы о поле не расширяются этими метриками.
+
+- 27.10.2026 06:14: Repository использует bounded pool (4, overflow0, checkout3с, pre_ping) с явными commit/rollback/eviction; SQL не повторяется при lost acknowledgment, snapshot инвалидируется консервативно. 1280 tests +125 subtests, coverage7467/8289=90,08%, Ruff/frontend lint, rebuild, demo13 и Chrome PASS. Quiet serial HTTP: warm search100samples p50=69,35/p95=181мс; compact detail253327B/p95=72,77мс; compact compare753740B/p95=323,35мс. Все3performanceguardsPASS; метод/хэши/SQL-проверки в docs/checks. A6 частичный: надёжный nonsynthetic полный набор100+ не достигнут; этажи/уверенность не выдумывались.
