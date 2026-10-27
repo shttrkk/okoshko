@@ -4,7 +4,7 @@ from __future__ import annotations
 from geo.coordinates import TO_UTM
 from geo.io import read_json
 from geo.region import load_features
-from geo.tz_airport import airport_exposure
+from geo.tz_airport import airport_exposure, select_airport_runways
 from geo.tz_environment import car_arrival, mapped_nearby
 from geo.tz_history import exact_history
 from pipeline.common import CONFIG, SEED, sha
@@ -14,9 +14,14 @@ from pipeline.tz_common import baseline_sources, observation, parameters, spec_i
 def run():
     names = ["aeroways", "construction", "entrances", "vehicle_roads", "communication_masts", "history"]
     layers = {n: load_features(SEED / f"tz_{n}.geojson") for n in names}
+    areas = load_features(SEED / "tz_areas.geojson")
+    airport_thresholds = parameters("airport_noise")
+    runways = select_airport_runways([r for r in layers["aeroways"] if r["properties"].get("aeroway") == "runway"], areas, iata=airport_thresholds["airport_iata"])
+    layers["construction"] += [f for f in areas if f["properties"].get("landuse") == "construction" or f["properties"].get("building") == "construction"]
     inputs = {"/data/seed/"+p.name: sha(p) for n in names for p in [SEED / f"tz_{n}.geojson.gz"]}
     inputs["/data/seed/hotels.json"] = sha(SEED / "hotels.json")
     inputs["/data/seed/pois.geojson.gz"] = sha(SEED / "pois.geojson.gz")
+    inputs["/data/seed/tz_areas.geojson.gz"] = sha(SEED / "tz_areas.geojson.gz")
     for kind in ("airport_noise", "construction_nearby", "mobile_masts", "car_arrival"):
         inputs.update([spec_input(kind)])
     hotels, rows = read_json(SEED / "hotels.json"), []
@@ -29,8 +34,8 @@ def run():
         snapshot = read_json(path) if path.exists() else {}
         facades = snapshot.get("facades", [])
         values = {
-            "airport_noise": airport_exposure(xy, [r for r in layers["aeroways"] if r["properties"].get("aeroway") == "runway"], facades=facades,
-                extension_m=parameters("airport_noise")["corridor_extension_m"], half_width_m=parameters("airport_noise")["corridor_half_width_m"], nearby_m=parameters("airport_noise")["nearby_m"]),
+            "airport_noise": airport_exposure(xy, runways, facades=facades,
+                extension_m=airport_thresholds["corridor_extension_m"], half_width_m=airport_thresholds["corridor_half_width_m"], nearby_m=airport_thresholds["nearby_m"]),
             "construction_nearby": mapped_nearby(xy, layers["construction"], radius_m=parameters("construction_nearby")["radius_m"], facades=facades),
             "mobile_masts": mapped_nearby(xy, layers["communication_masts"], radius_m=parameters("mobile_masts")["radius_m"]),
             "car_arrival": car_arrival(hotel, layers["vehicle_roads"], layers["entrances"], parking, threshold_m=parameters("car_arrival")["arrival_threshold_m"]),

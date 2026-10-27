@@ -24,7 +24,12 @@ def exact_history(hotel, features):
         if fields:
             rows.append({"osm_id": feature["id"], "identity_method": "exact_hotel_id" if feature["id"] in {hotel["id"], hotel.get("osm_id")} else "assigned_contour_id_and_contains", "tags": fields})
     historic = [r for r in rows if any(k in r["tags"] for k in FIELDS[:-2])]
+    date_record = next(((r, k) for r in historic for k in FIELDS[:3] if k in r["tags"]), None)
     return {"available": True if historic else None, "records": rows,
-            "inception": next((r["tags"][k] for r in historic for k in FIELDS[:3] if k in r["tags"]), None),
+            "inception": date_record[0]["tags"][date_record[1]] if date_record else None,
+            "inception_osm_id": date_record[0]["osm_id"] if date_record else None,
+            "inception_tag": date_record[1] if date_record else None,
+            "date_semantics": "Original OSM tag verbatim: hotel start_date can describe opening, not building construction; no historical-age classification is inferred",
+            "explicit_building_date": next((r["tags"][k] for r in historic for k in ("building:start_date", "construction_date") if k in r["tags"]), None),
             "architecture": next((r["tags"]["building:architecture"] for r in historic if "building:architecture" in r["tags"]), None),
             "wikidata_id": next((r["tags"]["wikidata"] for r in rows if "wikidata" in r["tags"]), None)}

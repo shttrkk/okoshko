@@ -9,7 +9,7 @@ from shapely.geometry import LineString, Point, box, mapping
 
 from geo.coordinates import TO_UTM
 from geo.terrain import Grid
-from geo.tz_airport import airport_exposure, transit_connections
+from geo.tz_airport import airport_exposure, select_airport_runways, transit_connections
 from geo.tz_climate import climate_days, water_comfort
 from geo.tz_environment import CarGraph, car_allowed, mapped_nearby
 from geo.tz_history import exact_history
@@ -33,6 +33,14 @@ def test_runway_axis_extensions_not_infinite_stripe():
     assert airport_exposure((-6001, 0), [runway])["available"] is False
     assert airport_exposure((0, 0), []) is None
     assert airport_exposure((500, 0), [runway])["noise_db"] is None
+
+
+def test_only_runways_in_exact_iata_airport_are_used():
+    runway = feature("aer", LineString([(0, 0), (1000, 0)]))
+    short_unrelated = feature("unassociated", LineString([(2000, 0), (2120, 0)]))
+    airport = feature("airport", box(-10, -10, 1010, 10), aeroway="aerodrome", iata="AER")
+    assert select_airport_runways([runway, short_unrelated], [airport]) == [runway]
+    assert select_airport_runways([runway], [airport], iata="XXX") == []
 
 
 def route(oid, stops):
@@ -67,6 +75,8 @@ def test_exact_history_not_nearest_name_or_wrong_assigned_contour():
     hotel = {"id": "osm-node-1", "lon": 39.72, "lat": 43.58, "tags": {"building_id": "osm-way-2"}}
     a = {"id": "osm-way-2", "geometry": mapping(box(39.719, 43.579, 39.721, 43.581)), "properties": {"start_date": "1905", "building:architecture": "art_nouveau"}}
     assert exact_history(hotel, [a])["inception"] == "1905"
+    assert exact_history(hotel, [a])["inception_tag"] == "start_date"
+    assert exact_history(hotel, [a])["explicit_building_date"] is None
     assert exact_history(hotel, [{**a, "id": "osm-way-3"}])["available"] is None
     wrong = {**a, "geometry": mapping(box(39.73, 43.59, 39.74, 43.60))}
     assert exact_history(hotel, [wrong])["available"] is None

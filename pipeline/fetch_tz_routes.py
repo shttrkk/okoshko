@@ -1,7 +1,10 @@
 """Real graph routes for night venues, pets, families and airport access."""
 from __future__ import annotations
 
+import json
+
 from shapely.geometry import Point
+from shapely.strtree import STRtree
 
 from geo.coordinates import TO_UTM
 from geo.io import read_json
@@ -28,33 +31,38 @@ def run():
     features = load_features(SEED / "pois.geojson")+load_features(SEED / "tz_transit_stops.geojson")+roads
     # Duplicate IDs from original POIs and added transit extract are one place.
     features = list({f["id"]: f for f in features}.values())
+    feature_tree = STRtree([f["shape"] for f in features])
     car = CarGraph(load_features(SEED / "tz_vehicle_roads.geojson"))
-    terminals = [f for f in load_features(SEED / "tz_aeroways.geojson") if f["properties"].get("aeroway") == "terminal"]
+    terminals = [f for f in load_features(SEED / "tz_aeroways.geojson")+load_features(SEED / "tz_areas.geojson")
+                 if f["properties"].get("aeroway") == "terminal" and f["properties"].get("access") not in {"private", "no"}
+                 and "vip" not in f["properties"].get("name", "").lower()]
     terminal = max(terminals, key=lambda f: f["shape"].area) if terminals else None
     terminal_xy = terminal["shape"].representative_point().coords[0] if terminal else None
     car_start, airport_snap = car.snap(terminal_xy) if terminal_xy else (None, None)
     car_costs = car.distances(car_start)
     stops = load_features(SEED / "tz_transit_stops.geojson")
+    stop_nodes = {s["id"]: planner.snap(s["shape"].representative_point().coords[0])[0] for s in stops}
     airport_origin = planner.from_hotel(terminal_xy) if terminal_xy else None
     airport_stops = []
     for stop in stops:
         if not terminal or stop["shape"].distance(terminal["shape"]) > 500:
             continue
-        node, _ = planner.snap(stop["shape"].representative_point().coords[0])
+        node = stop_nodes[stop["id"]]
         if airport_origin and node in airport_origin[2] and airport_origin[2][node] <= 10:
             airport_stops.append(stop["id"])
     relations = read_json(SEED / "tz_transit_routes.json")
     rows = []
-    filenames = ["hotels.json", "walk_graph.json.gz", "pois.geojson.gz", "roads.geojson.gz", "railways.geojson.gz", "tz_transit_stops.geojson.gz", "tz_vehicle_roads.geojson.gz", "tz_aeroways.geojson.gz", "tz_transit_routes.json"]
+    filenames = ["hotels.json", "walk_graph.json.gz", "pois.geojson.gz", "roads.geojson.gz", "railways.geojson.gz", "tz_transit_stops.geojson.gz", "tz_vehicle_roads.geojson.gz", "tz_aeroways.geojson.gz", "tz_areas.geojson.gz", "tz_transit_routes.json.gz"]
     inputs = {"/data/seed/"+name: sha(SEED / name) for name in filenames}
     for kind in ("night_open", "dog_walk", "veterinary_nearby", "pet_shop_nearby", "airport_transfer"):
         inputs.update([spec_input(kind)])
     sources = baseline_sources()
-    for hotel in read_json(SEED / "hotels.json"):
+    hotels = read_json(SEED / "hotels.json")
+    for index, hotel in enumerate(hotels, 1):
         xy = TO_UTM.transform(hotel["lon"], hotel["lat"])
         origin = planner.from_hotel(xy)
         arrival = planner.from_hotel(xy, reverse=True)
-        nearby = [f for f in features if f["shape"].distance(Point(xy)) <= 6500]
+        nearby = [features[int(i)] for i in feature_tree.query(Point(xy).buffer(6500), predicate="intersects")]
         found = {kind: planner.nearest(origin, nearby, kind=kind, max_minutes=route_parameters["near_minutes"]) for kind in KINDS}
         for kind, category in [("night_open", "night_shop"), ("dog_walk", "dog_park"), ("veterinary_nearby", "veterinary"), ("pet_shop_nearby", "pet_shop")]:
             value = found[category]
@@ -74,12 +82,13 @@ def run():
         reachable_stops = []
         if arrival:
             for stop in stops:
-                target, _ = planner.snap(stop["shape"].representative_point().coords[0])
+                target = stop_nodes[stop["id"]]
                 if target in arrival[2] and arrival[2][target] <= 15:
                     reachable_stops.append(stop["id"])
         transfer = transit_connections(relations, airport_stops, reachable_stops)
         car_target, hotel_snap = car.snap(xy)
         transfer.update(airport_stop_ids=airport_stops, hotel_stop_count=len(reachable_stops),
+                        terminal_osm_id=terminal["id"] if terminal else None,
                         airport_walk_anchor="terminal representative point; ≤10 graph minutes and ≤500 m map proximity", airport_walk_anchor_known=airport_origin is not None,
                         airport_car_distance_km=round(car_costs[car_target]/1000, 3) if car_target in car_costs else None,
                         airport_car_snap_m=airport_snap, hotel_car_snap_m=hotel_snap,
@@ -87,6 +96,8 @@ def run():
                         nearest_station=compact(found["station"]), nearest_bus_stop=compact(found["bus_stop"]),
                         parking_walk=compact(found["parking"]), ev_walk=compact(found["ev"]))
         rows.append(observation(hotel["id"], "airport_transfer", transfer, source_ids=["tz_osm_geofabrik", "osm_geofabrik", "copernicus_dem"], method="tz_osm_airport_connectivity@1"))
+        if index % 25 == 0:
+            print(json.dumps({"stage": "tz_routes", "processed": index, "total": len(hotels)}), flush=True)
     return write_stage("routes", rows, [*read_json(SEED / "tz_osm_sources.json"), sources["osm_geofabrik"], sources["copernicus_dem"]], inputs=inputs, limitations=[
         "Walking minutes use only the existing directed OSM graph with DEM slopes/Tobler; two disjoint zones limit connectivity",
         "Hotel and destination snap ≤120 m; straight snap connectors are unmapped and excluded from time/distance; not door-to-door estimates",

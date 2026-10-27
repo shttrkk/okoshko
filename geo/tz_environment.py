@@ -47,6 +47,8 @@ def car_arrival(hotel, roads, entrances, parking, *, threshold_m=30):
     from geo.coordinates import metric
     polygon = metric(shape(footprint)) if footprint else None
     point = metric(Point(hotel["lon"], hotel["lat"]))
+    if polygon is not None and not polygon.covers(point):
+        polygon = None  # a nearby, unassigned building cannot identify an entrance/parking
     # An entrance is tied to this hotel only by the assigned footprint boundary.
     matched = [e for e in entrances if polygon is not None and polygon.boundary.distance(e["shape"]) <= 2]
     origins = [e["shape"] for e in matched] or ([polygon] if polygon is not None else [])

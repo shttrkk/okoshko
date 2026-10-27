@@ -7,6 +7,11 @@ from shapely.geometry import LineString, Point
 from geo.coordinates import angle_difference, azimuth
 
 
+def select_airport_runways(runways, aerodromes, *, iata="AER"):
+    airports = [a for a in aerodromes if a["properties"].get("aeroway") == "aerodrome" and a["properties"].get("iata") == iata]
+    return [r for r in runways if any(a["shape"].intersects(r["shape"]) for a in airports)]
+
+
 def runway_corridors(line, *, extension_m=6000, half_width_m=500):
     coords = np.asarray(line.coords)
     a, b = coords[0], coords[-1]
@@ -20,7 +25,7 @@ def runway_corridors(line, *, extension_m=6000, half_width_m=500):
 
 def airport_exposure(xy, runways, *, extension_m=6000, half_width_m=500, nearby_m=3000, facades=()):
     point = Point(xy)
-    usable = [r for r in runways if r["shape"].geom_type == "LineString" and r["shape"].length >= 100]
+    usable = [r for r in runways if r["shape"].geom_type == "LineString" and np.linalg.norm(np.asarray(r["shape"].coords[-1])-r["shape"].coords[0]) >= 100]
     if not usable:
         return None
     nearest = min(usable, key=lambda r: r["shape"].distance(point))

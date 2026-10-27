@@ -20,6 +20,7 @@ methods:
 - tool: prepared_observation
   params:
     kind: airport_noise
+    airport_iata: AER
     corridor_extension_m: 6000
     corridor_half_width_m: 500
     nearby_m: 3000

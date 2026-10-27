@@ -6,7 +6,7 @@ from pathlib import Path
 
 from shapely.geometry import LineString, Point, Polygon, box, mapping
 
-from pipeline.common import CONFIG, SEED, collection, dump, fetch, output_metadata, source, utcnow
+from pipeline.common import CONFIG, SEED, collection, dump, fetch, gzip_json, output_metadata, source, utcnow
 
 LAYERS = ("aeroways", "transit_stops", "construction", "entrances", "vehicle_roads", "communication_masts", "history", "landmarks")
 TRANSPORT = {"bus", "train", "light_rail", "tram", "trolleybus"}
@@ -107,13 +107,14 @@ def extract(path, *, output_dir=SEED, download=None):
     output_dir.mkdir(parents=True, exist_ok=True)
     for name, features in layers.items():
         dump(output_dir / f"tz_{name}.geojson", collection(features))
-    dump(output_dir / "tz_transit_routes.json", sorted(routes, key=lambda r: r["id"]))
+    gzip_json(output_dir / "tz_transit_routes.json.gz", sorted(routes, key=lambda r: r["id"]))
+    (output_dir / "tz_transit_routes.json").unlink(missing_ok=True)
     record = {"stage": "tz_osm_extra@1", "generated_at": utcnow(), "snapshot": snapshot, "bbox": bbox,
               "download": download, "counts": {**{k: len(v) for k, v in layers.items()}, "transit_routes": len(routes)},
               "limitations": ["Multipolygon relations are not assembled", "OSM omissions are unknown, never evidence of absence", "Route relations describe mapped connectivity, not a timetable or operational service", "Continuous road envelope does not extend the original foot graph"],
               "license_verified_url": "https://www.openstreetmap.org/copyright",
               "outputs": {str(p.name): output_metadata(p) for p in sorted(output_dir.glob("tz_*.geojson*"))}}
-    record["outputs"]["tz_transit_routes.json"] = output_metadata(output_dir / "tz_transit_routes.json")
+    record["outputs"]["tz_transit_routes.json.gz"] = output_metadata(output_dir / "tz_transit_routes.json.gz")
     dump(output_dir / "tz_osm_manifest.json", record)
     dump(output_dir / "tz_osm_sources.json", [source("tz_osm_geofabrik", "OSM additional layers / Geofabrik South Federal District", CONFIG["osm"]["url"], "ODbL-1.0", "© OpenStreetMap contributors; extract by Geofabrik", snapshot, (download or {}).get("retrieved_at", utcnow()), "Incremental extract; original seed and facts unchanged. License checked at https://www.openstreetmap.org/copyright")])
     print(json.dumps(record["counts"], sort_keys=True), flush=True)

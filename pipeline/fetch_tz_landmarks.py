@@ -6,7 +6,7 @@ import yaml
 
 from geo.coordinates import TO_UTM
 from geo.io import read_json
-from geo.region import Region
+from geo.region import Region, load_features
 from geo.terrain import Grid
 from geo.tz_landmarks import TwoScaleGround, contour_target, landmark_visibility, line_obstacles
 from pipeline.common import SEED, dump, sha
@@ -18,6 +18,7 @@ def run():
     catalog = yaml.safe_load(catalog_path.read_text())
     region = Region(SEED.parent)
     features = {f["id"]: f for f in region.features["buildings"]}
+    features.update({f["id"]: f for f in load_features(SEED / "tz_areas.geojson")})
     landmarks, rejected = [], []
     for landmark in catalog["landmarks"]:
         feature = features.get(landmark["osm_id"])
@@ -39,6 +40,7 @@ def run():
     thresholds = parameters("landmark_view")
     inputs = {"/data/landmarks/sochi.yaml": sha(catalog_path),
               "/data/seed/buildings.geojson.gz": sha(SEED / "buildings.geojson.gz"), "/data/geo/terrain_30m.npz": sha(SEED.parent / "geo/terrain_30m.npz")}
+    inputs["/data/seed/tz_areas.geojson.gz"] = sha(SEED / "tz_areas.geojson.gz")
     inputs.update([spec_input("landmark_view")])
     for hotel in read_json(SEED / "hotels.json"):
         path = SEED.parent / "geo" / (hotel["id"]+".json")

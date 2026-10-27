@@ -161,6 +161,7 @@ class Registry:
         self.specs["prepared_observation"] = ToolSpec(
             id="prepared_observation", description="Подготовленные дополнительные расчёты по открытым данным; без догадок и сети",
             parameters_schema={"type": "object", "properties": {"kind": {"type": "string", "enum": sorted(STAGES)},
+                               "airport_iata": {"type": "string", "pattern": "^[A-Z]{3}$", "maxLength": 3},
                                "landmark_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$", "maxLength": 64},
                                **{name: {"type": "number", "minimum": low, "maximum": high} for name, (low, high) in extra_parameters.items()}},
                                "required": ["kind"], "additionalProperties": False}, prior_reliability=.55,

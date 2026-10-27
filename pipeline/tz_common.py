@@ -66,7 +66,7 @@ def write_stage(name, observations, sources, *, inputs, limitations=()):
                 "value": value, "source": row.get("source", "tz_osm_geofabrik"), "method": row.get("method", f"tz_{name}@1"),
                 "confidence": row.get("confidence", .55), "observed_at": observed.isoformat(),
                 "valid_until": (observed+timedelta(days=row.get("ttl_days", 90))).isoformat(), "synthetic": False,
-                "evidence": [{"id": stable_id([row["hotel_id"], row["kind"], scope, inputs]), "kind": row.get("evidence_kind", "calculation"),
+                "evidence": [{"id": stable_id([row["id"], scope, inputs]), "kind": row.get("evidence_kind", "calculation"),
                               "label": row.get("label", "Расчёт по сохранённым открытым данным"),
                               "source_ids": row.get("source_ids", [row.get("source", "tz_osm_geofabrik")]),
                               "artifact": "/data/seed/"+evidence_path.name, "inputs": {"input_sha256": {**inputs, **row.get("input_sha256", {})}, "observation_id": row["id"]},

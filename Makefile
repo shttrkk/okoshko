@@ -58,6 +58,7 @@ snapshots:
 # Incremental stage one only: never rebuilds or loads the original seed/facts.
 tz-osm-data:
 	$(PYTHON) -m pipeline.fetch_osm_extra
+	$(PYTHON) -m pipeline.fetch_tz_areas
 tz-climate-data:
 	$(PYTHON) -m pipeline.fetch_tz_climate
 tz-derived-data:

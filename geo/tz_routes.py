@@ -5,9 +5,10 @@ import heapq
 import math
 import re
 
-from shapely.geometry import Point
+from shapely.geometry import Point, shape
 from shapely.strtree import STRtree
 
+from geo.coordinates import metric
 from geo.walk import crossing_details
 
 
@@ -44,28 +45,41 @@ def pediatric(properties):
 
 def category(properties, kind):
     amenity, leisure = properties.get("amenity"), properties.get("leisure")
-    return {
-        "night_shop": properties.get("shop") in {"convenience", "supermarket", "greengrocer", "bakery", "grocery"},
-        "night_food": amenity in {"cafe", "restaurant", "fast_food", "food_court"},
-        "dog_park": leisure == "dog_park", "park": leisure in {"park", "garden"},
-        "veterinary": amenity == "veterinary", "pet_shop": properties.get("shop") == "pet",
-        "playground": leisure == "playground", "hospital": amenity == "hospital",
-        "children_hospital": amenity in {"hospital", "clinic"} and pediatric(properties),
-        "promenade": properties.get("highway") in {"pedestrian", "living_street"} or "набережн" in str(properties.get("name", "")).lower(),
-        "station": properties.get("railway") in {"station", "halt"},
-        "bus_stop": properties.get("highway") == "bus_stop" or properties.get("public_transport") == "platform",
-        "parking": amenity == "parking", "ev": amenity == "charging_station",
-    }.get(kind, False)
+    if kind == "night_shop":
+        return properties.get("shop") in {"convenience", "supermarket", "greengrocer", "bakery", "grocery"}
+    if kind == "night_food":
+        return amenity in {"cafe", "restaurant", "fast_food", "food_court"}
+    if kind in {"dog_park", "playground"}:
+        return leisure == kind
+    if kind == "park":
+        return leisure in {"park", "garden"}
+    if kind in {"veterinary", "hospital", "parking"}:
+        return amenity == kind
+    if kind == "pet_shop":
+        return properties.get("shop") == "pet"
+    if kind == "children_hospital":
+        return amenity in {"hospital", "clinic"} and pediatric(properties)
+    if kind == "promenade":
+        return properties.get("highway") in {"pedestrian", "living_street"} or "набережн" in str(properties.get("name", "")).lower()
+    if kind == "station":
+        return properties.get("railway") in {"station", "halt"}
+    if kind == "bus_stop":
+        return properties.get("highway") == "bus_stop" or properties.get("public_transport") == "platform"
+    return amenity == "charging_station" if kind == "ev" else False
 
 
 class NearbyRoutes:
     def __init__(self, graph, roads=(), railways=(), *, snap_limit_m=120):
         self.graph, self.roads, self.railways = graph, list(roads), list(railways)
+        self.crossing_sources = self.roads+self.railways
+        self.crossing_tree = STRtree([f["shape"] for f in self.crossing_sources])
         self.snap_limit_m = snap_limit_m
         self.reverse = {node: [] for node in graph.nodes}
+        self.edge_minutes, self.poi_snaps = {}, {}
         for edges in graph.adj.values():
             for edge in edges:
                 self.reverse[edge["v"]].append(edge)
+                self.edge_minutes[id(edge)] = graph.edge_cost(edge)[0]
         self.ids = list(graph.nodes)
         self.tree = STRtree([Point(graph.nodes[node]["xy"]) for node in self.ids])
 
@@ -88,7 +102,7 @@ class NearbyRoutes:
                 continue
             for edge in self.reverse[node] if reverse else self.graph.adj[node]:
                 target = edge["u"] if reverse else edge["v"]
-                candidate = cost+self.graph.edge_cost(edge)[0]
+                candidate = cost+self.edge_minutes[id(edge)]
                 if candidate <= max_minutes and candidate < costs.get(target, float("inf")):
                     costs[target], prev[target] = candidate, edge
                     heapq.heappush(queue, (candidate, target))
@@ -109,7 +123,9 @@ class NearbyRoutes:
                 if opened is not True:
                     continue
             point = feature["shape"].representative_point()
-            node, snap = self.snap((point.x, point.y))
+            if feature["id"] not in self.poi_snaps:
+                self.poi_snaps[feature["id"]] = self.snap((point.x, point.y))
+            node, snap = self.poi_snaps[feature["id"]]
             if node in costs:
                 options.append((costs[node], feature["id"], feature, node, snap))
         if not options:
@@ -122,7 +138,10 @@ class NearbyRoutes:
             node = edge["u"]
         edges.reverse()
         summary = self.graph.summary(edges)
-        crossings = crossing_details(self.graph.geometry(edges), self.roads, self.railways, edges)
+        geometry = self.graph.geometry(edges)
+        crossing_sources = (sorted([self.crossing_sources[int(i)] for i in self.crossing_tree.query(metric(shape(geometry)), predicate="intersects")], key=lambda f: f["id"])
+                            if len(geometry.get("coordinates", [])) >= 2 else [])
+        crossings = crossing_details(geometry, crossing_sources, [], edges)
         return {"available": summary["minutes"] <= max_minutes, "osm_id": feature["id"],
                 "name": feature["properties"].get("name"), **summary,
                 "hotel_snap_m": round(hotel_snap, 1), "destination_snap_m": round(poi_snap, 1),

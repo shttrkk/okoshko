@@ -21,9 +21,15 @@ landmarks:
     height_source: osm_height
     height_m: 49
     source_url: https://www.openstreetmap.org/way/54521221
+  - id: winter_theatre
+    osm_id: osm-relation-9353455
+    name: Зимний театр (верх контура)
+    zone: A
+    height_source: osm_building_levels_3m
+    osm_building_levels: 3
+    height_m: 9
+    source_url: https://www.openstreetmap.org/relation/9353455
 excluded_candidates:
-  - name: Зимний театр
-    reason: В исходном OSM way-слое точный контур не найден; Overture-контур не используется как OSM/Wikidata подтверждение.
   - name: Фишт
     reason: В исходном way-слое есть только Overture-контур без проверенной высоты; relation-контур пока не собран.
   - name: Чаша олимпийского огня
