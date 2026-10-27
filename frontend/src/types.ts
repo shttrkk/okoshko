@@ -543,3 +543,24 @@ export interface QualityReport extends Json {
   provenance?: FactProvenance;
   filter_comparison?: FilterComparison | null;
 }
+
+
+export interface RoomAdviceOption {
+  scope: RoomScope;
+  fact_ids: string[];
+  evidence_refs: string[];
+  status: "yes" | "partial";
+  synthetic: boolean;
+}
+export interface RoomAdvice {
+  id: string;
+  characteristic_id: string;
+  title: string;
+  text: string;
+  options: RoomAdviceOption[];
+  fact_ids: string[];
+  evidence_refs: string[];
+  status: "yes" | "partial";
+  synthetic: boolean;
+  caveats: string[];
+}

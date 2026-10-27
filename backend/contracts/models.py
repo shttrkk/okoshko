@@ -355,6 +355,27 @@ class RoomProfile(Model):
     conditional: bool = True
 
 
+class RoomAdviceOption(Model):
+    scope: RoomScope
+    fact_ids: list[str] = Field(min_length=1)
+    evidence_refs: list[str] = Field(default_factory=list)
+    status: Literal["yes", "partial"]
+    synthetic: bool = False
+
+
+class RoomAdvice(Model):
+    id: str
+    characteristic_id: str
+    title: str
+    text: str
+    options: list[RoomAdviceOption] = Field(min_length=1)
+    fact_ids: list[str] = Field(min_length=1)
+    evidence_refs: list[str] = Field(default_factory=list)
+    status: Literal["yes", "partial"]
+    synthetic: bool = False
+    caveats: list[str] = Field(default_factory=list)
+
+
 class RoomPlanItem(Model):
     label: str
     scope: RoomScope = Field(default_factory=RoomScope)
