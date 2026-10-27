@@ -16,6 +16,8 @@ import {
   fmt,
   factCardId,
   humanFact,
+  reportedQuiet,
+  sunsetAngle,
   MONTHS_IN,
   MONTHS_SHORT,
   noiseLabel,
@@ -24,6 +26,7 @@ import {
   SIDES,
   SIDES_SHORT,
   TRAIT_NAMES,
+  type FacadeAzimuths,
 } from "./facts";
 type Spec = { id: string; name_ru?: string; category?: string };
 const CATEGORY_ORDER = [
@@ -90,13 +93,21 @@ function SunsetMatrix({
   facts,
   month,
   onEvidence,
+  facadeAzimuths,
 }: {
   facts: Fact[];
   month: number;
   onEvidence: (f: Fact) => void;
+  facadeAzimuths?: FacadeAzimuths;
 }) {
   const sides = SIDE_ORDER.filter((s) =>
     facts.some((f) => f.scope.facade === s),
+  );
+  const missingNormals = facts.some(
+    (fact) =>
+      reliable(fact) &&
+      v(fact).available === true &&
+      sunsetAngle(fact, facadeAzimuths) === null,
   );
   const cell = (side: string, m: number) => {
     const own = facts.filter(
@@ -155,6 +166,13 @@ function SunsetMatrix({
                         ? "mid"
                         : "low";
                 const floor = floorOf(best);
+                const angle = sunsetAngle(best, facadeAzimuths);
+                const oblique =
+                  reliable(best) &&
+                  yes.length > 0 &&
+                  angle !== null &&
+                  angle > 45;
+                const label = `${SIDES[side]}, ${MONTHS_IN[i]}: ${humanFact(best, facadeAzimuths) || ""}`;
                 return (
                   <td
                     key={name}
@@ -162,8 +180,10 @@ function SunsetMatrix({
                   >
                     <button
                       onClick={() => onEvidence(best)}
-                      title={`${SIDES[side]}, ${MONTHS_IN[i]}: ${humanFact(best) || ""}`}
-                      aria-label={`${SIDES[side]}, ${MONTHS_IN[i]}: ${humanFact(best) || ""}`}
+                      title={label}
+                      aria-label={label}
+                      data-sunset-angle={angle ?? undefined}
+                      data-sunset-oblique={oblique || undefined}
                     >
                       {!reliable(best)
                         ? "?"
@@ -172,6 +192,7 @@ function SunsetMatrix({
                             ? `${floor}+`
                             : "✓"
                           : "—"}
+                      {oblique && <sup aria-hidden="true">*</sup>}
                     </button>
                   </td>
                 );
@@ -197,6 +218,16 @@ function SunsetMatrix({
           «7+» — с 7-го этажа. Нажмите на клетку, чтобы открыть расчёт.
           Видимость фасада не подтверждает наличие окна.
         </span>
+        <span>
+          «*» — закат сбоку, больше 45° к нормали моделируемого фасада.
+          Направление реального окна не проверено.
+        </span>
+        {missingNormals && (
+          <span>
+            Модель допускает боковой сектор. Для части расчётов точный угол
+            неизвестен; компасная сторона не заменяет нормаль фасада.
+          </span>
+        )}
       </p>
     </div>
   );
@@ -405,7 +436,12 @@ function ClimateTable({ facts, month }: { facts: Fact[]; month: number }) {
     </div>
   );
 }
-export function headline(id: string, facts: Fact[], month: number): ReactNode {
+export function headline(
+  id: string,
+  facts: Fact[],
+  month: number,
+  facadeAzimuths?: FacadeAzimuths,
+): ReactNode {
   const shown = facts.filter(reliable);
   if (!shown.length) {
     if (facts.some((f) => f.status === "disputed"))
@@ -433,7 +469,21 @@ export function headline(id: string, facts: Fact[], month: number): ReactNode {
         (Array.isArray(v(f).months) &&
           (v(f).months as number[]).includes(month)),
     );
-    const list = sideList(bySide(inMonth));
+    const rows = bySide(inMonth);
+    const list = sideList(rows);
+    const oblique = rows
+      .filter((row) => row.yes.length)
+      .flatMap((row) => {
+        const angle = sunsetAngle(row.best, facadeAzimuths);
+        return angle !== null && angle > 45
+          ? [`${SIDES[row.side]} (≈ ${fmt(angle)}° к нормали фасада)`]
+          : [];
+      });
+    const missingNormals = inMonth.some(
+      (fact) =>
+        v(fact).available === true &&
+        sunsetAngle(fact, facadeAzimuths) === null,
+    );
     const good = [
       ...new Set(
         shown.filter((f) => v(f).available === true).map((f) => f.scope.month),
@@ -442,7 +492,7 @@ export function headline(id: string, facts: Fact[], month: number): ReactNode {
       .filter((m): m is number => typeof m === "number")
       .sort((a, b) => a - b);
     return list
-      ? `В ${MONTHS_IN[month - 1]} модель показывает видимость заката: ${list}.`
+      ? `В ${MONTHS_IN[month - 1]} модель показывает видимость заката: ${list}.${oblique.length ? ` Закат сбоку: ${oblique.join(", ")}.` : ""}${missingNormals ? " Модель допускает боковой сектор; точный угол к фасаду неизвестен." : ""}`
       : !inMonth.length || !inMonth.every((f) => v(f).available === false)
         ? `В ${MONTHS_IN[month - 1]} видимость заката неизвестна.`
         : `В ${MONTHS_IN[month - 1]} закат на рассчитанных фасадах не виден.${good.length ? ` Виден в месяцах: ${good.map((m) => MONTHS_SHORT[m - 1]).join(", ")}.` : ""}`;
@@ -457,10 +507,21 @@ export function headline(id: string, facts: Fact[], month: number): ReactNode {
         : `Вид на ${id === "sea_view" ? "море" : "горы"} требует уточнения.`;
   }
   if (id === "quiet_night") {
-    const quiet = bySide(shown).filter((r) => v(r.best).index === "quiet");
-    return quiet.length
-      ? `Тише всего ночью: ${quiet.map((r) => SIDES[r.side]).join(", ")}.`
-      : "Модель не выделила тихий фасад. Наружный шум не определяет тишину в номере.";
+    const reports = shown.filter((fact) => reportedQuiet(fact) !== null);
+    const model = shown.filter((fact) => reportedQuiet(fact) === null);
+    const quiet = bySide(model).filter((r) => v(r.best).index === "quiet");
+    const modelText = model.length
+      ? quiet.length
+        ? `По наружной модели тише: ${quiet.map((r) => SIDES[r.side]).join(", ")}.`
+        : "Модель не выделила тихий фасад. Наружный шум не определяет тишину в номере."
+      : "";
+    const reportText =
+      reports.length === 1
+        ? humanFact(reports[0])
+        : reports.length
+          ? "Есть отдельные сообщения источников; их сторона, этаж и месяц указаны ниже. Это не измерения дБ."
+          : "";
+    return [modelText, reportText].filter(Boolean).join(" ");
   }
   if (id === "climate") {
     const f = shown.find(
@@ -502,6 +563,7 @@ function FactCard({
   onShowOnMap,
   selectedTrait,
   questionScope,
+  facadeAzimuths,
 }: {
   id: string;
   name: string;
@@ -515,8 +577,13 @@ function FactCard({
   onShowOnMap?: (fact: Fact) => void;
   selectedTrait?: string;
   questionScope?: (characteristicId: string, fact?: Fact) => Scope | undefined;
+  facadeAzimuths?: FacadeAzimuths;
 }) {
   const shown = facts.filter(known);
+  const quietReports =
+    id === "quiet_night"
+      ? facts.filter((fact) => reportedQuiet(fact) !== null)
+      : [];
   const rep = representative(facts, month);
   const disputed = facts.some((f) => f.status === "disputed");
   const confidence = Math.max(...shown.map((f) => f.confidence), 0);
@@ -548,16 +615,27 @@ function FactCard({
           уверенность {pct(confidence)}
         </span>
       </div>
-      <p className="fact-headline">{headline(id, facts, month)}</p>
+      <p className="fact-headline">
+        {headline(id, facts, month, facadeAzimuths)}
+      </p>
       {id === "sunset_view" && (
-        <SunsetMatrix facts={shown} month={month} onEvidence={onEvidence} />
+        <SunsetMatrix
+          facts={shown}
+          month={month}
+          onEvidence={onEvidence}
+          facadeAzimuths={facadeAzimuths}
+        />
       )}
       {SOLAR.has(id) && (
         <SolarMatrix facts={shown} month={month} onEvidence={onEvidence} />
       )}
       {sided && (
         <SideChips
-          facts={shown}
+          facts={
+            id === "quiet_night"
+              ? shown.filter((fact) => reportedQuiet(fact) === null)
+              : shown
+          }
           kind={
             id === "quiet_night"
               ? "noise"
@@ -567,6 +645,33 @@ function FactCard({
           }
           onEvidence={onEvidence}
         />
+      )}
+      {quietReports.length > 0 && (
+        <div className="side-chips" data-testid="quiet-reports">
+          {quietReports.map((fact) => (
+            <button
+              key={fact.id}
+              className={`side-chip ${reliable(fact) ? "reported" : "unknown"}`}
+              style={{ gridColumn: "1 / -1" }}
+              data-testid={`quiet-report-${fact.id}`}
+              onClick={() => onEvidence(fact)}
+            >
+              <strong>
+                {SIDES[String(fact.scope.facade || v(fact).facade)] ||
+                  "Сообщение источника"}
+              </strong>
+              <span>
+                {reliable(fact)
+                  ? humanFact(fact)
+                  : fact.status === "disputed"
+                    ? "Сообщение оспаривается; требуется уточнение"
+                    : "Сообщение требует перепроверки"}
+              </span>
+              <span>{scopeText(fact.scope)}</span>
+              {fact.synthetic && <Synthetic />}
+            </button>
+          ))}
+        </div>
       )}
       {id === "climate" && <ClimateTable facts={shown} month={month} />}
       {id === "nearby_photos" && <NearbyPhotos value={rep.value} />}
@@ -655,6 +760,7 @@ export function FactsPanel({
   onShowOnMap,
   selectedTrait,
   questionScope,
+  facadeAzimuths,
 }: {
   facts: Fact[];
   claims: Claim[];
@@ -670,6 +776,7 @@ export function FactsPanel({
   onShowOnMap?: (fact: Fact) => void;
   selectedTrait?: string;
   questionScope?: (characteristicId: string, fact?: Fact) => Scope | undefined;
+  facadeAzimuths?: FacadeAzimuths;
 }) {
   const ids = [...new Set(facts.map((f) => f.characteristic_id))];
   const spec = (id: string) => specs.find((s) => s.id === id);
@@ -714,6 +821,7 @@ export function FactsPanel({
                   onShowOnMap={onShowOnMap}
                   selectedTrait={selectedTrait}
                   questionScope={questionScope}
+                  facadeAzimuths={facadeAzimuths}
                 />
               ))}
           </div>

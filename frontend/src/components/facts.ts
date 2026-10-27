@@ -1,5 +1,5 @@
 import { record } from "../api";
-import type { Fact } from "../types";
+import type { Fact, Side } from "../types";
 export const MONTHS = [
   "январь",
   "февраль",
@@ -110,6 +110,57 @@ function range(low: unknown, high: unknown, digits = 0) {
       ? fmt(a, digits)
       : `${fmt(a, digits)}–${fmt(b, digits)}`;
 }
+export type FacadeAzimuths = Partial<Record<Side, number>>;
+/** A compass code is a sector, never an exact normal of a facade or window. */
+export function sunsetAngle(fact: Fact, facadeAzimuths?: FacadeAzimuths) {
+  const value = record(fact.value);
+  const azimuth = num(value.azimuth_deg);
+  if (fact.characteristic_id !== "sunset_view" || azimuth === null) return null;
+  const evidenceNormals = [
+    ...new Set(
+      fact.evidence
+        .filter(
+          (evidence) =>
+            evidence.kind === "calculation" || evidence.kind === "simulation",
+        )
+        .flatMap((evidence) => {
+          const normal = num(evidence.inputs?.facade_azimuth_deg);
+          return normal === null ? [] : [((normal % 360) + 360) % 360];
+        }),
+    ),
+  ];
+  if (evidenceNormals.length > 1) return null;
+  const side = fact.scope.facade || value.facade;
+  const normal =
+    evidenceNormals[0] ??
+    (typeof side === "string" ? num(facadeAzimuths?.[side as Side]) : null);
+  return normal === null || normal === undefined
+    ? null
+    : Math.abs(((((azimuth - normal) % 360) + 540) % 360) - 180);
+}
+export function sunsetAspectText(fact: Fact, facadeAzimuths?: FacadeAzimuths) {
+  if (record(fact.value).available !== true) return "";
+  const angle = sunsetAngle(fact, facadeAzimuths);
+  return angle === null
+    ? "Возможен боковой сектор; точный угол к нормали фасада неизвестен"
+    : `${angle > 45 ? "Закат сбоку · " : ""}угол ≈ ${fmt(angle)}° к нормали моделируемого фасада`;
+}
+/** A boolean report is not a numerical outdoor-noise model. */
+export function reportedQuiet(fact: Fact): boolean | null {
+  const value = record(fact.value);
+  if (
+    fact.characteristic_id !== "quiet_night" ||
+    noiseLabel[String(value.index)] ||
+    [
+      value.night_db_min,
+      value.night_db_max,
+      value.day_db_min,
+      value.day_db_max,
+    ].some((value) => num(value) !== null)
+  )
+    return null;
+  return typeof value.available === "boolean" ? value.available : null;
+}
 const SURFACES: Record<string, string> = {
   sand: "песок",
   pebblestone: "галька",
@@ -148,7 +199,10 @@ const plural = (n: number, one: string, few: string, many: string) => {
  * Human-readable sentence for a fact value, or null when the generic
  * key/value rendering should be used.
  */
-export function humanFact(fact: Fact): string | null {
+export function humanFact(
+  fact: Fact,
+  facadeAzimuths?: FacadeAzimuths,
+): string | null {
   const v = record(fact.value);
   if (fact.value === null || fact.status === "unknown") return null;
   const id = fact.characteristic_id;
@@ -236,15 +290,20 @@ export function humanFact(fact: Fact): string | null {
     case "sunset_view": {
       const when = month ? `в ${MONTHS_IN[month - 1]}` : "";
       if (v.available === false)
-        return (
-          `Не виден ${when}`.trim() + ` · вероятность ${pct(v.probability)}`
-        );
+        return [
+          `Не виден ${when}`.trim(),
+          num(v.probability) !== null && `вероятность ${pct(v.probability)}`,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+      if (v.available !== true) return null;
       return [
         `Виден ${when}`.trim(),
         floorFrom(v.min_floor),
         num(v.visible_minutes) !== null &&
           `видимость солнца последние ${minutes(v.visible_minutes)}`,
-        `вероятность ${pct(v.probability)}`,
+        num(v.probability) !== null && `вероятность ${pct(v.probability)}`,
+        sunsetAspectText(fact, facadeAzimuths),
       ]
         .filter(Boolean)
         .join(" · ");
@@ -253,7 +312,12 @@ export function humanFact(fact: Fact): string | null {
     case "mountain_view": {
       const peaks = Array.isArray(v.peaks) ? v.peaks.join(", ") : "";
       if (v.available === false)
-        return `Не виден · вероятность ${pct(v.probability)}`;
+        return [
+          "Не виден",
+          num(v.probability) !== null && `вероятность ${pct(v.probability)}`,
+        ]
+          .filter(Boolean)
+          .join(" · ");
       if (v.available !== true) return null;
       return [
         "Виден",
@@ -265,6 +329,9 @@ export function humanFact(fact: Fact): string | null {
         .join(" · ");
     }
     case "quiet_night": {
+      const report = reportedQuiet(fact);
+      if (report !== null)
+        return `По сообщению источника: ${report ? "тихо" : "не тихо"} · уровень в дБ не указан`;
       const label = noiseLabel[String(v.index)] || "";
       const db =
         num(v.night_db_min) !== null
