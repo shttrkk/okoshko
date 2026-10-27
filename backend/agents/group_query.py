@@ -22,15 +22,41 @@ from backend.contracts import (
 )
 
 SingleParser = Callable[[SearchRequest, list[CharacteristicSpec]], ParsedQuery]
+# Recipient phrases are syntax, not hotel facts. Unknown proper names after
+# «для» are accepted, while purpose phrases such as «для работы» are shared.
+WORD = r'[а-яa-z][а-яa-z-]{1,40}'
+PURPOSE = (r'работ\w*|сна|сон|прогул\w*|купани\w*|плавани\w*|проверк\w*|сравнени\w*|поиск\w*|'
+           r'фото\w*|съемк\w*|загар\w*|отдых\w*|лечени\w*|развлечени\w*|продаж\w*|аренд\w*|'
+           r'завтрак\w*|выезда|заезда|гостиниц\w*|отел\w*|номер\w*|комнат\w*|вид\w*')
+WISH_HEAD = (r'тихо|тихий|тихая|тихие|нужен|нужна|нужно|нужны|хочется|важно|желательно|обязательно|'
+             r'вид\w*|балкон\w*|кондиционер\w*|моря|море|пляж\w*|окн\w*|бассейн\w*')
+RECIPIENT_NOUN = r'(?!(?:' + PURPOSE + '|' + WISH_HEAD + r')\b)' + WORD
+MODIFIER = (r'каждого|каждой|каждых|одного|одной|другого|другой|двоих|двух|трех|'
+            r'моего|моей|моих|нашего|нашей|наших|своего|своей|своих|вашего|вашей|ваших|'
+            r'пожилых|пожилой|пожилого|старших|младших|молодой|молодого|молодых')
+COMPANION = (r'мужем|женой|супругом|супругой|другом|подругой|друзьями|коллегой|коллегами|'
+             r'ребенком|детьми|родителями|мамой|папой|бабушкой|дедушкой|братом|сестрой')
+FOR_RECIPIENT = (r'для\s+(?:(?:каждого|каждой|каждых)\s+из\s+)?(?:(?:' + MODIFIER + r')\s+){0,3}'
+                 + RECIPIENT_NOUN + r'(?:\s+(?:и\s+' + RECIPIENT_NOUN + r'|с\s+(?:' + COMPANION + r'))){0,2}')
 RECIPIENT = (
-    r'для\s+(?:нас|меня|себя|мамы|папы|родителей|детей|ребенка|бабушки|дедушки|друга|подруги|сестры|брата|мужа|жены)'
-    r'|(?:нам|мне|себе)(?:\s+(?:с\s+(?:мужем|женой|другом|подругой|ребенком)|и\s+(?:мужу|жене|другу|подруге)))?'
-    r'|маме|папе|родителям|детям|ребенку|бабушке|дедушке|другу|подруге|сестре|брату|мужу|жене|остальным'
+    r'(?:нам|мне|себе)(?:\s+(?:с\s+(?:' + COMPANION + r')|и\s+(?:мужу|жене|другу|подруге)))?'
+    r'|маме|папе|родителям|детям|ребенку|сыну|сыновьям|дочери|дочке|дочерям|внуку|внучке|внукам'
+    r'|бабушке|дедушке|теще|тестю|свекрови|свекру|другу|подруге|друзьям|подругам|коллеге|коллегам'
+    r'|сестре|брату|мужу|жене|супругу|супруге|остальным'
 )
-ORDINAL = r'один|первый|второй|другой|третий|четвертый|пятый|шестой|седьмой|восьмой|девятый|десятый|одиннадцатый|двенадцатый'
-SHARED = r'для\s+всех|всем|у\s+всех|общие\s+(?:требования|пожелания)'
-MARKERS = re.compile(r'\b(?P<shared>' + SHARED + r')\b|\b(?P<person>' + RECIPIENT
-                     + r')\b|\b(?P<ordinal>' + ORDINAL + r')\b')
+ORDINAL = (r'один|одна|одной|одном|одному|другой|другая|другом|другому|'
+           r'первый|первая|первой|первом|первому|второй|вторая|втором|второму|'
+           r'третий|третья|третьей|третьем|третьему|четвертый|четвертая|пятый|пятая|'
+           r'шестой|шестая|седьмой|седьмая|восьмой|восьмая|девятый|девятая|'
+           r'десятый|десятая|одиннадцатый|одиннадцатая|двенадцатый|двенадцатая')
+DISTRIBUTIVE = (r'(?:для\s+каждого(?:\s+номера)?|для\s+каждой\s+комнаты|каждому\s+номеру|каждой\s+комнате)'
+                r'(?=\s*[-–—:]?\s*(?:нуж\w*|хоч\w*|важ\w*|желатель\w*|'
+                r'обязатель\w*|тих\w*|вид\w*|балкон\w*|с\b|без\b|не\b))')
+SHARED = r'для\s+всех|всем|у\s+всех|общие\s+(?:требования|пожелания)|' + DISTRIBUTIVE
+NUMBERED = r'(?:в\s+)?(?:номер(?:е|у|а)?|комнат[аеуы])\s*[№#]?\s*\d+|[№#]\s*\d+'
+MARKERS = re.compile(r'\b(?P<shared>' + SHARED + r')\b|(?P<numbered>\b(?:' + NUMBERED
+                     + r')(?=\s|[-–—:,;.]|$)|[№#]\s*\d+\b)|\b(?P<for_person>' + FOR_RECIPIENT
+                     + r')\b|\b(?P<person>' + RECIPIENT + r')\b|\b(?P<ordinal>(?:(?:в|во)\s+)?(?:' + ORDINAL + r'))\b')
 COUNT_WORDS = {'два': 2, 'две': 2, 'двух': 2, 'три': 3, 'трех': 3, 'четыре': 4, 'четырех': 4,
                'пять': 5, 'шесть': 6, 'семь': 7, 'восемь': 8, 'девять': 9, 'десять': 10,
                'одиннадцать': 11, 'двенадцать': 12, 'тринадцать': 13, 'четырнадцать': 14,
@@ -39,7 +65,7 @@ COUNT_WORDS = {'два': 2, 'две': 2, 'двух': 2, 'три': 3, 'трех':
                'пятьдесят': 50, 'шестьдесят': 60, 'семьдесят': 70, 'восемьдесят': 80,
                'девяносто': 90, 'сто': 100}
 ROOM_COUNT = re.compile(r'\b(?P<count>\d+|(?:' + '|'.join(COUNT_WORDS)
-                        + r')(?:\s+(?:' + '|'.join(COUNT_WORDS) + r')){0,2})\s+номер(?:а|ов)?\b')
+                        + r')(?:\s+(?:' + '|'.join(COUNT_WORDS) + r')){0,2})\s+(?:номер(?:а|ов)?|комнат(?:а|ы|у)?|комнат)\b')
 MONTH = r'январ|феврал|март|апрел|ма[йяе]|июн|июл|август|сентябр|октябр|ноябр|декабр'
 LIMIT_MESSAGE = 'Поддерживается до 12 отдельных пожеланий к номерам. Уточните состав запросов; наличие номеров не подтверждено.'
 
@@ -57,31 +83,59 @@ def _unquoted(text: str) -> str:
 
 
 def _at_clause_start(text: str, start: int) -> bool:
-    previous = re.split(r'[,;:.!?]|\b(?:а|и)\s+', text[:start])[-1].strip()
-    return not previous or bool(re.fullmatch(r'(?:пожалуйста\s+)?(?:нужно|нужен|хотим|хочу|ищем|ищу|подберите)', previous))
+    previous = re.split(r'[,;:.!?\n/•]|\s[-–—]\s|\b(?:а|и)\s+', text[:start])[-1].strip()
+    if not previous:
+        return True
+    # A normal search/travel introduction need not end in a colon. Its wishes
+    # remain a shared fragment, rather than being assigned to the first person.
+    return bool(re.match(r'^(?:пожалуйста\s+)?(?:едем|еду|поедем|планируем|ищем|ищу|подыскиваем|'
+                         r'подберите|подбери|подобрать|хотим|хочу|нужно|нужны|нужен|нужна|'
+                         r'забронируйте|забронировать|бронируем)\b', previous)
+                or ROOM_COUNT.fullmatch(previous))
+
+
+def _room_count(plain: str) -> int | None:
+    for candidate in ROOM_COUNT.finditer(plain):
+        before = plain[max(0, candidate.start()-65):candidate.start()]
+        after = plain[candidate.end():candidate.end()+80]
+        if (re.search(r'\b(?:не\s+(?:нуж\w*|хот\w*)|не|вместо)\s*$', before)
+                or re.match(r'\s+(?:телефон\w*|паспорт\w*|документ\w*|журнал\w*|газет\w*|'
+                            r'в\s+(?:рейтинг\w*|списк\w*|квартир\w*)|не\s+(?:нуж\w*|треб\w*))', after)
+                or re.search(r'\b(?:в\s+программе|на\s+сцене|исполня\w*)[^,;.!?]*$', before)):
+            continue
+        return int(candidate['count']) if candidate['count'].isdigit() else sum(
+            COUNT_WORDS[word] for word in candidate['count'].split())
+    return None
+
+
+def _recipient_request(after: str) -> bool:
+    body = re.sub(r'^\s*[-–—:]?\s*', '', after)
+    # Explicit facts about people and correspondence do not request a position.
+    return not re.match(r'(?:\d+\s*(?:лет|года?|годиков)\b|'
+                        r'(?:сказал\w*|говор\w*|сообщ\w*|ответил\w*|написал\w*|написали|'
+                        r'позвон\w*|звон\w*|отправ\w*|прислал\w*|там\s+был\w*)\b|'
+                        r'не\s+(?:нуж\w*|треб\w*)\s+(?:отдельн\w*\s+)?(?:номер\w*|комнат\w*)\b)', body)
+
+
+def _position_request(after: str, *, count: int | None, numbered: bool) -> bool:
+    body = re.sub(r'^\s*(?:номер\w*|комнат\w*)?\s*[-–—:]?\s*', '', after)
+    if re.match(r'(?:из|раз|этаж|на\s+(?:план\w*|фото\w*|снимк\w*)|в\s+(?:рейтинг\w*|списк\w*))\b', body):
+        return False
+    return bool(numbered or count or re.match(r'(?:с\b|без\b|тих\w*|тишин\w*|не\b|вид\w*|балкон\w*|море\b|горы\b|во\s+двор)', body))
 
 
 def _fragments(text: str) -> tuple[list[Fragment], int | None]:
     plain = search_context_text(_unquoted(text).casefold().replace('ё', 'е'))
-    count = None
-    for candidate in ROOM_COUNT.finditer(plain):
-        before = plain[max(0, candidate.start()-35):candidate.start()]
-        after = plain[candidate.end():candidate.end()+30]
-        if (re.search(r'\b(?:не\s+(?:нуж\w*|хот\w*)|не|вместо)\s*$', before)
-                or re.match(r'\s+(?:телефон\w*|в\s+рейтинг\w*|не\s+(?:нуж\w*|треб\w*))', after)):
-            continue
-        count = int(candidate['count']) if candidate['count'].isdigit() else sum(
-            COUNT_WORDS[word] for word in candidate['count'].split())
-        break
+    count = _room_count(plain)
     markers = []
     for match in MARKERS.finditer(plain):
         if not _at_clause_start(plain, match.start()):
             continue
         after = plain[match.end():]
-        if re.match(r'\s+(?:сказал\w*|говор\w*|сообщ\w*|ответил\w*|написал\w*|там\s+был\w*)', after):
+        if not _recipient_request(after):
             continue
-        if match['ordinal'] and (re.match(r'\s+(?:из|раз|этаж|в\s+рейтинг\w*)\b', after)
-                                 or not re.match(r'\s*(?:номер\w*\s*)?[-–—:]?\s*(?:с\b|без\b|тих\w*|не\b|вид\w*|балкон\w*|во\s+двор)', after)):
+        if (match['ordinal'] or match['numbered']) and not _position_request(
+                after, count=count, numbered=bool(match['numbered'])):
             continue
         markers.append(match)
     personal = [match for match in markers if not match['shared']]
@@ -109,6 +163,10 @@ def _clean_context(text: str) -> str:
     text = re.sub(r'\bбез\s+(?:особых\s+)?(?:пожеланий|требований)\b', ' ', text)
     text = re.sub(r'\bне\s*принципиально\b|\bневажно\b', ' ', text)
     text = re.sub(r'\bнами\b', ' ', text)
+    text = re.sub(r'\b(?:всей|большой|нашей|дружной)\s+семьей\b', ' ', text)
+    text = re.sub(r'\b(?:ищем|подыскиваем|забронировать|забронируйте|бронируем|бронировать)\b', ' ', text)
+    text = re.sub(r'\bкомнат[а-я]*\b', 'номер', text)
+    text = re.sub(r'^\s*(?:номер\w*\s*)?(?:[-–—:/•]\s*)+', '', text)
     return re.sub(r'^\s*(?:номер\w*\s*)?[-–—:]\s*', '', text).strip(' ,;:.!?')
 
 
@@ -227,7 +285,12 @@ def parse_group_query(request: SearchRequest, catalog: list[CharacteristicSpec],
             if scope.floor_max is not None:
                 shared_floor_max = min(scope.floor_max, shared_floor_max or scope.floor_max)
         else:
-            target = RoomRequest(label=fragment.label, scope=scope, unmapped=unmapped,
+            label = re.sub(r'\s+', ' ', fragment.label)
+            if len(label) > 80:
+                unmapped.append('Адресат: ' + fragment.label)
+                clarifications = ['Сократите подпись группы до 80 символов; полный адресат сохранён.',
+                                  *clarifications]
+            target = RoomRequest(label=label[:80].rstrip(), scope=scope, unmapped=unmapped,
                                  clarifications=clarifications[:2])
             result.rooms.append(target)
         for name in ('must', 'nice', 'no_data', 'no_data_must'):

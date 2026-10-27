@@ -126,3 +126,54 @@ def test_authored_grammar_fixture_has_valid_domains_and_unique_ids():
         assert len(row['expected']['rooms']) >= 2
         for request in row['expected']['rooms']:
             RoomScope.model_validate(request['scope'])
+
+
+# Semantic assertions are added after the independent development rows above
+# were frozen in 527c15a. The authored inputs and expectations remain unchanged.
+import pytest  # noqa: E402
+
+from backend.agents.query_parser import _fallback, parse_query  # noqa: E402
+from backend.contracts import SearchRequest  # noqa: E402
+from scripts.group_parser_eval import compare_case  # noqa: E402
+from scripts.parser_eval import catalogue  # noqa: E402
+
+
+@pytest.fixture(scope='module')
+def grammar_catalog():
+    return catalogue()
+
+
+@pytest.mark.parametrize('row', GRAMMAR_CASES, ids=lambda row: row['id'])
+def test_extended_grammar_preserves_ordered_wishes_and_shared_needs(row, grammar_catalog):
+    actual = parse_query(SearchRequest(text=row['text']), grammar_catalog).model_dump(mode='json')
+    report = compare_case(row, actual, {spec.id: spec.search.field for spec in grammar_catalog})
+    assert report['semantic_exact'], report
+    assert report['labels_exact'], report
+
+
+@pytest.mark.parametrize('row', GRAMMAR_TRAPS, ids=lambda row: row['id'])
+def test_extended_grammar_keeps_non_requests_on_the_legacy_path(row, grammar_catalog):
+    request = SearchRequest(text=row['text'])
+    actual = parse_query(request, grammar_catalog)
+    assert not actual.rooms
+    assert actual.model_dump() == _fallback(request, grammar_catalog).model_dump()
+
+
+@pytest.mark.parametrize('distributive', ['для каждого номера', 'для каждой комнаты', 'каждому номеру'])
+def test_distributive_room_phrase_stays_shared_instead_of_becoming_a_person(distributive, grammar_catalog):
+    parsed = parse_query(SearchRequest(text=f'Нужны две комнаты, {distributive} нужен балкон.'), grammar_catalog)
+    assert len(parsed.rooms) == 2
+    assert all(not request.must for request in parsed.rooms)
+    assert [(c.characteristic_id, c.field) for c in parsed.must] == [('room_orientation', 'balcony')]
+    assert not parsed.unmapped
+
+
+def test_long_recipient_phrase_is_retained_without_breaking_wire_label_limit(grammar_catalog):
+    name = 'Александра-Анастасия-Александра'
+    label = f'Для {name} и {name} и {name}'
+    assert len(label) > 80
+    parsed = parse_query(SearchRequest(text=f'{label} тихо; для Олега вид на море.'), grammar_catalog)
+    assert len(parsed.rooms) == 2
+    assert len(parsed.rooms[0].label) <= 80
+    assert any(label in value for value in parsed.rooms[0].unmapped)
+    assert parsed.rooms[0].clarifications
