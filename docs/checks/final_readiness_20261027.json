@@ -1,0 +1,26 @@
+{
+  "checked_at": "2026-10-27T04:14:37.490777+00:00",
+  "runtime_source_revision": "2d1fa078036f4133aa4a3a0a145e51f60a68454b",
+  "compose_project": "okno-demo",
+  "reset_performed": true,
+  "health": {
+    "status": "ok"
+  },
+  "mode": "offline",
+  "searchable_hotels": 247,
+  "seed_counts": {
+    "hotels": 250,
+    "characteristics": 23,
+    "answers": 7,
+    "expectation_passports": 1,
+    "change_events": 1
+  },
+  "demo_check_passed": true,
+  "browser_smoke_passed": true,
+  "original_video_sha256": "799f458eba9779d1944646a7cf603e7edaccfe6b6194135095fa2f6da32707ef",
+  "original_video_unchanged": true,
+  "env_file_modified": false,
+  "push_performed": false,
+  "submission_tag_created": false,
+  "passed": true
+}

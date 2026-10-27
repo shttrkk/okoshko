@@ -1,0 +1,1513 @@
+{
+  "checked_at": "2026-10-27T04:09:08.278775+00:00",
+  "runtime_source_revision": "2d1fa078036f4133aa4a3a0a145e51f60a68454b",
+  "method": "Serial urllib HTTP GET /api/hotels/{id}?compact=true for each versioned seed hotel ID; no Accept-Encoding/gzip; fresh reset demo; no query criteria. Includes held profiles (explicit review, no facts). Latencies here are a one-pass cohort, not a per-hotel p95.",
+  "hotel_ids_sha256": "45cd3b05b6f5b0129864278b648ea4991e439593d0cd63a8a571388af0a1a6f6",
+  "hotels": 250,
+  "max_bytes": 395567,
+  "p95_bytes": 289030,
+  "over_400000": 0,
+  "elapsed_seconds": 11.15,
+  "profiles": [
+    {
+      "hotel_id": "osm-node-10058556917",
+      "bytes": 280927,
+      "ms": 78.79,
+      "facts": 403
+    },
+    {
+      "hotel_id": "osm-node-10118233110",
+      "bytes": 289030,
+      "ms": 48.7,
+      "facts": 392
+    },
+    {
+      "hotel_id": "osm-node-10574252909",
+      "bytes": 135339,
+      "ms": 25.2,
+      "facts": 184
+    },
+    {
+      "hotel_id": "osm-node-10759606594",
+      "bytes": 131193,
+      "ms": 23.71,
+      "facts": 187
+    },
+    {
+      "hotel_id": "osm-node-10759606596",
+      "bytes": 143367,
+      "ms": 24.41,
+      "facts": 187
+    },
+    {
+      "hotel_id": "osm-node-10759614195",
+      "bytes": 253995,
+      "ms": 44.2,
+      "facts": 365
+    },
+    {
+      "hotel_id": "osm-node-11016638373",
+      "bytes": 256026,
+      "ms": 39.4,
+      "facts": 332
+    },
+    {
+      "hotel_id": "osm-node-11016638375",
+      "bytes": 361597,
+      "ms": 67.83,
+      "facts": 480
+    },
+    {
+      "hotel_id": "osm-node-11029975305",
+      "bytes": 174180,
+      "ms": 32.83,
+      "facts": 247
+    },
+    {
+      "hotel_id": "osm-node-11067209459",
+      "bytes": 58913,
+      "ms": 14.75,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-node-11138786325",
+      "bytes": 58642,
+      "ms": 14.35,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-node-11138788609",
+      "bytes": 149233,
+      "ms": 28.38,
+      "facts": 204
+    },
+    {
+      "hotel_id": "osm-node-11190910581",
+      "bytes": 234542,
+      "ms": 44.05,
+      "facts": 323
+    },
+    {
+      "hotel_id": "osm-node-11304222978",
+      "bytes": 144639,
+      "ms": 26.14,
+      "facts": 196
+    },
+    {
+      "hotel_id": "osm-node-11304222979",
+      "bytes": 158900,
+      "ms": 28.49,
+      "facts": 215
+    },
+    {
+      "hotel_id": "osm-node-11304222981",
+      "bytes": 161599,
+      "ms": 35.07,
+      "facts": 227
+    },
+    {
+      "hotel_id": "osm-node-11304222982",
+      "bytes": 164634,
+      "ms": 31.6,
+      "facts": 220
+    },
+    {
+      "hotel_id": "osm-node-11304222983",
+      "bytes": 149570,
+      "ms": 30.24,
+      "facts": 212
+    },
+    {
+      "hotel_id": "osm-node-11304222984",
+      "bytes": 205780,
+      "ms": 37.79,
+      "facts": 257
+    },
+    {
+      "hotel_id": "osm-node-11304222985",
+      "bytes": 167706,
+      "ms": 31.64,
+      "facts": 232
+    },
+    {
+      "hotel_id": "osm-node-11304222987",
+      "bytes": 54159,
+      "ms": 13.34,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-node-11331531334",
+      "bytes": 165230,
+      "ms": 32.9,
+      "facts": 220
+    },
+    {
+      "hotel_id": "osm-node-11497670982",
+      "bytes": 143413,
+      "ms": 29.93,
+      "facts": 199
+    },
+    {
+      "hotel_id": "osm-node-11521416444",
+      "bytes": 180401,
+      "ms": 39.34,
+      "facts": 253
+    },
+    {
+      "hotel_id": "osm-node-11637552371",
+      "bytes": 159358,
+      "ms": 31.97,
+      "facts": 225
+    },
+    {
+      "hotel_id": "osm-node-11637558669",
+      "bytes": 56792,
+      "ms": 14.9,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-node-11843545854",
+      "bytes": 54870,
+      "ms": 14.87,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-node-11843545856",
+      "bytes": 50405,
+      "ms": 15.37,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-node-11843553789",
+      "bytes": 215942,
+      "ms": 44.89,
+      "facts": 302
+    },
+    {
+      "hotel_id": "osm-node-11843553790",
+      "bytes": 129905,
+      "ms": 27.96,
+      "facts": 184
+    },
+    {
+      "hotel_id": "osm-node-11843553791",
+      "bytes": 180060,
+      "ms": 41.98,
+      "facts": 252
+    },
+    {
+      "hotel_id": "osm-node-11843553792",
+      "bytes": 395567,
+      "ms": 81.9,
+      "facts": 486
+    },
+    {
+      "hotel_id": "osm-node-11843553793",
+      "bytes": 189937,
+      "ms": 41.42,
+      "facts": 265
+    },
+    {
+      "hotel_id": "osm-node-11843553834",
+      "bytes": 135781,
+      "ms": 31.97,
+      "facts": 190
+    },
+    {
+      "hotel_id": "osm-node-11843553838",
+      "bytes": 155352,
+      "ms": 44.68,
+      "facts": 215
+    },
+    {
+      "hotel_id": "osm-node-11843553839",
+      "bytes": 146896,
+      "ms": 38.39,
+      "facts": 214
+    },
+    {
+      "hotel_id": "osm-node-11866202895",
+      "bytes": 179274,
+      "ms": 45.4,
+      "facts": 262
+    },
+    {
+      "hotel_id": "osm-node-11878294031",
+      "bytes": 172713,
+      "ms": 48.0,
+      "facts": 243
+    },
+    {
+      "hotel_id": "osm-node-11878294032",
+      "bytes": 65981,
+      "ms": 20.79,
+      "facts": 105
+    },
+    {
+      "hotel_id": "osm-node-11958139262",
+      "bytes": 52701,
+      "ms": 22.38,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-node-11958163711",
+      "bytes": 55117,
+      "ms": 21.03,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-node-11958163713",
+      "bytes": 54804,
+      "ms": 19.72,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-node-11958163737",
+      "bytes": 113907,
+      "ms": 29.1,
+      "facts": 154
+    },
+    {
+      "hotel_id": "osm-node-11958163786",
+      "bytes": 150870,
+      "ms": 37.23,
+      "facts": 202
+    },
+    {
+      "hotel_id": "osm-node-12032893438",
+      "bytes": 140902,
+      "ms": 38.34,
+      "facts": 201
+    },
+    {
+      "hotel_id": "osm-node-12043534507",
+      "bytes": 129999,
+      "ms": 33.29,
+      "facts": 184
+    },
+    {
+      "hotel_id": "osm-node-12183637632",
+      "bytes": 145255,
+      "ms": 38.78,
+      "facts": 202
+    },
+    {
+      "hotel_id": "osm-node-12183637644",
+      "bytes": 73844,
+      "ms": 23.9,
+      "facts": 94
+    },
+    {
+      "hotel_id": "osm-node-12749552601",
+      "bytes": 194569,
+      "ms": 49.4,
+      "facts": 262
+    },
+    {
+      "hotel_id": "osm-node-12800893166",
+      "bytes": 146159,
+      "ms": 35.09,
+      "facts": 205
+    },
+    {
+      "hotel_id": "osm-node-12958832506",
+      "bytes": 222571,
+      "ms": 50.59,
+      "facts": 307
+    },
+    {
+      "hotel_id": "osm-node-1323204199",
+      "bytes": 179943,
+      "ms": 41.54,
+      "facts": 245
+    },
+    {
+      "hotel_id": "osm-node-13301736501",
+      "bytes": 133179,
+      "ms": 36.71,
+      "facts": 184
+    },
+    {
+      "hotel_id": "osm-node-13438392946",
+      "bytes": 134660,
+      "ms": 33.32,
+      "facts": 184
+    },
+    {
+      "hotel_id": "osm-node-13825400642",
+      "bytes": 191917,
+      "ms": 45.94,
+      "facts": 237
+    },
+    {
+      "hotel_id": "osm-node-1449074195",
+      "bytes": 185253,
+      "ms": 42.12,
+      "facts": 262
+    },
+    {
+      "hotel_id": "osm-node-1521215547",
+      "bytes": 253137,
+      "ms": 63.6,
+      "facts": 370
+    },
+    {
+      "hotel_id": "osm-node-1589835176",
+      "bytes": 136118,
+      "ms": 38.96,
+      "facts": 184
+    },
+    {
+      "hotel_id": "osm-node-1859716038",
+      "bytes": 159942,
+      "ms": 45.51,
+      "facts": 226
+    },
+    {
+      "hotel_id": "osm-node-2181712522",
+      "bytes": 128577,
+      "ms": 35.36,
+      "facts": 184
+    },
+    {
+      "hotel_id": "osm-node-3027830090",
+      "bytes": 175714,
+      "ms": 46.13,
+      "facts": 246
+    },
+    {
+      "hotel_id": "osm-node-4072901609",
+      "bytes": 51317,
+      "ms": 21.16,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-node-4118677615",
+      "bytes": 177601,
+      "ms": 62.95,
+      "facts": 247
+    },
+    {
+      "hotel_id": "osm-node-4370780891",
+      "bytes": 148130,
+      "ms": 41.19,
+      "facts": 205
+    },
+    {
+      "hotel_id": "osm-node-4393265790",
+      "bytes": 180320,
+      "ms": 48.2,
+      "facts": 265
+    },
+    {
+      "hotel_id": "osm-node-4398105389",
+      "bytes": 131165,
+      "ms": 34.59,
+      "facts": 187
+    },
+    {
+      "hotel_id": "osm-node-4469957897",
+      "bytes": 127417,
+      "ms": 35.22,
+      "facts": 184
+    },
+    {
+      "hotel_id": "osm-node-4708413661",
+      "bytes": 281344,
+      "ms": 73.86,
+      "facts": 393
+    },
+    {
+      "hotel_id": "osm-node-4931886321",
+      "bytes": 140844,
+      "ms": 39.09,
+      "facts": 205
+    },
+    {
+      "hotel_id": "osm-node-4985022111",
+      "bytes": 217168,
+      "ms": 54.83,
+      "facts": 299
+    },
+    {
+      "hotel_id": "osm-node-4986725623",
+      "bytes": 358423,
+      "ms": 100.75,
+      "facts": 507
+    },
+    {
+      "hotel_id": "osm-node-5063986547",
+      "bytes": 185128,
+      "ms": 49.06,
+      "facts": 265
+    },
+    {
+      "hotel_id": "osm-node-5267688942",
+      "bytes": 87494,
+      "ms": 27.33,
+      "facts": 129
+    },
+    {
+      "hotel_id": "osm-node-5743464666",
+      "bytes": 172516,
+      "ms": 46.13,
+      "facts": 244
+    },
+    {
+      "hotel_id": "osm-node-6687342557",
+      "bytes": 132021,
+      "ms": 34.22,
+      "facts": 185
+    },
+    {
+      "hotel_id": "osm-node-7115085741",
+      "bytes": 152098,
+      "ms": 44.83,
+      "facts": 222
+    },
+    {
+      "hotel_id": "osm-node-7115162128",
+      "bytes": 180816,
+      "ms": 46.54,
+      "facts": 237
+    },
+    {
+      "hotel_id": "osm-node-7169680844",
+      "bytes": 168279,
+      "ms": 39.95,
+      "facts": 228
+    },
+    {
+      "hotel_id": "osm-node-7342978826",
+      "bytes": 154159,
+      "ms": 37.48,
+      "facts": 227
+    },
+    {
+      "hotel_id": "osm-node-736694948",
+      "bytes": 128346,
+      "ms": 31.2,
+      "facts": 184
+    },
+    {
+      "hotel_id": "osm-node-736761646",
+      "bytes": 178486,
+      "ms": 48.78,
+      "facts": 253
+    },
+    {
+      "hotel_id": "osm-node-7491729629",
+      "bytes": 177313,
+      "ms": 45.05,
+      "facts": 255
+    },
+    {
+      "hotel_id": "osm-node-8386199473",
+      "bytes": 55731,
+      "ms": 16.24,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-node-8660302065",
+      "bytes": 120063,
+      "ms": 29.22,
+      "facts": 184
+    },
+    {
+      "hotel_id": "osm-node-8872412718",
+      "bytes": 131866,
+      "ms": 31.46,
+      "facts": 186
+    },
+    {
+      "hotel_id": "osm-node-8975796817",
+      "bytes": 272699,
+      "ms": 64.63,
+      "facts": 348
+    },
+    {
+      "hotel_id": "osm-node-9256509684",
+      "bytes": 125501,
+      "ms": 31.59,
+      "facts": 187
+    },
+    {
+      "hotel_id": "osm-node-948203233",
+      "bytes": 60622,
+      "ms": 17.27,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-node-9764181317",
+      "bytes": 197395,
+      "ms": 46.59,
+      "facts": 268
+    },
+    {
+      "hotel_id": "osm-node-9875280518",
+      "bytes": 64619,
+      "ms": 18.32,
+      "facts": 93
+    },
+    {
+      "hotel_id": "osm-node-9908709817",
+      "bytes": 205343,
+      "ms": 47.02,
+      "facts": 270
+    },
+    {
+      "hotel_id": "osm-way-1078567033",
+      "bytes": 61571,
+      "ms": 17.26,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-way-113588514",
+      "bytes": 164279,
+      "ms": 42.34,
+      "facts": 224
+    },
+    {
+      "hotel_id": "osm-way-114131768",
+      "bytes": 70037,
+      "ms": 17.7,
+      "facts": 93
+    },
+    {
+      "hotel_id": "osm-way-120859827",
+      "bytes": 213645,
+      "ms": 49.8,
+      "facts": 302
+    },
+    {
+      "hotel_id": "osm-way-124781631",
+      "bytes": 59864,
+      "ms": 20.18,
+      "facts": 105
+    },
+    {
+      "hotel_id": "osm-way-147552216",
+      "bytes": 162626,
+      "ms": 37.83,
+      "facts": 225
+    },
+    {
+      "hotel_id": "osm-way-147555039",
+      "bytes": 194714,
+      "ms": 51.49,
+      "facts": 273
+    },
+    {
+      "hotel_id": "osm-way-150742817",
+      "bytes": 128895,
+      "ms": 37.21,
+      "facts": 187
+    },
+    {
+      "hotel_id": "osm-way-190714781",
+      "bytes": 187209,
+      "ms": 42.76,
+      "facts": 233
+    },
+    {
+      "hotel_id": "osm-way-201474330",
+      "bytes": 253327,
+      "ms": 72.05,
+      "facts": 356
+    },
+    {
+      "hotel_id": "osm-way-201474331",
+      "bytes": 270725,
+      "ms": 79.32,
+      "facts": 379
+    },
+    {
+      "hotel_id": "osm-way-201474333",
+      "bytes": 256776,
+      "ms": 70.68,
+      "facts": 362
+    },
+    {
+      "hotel_id": "osm-way-207579132",
+      "bytes": 291867,
+      "ms": 75.84,
+      "facts": 397
+    },
+    {
+      "hotel_id": "osm-way-207637828",
+      "bytes": 252861,
+      "ms": 76.93,
+      "facts": 346
+    },
+    {
+      "hotel_id": "osm-way-207637871",
+      "bytes": 270862,
+      "ms": 1002.84,
+      "facts": 365
+    },
+    {
+      "hotel_id": "osm-way-209174454",
+      "bytes": 193356,
+      "ms": 71.47,
+      "facts": 266
+    },
+    {
+      "hotel_id": "osm-way-209174465",
+      "bytes": 61019,
+      "ms": 16.48,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-way-209182328",
+      "bytes": 65620,
+      "ms": 15.54,
+      "facts": 93
+    },
+    {
+      "hotel_id": "osm-way-218836911",
+      "bytes": 88861,
+      "ms": 21.93,
+      "facts": 151
+    },
+    {
+      "hotel_id": "osm-way-228736311",
+      "bytes": 200136,
+      "ms": 41.73,
+      "facts": 293
+    },
+    {
+      "hotel_id": "osm-way-249762807",
+      "bytes": 47808,
+      "ms": 14.96,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-way-250086713",
+      "bytes": 175863,
+      "ms": 37.07,
+      "facts": 256
+    },
+    {
+      "hotel_id": "osm-way-250086722",
+      "bytes": 53067,
+      "ms": 16.71,
+      "facts": 91
+    },
+    {
+      "hotel_id": "osm-way-260646973",
+      "bytes": 75361,
+      "ms": 20.09,
+      "facts": 109
+    },
+    {
+      "hotel_id": "osm-way-314551642",
+      "bytes": 280164,
+      "ms": 54.84,
+      "facts": 392
+    },
+    {
+      "hotel_id": "osm-way-333853735",
+      "bytes": 52553,
+      "ms": 14.82,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-way-374416891",
+      "bytes": 159221,
+      "ms": 33.73,
+      "facts": 227
+    },
+    {
+      "hotel_id": "osm-way-412914458",
+      "bytes": 193580,
+      "ms": 39.18,
+      "facts": 259
+    },
+    {
+      "hotel_id": "osm-way-42984983",
+      "bytes": 128246,
+      "ms": 28.19,
+      "facts": 184
+    },
+    {
+      "hotel_id": "osm-way-44573571",
+      "bytes": 191965,
+      "ms": 43.46,
+      "facts": 257
+    },
+    {
+      "hotel_id": "osm-way-502703777",
+      "bytes": 149739,
+      "ms": 34.19,
+      "facts": 220
+    },
+    {
+      "hotel_id": "osm-way-51277929",
+      "bytes": 312371,
+      "ms": 62.14,
+      "facts": 404
+    },
+    {
+      "hotel_id": "osm-way-51416856",
+      "bytes": 158597,
+      "ms": 33.55,
+      "facts": 223
+    },
+    {
+      "hotel_id": "osm-way-51570675",
+      "bytes": 242694,
+      "ms": 50.29,
+      "facts": 340
+    },
+    {
+      "hotel_id": "osm-way-51677372",
+      "bytes": 133206,
+      "ms": 31.09,
+      "facts": 184
+    },
+    {
+      "hotel_id": "osm-way-51764141",
+      "bytes": 222427,
+      "ms": 44.95,
+      "facts": 307
+    },
+    {
+      "hotel_id": "osm-way-51847429",
+      "bytes": 188349,
+      "ms": 43.69,
+      "facts": 272
+    },
+    {
+      "hotel_id": "osm-way-51853102",
+      "bytes": 161346,
+      "ms": 36.64,
+      "facts": 236
+    },
+    {
+      "hotel_id": "osm-way-51874466",
+      "bytes": 48913,
+      "ms": 13.72,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-way-51937411",
+      "bytes": 268166,
+      "ms": 57.93,
+      "facts": 374
+    },
+    {
+      "hotel_id": "osm-way-52281817",
+      "bytes": 127895,
+      "ms": 28.78,
+      "facts": 184
+    },
+    {
+      "hotel_id": "osm-way-52283978",
+      "bytes": 256476,
+      "ms": 52.88,
+      "facts": 347
+    },
+    {
+      "hotel_id": "osm-way-52359906",
+      "bytes": 143149,
+      "ms": 31.71,
+      "facts": 204
+    },
+    {
+      "hotel_id": "osm-way-52448518",
+      "bytes": 126860,
+      "ms": 27.88,
+      "facts": 187
+    },
+    {
+      "hotel_id": "osm-way-52501847",
+      "bytes": 182625,
+      "ms": 39.49,
+      "facts": 252
+    },
+    {
+      "hotel_id": "osm-way-52526296",
+      "bytes": 132684,
+      "ms": 31.25,
+      "facts": 187
+    },
+    {
+      "hotel_id": "osm-way-52526297",
+      "bytes": 190169,
+      "ms": 38.75,
+      "facts": 267
+    },
+    {
+      "hotel_id": "osm-way-52526314",
+      "bytes": 241073,
+      "ms": 52.8,
+      "facts": 332
+    },
+    {
+      "hotel_id": "osm-way-52572781",
+      "bytes": 267446,
+      "ms": 57.61,
+      "facts": 380
+    },
+    {
+      "hotel_id": "osm-way-52587525",
+      "bytes": 130138,
+      "ms": 32.09,
+      "facts": 185
+    },
+    {
+      "hotel_id": "osm-way-53065036",
+      "bytes": 168691,
+      "ms": 41.65,
+      "facts": 238
+    },
+    {
+      "hotel_id": "osm-way-53284165",
+      "bytes": 166310,
+      "ms": 38.5,
+      "facts": 226
+    },
+    {
+      "hotel_id": "osm-way-53292014",
+      "bytes": 147961,
+      "ms": 42.38,
+      "facts": 212
+    },
+    {
+      "hotel_id": "osm-way-53292016",
+      "bytes": 183457,
+      "ms": 52.31,
+      "facts": 262
+    },
+    {
+      "hotel_id": "osm-way-53301256",
+      "bytes": 125781,
+      "ms": 33.4,
+      "facts": 185
+    },
+    {
+      "hotel_id": "osm-way-53301267",
+      "bytes": 243616,
+      "ms": 64.48,
+      "facts": 359
+    },
+    {
+      "hotel_id": "osm-way-53579883",
+      "bytes": 161823,
+      "ms": 41.38,
+      "facts": 235
+    },
+    {
+      "hotel_id": "osm-way-53579884",
+      "bytes": 235539,
+      "ms": 53.66,
+      "facts": 340
+    },
+    {
+      "hotel_id": "osm-way-53582196",
+      "bytes": 243642,
+      "ms": 55.01,
+      "facts": 340
+    },
+    {
+      "hotel_id": "osm-way-55356580",
+      "bytes": 282675,
+      "ms": 64.74,
+      "facts": 411
+    },
+    {
+      "hotel_id": "osm-way-60606728",
+      "bytes": 65962,
+      "ms": 19.45,
+      "facts": 109
+    },
+    {
+      "hotel_id": "osm-way-67540441",
+      "bytes": 187091,
+      "ms": 46.21,
+      "facts": 268
+    },
+    {
+      "hotel_id": "osm-way-700342790",
+      "bytes": 165191,
+      "ms": 36.01,
+      "facts": 232
+    },
+    {
+      "hotel_id": "osm-way-711599965",
+      "bytes": 162382,
+      "ms": 38.51,
+      "facts": 247
+    },
+    {
+      "hotel_id": "osm-way-713972245",
+      "bytes": 52281,
+      "ms": 17.35,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-way-738110208",
+      "bytes": 283936,
+      "ms": 64.81,
+      "facts": 401
+    },
+    {
+      "hotel_id": "osm-way-771002466",
+      "bytes": 193330,
+      "ms": 41.16,
+      "facts": 275
+    },
+    {
+      "hotel_id": "osm-way-80184515",
+      "bytes": 53137,
+      "ms": 15.49,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-way-80186747",
+      "bytes": 167915,
+      "ms": 39.99,
+      "facts": 234
+    },
+    {
+      "hotel_id": "osm-way-80189202",
+      "bytes": 57981,
+      "ms": 30.24,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-way-80189214",
+      "bytes": 170499,
+      "ms": 50.51,
+      "facts": 240
+    },
+    {
+      "hotel_id": "osm-way-80189237",
+      "bytes": 230858,
+      "ms": 57.23,
+      "facts": 323
+    },
+    {
+      "hotel_id": "osm-way-80189244",
+      "bytes": 193727,
+      "ms": 51.78,
+      "facts": 282
+    },
+    {
+      "hotel_id": "osm-way-80189262",
+      "bytes": 184014,
+      "ms": 48.42,
+      "facts": 251
+    },
+    {
+      "hotel_id": "osm-way-80192670",
+      "bytes": 304922,
+      "ms": 80.38,
+      "facts": 422
+    },
+    {
+      "hotel_id": "osm-way-80192701",
+      "bytes": 63040,
+      "ms": 19.55,
+      "facts": 91
+    },
+    {
+      "hotel_id": "osm-way-838518052",
+      "bytes": 56431,
+      "ms": 16.35,
+      "facts": 90
+    },
+    {
+      "hotel_id": "osm-way-98646836",
+      "bytes": 161864,
+      "ms": 39.97,
+      "facts": 232
+    },
+    {
+      "hotel_id": "osm-way-98649266",
+      "bytes": 149602,
+      "ms": 36.17,
+      "facts": 211
+    },
+    {
+      "hotel_id": "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+      "bytes": 285974,
+      "ms": 66.07,
+      "facts": 386
+    },
+    {
+      "hotel_id": "overture-05e6d18c-5688-4c20-90dc-bd07e8c54032",
+      "bytes": 79014,
+      "ms": 20.2,
+      "facts": 109
+    },
+    {
+      "hotel_id": "overture-06d74cda-e402-4c2a-9f69-ab8f2a80a01d",
+      "bytes": 51135,
+      "ms": 15.73,
+      "facts": 90
+    },
+    {
+      "hotel_id": "overture-07b3f1cc-f217-4b48-81f4-8dad6f304da2",
+      "bytes": 185528,
+      "ms": 41.85,
+      "facts": 236
+    },
+    {
+      "hotel_id": "overture-08b21164-5e96-437a-a1ca-fa7f377db1fb",
+      "bytes": 133820,
+      "ms": 32.77,
+      "facts": 187
+    },
+    {
+      "hotel_id": "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13",
+      "bytes": 185417,
+      "ms": 41.78,
+      "facts": 220
+    },
+    {
+      "hotel_id": "overture-0c524fa3-c487-41f0-aa63-8a236af215f6",
+      "bytes": 138360,
+      "ms": 33.02,
+      "facts": 184
+    },
+    {
+      "hotel_id": "overture-0d1dcc72-c650-40f9-8842-52fff3cfd675",
+      "bytes": 159880,
+      "ms": 35.05,
+      "facts": 204
+    },
+    {
+      "hotel_id": "overture-0d36784d-f7e8-4bca-9cce-7e0f0d44e79e",
+      "bytes": 213724,
+      "ms": 49.04,
+      "facts": 271
+    },
+    {
+      "hotel_id": "overture-0e8bdbef-39fc-41a6-ba95-44345c0e1377",
+      "bytes": 185763,
+      "ms": 42.92,
+      "facts": 246
+    },
+    {
+      "hotel_id": "overture-116541ce-095a-4e21-8395-1f85baaf23f9",
+      "bytes": 261890,
+      "ms": 56.09,
+      "facts": 330
+    },
+    {
+      "hotel_id": "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+      "bytes": 58151,
+      "ms": 18.73,
+      "facts": 90
+    },
+    {
+      "hotel_id": "overture-130b37d1-5ec9-402e-8921-2b8a2be7ed17",
+      "bytes": 53691,
+      "ms": 15.65,
+      "facts": 90
+    },
+    {
+      "hotel_id": "overture-1354933f-b0f7-46bb-8133-65262c8f3f0d",
+      "bytes": 58327,
+      "ms": 16.54,
+      "facts": 93
+    },
+    {
+      "hotel_id": "overture-1483ca69-9aec-4ca1-a452-72fb86c51fcf",
+      "bytes": 159038,
+      "ms": 34.48,
+      "facts": 214
+    },
+    {
+      "hotel_id": "overture-17ea7c28-fde3-4fb3-891e-549c8f4b2885",
+      "bytes": 161238,
+      "ms": 35.64,
+      "facts": 217
+    },
+    {
+      "hotel_id": "overture-19a359ae-d6b8-4686-8643-36a55ee46219",
+      "bytes": 60768,
+      "ms": 16.95,
+      "facts": 94
+    },
+    {
+      "hotel_id": "overture-1a799814-3e2b-4acc-b73d-e0ab7aad7e23",
+      "bytes": 203480,
+      "ms": 42.59,
+      "facts": 268
+    },
+    {
+      "hotel_id": "overture-1ac22e2b-4ba4-4e80-b832-413f0bb9c152",
+      "bytes": 133887,
+      "ms": 32.13,
+      "facts": 184
+    },
+    {
+      "hotel_id": "overture-1c44d67c-1df5-470b-bfa4-c676137ff977",
+      "bytes": 192686,
+      "ms": 43.95,
+      "facts": 259
+    },
+    {
+      "hotel_id": "overture-1c518e59-cd59-4a6e-917d-51de476c4b1b",
+      "bytes": 389042,
+      "ms": 83.26,
+      "facts": 490
+    },
+    {
+      "hotel_id": "overture-1d571ae6-4794-4362-ae8a-d011f52d376c",
+      "bytes": 168842,
+      "ms": 35.75,
+      "facts": 228
+    },
+    {
+      "hotel_id": "overture-1e0cdb3e-e307-49d8-8575-8e191b750100",
+      "bytes": 200275,
+      "ms": 44.49,
+      "facts": 264
+    },
+    {
+      "hotel_id": "overture-2d8dde0a-a0cd-4d36-b16a-9d142645765e",
+      "bytes": 202528,
+      "ms": 46.67,
+      "facts": 265
+    },
+    {
+      "hotel_id": "overture-2e11b8d6-f3bf-42c9-8adf-04d2fdc595b8",
+      "bytes": 137243,
+      "ms": 33.04,
+      "facts": 187
+    },
+    {
+      "hotel_id": "overture-2ee3102a-6e6b-4b11-a4be-f6b90d87c0d2",
+      "bytes": 261824,
+      "ms": 52.1,
+      "facts": 330
+    },
+    {
+      "hotel_id": "overture-35533d33-edf4-4738-a35e-619b56e7d486",
+      "bytes": 61643,
+      "ms": 15.77,
+      "facts": 93
+    },
+    {
+      "hotel_id": "overture-35a38a31-dad5-4e6f-ba32-58926c39c817",
+      "bytes": 131303,
+      "ms": 28.06,
+      "facts": 184
+    },
+    {
+      "hotel_id": "overture-3958233d-4e7a-4244-a8d9-3ddd0be0f10f",
+      "bytes": 275752,
+      "ms": 60.76,
+      "facts": 376
+    },
+    {
+      "hotel_id": "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7",
+      "bytes": 192326,
+      "ms": 40.26,
+      "facts": 254
+    },
+    {
+      "hotel_id": "overture-3b6e73bd-b423-453f-a384-a8d2329acae2",
+      "bytes": 138397,
+      "ms": 30.05,
+      "facts": 184
+    },
+    {
+      "hotel_id": "overture-3c206df1-2651-4127-812c-af8cd1b7c520",
+      "bytes": 137832,
+      "ms": 29.22,
+      "facts": 184
+    },
+    {
+      "hotel_id": "overture-3dce0d80-f9f9-4f3b-8f3a-b79c0f6c0d69",
+      "bytes": 197801,
+      "ms": 43.81,
+      "facts": 271
+    },
+    {
+      "hotel_id": "overture-3f428084-1176-4907-87ea-3334e4bbbbb4",
+      "bytes": 56701,
+      "ms": 14.94,
+      "facts": 87
+    },
+    {
+      "hotel_id": "overture-40107ce4-2f8e-4709-8efd-6b348d2572ae",
+      "bytes": 139468,
+      "ms": 31.65,
+      "facts": 184
+    },
+    {
+      "hotel_id": "overture-43748b4b-4201-473e-aa6a-c8e34bcaede4",
+      "bytes": 206703,
+      "ms": 42.29,
+      "facts": 262
+    },
+    {
+      "hotel_id": "overture-46b8f0e3-0b6c-4886-98e9-d8f68d6154f9",
+      "bytes": 153815,
+      "ms": 31.75,
+      "facts": 187
+    },
+    {
+      "hotel_id": "overture-4aad988f-e0d5-4ee3-9e5d-aa2b68d74afc",
+      "bytes": 182338,
+      "ms": 37.76,
+      "facts": 246
+    },
+    {
+      "hotel_id": "overture-4ce036e8-1aa9-408d-9913-01788d699b84",
+      "bytes": 247682,
+      "ms": 53.43,
+      "facts": 330
+    },
+    {
+      "hotel_id": "overture-501004db-027e-4470-9b58-b57418516575",
+      "bytes": 156604,
+      "ms": 34.4,
+      "facts": 211
+    },
+    {
+      "hotel_id": "overture-52e6f850-ce07-48b5-b364-410d8f37c343",
+      "bytes": 344935,
+      "ms": 83.17,
+      "facts": 466
+    },
+    {
+      "hotel_id": "overture-54cc2fff-7b51-4f88-8705-2ee46b96cae4",
+      "bytes": 60976,
+      "ms": 17.09,
+      "facts": 93
+    },
+    {
+      "hotel_id": "overture-556524a5-9e29-4e05-908b-4dbf02ca567d",
+      "bytes": 388390,
+      "ms": 81.58,
+      "facts": 490
+    },
+    {
+      "hotel_id": "overture-55cadc36-2aeb-4bad-8db4-65df144e8217",
+      "bytes": 213934,
+      "ms": 49.48,
+      "facts": 268
+    },
+    {
+      "hotel_id": "overture-57040399-0e00-44c8-9c1b-1010fffdf4cf",
+      "bytes": 131079,
+      "ms": 30.32,
+      "facts": 184
+    },
+    {
+      "hotel_id": "overture-59dd0046-e620-407d-92e0-85f73e0fef45",
+      "bytes": 200281,
+      "ms": 42.79,
+      "facts": 264
+    },
+    {
+      "hotel_id": "overture-5a32052d-cc4c-4c96-85d5-a872370c4019",
+      "bytes": 185121,
+      "ms": 37.05,
+      "facts": 223
+    },
+    {
+      "hotel_id": "overture-5b8773aa-b5c4-4db7-a718-1064ee2f976f",
+      "bytes": 140797,
+      "ms": 28.72,
+      "facts": 184
+    },
+    {
+      "hotel_id": "overture-5bea30a8-36c4-4b02-82f8-ea5ba4df0855",
+      "bytes": 132046,
+      "ms": 28.73,
+      "facts": 184
+    },
+    {
+      "hotel_id": "overture-5d220661-b1ca-4461-a03b-c89126a98e02",
+      "bytes": 325096,
+      "ms": 72.66,
+      "facts": 434
+    },
+    {
+      "hotel_id": "overture-5dbd8580-b202-4f9f-abbb-511960526304",
+      "bytes": 184675,
+      "ms": 39.93,
+      "facts": 237
+    },
+    {
+      "hotel_id": "overture-5f94b5d3-9671-470b-9d6e-fd6f1b7b547a",
+      "bytes": 348903,
+      "ms": 73.56,
+      "facts": 486
+    },
+    {
+      "hotel_id": "overture-6098dbe6-6acd-4fa1-a960-407b23a996f6",
+      "bytes": 56676,
+      "ms": 15.25,
+      "facts": 90
+    },
+    {
+      "hotel_id": "overture-648896ab-6ac3-4347-8586-11db470a9e06",
+      "bytes": 62684,
+      "ms": 15.73,
+      "facts": 93
+    },
+    {
+      "hotel_id": "overture-65df15a8-010c-49ec-9e6a-1aedcee2f36b",
+      "bytes": 131929,
+      "ms": 30.08,
+      "facts": 184
+    },
+    {
+      "hotel_id": "overture-681190d7-1ecd-41a4-b0c5-23f9c666866a",
+      "bytes": 279223,
+      "ms": 60.98,
+      "facts": 374
+    },
+    {
+      "hotel_id": "overture-68f1c4c8-445c-42cd-8aa7-428a33ab4a04",
+      "bytes": 64083,
+      "ms": 15.72,
+      "facts": 93
+    },
+    {
+      "hotel_id": "overture-6abadd5b-79f4-40ef-942a-c1602a5e053c",
+      "bytes": 132338,
+      "ms": 28.37,
+      "facts": 184
+    },
+    {
+      "hotel_id": "overture-6ebf0019-6319-4fef-ad12-2332d51b0e8f",
+      "bytes": 224174,
+      "ms": 48.21,
+      "facts": 302
+    },
+    {
+      "hotel_id": "overture-6efddc8a-d62c-4daa-80f0-b14bd5c13ce4",
+      "bytes": 64481,
+      "ms": 16.33,
+      "facts": 93
+    },
+    {
+      "hotel_id": "overture-6f163d7e-6eea-4cf3-bce8-79dc3e6e7f5c",
+      "bytes": 165468,
+      "ms": 33.97,
+      "facts": 213
+    },
+    {
+      "hotel_id": "overture-74c882ea-62e2-433b-b6a0-851f54bfbd39",
+      "bytes": 170534,
+      "ms": 38.04,
+      "facts": 225
+    },
+    {
+      "hotel_id": "overture-74ff2c5a-4204-42cb-bb2f-f825b7ca1c45",
+      "bytes": 197306,
+      "ms": 40.66,
+      "facts": 268
+    },
+    {
+      "hotel_id": "overture-75c9e704-a446-49a6-b60a-0412b52d6f9c",
+      "bytes": 134280,
+      "ms": 28.85,
+      "facts": 184
+    },
+    {
+      "hotel_id": "overture-76383584-f4a0-4333-bb90-3fd6d19a354d",
+      "bytes": 369522,
+      "ms": 77.33,
+      "facts": 478
+    },
+    {
+      "hotel_id": "overture-7717394f-37ea-4c24-8e90-4b45f0d6208c",
+      "bytes": 154427,
+      "ms": 39.06,
+      "facts": 224
+    },
+    {
+      "hotel_id": "overture-771ba527-909f-4af5-b841-1e5f93b1684c",
+      "bytes": 66866,
+      "ms": 17.47,
+      "facts": 93
+    },
+    {
+      "hotel_id": "overture-78ff242b-1cd7-476e-b676-b8149b74eed2",
+      "bytes": 161946,
+      "ms": 584.2,
+      "facts": 222
+    },
+    {
+      "hotel_id": "overture-7d8da105-0fba-41dc-96e9-dd5d57b79737",
+      "bytes": 59325,
+      "ms": 16.52,
+      "facts": 90
+    },
+    {
+      "hotel_id": "overture-7ec48053-0474-4010-9050-3fa50c0537c4",
+      "bytes": 159918,
+      "ms": 32.92,
+      "facts": 218
+    },
+    {
+      "hotel_id": "overture-83a07e61-b742-4ed6-9240-8516e32c482b",
+      "bytes": 191714,
+      "ms": 36.89,
+      "facts": 262
+    },
+    {
+      "hotel_id": "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+      "bytes": 59242,
+      "ms": 15.01,
+      "facts": 94
+    },
+    {
+      "hotel_id": "overture-8472b61a-6d57-4e30-9486-c7d9854ea390",
+      "bytes": 212853,
+      "ms": 39.18,
+      "facts": 257
+    },
+    {
+      "hotel_id": "overture-84c175f8-330b-47b3-8b67-1c3acaaf3f78",
+      "bytes": 196685,
+      "ms": 38.83,
+      "facts": 256
+    },
+    {
+      "hotel_id": "overture-84c775c0-79bf-4f63-9f74-6e6382b6245d",
+      "bytes": 135564,
+      "ms": 27.97,
+      "facts": 185
+    },
+    {
+      "hotel_id": "overture-8a15b477-5b34-46db-9dbd-b40bf44a24c0",
+      "bytes": 59120,
+      "ms": 15.99,
+      "facts": 93
+    },
+    {
+      "hotel_id": "overture-8db95563-548a-436f-8920-31ba9b9a3795",
+      "bytes": 134810,
+      "ms": 27.53,
+      "facts": 184
+    },
+    {
+      "hotel_id": "overture-8e52a3de-d701-4111-a59a-f758996edd7c",
+      "bytes": 172594,
+      "ms": 35.87,
+      "facts": 240
+    },
+    {
+      "hotel_id": "overture-8eac0598-3975-43ee-b92c-7605e318059a",
+      "bytes": 59690,
+      "ms": 14.81,
+      "facts": 90
+    },
+    {
+      "hotel_id": "overture-961dd6a3-1f1c-4922-9ff0-be9a0887b568",
+      "bytes": 140850,
+      "ms": 27.24,
+      "facts": 188
+    }
+  ]
+}

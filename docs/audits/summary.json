@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-26T17:32:42.940139+00:00",
+  "generated_at": "2026-10-27T04:00:10.816170+00:00",
   "python_vulnerable_packages": 0,
   "python_locks": {
     "python": {
@@ -9,7 +9,7 @@
     },
     "python-dev": {
       "path": "requirements-dev.lock",
-      "sha256": "66a395dae4c2d97506e1ba5bf66a90df77bd44c9261d357a880ece7a882d7ff9",
+      "sha256": "eadec5e396abb2cf9de02027f2cea665b1373d475d604bc495b19b1aad82ab96",
       "vulnerable_packages": 0
     },
     "python-pipeline": {

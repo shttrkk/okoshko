@@ -122,3 +122,7 @@ URL репозитория команды и видео пока обознач�
 Сроки: 27.10 в 12:00 — сценарий Маши без ключа, 28.10 в 18:00 — freeze, 29.10 до 10:00 — сдача. Даты и время указаны по Москве.
 
 Историческая приёмка 26.10: [release_acceptance_20261026.json](checks/release_acceptance_20261026.json). После неё менялись код, контракты, данные и eligibility; она не подтверждает текущий ночной main. Последний проверенный source и свежий clean-clone отчёт указаны в [STATUS](STATUS.md).
+
+## Проверенный ночной запуск 27.10
+
+Source `2d1fa07`: clean clone без .env, новый Compose-проект/пустые volumes, builder prune, Docker-only PATH. Health138,592с; контейнер→health73,112с, restarts0; полный make check + demo13 +11 UI-сцен + Chrome smoke243,837с PASS. Отчёт: [clean_clone_night_20261027_final.json](checks/clean_clone_night_20261027_final.json). Первый прогон сохранён отдельно: устаревший TTL text assertion исправлен, сценарий теперь ждёт фактические evidence/date/method/source. ИсходныйMP4 неизменён. `okno-demo` пересоздан и проверен в offline с исходными seed-состояниями; [final_readiness](checks/final_readiness_20261027.json).

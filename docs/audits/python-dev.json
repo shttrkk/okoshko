@@ -354,6 +354,16 @@
       "name": "wheel",
       "version": "0.48.0",
       "vulns": []
+    },
+    {
+      "name": "pip",
+      "version": "26.2.2",
+      "vulns": []
+    },
+    {
+      "name": "setuptools",
+      "version": "84.2.1",
+      "vulns": []
     }
   ],
   "fixes": []
