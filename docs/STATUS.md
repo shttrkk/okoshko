@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 03:43 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 03:56 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -169,3 +169,5 @@
 - 27.10.2026 03:37: feat(frontend): keep selected room scope in hotel questions; 1017 passed, 1 warning, 125 subtests passed in 51.27s; Ruff и frontend lint PASS.
 
 - 27.10.2026 03:43: feat(quality): separate weak ranking and authored intent measurements; 1060 passed, 1 warning, 125 subtests passed in 56.40s; Ruff и frontend lint PASS.
+
+- 27.10.2026 03:56: расчёт Quality индексирует факты по отелю; метрики без изменений, медиана 7 241 → 1 630 мс на 56 873 фактах и 40 метках (3 samples, не HTTP p95). 1060 passed, 1 warning, 125 subtests passed in 66.43s (0:01:06); Ruff и frontend lint PASS.

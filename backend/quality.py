@@ -9,8 +9,6 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 
-from backend.contracts import Fact
-
 
 def available(value):
     if isinstance(value, dict):
@@ -155,6 +153,9 @@ def evaluate(hotels: list[dict], facts: list[dict], characteristics: list[dict],
     at = datetime.now(UTC)
     covered = {(f["hotel_id"], f["characteristic_id"]) for f in facts if not f.get("synthetic") and f["hotel_id"] in ids and f["characteristic_id"] in active
                and current_value(f, at)}
+    by_hotel = defaultdict(list)
+    for fact in facts:
+        by_hotel[fact['hotel_id']].append(fact)
     groups = {}
     for label_type in sorted({label.get("label_type", "manual") for label in labels}):
         selected = [label for label in labels if label.get("label_type", "manual") == label_type]
@@ -171,10 +172,10 @@ def evaluate(hotels: list[dict], facts: list[dict], characteristics: list[dict],
                 scope = json.loads(scope or "{}")
             if truth is None:
                 continue
-            prediction_facts = facts
+            prediction_facts = by_hotel.get(label['hotel_id'], [])
             if label_type=="weak_website":
                 # Held-out website quotes must never evaluate themselves through Resolver.
-                prediction_facts = [fact for fact in facts if not fact.get("synthetic") and
+                prediction_facts = [fact for fact in prediction_facts if not fact.get("synthetic") and
                                     any(evidence.get("kind")=="calculation" for evidence in fact.get("evidence",[])) and
                                     not any(evidence.get("kind")=="quote" for evidence in fact.get("evidence",[]))]
                 # A calculation disputed only by the held-out quote is still the model's prediction;
@@ -243,7 +244,9 @@ def from_repository(repo, data_dir: Path) -> dict:
     # kinds/quotes/limitations. Cached search snapshots omit only large tool
     # inputs/output, which none of these metric definitions reads.
     rows = repo.search_facts() if hasattr(repo, "search_facts") else repo.all("facts")
-    facts = [Fact.model_validate(row).model_dump(mode="json") for row in rows]
+    # Repository snapshots already contain validated materialized facts. Metrics
+    # consume their scalar fields and never mutate the snapshot or raw evidence.
+    facts = rows
     if hasattr(repo, "db_url"):
         # Read only provenance flags, never duplicate large evidence payloads.
         import psycopg
