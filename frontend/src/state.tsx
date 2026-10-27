@@ -35,7 +35,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
   const [theme, setTheme] = useState(
-    () => localStorage.getItem("okno-theme") || "light",
+    () =>
+      localStorage.getItem("okno-theme") ||
+      (window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"),
   );
   const [message, setMessage] = useState("");
   const toggleCompare = (id: string) =>

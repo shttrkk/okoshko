@@ -7072,3 +7072,29 @@ h3 {
   background: var(--accent-soft);
   color: var(--accent);
 }
+
+/* Guest panel: the answer source and the condition result are distinct. */
+.demo-results-banner {
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.search-example-chips {
+  margin: 8px 0;
+}
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+.passport-edit-item textarea {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+  min-height: 64px;
+  line-height: 1.5;
+}

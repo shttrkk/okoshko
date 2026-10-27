@@ -437,10 +437,11 @@ try {
   await truePage.close();
   mode = "model";
   const modelPage = await open();
-  assert.match(
-    await modelPage.getByTestId("room-lab-fact-sea_view").innerText(),
-    /Вероятность вида на море по расчёту: 92%/,
-  );
+  const modelSea = modelPage.getByTestId("room-lab-fact-sea_view");
+  assert.doesNotMatch(await modelSea.innerText(), /\d+%/);
+  assert.equal(JSON.parse(await modelSea.getAttribute("data-model-value")).seaProbability, 0.921875);
+  await modelSea.locator("summary").click();
+  assert.match(await modelSea.innerText(), /Вероятность вида на море по расчёту: 92%/);
   await modelPage.getByTestId("room-lab-floor").selectOption("1");
   assert.match(
     await modelPage.getByTestId("room-lab-fact-sea_view").innerText(),

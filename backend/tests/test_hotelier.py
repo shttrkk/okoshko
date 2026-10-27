@@ -176,10 +176,10 @@ class HotelierWorkflowTests(unittest.TestCase):
         self.assertEqual(again.json(), confirmed.json())
         self.assertEqual(len(self.repo.all("claims")), 1)
         claim = self.repo.all("claims")[0]
-        self.assertEqual(claim["source"], "hotelier_simulator")
-        self.assertTrue(claim["synthetic"])
+        self.assertEqual(claim["source"], "hotelier")
+        self.assertFalse(claim["synthetic"])
         self.assertIn(claim["evidence"][0]["quote"], preview["raw_text"])
-        self.assertEqual(self.repo.find("facts", characteristic_id="pets")[0]["status"], "computed")
+        self.assertEqual(self.repo.find("facts", characteristic_id="pets")[0]["status"], "confirmed")
         # New repository reads use stored answers/facts, no module-level state.
         copied = MemoryRepo()
         copied.tables = copy.deepcopy(self.repo.tables)

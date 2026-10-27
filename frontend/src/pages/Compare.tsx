@@ -2,6 +2,14 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowRight, X } from "lucide-react";
 import { api, useResource } from "../api";
+import {
+  reliability,
+  factDemoLabel,
+  guestText,
+  verdictLabel,
+  verdictSymbol,
+  verdictTone,
+} from "../components/panel-guest-presentation";
 import { useApp } from "../state";
 import {
   AskButton,
@@ -147,7 +155,9 @@ export function ComparePage() {
                   {rows.map((id) => (
                     <tr key={id}>
                       <th scope="row">
-                        {d.characteristics.find((s) => s.id === id)?.name_ru ||
+                        {d.characteristics.find((s) => s.id === id)
+                          ?.display_name ||
+                          d.characteristics.find((s) => s.id === id)?.name_ru ||
                           names[id] ||
                           id}
                         {parsed?.must.some(
@@ -168,7 +178,7 @@ export function ComparePage() {
                         return (
                           <td
                             className={
-                              verdict?.status === "yes"
+                              verdict?.status === "yes" && !verdict.synthetic
                                 ? "compare-best"
                                 : verdict?.status === "no"
                                   ? "compare-worst"
@@ -179,11 +189,19 @@ export function ComparePage() {
                             {verdict && (
                               <p className="compare-verdict">
                                 <span
-                                  className={`verdict-symbol ${verdict.disputed ? "disputed" : verdict.status}`}
+                                  className={`verdict-symbol ${verdictTone(verdict)}`}
                                 >
-                                  {verdict.disputed ? "!" : verdict.symbol}
+                                  {verdictSymbol(verdict)}
                                 </span>
-                                {verdict.text.split(";")[0]}
+                                <span
+                                  className={`badge ${verdict.synthetic ? "synthetic" : "unknown-badge"}`}
+                                >
+                                  {verdictLabel(verdict)}
+                                </span>
+                                {guestText(
+                                  verdict.text.split(";")[0],
+                                  verdict.synthetic,
+                                )}
                               </p>
                             )}
                             {known.length && rep ? (
@@ -192,17 +210,22 @@ export function ComparePage() {
                                   {headline(id, allFacts, month)}
                                 </p>
                                 {known.some((f) => f.synthetic) && (
-                                  <Synthetic />
+                                  <Synthetic>
+                                    {factDemoLabel(
+                                      known.find((fact) => fact.synthetic)!,
+                                    )}
+                                  </Synthetic>
                                 )}
                                 <details className="verdict-caveats">
                                   <summary>Надёжность данных</summary>
                                   <p>
-                                    {Math.round(
+                                    {reliability(
                                       Math.max(
                                         ...known.map((f) => f.confidence),
-                                      ) * 100,
-                                    )}
-                                    % · оценка полноты и согласованности
+                                      ),
+                                      known.some((f) => f.synthetic),
+                                    )}{" "}
+                                    · оценка полноты и согласованности
                                     источников
                                   </p>
                                 </details>

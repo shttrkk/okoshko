@@ -110,20 +110,18 @@ async function checkStatusSummary(card, hit, state) {
     { state, lines, items },
   );
   for (const item of items) {
-    const visibleCount =
-      item.text === "Условие подтверждено"
-        ? 1
-        : Number(item.text.match(/^(?:(?:Все|по)\s+)?(\d+)/u)?.[1]);
+    const visibleCount = [...item.text.matchAll(/(?:^|·)\s*(\d+)/gu)]
+      .reduce((sum, match) => sum + Number(match[1]), 0);
     check(
       visibleCount === expected[item.status],
       "required-status-visible-count",
       { state, item, expected: expected[item.status] },
     );
     const humanLabel = {
-      yes: /подтвержден/u,
-      partial: /пока неточно/u,
+      yes: /подтвердил отель|по расчёту|ответ отеля · демо|демо-расчёт/u,
+      partial: /примерно/u,
       no: /не подходит/u,
-      unknown: /нет данных/u,
+      unknown: /мало данных/u,
     }[item.status];
     check(humanLabel?.test(item.text), "required-status-human-label", {
       state,

@@ -29,6 +29,21 @@ import {
   type HotelPhoto,
 } from "./Photos";
 import { humanFact, METHOD_NAMES, MONTHS, SOURCE_NAMES } from "./facts";
+import {
+  DEMO_REPLY,
+  DEMO_EXPLANATION,
+  developerDisplay,
+  factLabel,
+  factDemoLabel,
+  factDemoExplanation,
+  guestText,
+  guestQuote,
+  reliability,
+  realHotelier,
+  verdictLabel,
+  verdictSymbol,
+  verdictTone,
+} from "./panel-guest-presentation";
 import { useApp } from "../state";
 import type { Claim, Fact, Hotel, Scope, Verdict } from "../types";
 export const names: Record<string, string> = {
@@ -51,7 +66,7 @@ export const names: Record<string, string> = {
   morning_swim: "Купание до завтрака",
   nightlife: "В гуще событий",
   morning_sun: "Утреннее солнце",
-  evening_heat: "Вечернее солнце и нагрев",
+  evening_heat: "Вечернее солнце",
   railway_noise: "Железнодорожный шум",
   beach_surface: "Покрытие пляжа",
   accessible_route: "Доступность маршрута",
@@ -142,17 +157,20 @@ export function ErrorState({
   retry?: () => void;
 }) {
   if (!error) return null;
+  const networkError = /Failed to fetch|Не удалось связаться с сервисом/i.test(
+    error.message,
+  );
   return (
     <div className="error-state" role="alert">
       <span className="eyebrow">
         {error instanceof ApiError
           ? `API · ${error.status}`
-          : error.message === "Failed to fetch"
+          : networkError
             ? "Соединение"
             : "Проверка"}
       </span>
       <h3>
-        {error instanceof ApiError || error.message === "Failed to fetch"
+        {error instanceof ApiError || networkError
           ? "Не удалось получить данные"
           : "Проверьте введённые данные"}
       </h3>
@@ -195,16 +213,16 @@ export function PageIntro({
     </div>
   );
 }
-export function Synthetic({
-  children = "Демо-данные",
-}: {
-  children?: ReactNode;
-}) {
+export function Synthetic({ children = "Демо" }: { children?: ReactNode }) {
   // Technical pages may provide their own explicit label.
   return (
     <span
       className="badge synthetic"
-      title="Пример ответа отеля для демонстрации; не настоящий ответ"
+      title={
+        typeof children === "string" && children === DEMO_REPLY
+          ? DEMO_EXPLANATION
+          : "Пример данных в прототипе; источник указан в подробностях"
+      }
     >
       {children}
     </span>
@@ -317,27 +335,79 @@ export function AskButton({
         ]
       : null,
   ]);
+  const { toast, hotels, specs, searchResult } = useApp();
+  const storageKey = `okno-question:${key}`;
+  const stored = () => {
+    try {
+      return !!localStorage.getItem(storageKey);
+    } catch {
+      return false;
+    }
+  };
   const [requestState, setRequestState] = useState<{
     key: string;
     status: "sending" | "sent" | "error";
     error?: Error;
   } | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => {
+    const refreshSent = (event: Event) => {
+      const changedKey = event instanceof StorageEvent
+        ? event.key
+        : (event as CustomEvent<string>).detail;
+      if (changedKey === storageKey) {
+        setRequestState(stored() ? { key, status: "sent" } : null);
+      }
+    };
+    window.addEventListener("storage", refreshSent);
+    window.addEventListener("okno-question-sent", refreshSent);
+    return () => {
+      window.removeEventListener("storage", refreshSent);
+      window.removeEventListener("okno-question-sent", refreshSent);
+    };
+  }, [key, storageKey]);
   const current = requestState?.key === key ? requestState : null;
   const busy = current?.status === "sending";
-  const sent = current?.status === "sent";
-  const error = current?.error;
-  const { toast } = useApp();
+  const sent = current?.status === "sent" || stored();
+  const knownHotelName =
+    hotels.data?.find((hotel) => hotel.id === hotelId)?.name ||
+    searchResult?.results.find((hit) => hit.hotel.id === hotelId)?.hotel.name;
+  const hotelDetail = useResource(
+    () =>
+      confirming && !knownHotelName
+        ? api.hotel(hotelId)
+        : Promise.resolve(null),
+    [hotelId, confirming, knownHotelName],
+  );
+  const hotelName =
+    knownHotelName ||
+    (hotelDetail.data?.hotel.id === hotelId
+      ? hotelDetail.data.hotel.name
+      : undefined);
+  const characteristic =
+    specs.data?.find((spec) => spec.id === characteristicId)?.name_ru ||
+    names[characteristicId] ||
+    "условия номера";
   const ask = async () => {
     setRequestState({ key, status: "sending" });
     try {
-      await api.ask(hotelId, characteristicId, scope);
+      const question = await api.ask(hotelId, characteristicId, scope);
+      try {
+        localStorage.setItem(storageKey, question.id);
+        window.dispatchEvent(new CustomEvent("okno-question-sent", { detail: storageKey }));
+      } catch {
+        /* In-memory success remains visible if storage is unavailable. */
+      }
       setRequestState((old) =>
         old?.key === key ? { key, status: "sent" } : old,
       );
-      toast("Уточнение добавлено к вопросу в кабинете");
-    } catch (e) {
+      setConfirming(false);
+      toast("Вопрос отправлен. Ответ появится здесь и в паспорте ожиданий.");
+    } catch (error) {
       setRequestState((old) =>
-        old?.key === key ? { key, status: "error", error: e as Error } : old,
+        old?.key === key
+          ? { key, status: "error", error: error as Error }
+          : old,
       );
     }
   };
@@ -345,7 +415,7 @@ export function AskButton({
     <span className="ask-wrap">
       <button
         className={compact ? "text-button small" : "button secondary small"}
-        onClick={ask}
+        onClick={() => setConfirming(true)}
         disabled={busy || sent}
         data-testid={`ask-${characteristicId}`}
       >
@@ -356,12 +426,48 @@ export function AskButton({
         ) : (
           <MessageCircle size={14} />
         )}{" "}
-        {sent ? "Добавлено к вопросу" : compact ? "Спросить" : "Спросить отель"}
+        {sent ? "Вопрос отправлен" : compact ? "Спросить" : "Спросить отель"}
       </button>
-      {error && (
-        <span role="alert" className="inline-error">
-          {error.message}
-        </span>
+      {confirming && (
+        <Modal
+          title="Спросить отель"
+          onClose={() => {
+            if (!busy) setConfirming(false);
+          }}
+        >
+          <p>
+            <strong>{hotelName || "Загружаем название отеля…"}</strong>
+          </p>
+          <p>
+            Спросим про условие «{characteristic}»
+            {scope ? ` · ${scopeText(scope)}` : ""}.
+          </p>
+          <p>
+            Ответ появится здесь, в профиле отеля, и в паспорте ожиданий. Его
+            увидят и другие гости.
+          </p>
+          <ErrorState
+            error={current?.error || hotelDetail.error}
+            retry={hotelDetail.error ? hotelDetail.reload : undefined}
+          />
+          <div className="modal-actions">
+            <button
+              className="button secondary"
+              onClick={() => setConfirming(false)}
+              disabled={busy}
+            >
+              Отмена
+            </button>
+            <button
+              className="button primary"
+              onClick={ask}
+              disabled={busy || !hotelName}
+              data-testid="ask-confirm"
+            >
+              {busy ? "Отправляем…" : "Отправить"}
+            </button>
+          </div>
+        </Modal>
       )}
     </span>
   );
@@ -387,7 +493,7 @@ export function VerdictList({
       {verdicts.map((v, i) => (
         <li key={`${v.characteristic_id}-${i}`}>
           <span
-            className={`verdict-symbol ${v.disputed ? "disputed" : v.status}`}
+            className={`verdict-symbol ${verdictTone(v)}`}
             aria-label={
               v.disputed
                 ? "Есть противоречие"
@@ -399,7 +505,7 @@ export function VerdictList({
                   }[v.status]
             }
           >
-            {v.disputed ? "!" : v.symbol}
+            {verdictSymbol(v)}
           </span>
           <div>
             <button
@@ -411,12 +517,12 @@ export function VerdictList({
               {v.disputed && (
                 <span className="badge disputed-badge">Есть противоречие</span>
               )}
-              {v.status === "unknown" && !v.disputed && (
-                <span className="badge unknown-badge">Нет данных</span>
-              )}
-              {v.synthetic && <Synthetic />}
-              {v.status === "partial" && (
-                <span className="badge warning">Пока неточно</span>
+              {!v.disputed && (
+                <span
+                  className={`badge ${v.synthetic ? "synthetic" : realHotelier(v) ? "confirmed" : "unknown-badge"}`}
+                >
+                  {verdictLabel(v)}
+                </span>
               )}
               <span>{verdictSummary(v)}</span>
             </button>
@@ -432,9 +538,13 @@ export function VerdictList({
             )}
             {(v.caveat || v.text.includes(";")) && (
               <details className="verdict-caveats">
-                <summary>Как посчитано</summary>
-                <p>{v.text}</p>
-                {v.caveat && <p>{v.caveat}</p>}
+                <summary>Подробнее</summary>
+                <p>{verdictSummary(v)}</p>
+                <details>
+                  <summary>Для дотошных</summary>
+                  <p>{guestText(v.text, v.synthetic)}</p>
+                  {v.caveat && <p>{guestText(v.caveat, v.synthetic)}</p>}
+                </details>
               </details>
             )}
             {v.status === "unknown" && (
@@ -454,7 +564,7 @@ export function VerdictList({
 
 /** The symbol and badge already carry these statuses; keep the full wording in the proof. */
 function verdictSummary(verdict: Verdict) {
-  const first = verdict.text.split(";")[0];
+  const first = guestText(verdict.text.split(";")[0], verdict.synthetic);
   const statusPrefixes = [
     "Да, но учитывайте условия: ",
     "Предварительно: ",
@@ -655,26 +765,15 @@ export function EvidenceButton({
   claims?: Claim[];
 }) {
   const [open, setOpen] = useState(false);
-  const labels = {
-    computed: fact.evidence.some((e) => e.kind === "quote")
-      ? "Сайт отеля · цитата"
-      : fact.evidence.some((e) => e.kind === "open_data")
-        ? "Открытые данные"
-        : "Рассчитано",
-    confirmed: "Подтверждено отелем",
-    disputed: "Есть противоречие",
-    unknown: "Нет данных",
-    stale: "Нужна перепроверка",
-  };
   return (
     <>
       <button
-        className={`evidence-button ${fact.status}`}
+        className={`evidence-button ${fact.synthetic ? "computed" : fact.status}`}
         onClick={() => setOpen(true)}
         data-testid={`evidence-${fact.characteristic_id}`}
       >
         <span className="tiny-dot" />
-        {labels[fact.status]}
+        {factLabel(fact)}
         <ArrowRight size={12} />
       </button>
       {open && (
@@ -696,6 +795,7 @@ export function EvidenceModal({
   claims?: Claim[];
   onClose: () => void;
 }) {
+  const { specs } = useApp();
   const expectedIds = [
     ...initialFact.supporting_claim_ids,
     ...(initialFact.conflicting_claim_ids || []),
@@ -722,134 +822,149 @@ export function EvidenceModal({
     .at(-1);
   return (
     <Modal
-      title={names[fact.characteristic_id] || fact.characteristic_id}
+      title={
+        specs.data?.find((spec) => spec.id === fact.characteristic_id)
+          ?.name_ru ||
+        names[fact.characteristic_id] ||
+        fact.characteristic_id
+      }
       onClose={onClose}
     >
       <div className="evidence-summary">
         <FactValue fact={fact} />
         <span className="muted">{scopeText(fact.scope)}</span>
       </div>
-      {fact.synthetic && <Synthetic />}
+      {fact.synthetic && <Synthetic>{factDemoLabel(fact)}</Synthetic>}
       {deferred && full.loading && (
         <p className="muted" role="status">
           Загружаем полное доказательство и даты источников…
         </p>
       )}
       <ErrorState error={full.error} retry={full.reload} />
-      <dl className="metadata">
-        <div>
-          <dt>Надёжность данных</dt>
-          <dd>
-            {Math.round(fact.confidence * 100)}%
-            <small>
-              Оценка полноты и согласованности источников, без гарантии
-              результата
-            </small>
-          </dd>
-        </div>
-        <div>
-          <dt>Данные получены</dt>
-          <dd>
-            {observed ? dateText(observed) : "Дата наблюдения не передана"}
-            <small>Когда источник наблюдал или рассчитал значение</small>
-          </dd>
-        </div>
-        <div>
-          <dt>Актуально до</dt>
-          <dd>{dateText(fact.valid_until)}</dd>
-        </div>
-        <div>
-          <dt>Метод</dt>
-          <dd>
-            {[...new Set(supporting.map((c) => c.method))].map((m) => (
-              <span className="named-id" key={m}>
-                {METHOD_NAMES[m] || m}
-                {METHOD_NAMES[m] && (
-                  <details>
-                    <summary>Код метода</summary>
-                    <code>{m}</code>
-                  </details>
-                )}
-              </span>
-            ))}
-            {!supporting.length && "Метод не передан API"}
-          </dd>
-        </div>
-        <div>
-          <dt>Источник</dt>
-          <dd>
-            {[
-              ...new Set(
-                supporting.length
-                  ? supporting.map((c) => c.source)
-                  : fact.evidence.flatMap((e) => e.source_ids),
-              ),
-            ].map((src) => (
-              <span className="named-id" key={src}>
-                {SOURCE_NAMES[src] || src}
-                {SOURCE_NAMES[src] && <code>{src}</code>}
-              </span>
-            ))}
-            {!supporting.length &&
-              !fact.evidence.some((e) => e.source_ids.length) &&
-              "Нет подтверждающего источника"}
-          </dd>
-        </div>
-      </dl>
+      <p className="muted">
+        {fact.synthetic
+          ? factDemoExplanation(fact)
+          : `${reliability(fact.confidence)} · оценка полноты и согласованности источников.`}
+      </p>
       {fact.evidence.map((e) => (
         <article className="evidence-card" key={e.id}>
           <span className="eyebrow">
-            {
-              {
-                calculation: "Расчёт",
-                open_data: "Открытые данные",
-                quote: "Дословная цитата",
-                hotelier: "Ответ отеля",
-                simulation: "Симуляция",
-                mock: "Макет",
-              }[e.kind]
-            }
+            {fact.synthetic || e.kind === "simulation" || e.kind === "mock"
+              ? factDemoLabel(fact)
+              : {
+                  calculation: "Расчёт",
+                  open_data: "Открытые данные",
+                  quote: "Дословная цитата",
+                  hotelier: "Ответ отеля",
+                }[e.kind]}
           </span>
+          {e.quote && (
+            <blockquote>«{guestQuote(e.quote, !!fact.synthetic)}»</blockquote>
+          )}
           <details className="room-caveats-details">
-            <summary>Описание источника</summary>
-            <h3>{e.label}</h3>
-          </details>
-          {e.quote && <blockquote>«{e.quote}»</blockquote>}
-          {e.url && (
-            <a
-              href={e.url}
-              target="_blank"
-              rel="noreferrer"
-              className="text-button"
-            >
-              Открыть источник <ExternalLink size={14} />
-            </a>
-          )}
-          {e.artifact && e.artifact !== e.url && (
-            <a
-              href={e.artifact}
-              target="_blank"
-              rel="noreferrer"
-              className="text-button"
-            >
-              Открыть расчёт <ExternalLink size={14} />
-            </a>
-          )}
-          {e.limitations.length > 0 && (
-            <details className="room-caveats-details">
-              <summary>Ограничения источника</summary>
-              {e.limitations.map((l) => (
-                <p className="muted" key={l}>
-                  {l}
+            <summary>Для дотошных</summary>
+            {typeof record(fact.value).probability === "number" && (
+              <p>
+                Вероятность видимости по модели:{" "}
+                {Math.round(Number(record(fact.value).probability) * 100)}%. Это
+                чувствительность к допущениям о высотах, а не надёжность
+                источника.
+              </p>
+            )}
+            {guestText(e.label, !!fact.synthetic) !== DEMO_EXPLANATION && (
+              <p>{guestText(e.label, !!fact.synthetic)}</p>
+            )}
+            <dl className="metadata">
+              <div>
+                <dt>Данные получены</dt>
+                <dd>
+                  {observed
+                    ? dateText(observed)
+                    : "Дата наблюдения не передана"}
+                </dd>
+              </div>
+              <div>
+                <dt>Актуально до</dt>
+                <dd>{dateText(fact.valid_until)}</dd>
+              </div>
+              <div>
+                <dt>Метод</dt>
+                <dd>
+                  {!supporting.length && "Описание метода не передано"}
+                  {[...new Set(supporting.map((c) => c.method))].map((m) => (
+                    <span className="named-id" key={m}>
+                      {METHOD_NAMES[m] || guestText(m, !!fact.synthetic)}
+                    </span>
+                  ))}
+                </dd>
+              </div>
+              <div>
+                <dt>Источник</dt>
+                <dd>
+                  {[
+                    ...new Set(
+                      supporting.length
+                        ? supporting.map((c) => c.source)
+                        : e.source_ids,
+                    ),
+                  ].map((src) => (
+                    <span className="named-id" key={src}>
+                      {SOURCE_NAMES[src] || guestText(src, !!fact.synthetic)}
+                    </span>
+                  ))}
+                </dd>
+              </div>
+            </dl>
+            {e.url && (
+              <a
+                href={e.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-button"
+              >
+                Открыть источник <ExternalLink size={14} />
+              </a>
+            )}
+            {e.artifact && e.artifact !== e.url && (
+              <a
+                href={e.artifact}
+                target="_blank"
+                rel="noreferrer"
+                className="text-button"
+              >
+                Открыть расчёт <ExternalLink size={14} />
+              </a>
+            )}
+            {[
+              ...new Set(
+                e.limitations.map((limitation) =>
+                  guestText(limitation, !!fact.synthetic),
+                ),
+              ),
+            ]
+              .filter((limitation) => limitation !== DEMO_EXPLANATION)
+              .map((limitation) => (
+                <p className="muted" key={limitation}>
+                  {limitation}
                 </p>
               ))}
+            <details>
+              <summary>Данные для разработчиков</summary>
+              <pre>
+                {JSON.stringify(
+                  developerDisplay(
+                    {
+                      inputs: e.inputs,
+                      output: e.output,
+                      methods: supporting.map((claim) => claim.method),
+                    },
+                    !!fact.synthetic,
+                  ),
+                  null,
+                  2,
+                )}
+              </pre>
             </details>
-          )}
-          <details>
-            <summary>Входы и результат расчёта</summary>
-            <pre>
-              {JSON.stringify({ inputs: e.inputs, output: e.output }, null, 2)}
-            </pre>
           </details>
         </article>
       ))}

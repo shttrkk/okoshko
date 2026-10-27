@@ -10,12 +10,12 @@ import { MONTHS, SIDES } from "./facts";
 export const groupExample =
   "Едем компанией: Маше — тихий номер, Игорю — вид на море. Для всех — до пляжа не больше 10 минут";
 export const roomStatus = {
-  yes: "Подходит",
-  partial: "С оговорками",
+  yes: "По расчёту",
+  partial: "Примерно",
   no: "Не подходит",
-  unknown: "Нужно уточнить",
+  unknown: "Мало данных",
 };
-export const roomSymbol = { yes: "✓", partial: "≈", no: "×", unknown: "?" };
+export const roomSymbol = { yes: "≈", partial: "≈", no: "×", unknown: "?" };
 export function roomScopeText(scope: RoomScope, unknownFloors = false) {
   return (
     [

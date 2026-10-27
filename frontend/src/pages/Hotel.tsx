@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { api, record, useResource } from "../api";
 import { useApp } from "../state";
+import { guestText } from "../components/panel-guest-presentation";
 import { GeoModal, TravelMap } from "../components/Map";
 import { FactsPanel } from "../components/FactsPanel";
 import {
@@ -66,7 +67,7 @@ const normalizedName = (name: string) =>
     .trim();
 // The column heading already says "similar" or "different".
 const plainReason = (text: string) =>
-  text.split(";")[0].replace(/^(Совпадает|Отличается) /, "");
+  guestText(text.split(";")[0].replace(/^(Совпадает|Отличается) /, ""));
 
 function relatedHotels(results: SearchHit[], reference: Hotel) {
   const ids = new Set([reference.id]);
@@ -171,7 +172,12 @@ function RelatedHotels({ hotel }: { hotel: Hotel }) {
                   <summary>Как посчитано</summary>
                   <ul>
                     {hit.similarity_reasons.map((reason) => (
-                      <li key={reason}>{reason}</li>
+                      <li key={reason}>
+                        {guestText(
+                          reason,
+                          hit.verdicts.some((v) => v.synthetic),
+                        )}
+                      </li>
                     ))}
                   </ul>
                 </details>
@@ -675,7 +681,12 @@ export function HotelPage() {
                     {disappointments.map((t, i) => (
                       <li key={t}>
                         <span>0{i + 1}</span>
-                        <p>{t}</p>
+                        <p>
+                          {guestText(
+                            t,
+                            d.verdicts.some((v) => v.synthetic),
+                          )}
+                        </p>
                       </li>
                     ))}
                   </ul>
@@ -735,7 +746,7 @@ export function HotelPage() {
                           {conflictStatus[c.status] || c.status}
                         </span>
                       </div>
-                      <p>{c.resolution_note}</p>
+                      <p>{guestText(c.resolution_note || "", c.synthetic)}</p>
                       {c.status === "asked" ? (
                         <span className="muted small">
                           Вопрос уже в кабинете отеля. До ответа значение не
@@ -762,7 +773,7 @@ export function HotelPage() {
                   </p>
                   {scopeConflicts.slice(0, 6).map((c) => (
                     <p className="fine-print" key={c.id}>
-                      {c.resolution_note}
+                      {guestText(c.resolution_note || "", c.synthetic)}
                     </p>
                   ))}
                 </details>
@@ -772,8 +783,7 @@ export function HotelPage() {
             <aside className="booking-aside">
               <span className="eyebrow">ОТДЫХ БЕЗ НЕДОСКАЗАННОСТИ</span>
               <h3>
-                Договоритесь
-                <br />о важном заранее.
+                Договоритесь <br />о важном заранее.
               </h3>
               <p>
                 Соберём ожидания в один паспорт. Отель подтвердит их для вашего

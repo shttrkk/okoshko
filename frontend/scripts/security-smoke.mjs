@@ -335,6 +335,7 @@ try {
   assert((await modal.locator("blockquote").textContent()).includes(payload));
   assert.match(await modal.locator("blockquote").innerHTML(), /&lt;img/);
   await safe();
+  await modal.locator(".evidence-card summary").first().click();
   const evidenceLink = modal.getByRole("link", { name: /Открыть источник/ });
   assert(
     !(await evidenceLink.getAttribute("href")).includes("__oknoXssExecuted"),

@@ -626,6 +626,11 @@ try {
   );
   await page
     .getByRole("dialog")
+    .locator(".evidence-card summary")
+    .first()
+    .click();
+  await page
+    .getByRole("dialog")
     .getByText("Данные получены", { exact: true })
     .waitFor();
   await page.keyboard.press("Escape");
@@ -859,7 +864,7 @@ try {
   );
   assert.match(
     await fixture.getByTestId("fact-card-accessible_route").innerText(),
-    /Проезд на коляске не подтверждён/,
+    /Данных о проезде с коляской мало/,
   );
   assert.match(
     await fixture.getByTestId("fact-card-accessible_route").innerText(),

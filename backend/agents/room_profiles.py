@@ -167,10 +167,10 @@ def _solar_minutes(facts: list[Fact]) -> str | None:
     # A mean over several floors cannot be stated as a bound for each floor.
     if all(isinstance(f.value, dict) and _number(f.value.get("visible_minutes_min"))
            and _number(f.value.get("visible_minutes_max")) for f in facts):
-        return _range(facts, "visible_minutes_min", "visible_minutes_max")
+        return _range(facts, "visible_minutes_min", "visible_minutes_max", minutes=True)
     if all(scope_values(f).get("floor_min") == scope_values(f).get("floor_max")
            and scope_values(f).get("floor_min") is not None for f in facts):
-        return _range(facts, "visible_minutes")
+        return _range(facts, "visible_minutes", minutes=True)
     return None
 
 

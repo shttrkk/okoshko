@@ -21,14 +21,15 @@ NEGATIVE = r"(?:\bне\b|\bнет\b|\bбез\b|нельзя|запрещ\w*|от
 INTERNAL = {"soundproofing", "room_orientation", "pets", "quiet_night", "sea_view", "sunset_view", "mountain_view"}
 HOTELIER_VALUE_FIELDS = {
     "soundproofing": {"available", "windows", "blackout", "air_conditioning"},
-    "room_orientation": {"available", "facade", "min_floor", "max_floor", "rooms", "balcony"},
-    "pets": {"available", "species", "max_weight_kg", "fee_rub_night"},
+    "room_orientation": {"available", "facade", "min_floor", "max_floor", "rooms", "balcony", "groups", "absent_floors", "courtyard", "sea_view"},
+    "pets": {"available", "species", "excluded_species", "max_weight_kg", "fee_rub_night"},
     "quiet_night": {"available", "facade"},
     "sea_view": {"available", "facade", "min_floor"},
     "sunset_view": {"available", "facade", "min_floor"},
     "mountain_view": {"available", "facade", "min_floor"},
     "beach_walk": {"available", "minutes", "distance_m", "has_steps"},
 }
+ROOM_GROUP_FIELDS = {"rooms", "facade", "min_floor", "max_floor", "balcony", "courtyard", "sea_view"}
 MONTH_PATTERNS = (r"январ(?:ь|я|е|ю|ем)", r"феврал(?:ь|я|е|ю|ем)", r"март(?:а|е|у|ом)?", r"апрел(?:ь|я|е|ю|ем)",
                   r"ма[йяею]|маем", r"июн(?:ь|я|е|ю|ем)", r"июл(?:ь|я|е|ю|ем)", r"август(?:а|е|у|ом)?",
                   r"сентябр(?:ь|я|е|ю|ем)", r"октябр(?:ь|я|е|ю|ем)", r"ноябр(?:ь|я|е|ю|ем)", r"декабр(?:ь|я|е|ю|ем)")
@@ -80,6 +81,7 @@ def _side(text: str) -> str | None:
 
 
 def _floor(text: str) -> tuple[int | None, int | None, bool]:
+    text = re.sub(r"\bперв(?:ом|ый|ого)\s+этаж", "1 этаж", text)
     match = re.search(r"(?:с|от)\s*(\d{1,3})\s*(?:-?(?:го|ого))?\s*этаж", text)
     if match:
         floor = int(match[1])
@@ -93,6 +95,55 @@ def _floor(text: str) -> tuple[int | None, int | None, bool]:
         floor = int(match[1])
         return floor, floor, not 1 <= floor <= 100
     return None, None, False
+
+
+def _room_groups(raw: str) -> tuple[list[dict], list[int], list[str]]:
+    """Explicit room lists are observations, never inferred floors or categories."""
+    groups, absent, clarifications = [], [], []
+    for sentence in _sentences(raw):
+        low = sentence.lower().replace("ё", "е")
+        low_floor, high_floor, invalid = _floor(low)
+        if re.search(r"(?:номеров|комнат)\s+нет|нет\s+(?:номеров|комнат)", low) and low_floor and not invalid:
+            absent.extend(range(low_floor, (high_floor or low_floor) + 1))
+            continue
+        matches = list(re.finditer(r"(?<!\d)(\d{3,4})\s*[–—-]\s*(\d{3,4})(?!\d)", low))
+        if not matches or re.search(UNCERTAIN, low):
+            continue
+        # Separate groups in one clause need an explicit boundary. Never apply
+        # the last balcony/view description to every room mentioned there.
+        if len(matches) > 1 and any(re.search(r"мор|двор|балкон|выход|смотр", low[a.end():b.start()])
+                                           for a, b in zip(matches, matches[1:], strict=False)):
+            clarifications.append("Разделите разные группы номеров точкой или точкой с запятой и опишите каждую отдельно.")
+            continue
+        rooms = []
+        for match in matches:
+            first, last = int(match[1]), int(match[2])
+            if first > last or last-first > 100:
+                clarifications.append("Уточните возрастающий диапазон номеров (не более 101 номера в группе).")
+                break
+            rooms.extend(str(number) for number in range(first, last+1))
+        else:
+            group = {"rooms": list(dict.fromkeys(rooms))}
+            side = _side(low)
+            if side:
+                group["facade"] = side
+            if low_floor and not invalid:
+                group["min_floor"] = low_floor
+                if high_floor:
+                    group["max_floor"] = high_floor
+            for key, pattern in (("balcony", r"балкон"), ("courtyard", r"(?:во?\s+)?двор\w*"),
+                                 ("sea_view", r"(?:на\s+)?море|вид\w*\s+(?:на\s+)?мор\w*")):
+                if re.search(pattern, low):
+                    value = _bool_feature(low, pattern)
+                    if value is not None:
+                        group[key] = value
+            groups.append(group)
+    for index, group in enumerate(groups):
+        for other in groups[index+1:]:
+            if set(group["rooms"]) & set(other["rooms"]) and any(
+                    group[key] != other[key] for key in set(group) & set(other) - {"rooms"}):
+                return [], sorted(set(absent)), ["Для одних и тех же номеров указаны разные условия. Уточните группы номеров отдельно."]
+    return groups, sorted(set(absent)), clarifications
 
 
 def _bool_feature(sentence: str, pattern: str) -> bool | None:
@@ -171,13 +222,25 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
                    r"\b(?:в|во)\s+(?:(?:первой|второй)\s+)?(?:начале|конце|середине|половине)\s+(?:"+"|".join(MONTH_PATTERNS)+r")\b|"
                    r"\b\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?(?!\d)(?!\s*(?:кг|килограмм\w*|руб\w*|₽|мин\w*|метр\w*|м\b))|"
                    r"\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}-?м\s+месяц\w*")
-    if len(months) > 1 or re.search(open_period, normalized):
+    restricted_period = len(months) > 1 or bool(re.search(open_period, normalized))
+    pets_partial = restricted_period and "pets" in question.characteristic_ids
+    if restricted_period and not pets_partial:
         return Answer(question_id=question.id, raw_text=raw, synthetic=synthetic,
+                      disposition="clarification",
                       unknown_fields=question.characteristic_ids,
                       needs_clarification="Уточните один календарный месяц и отдельный ответ для него; период не будет превращён в утверждение на весь год.")
-    month = next(iter(months), None)
+    month = None if pets_partial else next(iter(months), None)
+    grouped_rooms, absent_floors, group_clarifications = _room_groups(raw)
+    use_groups = len(grouped_rooms) > 1 or bool(absent_floors) or bool(group_clarifications)
+    clarifications.extend(group_clarifications)
+    if pets_partial:
+        unknown.add("pets.available")
+        clarifications.append("Поняли ограничения по питомцам. Разрешение по сезонам пока не сохранено: в какие месяцы можно заселиться с животным? Укажите один месяц для отдельного ответа.")
 
     def add(cid: str, value: dict, quote: str, scope: Scope | None = None):
+        if pets_partial and cid != "pets":
+            unknown.add(cid)
+            return
         scope = scope or Scope()
         if month is not None:
             scope = scope.model_copy(update={"month": month})
@@ -189,7 +252,7 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
             if contradictory:
                 updates.remove(prior)
                 unknown.add(cid)
-                clarifications.append(f"Уточните противоречивые значения: {cid} ({', '.join(contradictory)}).")
+                clarifications.append("Не понял разные значения для одной и той же области. Уточните, к каким номерам и условиям относится каждое значение.")
                 return
             # A later partial amenity sentence must not erase an explicit
             # insulation statement with its default available=null.
@@ -199,13 +262,18 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
             updates.append(FieldUpdate(characteristic_id=cid, scope=scope, value=value, quote=quote))
 
     quick = normalized.strip().strip(".! ")
-    if quick in {"не знаю", "частично", "затрудняюсь ответить"}:
+    if quick in {"не знаю", "затрудняюсь ответить", "неизвестно"}:
+        return Answer(question_id=question.id, raw_text=raw, synthetic=synthetic, disposition="unknown",
+                      unknown_fields=question.characteristic_ids)
+    if quick == "частично":
         return Answer(question_id=question.id, raw_text=raw, synthetic=synthetic,
+                      disposition="clarification",
                       unknown_fields=question.characteristic_ids,
                       needs_clarification="Уточните конкретные номера, условия и ограничения; неизвестное останется неизвестным.")
     if quick in {"да", "нет"}:
-        if (len(question.characteristic_ids) == 1 and question.characteristic_ids[0] in {"pets", "sea_view", "sunset_view", "mountain_view", "quiet_night"}
-                and not question.hypothesis and not question.requested_scopes):
+        boolean_ids = {"pets", "sea_view", "sunset_view", "mountain_view", "quiet_night", "soundproofing"}
+        if (len(question.characteristic_ids) == 1 and question.characteristic_ids[0] in boolean_ids
+                and not question.requested_scopes and (quick == "нет" or (not question.hypothesis and question.characteristic_ids[0] != "soundproofing"))):
             add(question.characteristic_ids[0], {"available": quick == "да"}, raw)
         else:
             unknown.update(question.characteristic_ids)
@@ -247,6 +315,8 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
             balcony = _bool_feature(low, r"балкон")
             if balcony is not None:
                 orientation["balcony"] = balcony
+        if use_groups:
+            orientation = {}
         if orientation and not re.search(UNCERTAIN, low) and not invalid_floor:
             if "available" not in orientation:
                 orientation["available"] = True
@@ -282,7 +352,14 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
         elif sound:
             unknown.add("soundproofing")
 
-        if re.search(r"питом|животн|собак|кош[екк]|кошк|псов|\bпес\b", low):
+        animal_pattern = r"питом|животн|собак|кош[екк]|кошк|псов|\bпес\b"
+        pet_text = low
+        if pets_partial:
+            # Only extract the independent clauses before a seasonal qualifier.
+            # Their availability stays null: this is not year-round permission.
+            pet_text = re.split(r",?\s*\b(?:в|во|с|до|по|летом|зимой|весной|осенью)\s+(?:" + "|".join(MONTH_PATTERNS) + r")\b", low)[0]
+        if re.search(animal_pattern, pet_text) or ("pets" in question.characteristic_ids and re.search(r"доплат|бесплат", pet_text)):
+            low = pet_text
             if re.search(UNCERTAIN, low):
                 unknown.add("pets")
                 continue
@@ -303,6 +380,10 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
             pets = {"available": bool(allowed) if allowed or denied else not bool(re.search(NEGATIVE, low))}
             if species:
                 pets["species"] = species
+            if denied:
+                pets["excluded_species"] = sorted(set(denied))
+            if pets_partial or not re.search(animal_pattern, low):
+                pets["available"] = None
             weight = re.search(r"до\s*(-?\d+(?:[.,]\d+)?)\s*кг", low)
             if weight:
                 kg = float(weight[1].replace(",", "."))
@@ -322,7 +403,7 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
             if re.search(r"без\s+доплат|бесплат", low):
                 pets["fee_rub_night"] = 0
                 # "без доплаты" does not mean pets are prohibited.
-                if not denied:
+                if not denied and not pets_partial:
                     pets["available"] = True
             add("pets", pets, sentence)
 
@@ -372,11 +453,19 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
             elif route:
                 unknown.add("beach_walk")
 
+    if use_groups and (grouped_rooms or absent_floors):
+        # A structured list describes only named groups. Null at the outer level
+        # prevents their balcony/view properties becoming a hotel-wide fact.
+        value = {"available": None, "groups": grouped_rooms}
+        if absent_floors:
+            value["absent_floors"] = absent_floors
+        add("room_orientation", value, raw)
     represented = {update.characteristic_id for update in updates}
     unknown.update(set(question.characteristic_ids)-represented)
     if unknown and not clarifications:
         clarifications.append("Уточните неизвестные свойства и конкретные номера; пропуски не означают отсутствие услуги.")
     return Answer(question_id=question.id, raw_text=raw, updates=updates, unknown_fields=sorted(unknown),
+                  disposition="parsed" if updates else "clarification",
                   needs_clarification=" ".join(dict.fromkeys(clarifications)) or None, synthetic=synthetic)
 
 

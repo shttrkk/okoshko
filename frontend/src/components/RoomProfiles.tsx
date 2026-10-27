@@ -12,6 +12,7 @@ import {
   Synthetic,
 } from "./ui";
 import { RoomAdviceList } from "./RoomAdvice";
+import { guestText } from "./panel-guest-presentation";
 import {
   roomEvidenceScope,
   roomLabParams,
@@ -55,7 +56,12 @@ export function RoomDescription({
       )}
       {showCopy && (
         <>
-          <p className="room-profile-copy">{profile.description}</p>
+          <p className="room-profile-copy">
+            {guestText(
+              profile.description,
+              profile.clauses.some((clause) => clause.synthetic),
+            )}
+          </p>
           {profile.clauses.some((clause) => clause.synthetic) && <Synthetic />}
         </>
       )}
@@ -65,13 +71,14 @@ export function RoomDescription({
           {profile.clauses.map((clause, i) => (
             <li key={i} data-status={clause.status}>
               <span
-                className={`verdict-symbol ${clause.status}`}
+                className={`verdict-symbol ${clause.synthetic && clause.status === "yes" ? "partial" : clause.status}`}
                 title={roomStatus[clause.status]}
               >
-                {roomSymbol[clause.status]}
+                {clause.status === "yes" ? "≈" : roomSymbol[clause.status]}
               </span>
               <div>
-                <span>{clause.text}</span> {clause.synthetic && <Synthetic />}
+                <span>{guestText(clause.text, clause.synthetic)}</span>{" "}
+                {clause.synthetic && <Synthetic />}
                 <div className="room-clause-actions">
                   {clause.fact_ids.map((factId, index) => (
                     <button
@@ -112,7 +119,12 @@ export function RoomDescription({
             </summary>
             <ul className="room-caveats">
               {profile.caveats.map((text, i) => (
-                <li key={i}>{text}</li>
+                <li key={i}>
+                  {guestText(
+                    text,
+                    profile.clauses.some((clause) => clause.synthetic),
+                  )}
+                </li>
               ))}
             </ul>
           </details>
@@ -218,7 +230,12 @@ function ScopedRoomProfileList({
       <summary>
         <h3>{positionTitle(profile)}</h3>
         <RoomHighlights profile={profile} />
-        <p className="room-profile-preview">{profile.description}</p>
+        <p className="room-profile-preview">
+          {guestText(
+            profile.description,
+            profile.clauses.some((clause) => clause.synthetic),
+          )}
+        </p>
         {profile.clauses.some((clause) => clause.synthetic) && <Synthetic />}
         <span className="text-button small">Подробности</span>
       </summary>

@@ -6,6 +6,13 @@ import { chromium } from "playwright";
 
 // Every API response, write and panorama document is intercepted locally.
 const base = process.env.OKNO_BASE_URL || "http://localhost:5175";
+async function confirmAsk(page, button) {
+  const confirm = page.getByTestId("ask-confirm");
+  if (!(await confirm.isVisible())) await button.click();
+  await confirm.waitFor();
+  await confirm.click();
+}
+
 const chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const executablePath =
   process.env.OKNO_BROWSER_EXECUTABLE ||
@@ -327,8 +334,8 @@ try {
   await page.getByTestId("room-lab-verdicts").waitFor();
   const toolbar = page.getByTestId("room-lab-map-context");
   const askWindow = toolbar.getByTestId("ask-room_orientation");
-  await askWindow.click();
-  await askWindow.getByText("Добавлено к вопросу").waitFor();
+  await confirmAsk(page, askWindow);
+  await askWindow.getByText("Вопрос отправлен").waitFor();
   assert.deepEqual(bodies.at(-1), {
     hotel_id: hotel.id,
     characteristic_id: "room_orientation",
@@ -336,7 +343,7 @@ try {
   });
   await page
     .getByRole("status")
-    .getByText("Уточнение добавлено к вопросу в кабинете", { exact: true })
+    .getByText("Вопрос отправлен. Ответ появится здесь и в паспорте ожиданий.", { exact: true })
     .waitFor();
   const choose = async (facade, floor) => {
     await page.getByTestId("room-lab-facade").selectOption(facade);
@@ -356,8 +363,8 @@ try {
   };
   await choose("E", 3);
   assert.equal(await askWindow.isEnabled(), true);
-  await askWindow.click();
-  await askWindow.getByText("Добавлено к вопросу").waitFor();
+  await confirmAsk(page, askWindow);
+  await askWindow.getByText("Вопрос отправлен").waitFor();
   assert.deepEqual(bodies.at(-1).scope, exactScope("E", 3));
   const aggregate = pending.get(`${hotel.id}:room_orientation`);
   assert.equal(aggregate.id, "question-room_orientation");
@@ -371,8 +378,8 @@ try {
   await toolbar.getByRole("button", { name: "Панорама стороны" }).click();
   const footer = page.getByTestId("panorama-question");
   assert.match(await footer.innerText(), /восток.*3-й этаж.*июнь/);
-  await footer.getByTestId("ask-room_orientation").click();
-  await footer.getByText("Добавлено к вопросу").waitFor();
+  assert.equal(await footer.getByTestId("ask-room_orientation").isDisabled(), true);
+  await footer.getByText("Вопрос отправлен").waitFor();
   assert.deepEqual(bodies.at(-1).scope, exactScope("E", 3));
   assert.equal(aggregate.requested_scopes.length, 2);
   await page.getByRole("button", { name: "Закрыть", exact: true }).click();
@@ -380,41 +387,29 @@ try {
     "panorama footer keeps the chosen window context and states it as a wish, with no external send",
   );
   await choose("W", 7);
+  await confirmAsk(page, page.getByTestId("room-lab-verdicts").getByTestId("ask-sea_view"));
   await page
     .getByTestId("room-lab-verdicts")
-    .getByTestId("ask-sea_view")
-    .click();
-  await page
-    .getByTestId("room-lab-verdicts")
-    .getByText("Добавлено к вопросу")
+    .getByText("Вопрос отправлен")
     .waitFor();
   assert.deepEqual(bodies.at(-1).scope, exactScope("W", 7));
+  assert.equal(await page.getByTestId("fact-card-sea_view").getByTestId("ask-sea_view").isDisabled(), true);
   await page
     .getByTestId("fact-card-sea_view")
-    .getByTestId("ask-sea_view")
-    .click();
-  await page
-    .getByTestId("fact-card-sea_view")
-    .getByText("Добавлено к вопросу")
+    .getByText("Вопрос отправлен")
     .waitFor();
   assert.deepEqual(bodies.at(-1).scope, exactScope("W", 7));
+  await confirmAsk(page, page.getByTestId("room-lab-verdicts").getByTestId("ask-night_pharmacy"));
   await page
     .getByTestId("room-lab-verdicts")
     .getByTestId("ask-night_pharmacy")
-    .click();
-  await page
-    .getByTestId("room-lab-verdicts")
-    .getByText("Добавлено к вопросу")
-    .last()
+    .getByText("Вопрос отправлен")
     .waitFor();
   assert.equal(Object.hasOwn(bodies.at(-1), "scope"), false);
+  assert.equal(await page.getByTestId("fact-card-night_pharmacy").getByTestId("ask-night_pharmacy").isDisabled(), true);
   await page
     .getByTestId("fact-card-night_pharmacy")
-    .getByTestId("ask-night_pharmacy")
-    .click();
-  await page
-    .getByTestId("fact-card-night_pharmacy")
-    .getByText("Добавлено к вопросу")
+    .getByText("Вопрос отправлен")
     .waitFor();
   assert.equal(Object.hasOwn(bodies.at(-1), "scope"), false);
   checks.push(
@@ -425,8 +420,8 @@ try {
     status: 422,
     message: "Недопустимый срез окна (browser fixture)",
   };
-  await askWindow.click();
-  await toolbar
+  await confirmAsk(page, askWindow);
+  await page.getByRole("dialog")
     .getByRole("alert")
     .getByText(
       nextError?.message || "Недопустимый срез окна (browser fixture)",
@@ -435,14 +430,14 @@ try {
     .waitFor();
   assert.equal(await askWindow.isEnabled(), true);
   nextError = { status: 409, message: "Вопрос изменился (browser fixture)" };
-  await askWindow.click();
-  await toolbar
+  await confirmAsk(page, askWindow);
+  await page.getByRole("dialog")
     .getByRole("alert")
     .getByText("Вопрос изменился (browser fixture)", { exact: true })
     .waitFor();
   assert.equal(await askWindow.isEnabled(), true);
-  await askWindow.click();
-  await askWindow.getByText("Добавлено к вопросу").waitFor();
+  await confirmAsk(page, askWindow);
+  await askWindow.getByText("Вопрос отправлен").waitFor();
   checks.push(
     "422/409 stay visible and retryable, without optimistic confirmation or automatic writes",
   );
@@ -478,8 +473,8 @@ try {
   await page.getByTestId("room-lab").locator("summary").first().click();
   await page.getByTestId("fact-map-sea_view-W").click();
   const selected = page.getByTestId("hotel-map-context");
-  await selected.getByTestId("ask-sea_view").click();
-  await selected.getByText("Добавлено к вопросу").waitFor();
+  await confirmAsk(page, selected.getByTestId("ask-sea_view"));
+  await selected.getByText("Вопрос отправлен").waitFor();
   assert.deepEqual(bodies.at(-1).scope, factScope);
   checks.push(
     "without an active slice, selected Fact.scope is preserved; global parsed, dates and inputs remain unchanged",
@@ -539,12 +534,18 @@ try {
     route.fulfill({ contentType: "text/html", body: '<div id="root"></div>' }),
   );
   await harness.goto(`${base}/__scoped_question_harness`);
+  // This independent race case starts without successes from the earlier UI flow.
+  await harness.evaluate((hotelId) => {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith(`okno-question:["${hotelId}",`)) localStorage.removeItem(key);
+    }
+  }, hotel.id);
   await harness.addScriptTag({
     type: "module",
     content: bundled.outputFiles[0].text,
   });
   holdNext = true;
-  await harness.getByTestId("ask-sea_view").click();
+  await confirmAsk(harness, harness.getByTestId("ask-sea_view"));
   await harness.waitForFunction(
     () => document.querySelector('[data-testid="ask-sea_view"]')?.disabled,
   );
@@ -555,8 +556,8 @@ try {
   await harness.evaluate(() => window.setAskCharacteristic("soundproofing"));
   const changed = harness.getByTestId("ask-soundproofing");
   assert.equal(await changed.isEnabled(), true);
-  await changed.click();
-  await changed.getByText("Добавлено к вопросу").waitFor();
+  await confirmAsk(harness, changed);
+  await changed.getByText("Вопрос отправлен").waitFor();
   await held.route.fulfill({ json: held.value });
   assert.equal(await changed.isDisabled(), true);
   await harness.evaluate(() => window.setAskCharacteristic("quiet_night"));

@@ -260,6 +260,14 @@ export function languageFindings(text) {
     /<20/gu,
     /\boffline\b/gu,
     /видны море/giu,
+    /СИМУЛЯЦИЯ/giu,
+    /Синтетический ответ для демонстрации/giu,
+    /hotelier_simulator/giu,
+    /synthetic-demo/giu,
+    /фикстур[\p{L}-]*/giu,
+    /demo truth/giu,
+    /Вымышленный ответ/giu,
+    /(?:Надёжность|Надежность|уверенность)[^\n.!?]{0,40}\d+\s*%/giu,
   ];
   const forbiddenPhrases = [];
   for (const phrase of phrases) {

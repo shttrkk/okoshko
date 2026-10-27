@@ -22,6 +22,7 @@ import {
   roomSymbol,
 } from "./group";
 import { SIDES } from "./facts";
+import { guestText } from "./panel-guest-presentation";
 
 /** What this person asked for; the matched position is in the recommendation. */
 function requestedText(scope?: RoomScope) {
@@ -147,7 +148,7 @@ function PlanRow({
     >
       <div className="group-plan-row-heading">
         <span
-          className={`verdict-symbol ${item.status}`}
+          className={`verdict-symbol ${item.status === "yes" ? "partial" : item.status}`}
           aria-label={roomStatus[item.status]}
         >
           {roomSymbol[item.status]}
@@ -178,7 +179,12 @@ function PlanRow({
           </Link>
         )}
       </div>
-      <p className="group-recommendation">{item.recommendation}</p>
+      <p className="group-recommendation">
+        {guestText(
+          item.recommendation,
+          item.verdicts.some((v) => v.synthetic),
+        )}
+      </p>
       {item.profile && (
         <div className="group-profile-preview">
           <RoomHighlights profile={item.profile} />
@@ -200,7 +206,12 @@ function PlanRow({
             {item.caveats.length > 0 && (
               <ul className="room-caveats">
                 {item.caveats.map((text, i) => (
-                  <li key={i}>{text}</li>
+                  <li key={i}>
+                    {guestText(
+                      text,
+                      item.verdicts.some((v) => v.synthetic),
+                    )}
+                  </li>
                 ))}
               </ul>
             )}

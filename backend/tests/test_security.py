@@ -111,19 +111,19 @@ def test_tenant_cannot_read_or_write_foreign_cabinet_answer_or_passport(security
     assert client.get("/api/hotelier/" + A, headers=auth).status_code == 200
 
 
-def test_public_demo_answer_cannot_claim_real_hotel_confirmation(security_context):
+def test_manual_answer_authorship_is_independent_of_demo_login(security_context):
     client, repo = security_context
     auth, _ = credentials(client, "cascade")
     question = create_question(A, "pets", repo)
     preview = client.post(f"/api/questions/{question.id}/answer", headers=auth,
                           json={"text": "С собакой можно.", "synthetic": False}).json()
-    assert preview["synthetic"] is True and preview["confirmed"] is False and not repo.all("claims")
+    assert preview["synthetic"] is False and preview["confirmed"] is False and not repo.all("claims")
     response = client.post(f'/api/answers/{preview["id"]}/confirm', headers=auth, json={})
-    assert response.status_code == 200 and response.json()["synthetic"] is True
+    assert response.status_code == 200 and response.json()["synthetic"] is False
     claim = repo.all("claims")[0]
-    assert claim["source"] == "hotelier_simulator" and claim["synthetic"] is True and claim["confidence"] == .85
+    assert claim["source"] == "hotelier" and claim["synthetic"] is False and claim["confidence"] == .85
     assert claim["evidence"][0]["quote"] in preview["raw_text"]
-    assert repo.all("facts")[0]["status"] == "computed"
+    assert repo.all("facts")[0]["status"] == "confirmed"
 
 
 def test_answer_request_cannot_supply_claim_authority_or_foreign_ids(security_context):

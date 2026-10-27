@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime
 from threading import RLock
 
 from psycopg.errors import UniqueViolation
 
-from backend.contracts import Question, Scope
+from backend.contracts import Question, Scope, now
 
 _LOCK = RLock()
-LABELS = {"soundproofing": "шумоизоляция, окна, blackout и кондиционер", "room_orientation": "сторона, этажи и номера с балконом", "pets": "правила размещения с питомцами", "sunset_view": "закат из окна", "sea_view": "вид на море", "quiet_night": "тишина ночью", "mountain_view": "вид на горы"}
 IMPACT = {"soundproofing": 1., "room_orientation": 1., "pets": .85, "sunset_view": .95, "quiet_night": 1., "sea_view": .9}
 SIDES = {"N": "север", "NE": "северо-восток", "E": "восток", "SE": "юго-восток", "S": "юг", "SW": "юго-запад", "W": "запад", "NW": "северо-запад"}
 MONTHS = ("январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь")
@@ -57,28 +57,89 @@ def stable_id(*parts: object) -> str:
     return hashlib.sha256("|".join(map(str, parts)).encode()).hexdigest()[:32]
 
 
-def _build_question(hotel_id: str, cid: str, facts: list[dict], *, reason="unknown", ordinal=0, demand=0) -> Question:
+def _label(spec: dict | None) -> str:
+    spec = spec or {}
+    return spec.get("display_name") or spec.get("name_ru") or "характеристика отеля"
+
+
+def _place(scope: dict) -> str:
+    parts = ["сторона: " + SIDES[scope["facade"]]] if scope.get("facade") in SIDES else []
+    low, high = scope.get("floor_min"), scope.get("floor_max")
+    if low and high:
+        parts.append(f"{low}-й этаж" if low == high else f"этажи {low}–{high}")
+    elif low:
+        parts.append(f"с {low}-го этажа")
+    elif high:
+        parts.append(f"до {high}-го этажа")
+    if scope.get("month"):
+        parts.append(MONTHS[scope["month"]-1])
+    if scope.get("room_type"):
+        parts.append("указанная группа номеров")
+    return ", ".join(parts)
+
+
+def _fact_sentence(fact: dict, label: str) -> str:
+    """Only render whitelisted observations; never stringify arbitrary values."""
+    value = fact.get("value")
+    value = value if isinstance(value, dict) else {"available": value}
+    cid = fact["characteristic_id"]
+    available = value.get("available")
+    if cid == "quiet_night":
+        detail = "ночью тихо" if available is True else "ночью шумно" if available is False else "тишина ночью не подтверждена"
+    elif cid in {"sea_view", "mountain_view", "sunset_view"}:
+        target = {"sea_view": "море", "mountain_view": "горы", "sunset_view": "закат"}[cid]
+        detail = f"{target} видно" if available is True else f"{target} не видно" if available is False else f"вид на {target} не подтверждён"
+    elif cid == "beach_walk" and isinstance(value.get("minutes"), int | float):
+        import math
+        detail = f"до пляжа около {math.ceil(value['minutes'])} мин пешком"
+    elif cid == "beach_surface":
+        surface = {"sand": "песок", "pebblestone": "галька", "pebbles": "галька", "gravel": "гравий"}.get(value.get("surface"))
+        detail = f"на пляже {surface}" if surface else "покрытие пляжа требует уточнения"
+    elif cid == "accessible_route":
+        detail = "на пути есть ступени" if value.get("has_steps") else "на пути нет ступеней" if value.get("has_steps") is False else "доступность пути требует уточнения"
+    elif cid == "pets":
+        detail = "размещение с питомцами разрешено" if available is True else "размещение с питомцами запрещено" if available is False else "условия размещения с питомцами требуют уточнения"
+    elif cid == "railway_noise":
+        detail = "возможен шум от железной дороги" if available else "шум от железной дороги требует уточнения"
+    else:
+        detail = f"«{label}»: условие выполнено" if available is True else f"«{label}»: условие не выполнено" if available is False else f"«{label}»: есть частичные сведения"
+    place = _place(fact.get("scope", {}))
+    return detail + (f" ({place})" if place else "")
+
+
+def _usable(fact: dict) -> bool:
+    expiry = fact.get("valid_until")
+    if isinstance(expiry, str):
+        expiry = datetime.fromisoformat(expiry.replace("Z", "+00:00"))
+    return (fact.get("status") in {"computed", "confirmed"} and fact.get("value") is not None
+            and fact.get("confidence", 0) >= .75 and (expiry is None or expiry > now()))
+
+
+def _build_question(hotel_id: str, cid: str, facts: list[dict], *, spec=None, reason="unknown", ordinal=0, demand=0) -> Question:
     related = [fact for fact in facts if fact["characteristic_id"] == cid]
     confidence = max((fact.get("confidence", 0) for fact in related), default=0)
     uncertainty = 1-confidence
     hypothesis = None
-    known = next((fact for fact in related if fact.get("value") is not None), None)
+    label = _label(spec)
+    known = [fact for fact in related if fact.get("value") is not None and fact.get("status") != "stale"]
     if known:
-        scope = known.get("scope", {})
-        qualifiers = []
-        if scope.get("facade"):
-            qualifiers.append("фасад " + scope["facade"])
-        if scope.get("floor_min"):
-            qualifiers.append("с " + str(scope["floor_min"]) + " этажа")
-        hypothesis = "Текущее утверждение: " + str(known["value"]) + ("; " + ", ".join(qualifiers) if qualifiers else "") + ". Уточните конкретные номера и ограничения."
-    label = LABELS.get(cid, cid)
+        descriptions = list(dict.fromkeys(_fact_sentence(fact, label) for fact in known))
+        hypothesis = "По имеющимся данным: " + "; ".join(descriptions[:3]) + "."
+        if len(descriptions) > 3:
+            hypothesis += " Остальные стороны и периоды показаны в разделе «Что уже известно»."
+        if any(fact.get("status") == "disputed" for fact in related):
+            hypothesis += " Источники расходятся; уточните только известные вам стороны и условия."
     prompts = {
         "soundproofing": "Какие окна установлены? Есть ли заявленная шумоизоляция, шторы blackout и кондиционер? Укажите номера и ограничения; двойные окна сами по себе не доказывают шумоизоляцию.",
         "room_orientation": "Какие номера выходят на какую сторону, на каких этажах и есть ли у них балкон?",
         "pets": "Какие питомцы разрешены, до какого веса и какая доплата за ночь?",
     }
+    scoped = (spec or {}).get("scope", "hotel") != "hotel"
+    text = prompts.get(cid, f"Уточните «{label}»: " + ("для каких сторон, этажей или номеров это верно? Укажите различия и ограничения." if scoped else "что вы знаете об этом у вашего отеля? Укажите условия и ограничения."))
+    if reason == "guest" and known:
+        text = "Гость просит проверить имеющиеся сведения. " + text
     return Question(id=stable_id("question", hotel_id, cid, ordinal), hotel_id=hotel_id, characteristic_ids=[cid],
-                    text=prompts.get(cid, f"Подтвердите свойство «{label}»: в каких номерах, на какой стороне и с какого этажа?"),
+                    text=text,
                     hypothesis=hypothesis, priority=round((1+demand)*uncertainty*IMPACT.get(cid, .65), 3), reason=reason,
                     evidence_refs=[item["id"] for fact in related for item in fact.get("evidence", [])],
                     demand_estimate=demand, demand_synthetic=False)
@@ -94,11 +155,27 @@ def create_question(hotel_id: str, characteristic_id: str, repo, *, reason="gues
                     if characteristic_id in value.get("characteristic_ids", [])]
         pending = next((value for value in previous if value.get("status") == "pending"), None)
         if pending:
-            question, changed = _with_requested_scope(Question.model_validate(pending), scope)
-            if changed:
+            original = Question.model_validate(pending)
+            # Refresh legacy seeded wording and hypotheses without reopening a
+            # question or dropping any of its independently requested slices.
+            if original.reason != "conflict":
+                refreshed = _build_question(hotel_id, characteristic_id, repo.find("facts", hotel_id=hotel_id),
+                                            spec=repo.get("characteristics", characteristic_id),
+                                            reason="guest" if reason == "guest" else original.reason,
+                                            demand=demand.get(characteristic_id, 0))
+                original = original.model_copy(update={"text": refreshed.text, "hypothesis": refreshed.hypothesis,
+                                                       "reason": refreshed.reason, "priority": refreshed.priority,
+                                                       "demand_estimate": refreshed.demand_estimate, "demand_synthetic": False})
+                scopes = original.requested_scopes
+                original.requested_scopes = []
+                for requested in scopes:
+                    original, _ = _with_requested_scope(original, requested)
+            question, _ = _with_requested_scope(original, scope)
+            if question.model_dump(mode="json") != pending:
                 repo.upsert("questions", question.model_dump(mode="json"))
             return question
         question = _build_question(hotel_id, characteristic_id, repo.find("facts", hotel_id=hotel_id), reason=reason,
+                                   spec=repo.get("characteristics", characteristic_id),
                                    ordinal=len(previous), demand=demand.get(characteristic_id, 0))
         question, _ = _with_requested_scope(question, scope)
         try:
@@ -122,8 +199,18 @@ def generate_questions(hotel_id: str, repo) -> list[Question]:
     for spec in specs:
         cid = spec["id"]
         related = [fact for fact in facts if fact["characteristic_id"] == cid]
-        usable = [fact for fact in related if fact.get("status") in {"computed", "confirmed"} and fact.get("confidence", 0) >= .75]
-        if usable:
+        # A reliable observation of one facade must not hide an unresolved
+        # different facade, floor, month or source conflict.
+        complete = bool(related) and all(_usable(fact) for fact in related)
+        previous = repo.find("questions", hotel_id=hotel_id)
+        explicit = any(cid in q.get("characteristic_ids", []) and q.get("status") == "pending"
+                       and q.get("reason") in {"guest", "conflict"} for q in previous)
+        if complete and not explicit:
+            for question in previous:
+                if cid in question.get("characteristic_ids", []) and question.get("status") == "pending":
+                    repo.upsert("questions", {**question, "status": "expired"})
+            continue
+        if not explicit and any(cid in q.get("characteristic_ids", []) and q.get("status") == "answered" for q in previous):
             continue
         reason = "disputed" if any(fact.get("status") == "disputed" for fact in related) else "low_confidence" if any(fact.get("value") is not None for fact in related) else "unknown"
         by_cid[cid] = create_question(hotel_id, cid, repo, reason=reason, demand=demand)
@@ -148,7 +235,8 @@ def ask_contradictions(repo, conflicts: list) -> list:
             continue
         question_id = stable_id("question", conflict.hotel_id, conflict.characteristic_id, "conflict", conflict.id)
         if repo.get("questions", question_id) is None:
-            label, target = VIEW_LABELS.get(conflict.characteristic_id, (conflict.characteristic_id, conflict.characteristic_id))
+            fallback_label = _label(repo.get("characteristics", conflict.characteristic_id))
+            label, target = VIEW_LABELS.get(conflict.characteristic_id, (fallback_label, fallback_label))
             claims = [repo.get("claims", claim_id) for claim_id in conflict.claim_ids]
             evidence_refs = [evidence["id"] for claim in claims if claim for evidence in claim.get("evidence", [])]
             if conflict.characteristic_id == "beach_walk":

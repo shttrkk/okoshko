@@ -1,6 +1,11 @@
 import { X } from "lucide-react";
 import type { Criterion, RoomRequest } from "../types";
 import { criterionIdentity, roomScopeText } from "./group";
+import {
+  criterionBaseLabel,
+  criterionLabel,
+  criterionUnit,
+} from "./panel-guest-presentation";
 
 export function RoomCriteriaEditor({
   room,
@@ -43,7 +48,17 @@ export function RoomCriteriaEditor({
           <div className="chips">
             {room[group].map((c, at) => (
               <div className={`criterion-chip ${group}`} key={at}>
-                <span>{c.label}</span>
+                <span>
+                  {typeof c.value === "number"
+                    ? criterionBaseLabel(c)
+                    : c.label}
+                </span>
+                {typeof c.value === "number" && c.no_stairs && (
+                  <span className="chip-flag">Без лестниц</span>
+                )}
+                {typeof c.value === "number" && c.no_crossings && (
+                  <span className="chip-flag">Без переходов</span>
+                )}
                 {typeof c.value === "number" && (
                   <label className="chip-threshold">
                     <span>
@@ -60,12 +75,20 @@ export function RoomCriteriaEditor({
                           ...room,
                           [group]: room[group].map((item, i) =>
                             i === at
-                              ? { ...item, value: Number(e.target.value) }
+                              ? {
+                                  ...item,
+                                  value: Number(e.target.value),
+                                  label: criterionLabel({
+                                    ...item,
+                                    value: Number(e.target.value),
+                                  }),
+                                }
                               : item,
                           ),
                         })
                       }
                     />
+                    <span>{criterionUnit(c)}</span>
                   </label>
                 )}
                 <button

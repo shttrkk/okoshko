@@ -5,22 +5,22 @@ import re
 from collections import defaultdict
 from difflib import SequenceMatcher
 
+from backend.agents.explainer import supporting_basis
+from backend.agents.guest_text import field_unit, rounded_minutes
 from backend.agents.query_match import fresh, scope_values, value_at
 from backend.contracts import CharacteristicSpec, CriterionVerdict, Fact, Hotel, ParsedQuery, SearchHit
 
 WEIGHTS = {"sea_view": 2, "sunset_view": 2, "quiet_night": 2, "beach_walk": 2,
            "soundproofing": 1.5, "pets": 1.5, "connectivity": 1.5, "nightlife": 1.5}
 SCALES = {"minutes": 20, "download_mbps": 100, "water_c": 15, "european_aqi": 80, "venues_500m": 60}
-UNITS = {"minutes": "мин", "return_minutes": "мин", "download_mbps": "Мбит/с", "upload_mbps": "Мбит/с",
-         "water_c": "°C", "air_c": "°C", "european_aqi": "AQI", "venues_500m": "заведений"}
 
 
 def _profile_value(value, field: str, unit: str | None) -> str:
     if isinstance(value, bool):
         return "есть" if value else "нет"
     if isinstance(value, int | float):
-        suffix = unit or UNITS.get(field)
-        value = round(value) if abs(value) >= 10 else value  # 380 м, not 380,8 м
+        suffix = field_unit(field, unit)
+        value = rounded_minutes(value) if field in {"minutes", "return_minutes", "visible_minutes"} else round(value) if abs(value) >= 10 else value
         return f"{value:g}".replace(".", ",") + (" " + suffix if suffix else "")
     return str(value)
 
@@ -62,7 +62,7 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
         constrained = {hit.hotel.id: hit for hit in rank_hotels(candidates, facts, parsed, specs)}
         candidates = [hotel for hotel in candidates if parsed.rooms or not parsed.must or constrained[hotel.id].must_satisfied == len(parsed.must)]
     fields = {s.id: s.search.field for s in specs}
-    labels = {s.id: s.name_ru for s in specs}
+    labels = {s.id: getattr(s, "display_name", None) or s.name_ru for s in specs}
     units = {s.id: s.search.unit for s in specs}
     scored = []
     for hotel in candidates:
@@ -112,7 +112,8 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
         # conjunction of views, noise and routes in one room.
         # A number for one facade describes that side, not the hotel profile.
         shown = [row for row in comparisons if isinstance(row[3], bool) or not isinstance(row[3], int | float)
-                 or not (row[5].scope.facade or reference[row[1]][2].scope.facade)]
+                 or field_unit(fields[row[1]], units[row[1]])
+                 and not (row[5].scope.facade or reference[row[1]][2].scope.facade)]
         matches = sorted((row for row in shown if row[3] == row[4]), key=lambda row: (-row[0], row[1]))[:3]
         differences = sorted((row for row in shown if row[3] != row[4]
                               and _profile_value(row[3], fields[row[1]], units[row[1]]) != _profile_value(row[4], fields[row[1]], units[row[1]])),
@@ -124,14 +125,16 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
                 text = f"Совпадает «{labels[cid]}»: {right_text} у обоих"
             else:
                 text = f"Отличается «{labels[cid]}»: здесь {right_text}, у выбранного отеля {left_text}"
-            text += f"; уверенность фактов {fact.confidence:.0%} / {reference[cid][1]:.0%}."
+            text += "."
             synthetic = fact.synthetic or reference[cid][2].synthetic
             hit.similarity_reasons.append(text)
             if not any(v.characteristic_id == cid for v in hit.verdicts):
                 hit.verdicts.append(CriterionVerdict(characteristic_id=cid, label=labels[cid],
                                                     status="yes" if closeness == 1 else "partial", symbol="✓" if closeness == 1 else "≈",
-                                                    text=text, confidence=fact.confidence, fact_ids=[fact.id],
-                                                    evidence_refs=[e.id for e in fact.evidence], synthetic=synthetic))
+                                                    text=text, confidence=fact.confidence,
+                                                    fact_ids=list(dict.fromkeys([fact.id, reference[cid][2].id])),
+                                                    evidence_refs=list(dict.fromkeys(e.id for witness in [fact, reference[cid][2]] for e in witness.evidence)),
+                                                    basis=supporting_basis([fact, reference[cid][2]]), synthetic=synthetic))
         from backend.agents.ranker import relative_reason
         hit.why_not_higher = [relative_reason(hit, other[0]) for other in scored[max(0, index-3):index]]
     return [item[0] for item in scored]

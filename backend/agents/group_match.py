@@ -6,6 +6,7 @@ import json
 from collections import defaultdict
 
 from backend.agents.explainer import room_from_assessment, verdict
+from backend.agents.guest_text import criterion_label
 from backend.agents.query_match import (
     ROOM_CHARACTERISTICS,
     assess_hotel,
@@ -252,7 +253,7 @@ def evaluate_room(
         item.verdicts.append(
             CriterionVerdict(
                 characteristic_id=criterion.characteristic_id,
-                label=criterion.label,
+                label=criterion_label(criterion),
                 required=criterion in room.no_data_must,
                 status="unknown",
                 symbol="?",

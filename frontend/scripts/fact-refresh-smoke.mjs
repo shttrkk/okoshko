@@ -214,7 +214,7 @@ const errors = [],
   checks = [];
 const browser = await chromium.launch({ executablePath, headless: true });
 const watch = (page) =>
-  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("pageerror", (error) => errors.push(error.stack || error.message));
 try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
@@ -350,6 +350,7 @@ try {
                 name: "Другой профиль",
               },
               similarity_reasons: [`Совпадает: профиль fixture ${version}`],
+              verdicts: [],
             },
           ],
           total: 1,
@@ -384,11 +385,20 @@ try {
     `${base}/hotel/${hotel.id}?room_side=W&room_floor=2&room_month=6`,
   );
   const model = hotelPage.getByTestId("room-lab-fact-quiet_night");
-  await model.waitFor();
+  await model.waitFor().catch(async (error) => {
+    console.error("Browser errors", JSON.stringify(errors));
+    console.error(await hotelPage.locator("body").innerText());
+    throw error;
+  });
   await hotelPage
     .getByTestId("room-lab-verdicts")
     .getByText("Вердикт fixture 0")
-    .waitFor();
+    .waitFor()
+    .catch(async (error) => {
+      console.error(JSON.stringify(errors));
+      console.error(await hotelPage.locator("body").innerText());
+      throw error;
+    });
   await hotelPage.getByTestId("room-lab-evidence-quiet_night").click();
   await hotelPage
     .getByRole("dialog")

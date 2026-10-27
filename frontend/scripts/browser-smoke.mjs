@@ -49,7 +49,8 @@ try {
     !requests.some((url) => /\/seed\/(buildings|roads)\.geojson/.test(url)),
     "PMTiles must not download full regional fallback GeoJSON",
   );
-  await page.getByTestId("search-submit").click();
+  assert.equal(await page.locator("textarea").inputValue(), "");
+  await page.getByTestId("masha-example").click();
   await page.locator(".result-card").first().waitFor({ timeout: 45000 });
   await page.getByLabel(/^Порог: До (пляжа|моря)/).fill("8");
   const updated = page.waitForResponse(
@@ -75,6 +76,7 @@ try {
   const proofDialog = page.getByRole("dialog");
   await proofDialog.waitFor();
   await proofDialog.locator(".evidence-card").first().waitFor({ timeout: 30000 });
+  await proofDialog.locator(".evidence-card summary").first().click();
   const proofText = await proofDialog.innerText();
   assert.match(proofText, /Данные получены[\s\S]*Актуально до/);
   assert.doesNotMatch(

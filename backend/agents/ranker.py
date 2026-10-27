@@ -5,6 +5,7 @@ import math
 from collections import defaultdict
 
 from backend.agents.explainer import disappointments_from_assessment, room_from_assessment, verdict
+from backend.agents.guest_text import criterion_label
 from backend.agents.query_match import assess_hotel, fresh
 from backend.catalogue import searchable
 from backend.contracts import CharacteristicSpec, Fact, Hotel, ParsedQuery, SearchHit
@@ -25,11 +26,11 @@ def criterion_utility(match, criterion) -> float:
     return utility + (1-utility)*.15*min(1, max(0, margin))
 
 
-def _matching_summary(criteria, matches) -> str:
+def _matching_summary(criteria, matches, specs=None) -> str:
     phrases = []
     for status, label in (("yes", "Подходит"), ("partial", "Пока неточно"),
                           ("no", "Не подходит"), ("unknown", "Уточнить")):
-        names = list(dict.fromkeys(c.label.lower() for c, m in zip(criteria, matches, strict=True)
+        names = list(dict.fromkeys(criterion_label(c, (specs or {}).get(c.characteristic_id)).lower() for c, m in zip(criteria, matches, strict=True)
                                   if m.status == status))
         if names:
             phrases.append(label + ": " + ", ".join(names) + ".")
@@ -53,6 +54,7 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
         return browse_hotels(hotels, by_hotel, specs)
     ranked = []
     criteria = [*parsed.must, *parsed.nice]
+    spec_by_id = {spec.id: spec for spec in specs}
     active_must_total = len(parsed.must)
     must_total = active_must_total + len(parsed.no_data_must)
     for hotel in hotels:
@@ -84,7 +86,7 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
         required = assessment.matches[:active_must_total]
         hit.verdicts = [verdict(c, m, i < active_must_total, parsed,
                             conflict=assessment.scope_conflict and i < active_must_total and m.status not in {"yes", "partial"},
-                            alternatives=assessment.alternatives.get(i)) for i, (c, m) in enumerate(zip(criteria, assessment.matches, strict=True))]
+                            alternatives=assessment.alternatives.get(i), spec=spec_by_id.get(c.characteristic_id)) for i, (c, m) in enumerate(zip(criteria, assessment.matches, strict=True))]
         if assessment.domain_reason:
             summary = "Полное совпадение нельзя подтвердить: " + assessment.domain_reason + "."
         elif not must_total:
@@ -92,13 +94,13 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
         elif parsed.no_data_must and not active_must_total:
             summary = "Полное совпадение нельзя подтвердить: по обязательным условиям нет данных в регионе."
         elif group == "all":
-            summary = _matching_summary(criteria, assessment.matches)
+            summary = _matching_summary(criteria, assessment.matches, spec_by_id)
         elif assessment.scope_conflict:
             summary = "Есть компромисс: обязательные условия относятся к разным номерам. Одного подходящего номера не подтверждено."
         else:
-            summary = _matching_summary(criteria, assessment.matches)
+            summary = _matching_summary(criteria, assessment.matches, spec_by_id)
             if parsed.no_data_must:
-                summary += " Уточнить: " + ", ".join(c.label.lower() for c in parsed.no_data_must) + "."
+                summary += " Уточнить: " + ", ".join(criterion_label(c, spec_by_id.get(c.characteristic_id)).lower() for c in parsed.no_data_must) + "."
         hit.room_recommendation = room_from_assessment(assessment, parsed)
         from backend.agents.room_profiles import describe_room
         from backend.contracts import RoomScope
@@ -127,18 +129,27 @@ def relative_reason(hit: SearchHit, higher: SearchHit) -> str:
         return [(None, v) for v in candidate.verdicts] + [
             (index, v) for index, room in enumerate(candidate.room_plan) for v in room.verdicts]
     mine, others = verdicts(hit), verdicts(higher)
-    confirmed = sum(v.required and v.status == "yes" for _, v in others)
-    current_confirmed = sum(v.required and v.status == "yes" for _, v in mine)
-    if confirmed > current_confirmed:
-        return prefix + f"подтверждено {confirmed} из {higher.must_total} обязательных условий, здесь — {current_confirmed}."
+    confirmed = sum(v.required and v.status == "yes" and v.hotelier_confirmed and not v.synthetic and not v.disputed for _, v in others)
+    current_confirmed = sum(v.required and v.status == "yes" and v.hotelier_confirmed and not v.synthetic and not v.disputed for _, v in mine)
     priorities = {"yes": 3, "partial": 2, "unknown": 1, "no": 0}
     mine = {(room, v.characteristic_id): v for room, v in mine}
+    for room, other in others:
+        current = mine.get((room, other.characteristic_id))
+        if (current and other.synthetic and other.basis not in {"calculation", "open_data"} and other.status in {"yes", "partial"}
+                and (priorities[other.status] > priorities[current.status]
+                     or higher.score > hit.score and not current.synthetic and other.confidence > current.confidence)):
+            topic = {"quiet_night": "о тишине", "pets": "о размещении с питомцем", "soundproofing": "об окнах и шумоизоляции"}.get(
+                other.characteristic_id, f"по условию «{other.label}»")
+            return prefix + f"отель ответил на вопрос {topic} (демо-ответ); здесь {current.symbol} — {current.text}"
+    if confirmed > current_confirmed:
+        return prefix + f"подтверждено {confirmed} из {higher.must_total} обязательных условий, здесь — {current_confirmed}."
     for room, other in others:
         current = mine.get((room, other.characteristic_id))
         if current and other.status in {"yes", "partial"} and priorities[other.status] > priorities[current.status]:
             if other.status == "partial":
                 return prefix + f"по условию «{other.label}» есть предварительные данные; здесь {current.symbol} — {current.text}"
-            return prefix + f"условие «{other.label}» лучше подтверждено; здесь {current.symbol} — {current.text}"
+            origin = "подтвердил отель" if other.hotelier_confirmed else "выполняется по имеющимся данным"
+            return prefix + f"условие «{other.label}» {origin}; здесь {current.symbol} — {current.text}"
     if higher.score > hit.score:
         return prefix + f"по условиям у него данные надёжнее; оценка {higher.score:g} против {hit.score:g}. Проверьте оговорки по условиям."
     return prefix + "оценки совпадают; имеющиеся данные не дают основания считать этот отель лучше."

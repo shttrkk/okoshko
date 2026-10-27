@@ -386,7 +386,7 @@ def test_pet_weight_and_synthetic_provenance_are_visible(catalog):
     hits = rank_hotels([hotel("small"), hotel("large")], facts, parsed, catalog)
     assert hits[0].hotel.id == "large"
     assert hits[0].group == "all"
-    assert "Синтетические" in hits[0].verdicts[0].caveat
+    assert "Ответ отеля · демо" in hits[0].verdicts[0].caveat
     assert "1000" in hits[0].verdicts[0].text
     assert hits[1].verdicts[0].status == "no"
 
@@ -427,7 +427,7 @@ def test_route_numbers_are_rounded_and_osm_limitations_visible(catalog):
     item = fact("h", "beach_walk", {"minutes": 2.42, "return_minutes": 4.17, "return_ascent_m": 37.5}, confidence=.66)
     hit = rank_hotels([hotel("h")], [item], parse_query(SearchRequest(text="до пляжа"), catalog), catalog)[0]
     text = " ".join([hit.verdicts[0].text, *hit.disappointments])
-    assert "≈ 3 мин" in text and "≈ 5 мин" in text and "≈ 38 м" in text
+    assert "≈ 2 мин" in text and "≈ 4 мин" in text and "≈ 38 м" in text
     assert "2.42" not in text and "37.5" not in text
     assert "OSM" in hit.verdicts[0].caveat and "неполными" in hit.verdicts[0].caveat and "стыки" in hit.verdicts[0].caveat
     assert number(23.5) == "23,5"
@@ -510,7 +510,7 @@ def test_guest_wording_keeps_uncertainty_and_proof_without_repeated_room_warning
     assert hit.group == "all" and hit.verdicts[0].status == "partial"
     assert hit.verdicts[0].confidence == .65 and hit.verdicts[0].synthetic
     assert hit.verdicts[0].fact_ids == [item.id] and hit.verdicts[0].evidence_refs
-    assert "±8 дБ" in hit.verdicts[0].caveat and "Синтетические" in hit.verdicts[0].caveat
+    assert "±8 дБ" in hit.verdicts[0].caveat and "Ответ отеля · демо" in hit.verdicts[0].caveat
     assert "Лучший вариант: западная сторона, 5–8-й этажи." == hit.room_recommendation
     main = " ".join([hit.summary, hit.room_recommendation, *[v.text for v in hit.verdicts]])
     assert "≈ 41–50 дБ по расчёту" in main
