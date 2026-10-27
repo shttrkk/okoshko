@@ -49,6 +49,9 @@ _POSITION_CAVEAT = (
     "Это модельное положение в здании. Существование и доступность конкретного номера, "
     "его тип, кровати и направление реальных окон нужно подтвердить у отеля."
 )
+# Accusative names for «Про … данных нет»; only what a guest asks about by default.
+_ASK = {"sea_view": "вид на море", "quiet_night": "тишину ночью", "soundproofing": "шумоизоляцию",
+        "sunset_view": "закат"}
 _ROUTE_CAVEAT = (
     "Маршрут рассчитан по OSM; теги лестниц и переходов могут быть неполными, "
     "участки у входа и пляжа не проверены. Отсутствие отметок не гарантирует доступность."
@@ -273,10 +276,85 @@ def _known_text(cid: str, facts: list[Fact], status: str, month: int) -> tuple[s
     return _LABELS[cid] + ": подробности не подтверждены.", caveats
 
 
-def _clause(cid: str, matches: list[Match], month: int) -> tuple[RoomClause, list[str]]:
+def _brief(cid: str, facts: list[Fact], status: str, month: int) -> str | None:
+    """One guest-facing sentence from facts already proven consistent for the slice."""
+    values = [f.value if isinstance(f.value, dict) else {} for f in facts]
+    month_in = "В " + _MONTHS_IN[month - 1]
+    likely = status == "partial"
+    if cid == "sea_view":
+        return ("Море из окон, вероятно, видно — расчёт предварительный." if likely
+                else "По расчёту из окон видно море." if status == "yes" else "По расчёту моря из окон не видно.")
+    if cid == "mountain_view" and status != "no":
+        return "Горы, вероятно, видны." if likely else "Видны горы."
+    if cid == "quiet_night":
+        noise = _range(facts, "night_db_min", "night_db_max")
+        if noise:
+            low = min(v["night_db_min"] for v in values)
+            high = max(v["night_db_max"] for v in values)
+            # Same bands as the map legend: up to 45, 45–55, above 55 dB.
+            hint = ("тихо" if high <= 45 else "шумно" if low >= 55 else "умеренно" if low >= 45 and high <= 55
+                    else "тихо или умеренно" if high <= 55 else "может быть шумно")
+            return f"Ночью снаружи {noise} дБ по расчёту — {hint}."
+        return ("Источник отмечает тишину ночью, но это предварительно." if likely
+                else "Тишину ночью отмечает источник." if status == "yes" else "Тишину ночью источник не подтверждает.")
+    if cid == "railway_noise":
+        noise = _range(facts, "night_db_min", "night_db_max")
+        return f"Шум железной дороги ночью — {noise} дБ по расчёту." if noise else None
+    if cid == "soundproofing" and status != "no":
+        details = [text for key, text in (("blackout", "плотные шторы"), ("air_conditioning", "кондиционер"))
+                   if all(v.get(key) is True for v in values)]
+        if all(v.get("windows") == "double" for v in values):
+            details.insert(0, "двойные окна")
+        if details:
+            return "В источнике указаны " + " и ".join([", ".join(details[:-1]), details[-1]] if len(details) > 1 else details) + "."
+        if likely and not all(v.get("available") is True for v in values):
+            return None  # Window details alone do not state insulation.
+        return "Источник отмечает шумоизоляцию, но это предварительно." if likely else "Шумоизоляцию отмечает источник."
+    if cid == "morning_sun":
+        minutes = _solar_minutes(facts)
+        if status == "no":
+            return f"{month_in} прямого утреннего солнца по расчёту мало."
+        return f"{month_in} утром прямое солнце{' ' + minutes + ' мин' if minutes else ''}" + (
+            ", расчёт предварительный." if likely else ".")
+    if cid == "evening_heat":
+        indexes = [v.get(k) for v in values for k in ("exposure_index", "exposure_index_min", "exposure_index_max")
+                   if _number(v.get(k))]
+        if not indexes:
+            return None
+        if max(indexes) <= .3:
+            return "Вечером солнце в окна почти не попадает."
+        if min(indexes) >= .6:
+            return "Вечером окна сильно освещает солнце."
+        return None
+    if cid == "sunset_view" and status != "no":
+        minutes = _solar_minutes(facts)
+        aspects = [sunset_aspect(f) for f in facts]
+        side = aspects and all(a is not None and a.oblique for a in aspects)
+        return (f"{month_in} виден закат" + (f", {minutes} мин" if minutes else "") + (", сбоку" if side else "")
+                + (" — расчёт предварительный." if likely else "."))
+    return None
+
+
+def _summary(briefs: dict[str, str | None], statuses: dict[str, str]) -> str:
+    """Confirmed and likely first, then one «ask the hotel» sentence instead of a list of unknowns."""
+    order = ("sea_view", "mountain_view", "quiet_night", "railway_noise", "soundproofing", "morning_sun",
+             "evening_heat", "sunset_view")
+    sentences = [briefs[cid] for cid in order if briefs.get(cid)]
+    if briefs.get("sea_view") == "По расчёту из окон видно море." and briefs.get("mountain_view") == "Видны горы.":
+        sentences = ["По расчёту из окон видно море и горы." if text == briefs["sea_view"] else text
+                     for text in sentences if text != "Видны горы."]
+    unknown = [_ASK[cid] for cid in _ASK if cid in statuses and not briefs.get(cid) and statuses[cid] != "no"]
+    if unknown:
+        listed = ", ".join(unknown[:-1]) + " и " + unknown[-1] if len(unknown) > 1 else unknown[0]
+        sentences.append(f"Про {listed} точных данных нет — это можно уточнить у отеля.")
+    return " ".join(sentences) or "Данных об этом положении пока мало — его можно уточнить у отеля."
+
+
+def _clause(cid: str, matches: list[Match], month: int) -> tuple[RoomClause, list[str], str | None]:
     facts = _references(matches)
     statuses = {m.status for m in matches}
     caveats = []
+    brief = None
     if statuses == {"unknown"}:
         reasons = list(dict.fromkeys(m.reason for m in matches))
         text = _LABELS[cid] + ": не подтверждено. " + "; ".join(reasons) + "."
@@ -296,6 +374,7 @@ def _clause(cid: str, matches: list[Match], month: int) -> tuple[RoomClause, lis
     else:
         status = next(iter(statuses))
         text, caveats = _known_text(cid, facts, status, month)
+        brief = _brief(cid, facts, status, month)
     synthetic = any(_synthetic(f) for f in facts)
     if synthetic:
         text = "Синтетические демонстрационные данные: " + text
@@ -304,7 +383,7 @@ def _clause(cid: str, matches: list[Match], month: int) -> tuple[RoomClause, lis
             caveats.extend(evidence.limitations)
     return RoomClause(text=text, characteristic_id=cid, status=status, synthetic=synthetic,
                       fact_ids=[f.id for f in facts],
-                      evidence_refs=list(dict.fromkeys(e.id for f in facts for e in f.evidence))), caveats
+                      evidence_refs=list(dict.fromkeys(e.id for f in facts for e in f.evidence))), caveats, brief
 
 
 def _title(scope: RoomScope, unknown_height: bool) -> str:
@@ -354,16 +433,17 @@ def describe_room(hotel: Hotel, facts: list[Fact], specs: list[CharacteristicSpe
         caveats.append(FLOOR_DOMAIN_UNKNOWN + ". Для просмотра доступен только условный уровень 1.")
     if outside:
         caveats.append("Существование этажей за пределами известной этажности отеля не подтверждено.")
+    briefs = {}
     for cid, matches in by_cid.items():
-        clause, notes = _clause(cid, matches, scope.month)
+        clause, notes, briefs[cid] = _clause(cid, matches, scope.month)
         clauses.append(clause)
         caveats.extend(notes)
-    clauses.append(RoomClause(text="Реальные окна и доступность конкретного номера не подтверждены этим описанием."))
     if any(c.synthetic for c in clauses):
         caveats.append("Часть описания основана на синтетических демонстрационных данных; реальное подтверждение отеля нужно получить отдельно.")
     identity = json.dumps([hotel.id, scope.model_dump(mode="json")], sort_keys=True, separators=(",", ":"))
     return RoomProfile(id="position_" + hashlib.sha256(identity.encode()).hexdigest()[:20], scope=scope,
-                       title=_title(scope, known_height is None), description=" ".join(c.text for c in clauses),
+                       title=_title(scope, known_height is None),
+                       description=_summary(briefs, {c.characteristic_id: c.status for c in clauses}),
                        clauses=clauses, caveats=list(dict.fromkeys(caveats)), conditional=True)
 
 

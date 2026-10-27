@@ -156,7 +156,7 @@ def test_room_type_and_unspecified_facade_do_not_select_evidence_from_another_po
 def test_descriptions_are_positions_without_invented_room_inventory():
     profile = describe([fact("sea_view")])
     assert profile.conditional and profile.title.startswith("Модельное положение")
-    assert "доступность конкретного номера не подтверждены" in profile.description
+    assert any("направление реальных окон нужно подтвердить" in c for c in profile.caveats)
     assert any("его тип, кровати" in c for c in profile.caveats)
     assert "₽" not in profile.description and "номер 50" not in profile.description
 

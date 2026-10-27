@@ -244,7 +244,7 @@ def hotel_floor_count(hotel: Hotel | None) -> int | None:
 def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_name: str,
                   *, hotel: Hotel | None = None) -> Match:
     if not fresh(fact):
-        reason = "Данные оспариваются" if fact.status == "disputed" else "Данные неизвестны" if fact.status == "unknown" else "Данные устарели; нужно перепроверить"
+        reason = "Данные оспариваются" if fact.status == "disputed" else "Данных нет" if fact.status == "unknown" else "Данные устарели; нужно перепроверить"
         return Match(facts=[fact], reason=reason)
     if not fact.evidence or not fact.supporting_claim_ids:
         return Match(facts=[fact], reason="Нет цепочки подтверждающих источников")
@@ -302,7 +302,7 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
     if result and (fact.confidence < TRUSTED_CONFIDENCE or incomplete):
         return Match("partial", [fact], "Есть предварительные данные; нужно уточнить ограничения" if incomplete else "Предварительная оценка с низкой уверенностью", actual, condition_met=not incomplete)
     if not result and fact.confidence < TRUSTED_CONFIDENCE:
-        return Match("unknown", [fact], "Модель предполагает несоответствие, но уверенности недостаточно для отказа", actual)
+        return Match("unknown", [fact], "По расчёту скорее нет, но уверенность низкая", actual)
     return Match("yes" if result else "no", [fact], "Условие выполнено" if result else "Условие не выполняется", actual, condition_met=result)
 
 

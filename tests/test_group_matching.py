@@ -110,7 +110,8 @@ def test_same_model_position_is_not_a_quantity_or_availability_statement():
     q.rooms[1] = q.rooms[0].model_copy(update={"label": "Second"}, deep=True)
     hit = rank_hotels([h], f, q, s)[0]
     assert hit.group == "all" and hit.room_plan[0].scope == hit.room_plan[1].scope
-    assert all("свободно" in " ".join(room.caveats) for room in hit.room_plan)
+    # Stated once per hotel, not repeated in every room of the plan.
+    assert any("свободно" in note for note in hit.disappointments)
 
 
 def test_required_missing_field_is_visible_and_blocks_full_group_match():

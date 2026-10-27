@@ -393,3 +393,14 @@ def catalogue_suggestions(text: str, unknown: list[str], catalog: list,
         if .86 <= score < 1:
             scored.append((-score, spec.id, spec.name_ru))
     return [name for _, _, name in sorted(scored)[:2]]
+
+
+def source_phrase(text: str, fragment: str) -> str:
+    """The guest's own wording behind a token-bag fragment: «рядом бассейном» → «рядом с бассейном»."""
+    words = fragment.split()
+    if not words or ":" in fragment:
+        return fragment
+    short = r"[а-яёa-z]{1,2}"
+    pattern = rf"(?:\b{short}\s+)?" + rf"\s+(?:{short}\s+)*".join(re.escape(w) for w in words) + r"\b"
+    match = re.search(pattern, text, re.IGNORECASE)
+    return match[0] if match else fragment

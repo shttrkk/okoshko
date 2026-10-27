@@ -17,6 +17,7 @@ from backend.agents.query_text import (
     facade_is_explicit,
     normalize_query_text,
     search_context_text,
+    source_phrase,
     valid_intent_match,
 )
 from backend.contracts import CharacteristicSpec, Criterion, ParsedQuery, Scope, SearchRequest
@@ -889,7 +890,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         suggestions = catalogue_suggestions(text, parsed.unmapped, catalog,
                                             {c.characteristic_id for c in [*parsed.must, *parsed.nice]})
         hint = (' Возможно, вы имели в виду ' + ' или '.join('«' + name + '»' for name in suggestions) + '.') if suggestions else ''
-        parsed.clarifications.append("Не удалось сопоставить с каталогом: " + parsed.unmapped[-1] + "." + hint + " Уточните, что здесь обязательно.")
+        parsed.clarifications.append("Не удалось сопоставить с каталогом: «" + source_phrase(request.text, parsed.unmapped[-1]) + "»." + hint + " Уточните, что здесь обязательно.")
     parsed.clarifications = list(dict.fromkeys(parsed.clarifications))[:2]
     for group in (parsed.must, parsed.nice):
         group[:] = [c for c in group if not (c.characteristic_id == 'room_orientation' and c.field == 'available'

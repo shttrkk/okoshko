@@ -13,6 +13,7 @@ from backend.agents.query_match import (
     hotel_floor_count,
     scope_values,
 )
+from backend.agents.query_text import source_phrase
 from backend.catalogue import searchable
 from backend.contracts import (
     CharacteristicSpec,
@@ -216,11 +217,16 @@ def evaluate_room(
         scope=scope,
         status=state,
         recommendation=reason or room_from_assessment(assessment, query),
+        # The inventory caveat is shown once per plan; the parser's own
+        # «Не удалось сопоставить» note would repeat the unmapped line below.
         caveats=[
-            INVENTORY_CAVEAT,
-            *room.clarifications,
+            *[c for c in room.clarifications if not c.startswith("Не удалось сопоставить")],
             *(
-                ["Не разобраны пожелания: " + ", ".join(room.unmapped) + ". Уточните их перед выбором."]
+                [
+                    "Не учли: «"
+                    + "», «".join(source_phrase(parsed.text, fragment) for fragment in room.unmapped)
+                    + "» — этого пока нет в каталоге, уточните у отеля."
+                ]
                 if room.unmapped
                 else []
             ),
@@ -255,7 +261,9 @@ def evaluate_room(
             )
         )
     if not criteria and not scoped_required:
-        item.recommendation = "Особые условия к положению не заданы; состав и наличие номеров уточнит отель"
+        item.recommendation = "Особых условий нет — подойдёт любой номер."
+        if not room.unmapped:
+            item.status = "yes"
         item.scope = RoomScope(month=room.scope.month or parsed.month)
     elif not criteria and complete:
         item.recommendation = (
@@ -268,6 +276,15 @@ def evaluate_room(
         for i, (c, m) in enumerate(zip(criteria, assessment.matches, strict=True))
     ]
     return item, complete, satisfied, total, weighted
+
+
+def _plan_summary(plan: list[RoomPlanItem], complete: bool) -> str:
+    fitting = sum(item.status == "yes" for item in plan)
+    if complete:
+        return f"В одном отеле нашлось подходящее положение номера для всех {len(plan)}."
+    if fitting:
+        return f"Подходящее положение нашлось для {fitting} из {len(plan)}; остальное — в плане ниже."
+    return "Ни для кого пока нет подтверждённого положения — проверьте план ниже."
 
 
 def rank_group_hotels(
@@ -360,15 +377,7 @@ def rank_group_hotels(
                 verdict(c, m, i < len(shared.must), shared)
                 for i, (c, m) in enumerate(zip(criteria, assessment.matches, strict=True))
             ],
-            summary=(
-                f"Условия {len(plan)} запросов проверены независимо в одном отеле. "
-                + (
-                    "Все обязательные условия поддержаны данными. "
-                    if complete and has_conditions
-                    else "Часть условий не подтверждена. "
-                )
-                + INVENTORY_CAVEAT
-            ),
+            summary=_plan_summary(plan, complete and has_conditions),
             disappointments=[INVENTORY_CAVEAT],
         )
         rows.append(hit)
@@ -385,5 +394,7 @@ def rank_group_hotels(
     for hit in rows[:explain_limit] if explain_limit is not None else rows:
         if describe_room:
             for item in hit.room_plan:
-                item.profile = describe_room(hit.hotel, by_hotel[hit.hotel.id], specs, item.scope)
+                # Without a side there is no position to describe, only a list of unknowns.
+                if item.scope.facade:
+                    item.profile = describe_room(hit.hotel, by_hotel[hit.hotel.id], specs, item.scope)
     return rows
