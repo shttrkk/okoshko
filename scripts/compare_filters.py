@@ -20,7 +20,8 @@ from shapely.ops import unary_union
 
 from backend.agents.query_match import assess_hotel, fresh, scope_values
 from backend.agents.resolver import resolve_claims
-from backend.contracts import CharacteristicSpec, Claim, Criterion, Fact, ParsedQuery
+from backend.catalogue import searchable
+from backend.contracts import CharacteristicSpec, Claim, Criterion, Fact, Hotel, ParsedQuery
 from geo.coordinates import geographic, metric
 from geo.io import exists, read_bytes, read_json
 
@@ -136,7 +137,9 @@ def compare(data: Path, *, radius: float, month: int, k: int, confidence: float)
         value = read_bytes(path)
         hashes[str(path.relative_to(data))] = hashlib.sha256(value).hexdigest()
         return value
-    hotels = json.loads(hashed(data / "seed/hotels.json"))
+    source_hotels = json.loads(hashed(data / "seed/hotels.json"))
+    hashed(data / "seed/catalogue_reviews.json")
+    hotels = [hotel for hotel in source_hotels if searchable(hotel, data)]
     manifest = json.loads(hashed(data / "seed/manifest.json"))
     coastline_doc = read_json(data / "seed/coastline.geojson")  # Logical path supports .gz fallback.
     hashed(data / "seed/coastline.geojson")
@@ -177,7 +180,7 @@ def compare(data: Path, *, radius: float, month: int, k: int, confidence: float)
         facts, _ = resolve_claims(hotel["id"], by_hotel[hotel["id"]], specs, sources, known_floors=hotel.get("floors"))
         facts = [fact for fact in facts if not fact.synthetic and fact.characteristic_id in VIEWS]
         views = {cid: summarize_view(hotel, geo, facts, cid, month, k, confidence) for cid in VIEWS}
-        assessment = assess_hotel(facts, parsed, specs)
+        assessment = assess_hotel(facts, parsed, specs, hotel=Hotel.model_validate(hotel))
         supported = len(assessment.matches) == 2 and all(match.supported and match.confidence >= confidence for match in assessment.matches)
         rows.append({"hotel_id": hotel["id"], "name": hotel["name"], "distance_m": metric_distance(hotel, coast),
                      "views": views, "compatible": supported,
@@ -197,15 +200,15 @@ def compare(data: Path, *, radius: float, month: int, k: int, confidence: float)
         return {"hotel_id": row["hotel_id"], "name": row["name"], "distance_m": round(row["distance_m"], 1) if row["distance_m"] is not None else None,
                 "context": row["context"], "confidence": row["confidence"], "partial": row["partial"]}
     return {
-        "schema_version": 1, "generated_at": datetime.now(UTC).isoformat(),
+        "schema_version": 2, "generated_at": datetime.now(UTC).isoformat(),
         "seed_version": manifest.get("seed_version", manifest.get("generated_at", "unknown")),
         "settings": {"radius_m": radius, "month": month, "k_floor": k, "confidence_floor": confidence,
                      "negative_confidence_floor": max(confidence, NEGATIVE_CONFIDENCE), "search_min_floor": 1,
                      "distance_method": "minimum hotel point to mapped OSM coastline, EPSG:32637 metric distance",
-                     "search_method": "production resolve_claims + assess_hotel; sea_view AND sunset_view in one compatible room scope",
+                     "search_method": "production resolve_claims + assess_hotel with known hotel floor domain; catalogue eligibility policy; sea_view AND sunset_view in one compatible room scope",
                      "input_policy": "versioned nonsynthetic geo/open seed only; no runtime, hotelier fixtures or new-building artifacts",
                      "reproduce": f"python -m scripts.compare_filters --month {month} --k-floor {k} --confidence-floor {confidence:g} --radius {radius:g}"},
-        "population": {"hotels": len(rows), "known_floor_count": sum(bool(h.get("floors")) for h in hotels),
+        "population": {"source_objects": len(source_hotels), "held_objects": len(source_hotels)-len(hotels), "hotels": len(rows), "known_floor_count": sum(bool(h.get("floors")) for h in hotels),
                        "unknown_floor_count": sum(not h.get("floors") for h in hotels),
                        "distance_unknown": sum(row["distance_m"] is None for row in rows), "excluded_claims": dict(excluded)},
         "baseline": {"within_radius": len(inside), "outside_radius": len(outside), "views_within_radius": {cid: view_counts(inside, cid) for cid in VIEWS}},
@@ -229,7 +232,9 @@ def compare(data: Path, *, radius: float, month: int, k: int, confidence: float)
             "Фасады — направления модели, а не инвентаризация окон. Неизвестные высоты, DSM и ограниченный регион береговой линии влияют на результат.",
             "Свежесть проверяется на время генерации. После истечения TTL повторный запуск вправе переводить наблюдения в unknown.",
         ],
-        "inputs_sha256": {**hashes, "scripts/compare_filters.py": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()},
+        "inputs_sha256": {**hashes, **{name: hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in (
+            "scripts/compare_filters.py", "backend/agents/query_match.py", "backend/agents/resolver.py",
+            "backend/catalogue.py", "backend/contracts/models.py")}},
     }
 
 

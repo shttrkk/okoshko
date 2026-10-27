@@ -1,4 +1,4 @@
-"""Offline deployment smoke. Expanded by orchestrator as each wave lands."""
+"""Offline deployment smoke: search, evidence and persistent expectations."""
 import json
 import os
 from urllib.request import Request, urlopen

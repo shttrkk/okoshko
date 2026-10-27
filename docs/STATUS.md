@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 05:51 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 05:54 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -187,3 +187,5 @@
 - 27.10.2026 05:48: family.crossings сохраняется как unknown без расчёта переходов; rail preflight проверяет реальные фасадные observers и сохраняет payload всех 250 объектов. 1163 tests + 125 subtests, Ruff/frontend lint, rebuild, 13 demo-check и Chrome browser smoke PASS. После заполнения host disk Docker восстановлен без сброса volumes; очищен только build cache, free 21 GiB.
 
 - 27.10.2026 05:51: parser различает повествование, наличие Wi-Fi и измеренную скорость; typed bounds связываются только с соседним однозначным условием. 1252 tests + 125 subtests, Ruff/frontend lint, rebuild, demo-check 13/13 и Chrome smoke PASS. Authored239: strict212/239, criteria227/239, negatives0/120; ранее закрытый release: strict33/60, negatives14/60. Ограничение обобщения сохраняется, labels не менялись.
+
+- 27.10.2026 05:54: clean-clone checker выполняет make check и Chrome smoke после Docker-only readiness; startup key принудительно пустой, свободное место фиксируется. Dev lock содержит оба исходно заданных toolchain pins с публичными hashes. 1254 tests + 125 subtests, Ruff/frontend lint, dev pip-audit 0 vulnerabilities PASS. Filter comparison исправлен под текущий floor domain и catalogue policy: 54 совместимых scope из 247 доступных объектов, 18 за пределами 500 м; это модельное сравнение, не полевая точность.

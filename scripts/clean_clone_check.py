@@ -32,6 +32,7 @@ def main():
     parser.add_argument("--prune", action="store_true", help="Run the requested docker builder prune -af")
     parser.add_argument("--stop-current-app", action="store_true")
     parser.add_argument("--browser", action="store_true", help="Run the real UI preview with the installed demo tooling")
+    parser.add_argument("--check", action="store_true", help="Run make check in the clone after product readiness, reusing QA dependencies only")
     parser.add_argument("--without-env", action="store_true", help="Prove default startup with no .env file")
     parser.add_argument("--docker-only-path", action="store_true", help="Launch Compose with no host Python/Node in PATH")
     args = parser.parse_args()
@@ -42,13 +43,16 @@ def main():
     args.report.parent.mkdir(parents=True, exist_ok=True)
     log_path = args.report.with_suffix(".log")
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    free_before = shutil.disk_usage(ROOT).free
+    if free_before < 5 * 1024**3:
+        raise RuntimeError("Acceptance build needs at least 5 GiB of free host disk space")
     command(["git", "clone", "--no-local", str(ROOT), str(args.clone)])
     if not args.without_env:
         shutil.copyfile(args.clone/".env.example", args.clone/".env")
     # A new folder alone is insufficient: the Compose file has a fixed name.
     # Never reuse the previous acceptance run's database or runtime volume.
     project = "okno-clean-" + uuid4().hex[:12]
-    environment = {**os.environ, "COMPOSE_PROJECT_NAME": project, "LLM_MODE": "offline"}
+    environment = {**os.environ, "COMPOSE_PROJECT_NAME": project, "LLM_MODE": "offline", "LLM_API_KEY": ""}
     environment.pop("DB_URL", None)  # Verify the Compose default, not a developer's database.
     launch_environment = environment.copy()
     cli_directory = None
@@ -79,7 +83,9 @@ def main():
     report = {"revision": revision, "clone": str(args.clone), "checked_at": datetime.now(UTC).isoformat(),
               "command": "docker compose up --build", "project": project, "fresh_project_volumes": True,
               "pruned_build_cache": args.prune, "passed": False,
+              "free_disk_bytes_before_clone": free_before,
               "env_file_created": not args.without_env, "docker_only_launch_path": args.docker_only_path,
+              "llm_api_key_empty": True,
               "launch_path_has_python": bool(shutil.which("python3", path=launch_environment["PATH"])),
               "launch_path_has_node": bool(shutil.which("node", path=launch_environment["PATH"]))}
     report["preexisting_project_volumes"] = subprocess.check_output(
@@ -93,6 +99,7 @@ def main():
         if args.prune:
             command(["docker", "builder", "prune", "-af"], log=log)
         report["prune_seconds"] = round(time.monotonic()-prepared, 3)
+        report["free_disk_bytes_before_build"] = shutil.disk_usage(ROOT).free
         started = time.monotonic()
         compose = subprocess.Popen(["docker", "compose", "up", "--build"], cwd=args.clone, env=launch_environment, stdout=log, stderr=subprocess.STDOUT)
         try:
@@ -113,8 +120,19 @@ def main():
             report["launch_seconds"] = round(time.monotonic()-started, 3)
             check_environment = {**environment, "OKNO_URL": "http://localhost:8080", "OKNO_DEMO_REPORT": str(args.report.with_name(args.report.stem+"_demo.json"))}
             python = str(ROOT/".venv/bin/python")
-            command([python, "scripts/smoke.py"], cwd=args.clone, env=check_environment, log=log)
-            command([python, "scripts/demo_check.py"], cwd=args.clone, env=check_environment, log=log)
+            if args.check or args.browser:
+                # Host tooling is attached only after Docker-only readiness.
+                # No dependency from these links participates in the image.
+                (args.clone / '.venv').symlink_to(ROOT / '.venv', target_is_directory=True)
+                (args.clone / 'frontend/node_modules').symlink_to(ROOT / 'frontend/node_modules', target_is_directory=True)
+                report['qa_dependencies_reused_after_readiness'] = True
+            if args.check:
+                command(['make', 'check'], cwd=args.clone, env=check_environment, log=log)
+                report['make_check'] = 'passed'
+            else:
+                command([python, "scripts/smoke.py"], cwd=args.clone, env=check_environment, log=log)
+                command([python, "scripts/demo_check.py"], cwd=args.clone, env=check_environment, log=log)
+            report['api_smoke'] = report['demo_check'] = 'passed'
             if args.browser:
                 # Reuse only test-runner dependencies after product readiness;
                 # execute the cloned script, not the development checkout.
@@ -122,6 +140,8 @@ def main():
                 browser_environment = {**check_environment, "OKNO_BASE_URL": "http://localhost:8080", "OKNO_DEMO_OUTPUT": str(args.report.with_suffix(".mp4"))}
                 command(["npm", "run", "--prefix", str(args.clone/"demo"), "preview"], cwd=args.clone, env=browser_environment, log=log)
                 report["browser_preview"] = "passed"
+                command(['npm', '--prefix', 'frontend', 'run', 'smoke'], cwd=args.clone, env=browser_environment, log=log)
+                report['browser_smoke'] = 'passed'
             report["passed"] = True
         except Exception as error:
             report["error"] = f"{type(error).__name__}: {error}"
@@ -132,6 +152,7 @@ def main():
             except subprocess.TimeoutExpired:
                 compose.kill()
                 compose.wait(timeout=5)
+            report["free_disk_bytes_after_checks"] = shutil.disk_usage(ROOT).free
             report["elapsed_seconds"] = round(time.monotonic()-started, 3)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2)+"\n")
     if args.stop_current_app:
