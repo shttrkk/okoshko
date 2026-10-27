@@ -107,6 +107,8 @@ def load_seed(data_dir: Path = DATA):
                     entry = json.loads(line)
                     conn.execute("INSERT INTO llm_cache (id,payload) VALUES (%s,%s) ON CONFLICT(id) DO NOTHING",
                                  (entry["id"], Jsonb(entry)))
+    from backend.tz_seed import load_tz_seed
+    logging.info("Prepared regional observations: %s", load_tz_seed(data_dir, DB_URL))
     from backend.addresses import apply_address_supplement
     logging.info("Address supplement: %s", apply_address_supplement(data_dir, DB_URL))
     logging.info("Seed ready: %s hotels", get_repo().count("hotels"))

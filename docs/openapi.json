@@ -421,6 +421,62 @@
               "type": "string",
               "title": "Hotel Id"
             }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 12,
+              "minimum": 1,
+              "default": 9,
+              "title": "Month"
+            }
+          },
+          {
+            "name": "facade",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "N",
+                    "NE",
+                    "E",
+                    "SE",
+                    "S",
+                    "SW",
+                    "W",
+                    "NW"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Facade"
+            }
+          },
+          {
+            "name": "floor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 100,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Floor"
+            }
           }
         ],
         "responses": {

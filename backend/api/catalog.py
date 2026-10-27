@@ -8,7 +8,7 @@ from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 
 from backend.catalogue import annotate, load_reviews, searchable
@@ -31,6 +31,7 @@ from backend.contracts import (
     now,
     uid,
 )
+from backend.contracts.models import Side
 from backend.coverage import region_coverage
 from backend.db.repository import get_repo, search_fact
 from backend.llm.client import LLMClient
@@ -111,7 +112,8 @@ def search_coverage(rows: list[dict], specs: list[CharacteristicSpec], hotel_cou
 
 
 def read_geo(hotel_id: str, repo, *, hotel_row: dict | None = None, events: list[dict] | None = None,
-             fact_rows: list[dict] | None = None) -> dict:
+             fact_rows: list[dict] | None = None, month: int = 9,
+             facade: Side | None = None, floor: int | None = None) -> dict:
     hotel = hotel_row if hotel_row is not None else required(repo, "hotels", hotel_id, "Отель")
     if not searchable(hotel):
         return {'hotel_id': hotel_id, 'facades': [],
@@ -149,6 +151,8 @@ def read_geo(hotel_id: str, repo, *, hotel_row: dict | None = None, events: list
             from backend.nearby import linked_places
             facts = fact_rows if fact_rows is not None else repo.find("facts", hotel_id=hotel_id)
             public["nearby"] = linked_places(facts, public, DATA)
+            from geo.tz_overlay import landmark_overlay
+            public.update(landmark_overlay(hotel_id, month, facade, floor, data_dir=DATA, events=changes))
             return public
     return {"hotel_id": hotel_id, "center": [hotel["lon"], hotel["lat"]], "facades": [],
             "limitations": ["Георасчёт для этого отеля ещё не подготовлен; отсутствие данных не означает отсутствие вида."]}
@@ -324,8 +328,9 @@ def room_profiles(hotel_id: str, month: int = 9, facade: str | None = None,
 
 
 @router.get("/hotels/{hotel_id}/geo")
-def geo(hotel_id: str, repo=_REPO):
-    return read_geo(hotel_id, repo)
+def geo(hotel_id: str, month: int = Query(9, ge=1, le=12), facade: Side | None = None,
+        floor: int | None = Query(None, ge=1, le=100), repo=_REPO):
+    return read_geo(hotel_id, repo, month=month, facade=facade, floor=floor)
 
 
 @router.post("/hotels/{hotel_id}/evaluate", response_model=HotelDetail)

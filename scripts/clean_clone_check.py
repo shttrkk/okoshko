@@ -38,7 +38,10 @@ def main():
     parser.add_argument("--cleanup", action="store_true", help="Remove this temporary project's containers, volumes and clone after the check")
     parser.add_argument("--without-env", action="store_true", help="Prove default startup with no .env file")
     parser.add_argument("--docker-only-path", action="store_true", help="Launch Compose with no host Python/Node in PATH")
+    parser.add_argument("--port", type=int, default=8080, help="Isolated host port; repository Compose port stays unchanged")
     args = parser.parse_args()
+    if not 1024 <= args.port <= 65535:
+        parser.error("Port must be between 1024 and 65535")
     args.clone = args.clone.resolve()
     args.report = args.report.resolve()
     if args.clone.exists():
@@ -58,6 +61,15 @@ def main():
     environment = {**os.environ, "COMPOSE_PROJECT_NAME": project, "LLM_MODE": "offline", "LLM_API_KEY": ""}
     for name in ("DB_URL", "APP_PORT", "COMPOSE_FILE", "COMPOSE_PROFILES", "MAPILLARY_TOKEN"):
         environment.pop(name, None)  # Verify product defaults, not ambient overrides.
+    override_directory = None
+    if args.port != 8080:
+        # Keep the isolation override outside the clone: default product files
+        # and .env-free launch are identical to the documented release.
+        override_directory = tempfile.TemporaryDirectory(prefix="okno-clean-port-")
+        override = Path(override_directory.name) / "compose.yml"
+        override.write_text(f'services:\n  app:\n    ports: !override ["{args.port}:8080"]\n')
+        environment["COMPOSE_FILE"] = os.pathsep.join([str(args.clone / "docker-compose.yml"), str(override)])
+    base_url = f"http://localhost:{args.port}"
     launch_environment = environment.copy()
     cli_directory = None
     if args.docker_only_path:
@@ -80,16 +92,16 @@ def main():
     if args.stop_current_app:
         command(["docker", "compose", "-p", args.current_project, "stop", "app"])
     with socket.socket() as port_probe:
-        if port_probe.connect_ex(("127.0.0.1", 8080)) == 0:
+        if port_probe.connect_ex(("127.0.0.1", args.port)) == 0:
             if args.stop_current_app:
                 command(["docker", "compose", "-p", args.current_project, "start", "app"])
-            raise RuntimeError("Port8080 is still occupied; cannot verify a fresh application's health")
+            raise RuntimeError(f"Port {args.port} is still occupied; cannot verify a fresh application's health")
     report = {"revision": revision, "clone": str(args.clone), "checked_at": datetime.now(UTC).isoformat(),
               "command": "docker compose up --build", "project": project, "fresh_project_volumes": True,
               "pruned_build_cache": args.prune, "passed": False,
               "free_disk_bytes_before_clone": free_before,
               "env_file_created": not args.without_env, "docker_only_launch_path": args.docker_only_path,
-              "llm_api_key_empty": True,
+              "llm_api_key_empty": True, "host_port": args.port, "external_port_override": args.port != 8080,
               "mapillary_token_in_launch_environment": bool(launch_environment.get("MAPILLARY_TOKEN")),
               "launch_path_has_python": bool(shutil.which("python3", path=launch_environment["PATH"])),
               "launch_path_has_node": bool(shutil.which("node", path=launch_environment["PATH"]))}
@@ -113,7 +125,7 @@ def main():
                 if compose.poll() is not None:
                     raise RuntimeError(f"Compose exited before readiness: {compose.returncode}")
                 try:
-                    with urlopen("http://localhost:8080/health", timeout=2) as response:
+                    with urlopen(base_url + "/health", timeout=2) as response:
                         ready = json.load(response) == {"status": "ok"}
                     if ready:
                         break
@@ -139,7 +151,7 @@ def main():
             runtime_image = json.loads(subprocess.check_output(["docker", "image", "inspect", container["Image"]], text=True))[0]
             report["image"] = {key: runtime_image[key] for key in ("Id", "Architecture", "Os", "Size")}
             report["image"]["user"] = runtime_image["Config"]["User"]
-            check_environment = {**environment, "OKNO_URL": "http://localhost:8080", "OKNO_DEMO_REPORT": str(args.report.with_name(args.report.stem+"_demo.json"))}
+            check_environment = {**environment, "OKNO_URL": base_url, "OKNO_DEMO_REPORT": str(args.report.with_name(args.report.stem+"_demo.json"))}
             python = str(ROOT/".venv/bin/python")
             if args.check or args.browser or args.all_smokes:
                 # Host tooling is attached only after Docker-only readiness.
@@ -158,13 +170,13 @@ def main():
                 # Reuse only test-runner dependencies after product readiness;
                 # execute the cloned script, not the development checkout.
                 (args.clone/"demo/node_modules").symlink_to(ROOT/"demo/node_modules", target_is_directory=True)
-                browser_environment = {**check_environment, "OKNO_BASE_URL": "http://localhost:8080", "OKNO_DEMO_OUTPUT": str(args.report.with_suffix(".mp4"))}
+                browser_environment = {**check_environment, "OKNO_BASE_URL": base_url, "OKNO_DEMO_OUTPUT": str(args.report.with_suffix(".mp4"))}
                 command(["npm", "run", "--prefix", str(args.clone/"demo"), "preview"], cwd=args.clone, env=browser_environment, log=log)
                 report["browser_preview"] = "passed"
                 command(['npm', '--prefix', 'frontend', 'run', 'smoke'], cwd=args.clone, env=browser_environment, log=log)
                 report['browser_smoke'] = 'passed'
             if args.all_smokes:
-                browser_environment = {**check_environment, "OKNO_BASE_URL": "http://localhost:8080"}
+                browser_environment = {**check_environment, "OKNO_BASE_URL": base_url}
                 smokes = sorted((args.clone / "frontend/scripts").glob("*-smoke.mjs"))
                 if not smokes:
                     raise RuntimeError("No browser smoke scripts found")
@@ -196,6 +208,8 @@ def main():
         args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2)+"\n")
     if cli_directory is not None:
         cli_directory.cleanup()
+    if override_directory is not None:
+        override_directory.cleanup()
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if report["passed"] else 1
 

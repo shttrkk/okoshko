@@ -466,7 +466,7 @@ export interface LabelTarget {
   evidence_links: unknown[];
   existing_labels: unknown[];
 }
-export interface Geo {
+export interface Geo extends LandmarkGeo {
   hotel_id?: string;
   center?: [number, number];
   building?: GeoJSON.Feature;
@@ -619,4 +619,12 @@ export interface RoomAdvice {
 /** Curated visibility target; independent of the requested room side and floor. */
 export interface LandmarkScope {
   landmark_id?: string | null;
+}
+
+/** Optional layers contain only saved, target-specific visibility calculations. */
+export interface LandmarkGeo {
+  landmark_targets?: GeoJSON.FeatureCollection;
+  landmark_rays?: GeoJSON.FeatureCollection;
+  landmark_metadata?: Record<string, unknown>[];
+  warnings?: string[];
 }

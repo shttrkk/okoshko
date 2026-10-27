@@ -270,7 +270,18 @@ export const api = {
     request<FactEvidence>(
       `/api/hotels/${id(hotelId)}/facts/${id(factId)}/evidence`,
     ),
-  geo: (hotelId: string) => request<Geo>(`/api/hotels/${id(hotelId)}/geo`),
+  geo: (
+    hotelId: string,
+    scope?: { month?: number; facade?: string; floor?: number },
+  ) => {
+    const params = new URLSearchParams();
+    if (scope?.month != null) params.set("month", String(scope.month));
+    if (scope?.facade) params.set("facade", scope.facade);
+    if (scope?.floor != null) params.set("floor", String(scope.floor));
+    return request<Geo>(
+      `/api/hotels/${id(hotelId)}/geo${params.size ? `?${params}` : ""}`,
+    );
+  },
   compare: (ids: string[], parsed?: ParsedQuery | null) =>
     parsed
       ? request<{ hotels: HotelDetail[]; characteristics: Spec[] }>(
