@@ -122,13 +122,29 @@ def partition_claims(claims: list[Claim], *, at: datetime) -> dict[tuple[str, st
             candidates[claim.characteristic_id][key].append(claim)
     for characteristic_id, by_scope in candidates.items():
         groups = list(by_scope.values())
+        # A wildcard can bridge otherwise disjoint categorical domains. Use
+        # these buckets only to narrow each BFS expansion, never to split the
+        # graph into independent exact-key partitions.
+        scope_indices = {field: defaultdict(set) for field in CATEGORIES}
+        for index, group in enumerate(groups):
+            for field, by_value in scope_indices.items():
+                by_value[getattr(group[0].scope, field)].add(index)
         remaining = set(range(len(groups)))
         while remaining:
             component = {remaining.pop()}
             pending = list(component)
             while pending:
                 current = pending.pop()
-                neighbours = {index for index in remaining if scopes_overlap(groups[current][0].scope, groups[index][0].scope)}
+                scope = groups[current][0].scope
+                compatible = [by_value[value] | by_value[None] for field, by_value in scope_indices.items()
+                              if (value := getattr(scope, field)) is not None]
+                possible = remaining
+                for matching in sorted(compatible, key=len):
+                    possible = possible.intersection(matching)
+                    if not possible:
+                        break
+                # Keep the exact predicate, including inclusive floor bounds.
+                neighbours = {index for index in possible if scopes_overlap(scope, groups[index][0].scope)}
                 remaining.difference_update(neighbours)
                 component.update(neighbours)
                 pending.extend(neighbours)
