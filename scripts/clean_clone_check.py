@@ -56,7 +56,7 @@ def main():
     # Never reuse the previous acceptance run's database or runtime volume.
     project = "okno-clean-" + uuid4().hex[:12]
     environment = {**os.environ, "COMPOSE_PROJECT_NAME": project, "LLM_MODE": "offline", "LLM_API_KEY": ""}
-    for name in ("DB_URL", "APP_PORT", "COMPOSE_FILE", "COMPOSE_PROFILES"):
+    for name in ("DB_URL", "APP_PORT", "COMPOSE_FILE", "COMPOSE_PROFILES", "MAPILLARY_TOKEN"):
         environment.pop(name, None)  # Verify product defaults, not ambient overrides.
     launch_environment = environment.copy()
     cli_directory = None
@@ -90,6 +90,7 @@ def main():
               "free_disk_bytes_before_clone": free_before,
               "env_file_created": not args.without_env, "docker_only_launch_path": args.docker_only_path,
               "llm_api_key_empty": True,
+              "mapillary_token_in_launch_environment": bool(launch_environment.get("MAPILLARY_TOKEN")),
               "launch_path_has_python": bool(shutil.which("python3", path=launch_environment["PATH"])),
               "launch_path_has_node": bool(shutil.which("node", path=launch_environment["PATH"]))}
     report["preexisting_project_volumes"] = subprocess.check_output(

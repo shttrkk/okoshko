@@ -22,6 +22,7 @@ import {
 import { PanoramaModal } from "../components/Panorama";
 import { RoomLab, type RoomSlice } from "../components/RoomLab";
 import { GroupPlan } from "../components/GroupPlan";
+import { HotelPhotoActions } from "../components/RoomPhotos";
 import { RoomAdviceSection } from "../components/RoomAdvice";
 import { RoomDescription } from "../components/RoomProfiles";
 import { personalRoomQuery, roomLabParams } from "../components/group";
@@ -398,6 +399,7 @@ export function HotelPage() {
                 <Eye size={16} />
                 Панорама рядом
               </button>
+              <HotelPhotoActions key={d.hotel.id} hotel={d.hotel} />
             </div>
             <div
               className="hotel-hero-map"
@@ -612,6 +614,10 @@ export function HotelPage() {
               <RoomAdviceSection
                 hotelId={id}
                 month={parsed?.month || 9}
+                requestedCharacteristicIds={[
+                  ...(parsed?.must || []),
+                  ...(parsed?.nice || []),
+                ].map((criterion) => criterion.characteristic_id)}
                 recommendation={
                   !d.room_plan?.length && parsed ? rec : undefined
                 }

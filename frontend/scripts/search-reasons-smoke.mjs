@@ -3,6 +3,17 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
+// Each reason retains the exact API text in its closed calculation, while
+// the first level shows a concise explanation without numerical scores.
+async function reasonTexts(scope) {
+  return scope.getByTestId("ranking-reason").evaluateAll((items) =>
+    items.map((item) =>
+      (item.querySelector(":scope > details p") || item.querySelector(":scope > p"))
+        ?.textContent.trim(),
+    ),
+  );
+}
+
 // API and hotel data are synthetic browser fixtures; no request reaches 8080.
 const base = process.env.OKNO_BASE_URL || "http://localhost:5177";
 const chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -94,8 +105,8 @@ const hotels = names.map((name, index) => ({
   room_types: [],
   tags: {},
 }));
-// Exact current backend relative_reason string forms, checked against the local
-// Python function. They describe these fixture profiles, not real hotels.
+// Legacy relative_reason forms remain readable after the first-level wording
+// changes. They describe these fixture profiles, not real hotels.
 const countReason = `«${names[0]}»: подтверждено 2 из 3 обязательных условий, здесь — 1.`;
 const scoreReason = (reference, higher, current) =>
   `«${reference}»: выше совокупная оценка выполнения условий с учётом уверенности (${higher} против ${current}); проверьте оговорки в критериях.`;
@@ -265,17 +276,23 @@ try {
   const firstAlternative = page.getByTestId(`search-reasons-${hotels[1].id}`);
   assert.equal(await firstAlternative.getAttribute("open"), null);
   assert.equal(await firstAlternative.locator("p").first().isVisible(), false);
-  await firstAlternative.locator("summary").focus();
+  await firstAlternative.locator(":scope > summary").focus();
   await page.keyboard.press("Enter");
   assert.equal(await firstAlternative.getAttribute("open"), "");
-  assert.deepEqual(await firstAlternative.locator("p").allTextContents(), [
+  assert.deepEqual(await reasonTexts(firstAlternative), [
     countReason,
   ]);
   const thirdAlternative = page.getByTestId(`search-reasons-${hotels[3].id}`);
-  assert.deepEqual(await thirdAlternative.locator("p").allTextContents(), [
+  assert.deepEqual(await reasonTexts(thirdAlternative), [
     scoreReason(names[2], 65, 60),
     countReason,
   ]);
+  await thirdAlternative.locator(":scope > summary").click();
+  assert.doesNotMatch(await thirdAlternative.innerText(), /65 против 60/);
+  const calculation = thirdAlternative.getByTestId("ranking-calculation");
+  await calculation.locator(":scope > summary").click();
+  assert.match(await calculation.innerText(), /65 против 60/);
+  await calculation.locator(":scope > summary").click();
   await page.screenshot({
     path: new URL("desktop.png", artifacts).pathname,
     fullPage: true,
@@ -345,20 +362,14 @@ try {
   await load();
   await page
     .getByTestId(`search-reasons-${hotels[1].id}`)
-    .locator("summary")
+    .locator(":scope > summary")
     .click();
   assert.deepEqual(
-    await page
-      .getByTestId(`search-reasons-${hotels[1].id}`)
-      .locator("p")
-      .allTextContents(),
+    await reasonTexts(page.getByTestId(`search-reasons-${hotels[1].id}`)),
     [countReason, scoreReason(names[0], 85, 71), verdictReason],
   );
   assert.deepEqual(
-    await page
-      .getByTestId(`search-reasons-${hotels[2].id}`)
-      .locator("p")
-      .allTextContents(),
+    await reasonTexts(page.getByTestId(`search-reasons-${hotels[2].id}`)),
     [tieReason],
   );
   assert.equal(
@@ -369,15 +380,12 @@ try {
     0,
   );
   assert.match(
-    await page
-      .getByTestId(`search-reasons-${hotels[3].id}`)
-      .locator("p")
-      .textContent(),
+    (await reasonTexts(page.getByTestId(`search-reasons-${hotels[3].id}`))).join(" "),
     /<b>как текст<\/b>/,
   );
   assert.ok(
     (
-      await page.locator('[data-testid^="search-reasons-"] p').allTextContents()
+      await reasonTexts(page)
     ).every((reason) => !reason.includes("за лимитом")),
   );
   checks.push(

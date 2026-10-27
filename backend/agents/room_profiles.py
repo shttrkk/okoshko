@@ -522,6 +522,30 @@ def _join_words(parts: list[str]) -> str:
     return ", ".join(parts[:-1]) + " и " + parts[-1] if len(parts) > 1 else parts[0]
 
 
+def _covers_floors(fact: Fact, low: int, high: int) -> bool:
+    values = scope_values(fact)
+    return values.get("floor_min", 1) <= low and values.get("floor_max", 100) >= high
+
+
+def _noise_numeric(fact: Fact) -> bool:
+    value = fact.value if isinstance(fact.value, dict) else {}
+    return (_number(value.get("night_db_min")) and _number(value.get("night_db_max"))
+            and 0 <= value["night_db_min"] <= value["night_db_max"])
+
+
+def _advice_numeric_facts(options: list[RoomAdviceOption], by_id: dict[str, Fact], predicate) -> list[Fact]:
+    """Numbers may describe the grouped advice only if they cover every slice."""
+    result = {}
+    for option in options:
+        referenced = [by_id[fid] for fid in option.fact_ids]
+        numeric = [f for f in referenced if predicate(f)]
+        if any(not any(_covers_floors(f, low, high) for f in numeric)
+               for low, high in _intervals(option.scope.floor_min, option.scope.floor_max, referenced)):
+            return []
+        result.update((f.id, f) for f in numeric)
+    return sorted(result.values(), key=lambda f: f.id)
+
+
 def _advice_options(hotel: Hotel, facts: list[Fact], specs: list[CharacteristicSpec], cid: str,
                     month: int) -> list[RoomAdviceOption]:
     relevant = sorted((f for f in facts if f.hotel_id == hotel.id and f.characteristic_id == cid
@@ -530,7 +554,8 @@ def _advice_options(hotel: Hotel, facts: list[Fact], specs: list[CharacteristicS
     for scope in _room_scopes(hotel, relevant, month, cid, coalesce=False):
         if not scope.facade:
             continue
-        criterion = _criterion(cid, scope, scope.floor_min)
+        boolean_criterion = _criterion(cid, scope, scope.floor_min)
+        criterion = boolean_criterion
         if cid == "quiet_night":
             # Compare numeric outdoor estimates, without changing available or
             # claiming that a preliminary estimate confirms quiet in a room.
@@ -538,27 +563,42 @@ def _advice_options(hotel: Hotel, facts: list[Fact], specs: list[CharacteristicS
         selected = [f for f in relevant if _eligible(f, scope)]
         parsed = ParsedQuery(text="", must=[criterion], facade=scope.facade, month=month)
         match = assess_hotel(selected, parsed, specs, hotel=hotel).matches[0]
+        if cid == "quiet_night" and not (match.condition_met and match.status in {"yes", "partial"}):
+            # A narrower agreeing answer can omit dB. It still has to pass the
+            # resolver's freshness/conflict/unknown rules before numeric proof
+            # from a wider, applicable domain is considered below.
+            boolean_query = parsed.model_copy(update={"must": [boolean_criterion]})
+            match = assess_hotel(selected, boolean_query, specs, hotel=hotel).matches[0]
         if not match.condition_met or match.status not in {"yes", "partial"}:
             continue
-        # Equally scoped corroboration keeps every reference (and demo flag).
-        # A weaker contrary observation must not disappear behind a strong yes.
-        domains = [scope_values(f) for f in match.facts]
-        witnesses = [f for f in selected if scope_values(f) in domains and fresh(f)
+        # Keep applicable corroboration across source domains, including a
+        # boolean room answer inside a wider numeric calculation. Contrary
+        # observations must not disappear behind a stronger or narrower yes.
+        witnesses = [f for f in selected if _covers_floors(f, scope.floor_min, scope.floor_max) and fresh(f)
                      and f.evidence and f.supporting_claim_ids]
-        matches = [evaluate_fact(f, criterion, parsed, criterion.field, hotel=hotel) for f in witnesses]
+        matches = []
+        for f in witnesses:
+            chosen = criterion
+            if cid == "quiet_night" and not _noise_numeric(f):
+                value = f.value if isinstance(f.value, dict) else {}
+                if any(key in value for key in ("night_db_min", "night_db_max")):
+                    break  # Incomplete/malformed numeric ranges are not corroboration.
+                chosen = boolean_criterion
+            matches.append(evaluate_fact(f, chosen, parsed, chosen.field, hotel=hotel))
+        if len(matches) != len(witnesses):
+            continue
         if not matches or not all(m.condition_met and m.status in {"yes", "partial"} for m in matches):
             continue
-        if cid in {"sea_view", "sunset_view"} and not all(m.supported for m in matches):
+        if cid in {"sea_view", "sunset_view"} and not any(m.supported for m in matches):
             continue
         # Every named side needs an explicit witness in the selected evidence.
         if not any(scope_values(f).get("facade") == scope.facade for f in witnesses):
             continue
-        if cid == "quiet_night" and not all(isinstance(f.value, dict)
-                and _number(f.value.get("night_db_min")) and _number(f.value.get("night_db_max"))
-                and 0 <= f.value["night_db_min"] <= f.value["night_db_max"] for f in witnesses):
+        numeric = [f for f in witnesses if _noise_numeric(f)] if cid == "quiet_night" else []
+        if cid == "quiet_night" and not numeric:
             continue
-        if cid == "quiet_night" and (max(f.value["night_db_min"] for f in witnesses)
-                                     > min(f.value["night_db_max"] for f in witnesses)):
+        if cid == "quiet_night" and (max(f.value["night_db_min"] for f in numeric)
+                                     > min(f.value["night_db_max"] for f in numeric)):
             continue  # Disjoint estimates for the same slice need reconciliation.
         options.append(RoomAdviceOption(scope=scope, status="partial" if any(
                        m.status == "partial" for m in matches) else "yes",
@@ -616,7 +656,7 @@ def build_room_advice(hotel: Hotel, facts: list[Fact], specs: list[Characteristi
             # Keep estimates in the lowest rounded upper-noise band. This is a
             # comparison among covered numeric slices, not all hotel windows.
             def upper(option):
-                return max(by_id[fid].value["night_db_max"] for fid in option.fact_ids)
+                return max(by_id[fid].value["night_db_max"] for fid in option.fact_ids if _noise_numeric(by_id[fid]))
             best_band = min(math.floor(upper(o) + .5) for o in options)
             options = [o for o in options if math.floor(upper(o) + .5) == best_band]
         options = _merge_advice_options(options)
@@ -630,11 +670,13 @@ def build_room_advice(hotel: Hotel, facts: list[Fact], specs: list[Characteristi
         text = positions[0].upper() + positions[1:]
         caveats = [_POSITION_CAVEAT]
         if cid == "quiet_night":
-            text += "; ночью " + _range(selected_facts, "night_db_min", "night_db_max") + " дБ по расчёту"
+            numeric_facts = _advice_numeric_facts(options, by_id, _noise_numeric)
+            text += "; ночью " + _range(numeric_facts, "night_db_min", "night_db_max") + " дБ по расчёту"
             caveats.append("Сравниваются только стороны и этажи с численной оценкой наружного шума; для остальных сторон данных может не быть. Близкие округлённые оценки не означают достоверную разницу в шуме.")
         elif cid in _SOLAR:
             text += f" в {_MONTHS_IN[month - 1]}"
-            minutes = _solar_minutes(selected_facts)
+            numeric_facts = _advice_numeric_facts(options, by_id, lambda f: _solar_minutes([f]) is not None)
+            minutes = _solar_minutes(numeric_facts) if numeric_facts else None
             if minutes:
                 text += "; " + minutes + " мин" + (" утром" if cid == "morning_sun" else " перед закатом")
             if cid == "sunset_view":

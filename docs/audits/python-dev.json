@@ -186,6 +186,11 @@
       "vulns": []
     },
     {
+      "name": "pillow",
+      "version": "13.0.0",
+      "vulns": []
+    },
+    {
       "name": "pip-api",
       "version": "0.0.35",
       "vulns": []

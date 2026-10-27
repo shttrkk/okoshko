@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 from typing import Any, Literal, Protocol
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlsplit
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -42,7 +42,7 @@ class HotelPhoto(Model):
     width: int = Field(gt=0)
     height: int = Field(gt=0)
     bytes: int | None = Field(default=None, gt=0)
-    sha256: str | None = None
+    sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     verified_by_eye: Literal[True]
     captured_year: int | None = Field(default=None, ge=1900, le=2100)
     captured_at: str | None = None
@@ -56,6 +56,8 @@ class HotelPhoto(Model):
             parsed = urlsplit(value)
             if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
                 raise ValueError("photo references require public HTTP URLs without credentials")
+            if any(key.casefold() in {"access_token", "mapillary_token"} for key, _ in parse_qsl(parsed.query)):
+                raise ValueError("provider tokens must never be stored in photo references")
         if self.kind in {"official_site", "room"}:
             if self.local or any([self.license, self.license_url, self.author]):
                 raise ValueError("official photographs are linked, never stored or relicensed")

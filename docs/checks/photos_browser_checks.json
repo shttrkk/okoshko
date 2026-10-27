@@ -1,0 +1,56 @@
+{
+  "browser-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 11.15,
+    "log": "/tmp/okno-photos-final-browser-smoke.mjs.log"
+  },
+  "fact-refresh-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 50.85,
+    "log": "/tmp/okno-photos-final-fact-refresh-smoke.mjs.log"
+  },
+  "fact-semantics-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 8.02,
+    "log": "/tmp/okno-photos-final-fact-semantics-smoke.mjs.log"
+  },
+  "group-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 45.52,
+    "log": "/tmp/okno-photos-final-group-smoke.mjs.log"
+  },
+  "guest-language-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 46.8,
+    "log": "/tmp/okno-photos-final-guest-language-smoke.mjs.log"
+  },
+  "photos-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 47.08,
+    "log": "/tmp/okno-photos-final-photos-smoke.mjs.log"
+  },
+  "quality-metrics-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 2.74,
+    "log": "/tmp/okno-photos-final-quality-metrics-smoke.mjs.log"
+  },
+  "relations-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 45.44,
+    "log": "/tmp/okno-photos-final-relations-smoke.mjs.log"
+  },
+  "scoped-question-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 4.43,
+    "log": "/tmp/okno-photos-final-scoped-question-smoke.mjs.log"
+  },
+  "search-reasons-smoke.mjs": {
+    "exit_code": 0,
+    "log": "/tmp/okno-photos-final-search-reasons-v2.log"
+  },
+  "security-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 4.01,
+    "log": "/tmp/okno-photos-final-security-smoke.mjs.log"
+  }
+}

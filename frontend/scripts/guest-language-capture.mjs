@@ -30,6 +30,7 @@ export function scopeIsSupported(
   const requested = bounds(scope);
   if (!requested) return false;
   const covered = [];
+  const numericCovered = [];
   for (const fact of facts) {
     if (
       !fact ||
@@ -48,10 +49,11 @@ export function scopeIsSupported(
       fact.value?.available !== true
     )
       return false;
+    let numericNoise = false;
     if (characteristicId === "quiet_night") {
       const min = fact.value?.night_db_min;
       const max = fact.value?.night_db_max;
-      const numericNoise =
+      numericNoise =
         Number.isFinite(min) && Number.isFinite(max) && min <= max;
       // A numeric exterior-noise measurement remains evidence when available
       // is false. It does not establish a boolean promise of indoor silence.
@@ -74,14 +76,21 @@ export function scopeIsSupported(
     // cover all requested floors.
     if (min > max) return false;
     covered.push([min, max]);
+    if (numericNoise) numericCovered.push([min, max]);
   }
-  covered.sort((left, right) => left[0] - right[0]);
-  let lastCovered = requested[0] - 1;
-  for (const [min, max] of covered) {
-    if (min > lastCovered + 1) return false;
-    lastCovered = Math.max(lastCovered, max);
-  }
-  return lastCovered >= requested[1];
+  const covers = (intervals) => {
+    intervals.sort((left, right) => left[0] - right[0]);
+    let lastCovered = requested[0] - 1;
+    for (const [min, max] of intervals) {
+      if (min > lastCovered + 1) return false;
+      lastCovered = Math.max(lastCovered, max);
+    }
+    return lastCovered >= requested[1];
+  };
+  // A room answer can corroborate the numeric observation, but it cannot
+  // supply decibels for a floor interval without a numeric observation.
+  return covers(covered) &&
+    (characteristicId !== "quiet_night" || covers(numericCovered));
 }
 
 export function scopeSupportSelfChecks() {
@@ -169,12 +178,32 @@ export function scopeSupportSelfChecks() {
     false,
     "reversed-numeric-noise-is-invalid",
   );
+  const noiseFact = (min, max, value) =>
+    fact(min, max, { characteristic_id: "quiet_night", value });
+  const noiseCases = [
+    ["numeric-plus-agreeing-room-answer", [
+      noiseFact(1, 5, { night_db_min: 34, night_db_max: 50 }),
+      noiseFact(5, 5, { available: true }),
+    ], true],
+    ["boolean-answer-does-not-fill-numeric-gap", [
+      noiseFact(1, 4, { night_db_min: 34, night_db_max: 50 }),
+      noiseFact(5, 5, { available: true }),
+    ], false],
+    ["boolean-answer-without-numbers", [noiseFact(1, 5, { available: true })], false],
+    ["numeric-plus-contradicting-room-answer", [
+      noiseFact(1, 5, { night_db_min: 34, night_db_max: 50 }),
+      noiseFact(5, 5, { available: false }),
+    ], false],
+  ];
+  for (const [name, facts, expected] of noiseCases)
+    assert.equal(scopeIsSupported(option, facts, { hotelId, characteristicId: "quiet_night" }), expected, name);
   return {
     status: "passed",
     checks: [
       ...cases.map(([name]) => name),
       "numeric-noise-unavailable-is-still-data",
       "reversed-numeric-noise-is-invalid",
+      ...noiseCases.map(([name]) => name),
     ],
   };
 }

@@ -21,6 +21,9 @@ import {
 import {
   buildingModels,
   hotelPhotos,
+  HotelMapPhotosLink,
+  safeHttpUrl,
+  safePhotoUrl,
   photoCredit,
   photoLabel,
   type HotelPhoto,
@@ -461,42 +464,62 @@ function verdictSummary(verdict: Verdict) {
   return prefix ? first.slice(prefix.length) : first;
 }
 
-export function HotelVisual({
+export function HotelVisual(props: {
+  hotel: Hotel;
+  className?: string;
+  credit?: boolean;
+  fallbackLink?: boolean;
+}) {
+  return <HotelVisualContent key={props.hotel.id} {...props} />;
+}
+function HotelVisualContent({
   hotel,
   className = "",
   credit = false,
+  fallbackLink = false,
 }: {
   hotel: Hotel;
   className?: string;
   credit?: boolean;
+  fallbackLink?: boolean;
 }) {
   const index = useResource(hotelPhotos);
   const models = useResource(buildingModels);
   const [failed, setFailed] = useState<string[]>([]);
+  const fail = (url: string) => setFailed((old) => [...old, url]);
   const own: HotelPhoto[] = hotel.image?.startsWith("/data/")
     ? [{ kind: "building", url: hotel.image, local: true }]
     : [];
-  const photo = [...own, ...(index.data?.[hotel.id] || [])].find(
-    (p) =>
-      (p.local ? p.url.startsWith("/data/") : p.url.startsWith("https://")) &&
-      !failed.includes(p.url),
-  );
+  const priority = { building: 0, official_site: 1, street: 2, room: 3 };
+  const photo = [...own, ...(index.data?.[hotel.id] || [])]
+    .filter(
+      (p) =>
+        p.kind !== "room" &&
+        (p.kind !== "street" || p.local) &&
+        safePhotoUrl(p.url, p.local) &&
+        !failed.includes(p.url),
+    )
+    .sort((a, b) => priority[a.kind] - priority[b.kind])[0];
   return (
     <div className={`hotel-visual ${photo ? "has-photo" : ""} ${className}`}>
       {photo ? (
         <>
           <img
             src={photo.url}
-            alt={`${hotel.name}: ${photo.kind === "building" ? "здание отеля" : "фото с сайта отеля"}`}
+            alt={`${hotel.name}: ${photo.kind === "building" ? "здание отеля" : photo.kind === "street" ? "вид с улицы" : "фото с сайта отеля"}`}
             loading="lazy"
             decoding="async"
             referrerPolicy="no-referrer"
-            onError={() => setFailed((old) => [...old, photo.url])}
+            onError={() => fail(photo.url)}
           />
           <span className="photo-credit" title={photoCredit(photo)}>
             {photoLabel(photo)}
-            {credit && photo.page_url && (
-              <a href={photo.page_url} target="_blank" rel="noreferrer">
+            {credit && safeHttpUrl(photo.page_url) && (
+              <a
+                href={safeHttpUrl(photo.page_url)!}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 {photo.author ? `${photo.author} · ` : ""}
                 {photo.license || "источник"} <ExternalLink size={11} />
               </a>
@@ -511,9 +534,7 @@ export function HotelVisual({
             alt={`${hotel.name}: схема района по открытым данным`}
             loading="lazy"
             decoding="async"
-            onError={() =>
-              setFailed((old) => [...old, models.data![hotel.id].url])
-            }
+            onError={() => fail(models.data![hotel.id].url)}
           />
           <span
             className="photo-credit"
@@ -540,6 +561,9 @@ export function HotelVisual({
             <small>Схема · фото отеля пока нет</small>
           </span>
         </>
+      )}
+      {fallbackLink && !photo && (
+        <HotelMapPhotosLink hotel={hotel} className="visual-map-link" />
       )}
       {hotel.stars && <span className="stars">{"★".repeat(hotel.stars)}</span>}
     </div>

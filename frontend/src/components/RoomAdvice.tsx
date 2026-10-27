@@ -18,10 +18,14 @@ export function RoomAdviceList({
   hotelId,
   month,
   onSelect,
+  profile,
+  requestedCharacteristicIds = [],
 }: {
   hotelId: string;
   month: number;
   onSelect?: (scope: RoomScope) => void;
+  profile?: RoomProfile | null;
+  requestedCharacteristicIds?: string[];
 }) {
   const advice = useResource(
     () => roomAdvice(hotelId, month),
@@ -47,6 +51,15 @@ export function RoomAdviceList({
           />
         </div>
       )}
+      {profile && (
+        <AdviceCompromise
+          hotelId={hotelId}
+          advice={advice.data || []}
+          profile={profile}
+          requestedCharacteristicIds={requestedCharacteristicIds}
+          onSelect={onSelect}
+        />
+      )}
       {advice.data?.slice(0, 4).map((item) => (
         <AdviceCard
           key={item.id}
@@ -55,6 +68,108 @@ export function RoomAdviceList({
           onSelect={onSelect}
         />
       ))}
+    </div>
+  );
+}
+
+/** Full coverage of the recommended range, including adjacent options. */
+export function adviceCoversScope(advice: Advice, scope: RoomScope) {
+  const start = scope.floor_min ?? 1,
+    end = scope.floor_max ?? Infinity;
+  const intervals = advice.options
+    .filter(
+      (option) =>
+        (!option.scope.facade || option.scope.facade === scope.facade) &&
+        (!option.scope.month || option.scope.month === scope.month) &&
+        (!option.scope.room_type || option.scope.room_type === scope.room_type),
+    )
+    .map((option) => [
+      option.scope.floor_min ?? 1,
+      option.scope.floor_max ?? Infinity,
+    ])
+    .sort((a, b) => a[0] - b[0]);
+  let covered = start - 1;
+  for (const [min, max] of intervals) {
+    if (max < start || min > end) continue;
+    if (min > covered + 1) return false;
+    covered = Math.max(covered, max);
+  }
+  return covered >= end;
+}
+function AdviceCompromise({
+  hotelId,
+  advice,
+  profile,
+  requestedCharacteristicIds,
+  onSelect,
+}: {
+  hotelId: string;
+  advice: Advice[];
+  profile: RoomProfile;
+  requestedCharacteristicIds: string[];
+  onSelect?: (scope: RoomScope) => void;
+}) {
+  const item = profile.scope.facade
+    ? advice.find(
+        (entry) =>
+          requestedCharacteristicIds.includes(entry.characteristic_id) &&
+          entry.options.some(
+            (option) =>
+              option.fact_ids.length > 0 && option.evidence_refs.length > 0,
+          ) &&
+          !adviceCoversScope(entry, profile.scope),
+      )
+    : undefined;
+  const option = item?.options.find(
+    (option) => option.fact_ids.length > 0 && option.evidence_refs.length > 0,
+  );
+  const { evidence, error, busy, showEvidence, closeEvidence, retryEvidence } =
+    useRoomEvidence(hotelId, { compromise: option?.fact_ids || [] });
+  if (!item || !option) return null;
+  const goal =
+    {
+      quiet_night: "Для меньшего уличного шума",
+      sea_view: "Для вида на море",
+      sunset_view: "Для вида на закат",
+      mountain_view: "Для вида на горы",
+      morning_sun: "Для утреннего солнца",
+    }[item.characteristic_id] || item.title;
+  return (
+    <div
+      className="room-advice-compromise"
+      data-testid="room-advice-compromise"
+      data-characteristic-id={item.characteristic_id}
+      data-evidence-refs={JSON.stringify(option.evidence_refs)}
+    >
+      <p>
+        {goal}:{" "}
+        <button
+          className="text-button small"
+          onClick={() => onSelect?.(option.scope)}
+        >
+          {scopeText(roomEvidenceScope(option.scope))}
+        </button>
+        ; это отличается от варианта под ваш запрос.
+      </p>
+      {option.status === "partial" && (
+        <span className="badge warning">Пока неточно</span>
+      )}
+      {option.synthetic && <Synthetic />}
+      <button
+        className="text-button small"
+        disabled={busy || !option.fact_ids.length}
+        onClick={() => showEvidence("compromise")}
+      >
+        Источник <ArrowUpRight size={12} />
+      </button>
+      <ErrorState error={error} retry={retryEvidence} />
+      {evidence && (
+        <EvidenceModal
+          fact={evidence.fact}
+          claims={evidence.claims}
+          onClose={closeEvidence}
+        />
+      )}
     </div>
   );
 }
@@ -223,6 +338,7 @@ export function RoomAdviceSection({
   month,
   recommendation,
   profile,
+  requestedCharacteristicIds = [],
   onSelect,
   children,
 }: {
@@ -230,6 +346,7 @@ export function RoomAdviceSection({
   month: number;
   recommendation?: string | null;
   profile?: RoomProfile | null;
+  requestedCharacteristicIds?: string[];
   children?: ReactNode;
   onSelect: (scope: RoomScope) => void;
 }) {
@@ -262,7 +379,13 @@ export function RoomAdviceSection({
           ? "Если важнее что-то другое"
           : "Выберите, что важно для вашего отдыха"}
       </p>
-      <RoomAdviceList hotelId={hotelId} month={month} onSelect={onSelect} />
+      <RoomAdviceList
+        hotelId={hotelId}
+        month={month}
+        onSelect={onSelect}
+        profile={recommendation ? profile : undefined}
+        requestedCharacteristicIds={requestedCharacteristicIds}
+      />
       <p className="fine-print room-stock-note">
         Советы относятся к сторонам здания и этажам. Реальный номер,
         расположение окон и наличие мест подтвердит отель.
