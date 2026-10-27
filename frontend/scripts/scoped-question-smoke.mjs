@@ -524,6 +524,8 @@ try {
       loader: "jsx",
     },
     bundle: true,
+    // This component harness uses the production page's stylesheet.
+    loader: { ".css": "empty" },
     write: false,
     format: "esm",
     define: { "process.env.NODE_ENV": '"production"' },

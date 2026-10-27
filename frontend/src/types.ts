@@ -449,14 +449,17 @@ export interface Geo {
   hotel_id?: string;
   center?: [number, number];
   building?: GeoJSON.Feature;
-  nearby?: GeoJSON.FeatureCollection<GeoJSON.Point, {
-    kind: string;
-    name: string;
-    osm_id: string;
-    characteristic_id: string;
-    distance_m?: number | null;
-    source_ids?: string[];
-  }>;
+  nearby?: GeoJSON.FeatureCollection<
+    GeoJSON.Point,
+    {
+      kind: string;
+      name: string;
+      osm_id: string;
+      characteristic_id: string;
+      distance_m?: number | null;
+      source_ids?: string[];
+    }
+  >;
   computed_at?: string;
   artifact?: string;
   floors?: { count?: number | null; modeled_count?: number };
@@ -571,7 +574,6 @@ export interface QualityReport extends Json {
   provenance?: FactProvenance;
   filter_comparison?: FilterComparison | null;
 }
-
 
 export interface RoomAdviceOption {
   scope: RoomScope;

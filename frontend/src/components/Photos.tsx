@@ -2,6 +2,7 @@ import { ExternalLink } from "lucide-react";
 import { record, useResource } from "../api";
 import type { Json } from "../types";
 import type { Hotel, HotelPhoto } from "../types";
+import "../photo-links.css";
 export type { HotelPhoto } from "../types";
 let hotelPhotoIndex: Promise<Record<string, HotelPhoto[]>> | null = null;
 /** Photo index built offline by scripts/collect_hotel_photos.py; optional. */
@@ -149,21 +150,45 @@ export function yandexHotelUrl(hotel: Pick<Hotel, "name" | "lat" | "lon">) {
 export function HotelMapPhotosLink({
   hotel,
   className = "text-button small",
+  prominent = false,
+  hint,
 }: {
   hotel: Hotel;
   className?: string;
+  prominent?: boolean;
+  hint?: string;
 }) {
-  return (
+  const overlay = className.split(/\s+/).includes("visual-map-link");
+  const primary = prominent || overlay;
+  const link = (
     <a
-      className={className}
+      className={primary ? "photo-map-button" : className}
       data-testid="hotel-map-photos-link"
       href={yandexHotelUrl(hotel)}
       title="Поиск по названию рядом с отелем"
+      aria-label={`Фото и отзывы о «${hotel.name}» на Яндекс Картах, откроется в новой вкладке`}
       target="_blank"
       rel="noopener noreferrer"
+      onClickCapture={(event) => event.stopPropagation()}
+      onAuxClickCapture={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+      onAuxClick={(event) => event.stopPropagation()}
     >
       Фото и отзывы на Яндекс Картах ↗
     </a>
+  );
+  return primary ? (
+    <div
+      className={`photo-map-callout ${overlay ? className : "photo-map-callout-detail"}`}
+      onClick={(event) => event.stopPropagation()}
+      onAuxClick={(event) => event.stopPropagation()}
+    >
+      {link}
+      <small className="photo-map-caption">Откроется в новой вкладке</small>
+      {hint && <p className="photo-map-hint">{hint}</p>}
+    </div>
+  ) : (
+    link
   );
 }
 export function photoLabel(photo: HotelPhoto) {

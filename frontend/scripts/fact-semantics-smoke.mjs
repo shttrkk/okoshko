@@ -534,6 +534,8 @@ try {
       loader: "jsx",
     },
     bundle: true,
+    // The harness already loads the exact CSS served by the application.
+    loader: { ".css": "empty" },
     write: false,
     format: "esm",
     define: { "process.env.NODE_ENV": '"production"' },

@@ -52,6 +52,7 @@ RADIUS_M = 150
 CATEGORY_MEMBER_MAX_M = 400
 THUMB_WIDTH = 800
 MAX_WEBP_BYTES = 150_000
+MAX_EXTERNAL_BYTES = 2_000_000
 MIN_SITE_WIDTH = 480
 ASPECT = (1.0, 2.4)
 SHARED_SITE_SPREAD_M = 300
@@ -217,11 +218,12 @@ class Net:
         host = urlsplit(url).hostname
         if self.site_domain and site_of(host) != self.site_domain:
             raise ValueError("Redirect outside seed website domain")
-        wait = max(self.last.get(host, 0.0) + HOST_INTERVAL_S.get(host, 1.0),
-                   self.cooldown.get(host, 0.0)) - time.monotonic()
+        domain = site_of(host)
+        wait = max(self.last.get(domain, 0.0) + HOST_INTERVAL_S.get(host, 1.0),
+                   self.cooldown.get(domain, 0.0)) - time.monotonic()
         if wait > 0:
             time.sleep(wait)
-        self.last[host] = time.monotonic()
+        self.last[domain] = time.monotonic()
         self.requests += 1
 
     def _cached(self, kind, key):
@@ -310,10 +312,12 @@ class Net:
                     delay = max(0, (until - datetime.now(UTC)).total_seconds())
                 except (ValueError, TypeError, OverflowError):
                     delay = 0
-            self.cooldown[urlsplit(str(response.url)).hostname] = time.monotonic() + delay
+            self.cooldown[site_of(urlsplit(str(response.url)).hostname)] = time.monotonic() + delay
         metadata = {"url": url, "final_url": str(response.url), "status": response.status_code,
                     "content_type": response.headers.get("content-type", ""), "bytes": len(response.content),
                     "retrieved_at": datetime.now(UTC).isoformat()}
+        if kind == "site_images" and len(response.content) > MAX_EXTERNAL_BYTES:
+            return self._store(path, {**metadata, "error": "external image exceeds byte budget"})
         if self.preview_only and kind == "site_images":
             # QA only: retain dimensions/hash and a small review preview, never the official original.
             from PIL import Image, ImageOps
@@ -744,6 +748,8 @@ def page_identity(hotel, document, final_url, original_url):
 
 
 def probe_image(net, url):
+    if urlsplit(url).scheme != "https":
+        return None, "external image requires HTTPS"
     record = net.get(url, "site_images")
     if not record or record.get("error"):
         return None, (record or {}).get("error", "not cached")
@@ -752,6 +758,21 @@ def probe_image(net, url):
     ctype = record["content_type"].split(";")[0].strip().lower()
     if not ctype.startswith("image/") or "svg" in ctype or "gif" in ctype:
         return None, "content-type " + ctype
+    served = record.get("final_url", url)
+    if urlsplit(served).scheme != "https" or denied(served) or not image_host_ok(served, url):
+        return None, "insecure or foreign image redirect"
+    probe = record.get("probe")
+    payload = net.body(record, "site_images") if record.get("body") else None
+    size = len(payload) if payload is not None else (probe or {}).get("bytes", record.get("bytes"))
+    if type(size) is not int or not 0 < size <= MAX_EXTERNAL_BYTES:
+        return None, "external image exceeds byte budget or has no exact byte size"
+    if record.get("bytes") is not None and record["bytes"] != size:
+        return None, "cached byte size mismatch"
+    if probe and (probe.get("bytes") != size or not isinstance(probe.get("sha256"), str)
+                  or not re.fullmatch(r"[0-9a-f]{64}", probe["sha256"])
+                  or probe.get("final_url", served) != served
+                  or payload is not None and probe["sha256"] != hashlib.sha256(payload).hexdigest()):
+        return None, "cached image digest or byte size mismatch"
     from PIL import Image
 
     try:
@@ -766,10 +787,29 @@ def probe_image(net, url):
     if not ASPECT[0] <= width / height <= ASPECT[1]:
         return None, f"aspect {width}x{height}"
     if record.get("probe"):
-        return record["probe"], "ok"
-    payload = net.body(record, "site_images")
+        return {**record["probe"], "final_url": served}, "ok"
     return {"width": width, "height": height, "final_url": record.get("final_url", url),
             "bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}, "ok"
+
+
+def external_photo_issue(entry, website=None):
+    """Final assembly guard, including unchanged legacy rows and scoped rebuilds."""
+    if entry.get("kind") not in {"official_site", "room"}:
+        return None
+    for field in ("url", "page_url"):
+        url = entry.get(field, "")
+        parts = urlsplit(url)
+        if parts.scheme != "https" or not parts.hostname or parts.username or parts.password:
+            return "external image and source page require HTTPS"
+        if denied(url) or website and not image_host_ok(url, website):
+            return "outside seed website domain"
+    if entry.get("local") is not False:
+        return "official images must remain external links"
+    if type(entry.get("bytes")) is not int or not 0 < entry["bytes"] <= MAX_EXTERNAL_BYTES:
+        return "external image exceeds byte budget or has no exact byte size"
+    if not isinstance(entry.get("sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", entry["sha256"]):
+        return "external image has no SHA-256"
+    return None
 
 
 def image_host_ok(image_url, page_url):
@@ -976,11 +1016,12 @@ def build(args):
     for hotel_id, rows in photos.items():
         valid = []
         for entry in rows:
-            if entry["kind"] in {"official_site", "room"} and (
-                not websites.get(hotel_id) or any(denied(url) or not image_host_ok(url, websites[hotel_id])
-                                                for url in (entry["url"], entry["page_url"]))):
+            issue = external_photo_issue(entry, websites.get(hotel_id))
+            if entry["kind"] in {"official_site", "room"} and not websites.get(hotel_id):
+                issue = "missing seed website domain"
+            if issue:
                 report["official_log"].append({"hotel_id": hotel_id, "url": entry["url"], "status": "removed",
-                                               "reason": "outside seed website domain"})
+                                               "reason": issue})
             else:
                 valid.append(entry)
         photos[hotel_id] = valid

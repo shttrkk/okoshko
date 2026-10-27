@@ -1,14 +1,14 @@
 {
- "generated_at": "2026-10-27T14:28:41+00:00",
+ "generated_at": "2026-10-27T17:31:13+00:00",
  "method": "Фото собраны разовым офлайн-этапом подготовки данных; во время работы сервис ничего не скачивает. Уровень «building» — свободно лицензированное фото самого здания с Wikimedia Commons: изображение P18 из Wikidata по явной ссылке OSM, теги OSM image/wikimedia_commons или файлы и категории Commons в радиусе 150 м от точки отеля, в названии, описании или категории которых нормализованное имя отеля (с транслитерацией ru↔en, без общих слов «отель», «гостиница», «hotel», «апартаменты», «гостевой дом») совпадает с названием; берутся только CC0, PD, CC BY и CC BY-SA, автор, лицензия и страница файла сохраняются, миниатюра 800 px хранится локально в webp. Уровень «official_site» — крупное фото с собственного сайта отеля, его страниц галереи/номеров/об отеле на том же домене, что seed.website (не OTA, не агрегаторы, не соцсети; robots.txt соблюдается); сайт должен называть отель и Сочи/Адлер, общие сайты сетей без страницы конкретного объекта пропускаются; такие изображения не копируются в репозиторий — хранится только ссылка на файл и страницу, права остаются у отеля. Картинки проверены на размер (ширина от 480 px, пропорции 1,0–2,4) и отсутствие признаков логотипа; verified_by_eye=true означает ручной просмотр. Фото не доказывают вид из окна, этаж или состояние номера; отели без фото остаются без записи, интерфейс показывает схему. Фото «room» — вручную проверенные интерьеры гостевых номеров с того же домена, максимум восемь на отель; это не доказательство этажа или стороны. Счётчики counts — по лучшему уровню без room, отдельные room_hotel_count/room_photo_count считают номера.",
  "counts": {
   "building": 8,
-  "official_site": 35,
+  "official_site": 33,
   "street": 0,
-  "none": 207
+  "none": 209
  },
- "room_hotel_count": 34,
- "room_photo_count": 85,
+ "room_hotel_count": 33,
+ "room_photo_count": 81,
  "photos": {
   "osm-node-10118233110": [
    {
@@ -44,7 +44,9 @@
     "distance_m": null,
     "width": 2560,
     "height": 1600,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 479618,
+    "sha256": "e4962764c89749482c19ef421b1bc2346abcd812d307b86a56c44f3d20f7a1d6"
    }
   ],
   "osm-node-11016638375": [
@@ -61,7 +63,9 @@
     "distance_m": null,
     "width": 1715,
     "height": 1072,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 229218,
+    "sha256": "5b410571c5bbba026eb36653fd16be698f2e94ca5a046a35bdc845e0da3fdf56"
    },
    {
     "kind": "room",
@@ -129,7 +133,9 @@
     "distance_m": null,
     "width": 1920,
     "height": 1251,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 212012,
+    "sha256": "8933da0a990029885c5fc8ec498656e342509363362f916f58259521c40b8097"
    },
    {
     "kind": "room",
@@ -214,7 +220,9 @@
     "distance_m": null,
     "width": 2560,
     "height": 1600,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 735718,
+    "sha256": "c4d49e085f1b4515d02e556f498ac0e8d069baa0f16476baf1ac3cc4997044d6"
    },
    {
     "kind": "room",
@@ -265,7 +273,9 @@
     "distance_m": null,
     "width": 2560,
     "height": 1600,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 416666,
+    "sha256": "2b481da4f88d8e8fc04d262a688c5cfc88ced65ec9d77b4baf24c6dc54b46475"
    },
    {
     "kind": "room",
@@ -316,7 +326,9 @@
     "distance_m": null,
     "width": 1545,
     "height": 1545,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 1308190,
+    "sha256": "44b2bd1d7fae31cba9bd5753e6e1e0b11cc17fef7617f5b2d12d14ed7591ccd0"
    }
   ],
   "osm-node-12183637632": [
@@ -333,7 +345,9 @@
     "distance_m": null,
     "width": 2560,
     "height": 1600,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 222900,
+    "sha256": "dab55cf374aa1c54740ebcd6d0c8803c833630cda13cbbcab1751f8e5a3b4fd8"
    },
    {
     "kind": "room",
@@ -401,7 +415,9 @@
     "distance_m": null,
     "width": 1920,
     "height": 1281,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 415875,
+    "sha256": "fcf1ea9c5fd2c6a674ef7db7ffe739a5dfc07b1520e2d0c78bdfe86d3672b716"
    },
    {
     "kind": "room",
@@ -435,7 +451,9 @@
     "distance_m": null,
     "width": 2560,
     "height": 1600,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 429008,
+    "sha256": "3063419c204c6e5bf77883eaee2eaa5b61ff7a21988b0685b91b14a238fe92f2"
    },
    {
     "kind": "room",
@@ -469,7 +487,9 @@
     "distance_m": null,
     "width": 1200,
     "height": 801,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 376687,
+    "sha256": "01b8d20a3f3bb1cf43fa62cbd1479dfcbe25f56e9eb4d6299737613b0337080c"
    },
    {
     "kind": "room",
@@ -641,7 +661,9 @@
     "distance_m": null,
     "width": 1920,
     "height": 1080,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 368437,
+    "sha256": "1340572ae7a4e33edc6f8157d4f3486a9b518d7b527e92dd4be06841b9f2ba69"
    },
    {
     "kind": "room",
@@ -779,7 +801,9 @@
     "distance_m": null,
     "width": 1536,
     "height": 960,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 153698,
+    "sha256": "d32cc6adc7c2b27ccc6c721f46e607fe5f3a25e8c46edcc0ac1c65be92c2ee06"
    },
    {
     "kind": "room",
@@ -830,7 +854,9 @@
     "distance_m": null,
     "width": 640,
     "height": 480,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 121005,
+    "sha256": "0d14427dc45634dda6ef8c938e4fe1614ee50c86f2272688bf5d2ef4e3c96c7d"
    },
    {
     "kind": "room",
@@ -898,7 +924,9 @@
     "distance_m": null,
     "width": 1184,
     "height": 864,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 91830,
+    "sha256": "d4e7918c28c488ea2fdb09b1d4a715fff60df02ff42039590a723ff611bb4541"
    },
    {
     "kind": "room",
@@ -932,7 +960,9 @@
     "distance_m": null,
     "width": 1199,
     "height": 797,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 765852,
+    "sha256": "2a29b7d663d6da49c69b841b8a5e22e12bcf2317a9223fb2bdbce10562b60b3a"
    },
    {
     "kind": "room",
@@ -954,23 +984,6 @@
   ],
   "osm-way-207637828": [
    {
-    "kind": "official_site",
-    "url": "https://www.bridgefamily.ru/img/nomera/semeiny/32.JPG",
-    "local": false,
-    "page_url": "https://www.bridgefamily.ru/nomera",
-    "title": "Номера",
-    "author": null,
-    "license": null,
-    "license_url": null,
-    "match": "hero_img",
-    "distance_m": null,
-    "width": 5718,
-    "height": 3770,
-    "bytes": 11662622,
-    "sha256": "cb8b3657167e05ff6d6e4ab41c986781e411ff52bbe4a7cfe530e5a547652eff",
-    "verified_by_eye": true
-   },
-   {
     "kind": "room",
     "url": "https://www.bridgefamily.ru/img/nomera/semeiny/standart-1.jpg",
     "local": false,
@@ -985,23 +998,6 @@
     "height": 1200,
     "bytes": 1533482,
     "sha256": "18b5557091e4310210613e0c12c0fb7114b92674544c9a6c62399e7ef79ae620",
-    "verified_by_eye": true
-   },
-   {
-    "kind": "room",
-    "url": "https://www.bridgefamily.ru/img/nomera/semeiny/33.JPG",
-    "local": false,
-    "page_url": "https://www.bridgefamily.ru/nomera",
-    "title": "Номера",
-    "author": null,
-    "license": null,
-    "license_url": null,
-    "match": "hero_img",
-    "distance_m": null,
-    "width": 5700,
-    "height": 3659,
-    "bytes": 10370037,
-    "sha256": "0feee3e919d620e833fac6230db55beeae3b943daaf8e294f1e677a9fd448b0b",
     "verified_by_eye": true
    }
   ],
@@ -1037,7 +1033,9 @@
     "distance_m": null,
     "width": 2400,
     "height": 1731,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 495892,
+    "sha256": "b92d27159beac89d84d507deef3bbbde8eb5ea33f7ce92800b8d3f5bce5fea98"
    },
    {
     "kind": "room",
@@ -1088,7 +1086,9 @@
     "distance_m": null,
     "width": 2560,
     "height": 1600,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 352162,
+    "sha256": "d42b87bc5019ecd437a330d20b2478ab2564421901b55e215feca50e4846e38e"
    },
    {
     "kind": "room",
@@ -1156,7 +1156,9 @@
     "distance_m": null,
     "width": 2400,
     "height": 1600,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 433539,
+    "sha256": "eefd98045cfd5fd30698028a3be383a7c6ae9137b256ed48b050c04f00660397"
    },
    {
     "kind": "room",
@@ -1207,7 +1209,9 @@
     "distance_m": null,
     "width": 2560,
     "height": 1600,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 555002,
+    "sha256": "232b8b7ad4c3ebd5762dab85776b6eec7ca23f8fb96bd14207b0c786ab534235"
    },
    {
     "kind": "room",
@@ -1278,7 +1282,9 @@
     "distance_m": null,
     "width": 1301,
     "height": 805,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 191236,
+    "sha256": "1f526b802c7127336b49e7cf318db28735dbfe21a90b9fe1b49301d33c2094e2"
    }
   ],
   "osm-way-51847429": [
@@ -1389,7 +1395,9 @@
     "distance_m": null,
     "width": 2560,
     "height": 1600,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 454370,
+    "sha256": "6a7f5009baa3488d82d4f398a74d8d6b5db731f51b45113c05b5f67e0300607f"
    },
    {
     "kind": "room",
@@ -1460,7 +1468,9 @@
     "distance_m": null,
     "width": 1400,
     "height": 931,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 398100,
+    "sha256": "227349f2a57418a4ed0de8affd5ce156824ebdf7d03bc795a29a9f0999291624"
    },
    {
     "kind": "room",
@@ -1545,7 +1555,9 @@
     "distance_m": null,
     "width": 1000,
     "height": 667,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 78776,
+    "sha256": "6c6f7a8d7a45bf0115377c1a37ee52a773a8726e654bce54b622f6cb9f9e5745"
    },
    {
     "kind": "room",
@@ -1664,7 +1676,9 @@
     "distance_m": null,
     "width": 1920,
     "height": 1080,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 230129,
+    "sha256": "1b669b20f784593decb5d15a89ccaa7dff4f45da5771a529a643486ac427cf5f"
    },
    {
     "kind": "room",
@@ -1738,74 +1752,6 @@
     "verified_by_eye": true
    }
   ],
-  "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13": [
-   {
-    "kind": "official_site",
-    "url": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/slider1.jpg",
-    "local": false,
-    "page_url": "http://hotel-sochi-riviera.ru",
-    "title": "Home - Отель ''Сочи Ривьера'' - Ещё один сайт на WordPress",
-    "author": null,
-    "license": null,
-    "license_url": null,
-    "match": "hero_img",
-    "distance_m": null,
-    "width": 940,
-    "height": 441,
-    "verified_by_eye": true
-   },
-   {
-    "kind": "room",
-    "url": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6233.jpg",
-    "local": false,
-    "page_url": "http://hotel-sochi-riviera.ru/?page_id=73",
-    "title": "- Отель ''Сочи Ривьера''",
-    "author": null,
-    "license": null,
-    "license_url": null,
-    "match": "hero_img",
-    "distance_m": null,
-    "width": 5184,
-    "height": 3456,
-    "bytes": 1417004,
-    "sha256": "dfa655c7aa22b2132375f12de6d51439dcdec84c0f2a93acd9fa49d3417e7f2b",
-    "verified_by_eye": true
-   },
-   {
-    "kind": "room",
-    "url": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6243.jpg",
-    "local": false,
-    "page_url": "http://hotel-sochi-riviera.ru/?page_id=73",
-    "title": "- Отель ''Сочи Ривьера''",
-    "author": null,
-    "license": null,
-    "license_url": null,
-    "match": "hero_img",
-    "distance_m": null,
-    "width": 5184,
-    "height": 3456,
-    "bytes": 1262019,
-    "sha256": "415b754a8ba1c7d07a657561f4b361f0aeee836e01d00583512ae16d0b6fa6d4",
-    "verified_by_eye": true
-   },
-   {
-    "kind": "room",
-    "url": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6234.jpg",
-    "local": false,
-    "page_url": "http://hotel-sochi-riviera.ru/?page_id=73",
-    "title": "- Отель ''Сочи Ривьера''",
-    "author": null,
-    "license": null,
-    "license_url": null,
-    "match": "hero_img",
-    "distance_m": null,
-    "width": 5184,
-    "height": 3456,
-    "bytes": 1440492,
-    "sha256": "ded55c05e48631d9dd0d3ab60227d3fd9006bfc136d02d4205f182dac8b33d0d",
-    "verified_by_eye": true
-   }
-  ],
   "overture-19a359ae-d6b8-4686-8643-36a55ee46219": [
    {
     "kind": "official_site",
@@ -1820,7 +1766,9 @@
     "distance_m": null,
     "width": 800,
     "height": 600,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 109552,
+    "sha256": "4719d0644b924c5765f11106a5ce3eacb1b8ec87be3078b5a0724bc646114fbf"
    },
    {
     "kind": "room",
@@ -1854,7 +1802,9 @@
     "distance_m": null,
     "width": 2560,
     "height": 1600,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 790748,
+    "sha256": "0cd1f22eb0b1b35308b80ba7edfed3f057126f7229c0a521540a401943a33694"
    },
    {
     "kind": "room",
@@ -1877,9 +1827,9 @@
   "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7": [
    {
     "kind": "official_site",
-    "url": "http://sochi-sunrise.ru/img/324776304f426da7.webp",
+    "url": "https://sochi-sunrise.ru/img/324776304f426da7.webp",
     "local": false,
-    "page_url": "http://sochi-sunrise.ru/",
+    "page_url": "https://sochi-sunrise.ru/",
     "title": "Санрайз, Сочи - официальный сайт отеля",
     "author": null,
     "license": null,
@@ -1888,13 +1838,15 @@
     "distance_m": null,
     "width": 2560,
     "height": 1600,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 94816,
+    "sha256": "abdd3e36e9c64e0f78064bd500fc810c4ebf09cdf0e714a947df05ddadb7cd65"
    },
    {
     "kind": "room",
-    "url": "http://sochi-sunrise.ru/img/a890e6691b925f70.webp",
+    "url": "https://sochi-sunrise.ru/img/a890e6691b925f70.webp",
     "local": false,
-    "page_url": "http://sochi-sunrise.ru/",
+    "page_url": "https://sochi-sunrise.ru/",
     "title": "Санрайз, Сочи - официальный сайт отеля",
     "author": null,
     "license": null,
@@ -1909,9 +1861,9 @@
    },
    {
     "kind": "room",
-    "url": "http://sochi-sunrise.ru/img/8f77bd341518cc7d.webp",
+    "url": "https://sochi-sunrise.ru/img/8f77bd341518cc7d.webp",
     "local": false,
-    "page_url": "http://sochi-sunrise.ru/",
+    "page_url": "https://sochi-sunrise.ru/",
     "title": "Санрайз, Сочи - официальный сайт отеля",
     "author": null,
     "license": null,
@@ -1939,7 +1891,9 @@
     "distance_m": null,
     "width": 580,
     "height": 400,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 65856,
+    "sha256": "11d39ed4a9f26d58df9877de56d135fd91b2026ba544c8541ae567de4ced82c6"
    },
    {
     "kind": "room",
@@ -1973,7 +1927,9 @@
     "distance_m": null,
     "width": 2560,
     "height": 1600,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 256634,
+    "sha256": "4784b6d781ea1528cc6c87ef75047e99be58d31e7b707ab216babac52ff88b52"
    },
    {
     "kind": "room",
@@ -2007,7 +1963,9 @@
     "distance_m": null,
     "width": 1920,
     "height": 1280,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 1175605,
+    "sha256": "ca1987d0e3dd57eab9837a3bdfc9b64f0f4ef61ebbb03d5427fc7926121a0d5d"
    },
    {
     "kind": "room",
@@ -2075,7 +2033,9 @@
     "distance_m": null,
     "width": 2560,
     "height": 1600,
-    "verified_by_eye": true
+    "verified_by_eye": true,
+    "bytes": 789932,
+    "sha256": "4a016b28689b26994b07778d77f106e0b650011cd8faaa2d38621fb770a9f01c"
    },
    {
     "kind": "room",

@@ -705,8 +705,8 @@ try {
     )
     .allTextContents();
   check(
-    notes.length === 3 &&
-      new Set(notes).size === 3 &&
+    notes.length === 2 &&
+      new Set(notes).size === 2 &&
       notes.every((note) => !/подтвержден/iu.test(note)),
     "partial-group-notes-distinct-and-honest",
     notes,
@@ -714,6 +714,11 @@ try {
   check(
     (await fpage.getByTestId("partial-legend").count()) === 1,
     "three-groups-keep-one-legend",
+  );
+  check(
+    (await fpage.locator(".result-group").filter({ has: fpage.getByTestId("partial-legend") })
+      .locator(":scope > .result-group-note").count()) === 1,
+    "legend-group-has-no-duplicate-explanation",
   );
   const legacyReason =
     "«Старый вариант»: выше совокупная оценка выполнения условий с учётом уверенности (89.1 против 63.5); проверьте оговорки в критериях.";

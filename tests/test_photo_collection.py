@@ -67,7 +67,7 @@ def test_scoped_rebuild_preserves_building_and_counts_room_only_as_none(tmp_path
     hotels = [{"id": "h1", "website": "https://hotel.ru/"}, {"id": "h2", "website": "https://other.ru/"}]
     building = {"kind": "building", "url": "/local.webp", "local": True, "verified_by_eye": True}
     room = {"kind": "room", "url": "https://other.ru/room.jpg", "page_url": "https://other.ru/rooms/",
-            "local": False, "verified_by_eye": True}
+            "local": False, "verified_by_eye": True, "bytes": 100, "sha256": "a" * 64}
     (tmp_path / "hotels.json").write_text(json.dumps(hotels))
     (tmp_path / "index.json").write_text(json.dumps({"photos": {"h1": [building], "h2": [room]}}))
     (tmp_path / "review.json").write_text(json.dumps({"accept": {"h2": {"room": [room["url"]]}}, "reject": []}))

@@ -69,5 +69,18 @@
   "new_product_binary_bytes": 0,
   "visual_candidates_reviewed": 312,
   "new_images_selected": 90,
-  "candidates_not_selected": 222
+  "candidates_not_selected": 222,
+  "current_index_revalidation": {
+    "external_records": 116,
+    "cover_hotels": 41,
+    "room_photos": 81,
+    "room_hotels": 33,
+    "external_max_bytes": 1533482,
+    "external_limit_bytes": 2000000,
+    "http_records": 0,
+    "removed_oversized": 2,
+    "removed_https_unavailable": 4,
+    "verified_https_upgrades": 3,
+    "new_product_binary_bytes": 0
+  }
 }

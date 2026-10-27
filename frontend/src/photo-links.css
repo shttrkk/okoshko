@@ -1,0 +1,78 @@
+/* Map providers stay external: this callout is an ordinary guest-initiated link. */
+.photo-map-callout {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
+  color: var(--text);
+}
+.hotel-visual .photo-map-callout.visual-map-link {
+  top: 50%;
+  right: 12px;
+  left: 12px;
+  max-width: none;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  transform: translateY(-50%);
+  box-shadow: 0 4px 18px #0003;
+}
+.photo-map-callout .photo-map-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px 15px;
+  border: 1px solid var(--heading);
+  border-radius: 8px;
+  background: var(--heading);
+  color: var(--surface);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.5;
+  text-align: center;
+  text-wrap: balance;
+}
+.photo-map-callout .photo-map-button:hover {
+  border-color: var(--text);
+  background: var(--text);
+}
+.photo-map-callout .photo-map-caption {
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+.hotel-photo-actions .photo-map-callout-detail {
+  flex-basis: 100%;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.photo-map-callout-detail .photo-map-button {
+  min-height: 52px;
+  font-size: 14px;
+}
+.photo-map-callout .photo-map-hint {
+  margin-top: 3px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 680px) {
+  .hotel-visual .photo-map-callout.visual-map-link {
+    right: 10px;
+    left: 10px;
+    padding: 10px;
+  }
+  .photo-map-callout .photo-map-button {
+    padding: 11px 12px;
+  }
+  .hotel-photo-actions .photo-map-callout-detail {
+    padding: 12px;
+  }
+}
