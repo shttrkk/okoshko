@@ -194,6 +194,11 @@ export async function request<T>(
     },
     body: body === undefined ? undefined : JSON.stringify(body),
     signal,
+  }).catch((error: unknown) => {
+    if (error instanceof Error && error.name === "AbortError") throw error;
+    throw new Error(
+      "Не удалось связаться с сервисом. Проверьте интернет и повторите попытку.",
+    );
   });
   const raw = await response.text();
   let data: unknown;
@@ -243,16 +248,13 @@ function trackDataRun(run: AgentRun) {
   return run;
 }
 const id = encodeURIComponent;
-// Catalog names stay technical for the parser; guests see plain words.
-const GUEST_NAMES: Record<string, string> = { evening_heat: "Вечернее солнце" };
+// Only this UI projection changes; the API catalogue keeps parser names.
 export const api = {
   status: () => request<Status>("/api/status"),
   hotels: () => request<Hotel[]>("/api/hotels"),
   specs: () =>
     request<Spec[]>("/api/characteristics").then((list) =>
-      list.map((s) =>
-        GUEST_NAMES[s.id] ? { ...s, name_ru: GUEST_NAMES[s.id] } : s,
-      ),
+      list.map((s) => ({ ...s, name_ru: s.display_name || s.name_ru })),
     ),
   search: (body: SearchRequest, signal?: AbortSignal) =>
     request<SearchResult>("/api/search", body, signal),

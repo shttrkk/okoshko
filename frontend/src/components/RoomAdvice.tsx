@@ -13,6 +13,7 @@ import {
   Synthetic,
 } from "./ui";
 import type { RoomProfile } from "../types";
+import { guestText } from "./panel-guest-presentation";
 
 export function RoomAdviceList({
   hotelId,
@@ -152,7 +153,7 @@ function AdviceCompromise({
         ; это отличается от варианта под ваш запрос.
       </p>
       {option.status === "partial" && (
-        <span className="badge warning">Пока неточно</span>
+        <span className="badge warning">примерно</span>
       )}
       {option.synthetic && <Synthetic />}
       <button
@@ -220,10 +221,10 @@ function AdviceCard({
       ) : (
         <h3>{advice.title}</h3>
       )}
-      <p>{advice.text}</p>
+      <p>{guestText(advice.text, advice.synthetic)}</p>
       <div className="room-advice-status">
         {advice.status === "partial" && (
-          <span className="badge warning">Пока неточно</span>
+          <span className="badge warning">примерно</span>
         )}
         {advice.synthetic && <Synthetic />}
       </div>
@@ -249,7 +250,7 @@ function AdviceCard({
                 </Link>
               )}
               {option.status === "partial" && advice.status !== "partial" && (
-                <span className="small muted"> · пока неточно</span>
+                <span className="small muted"> · примерно</span>
               )}
               {option.synthetic && !advice.synthetic && <Synthetic />}
             </span>
@@ -260,11 +261,11 @@ function AdviceCard({
         className="room-caveats-details"
         data-testid="room-advice-computed"
       >
-        <summary>Как посчитано</summary>
+        <summary>Для дотошных</summary>
         {advice.caveats.length > 0 && (
           <ul className="room-caveats">
             {advice.caveats.map((text, i) => (
-              <li key={i}>{text}</li>
+              <li key={i}>{guestText(text, advice.synthetic)}</li>
             ))}
           </ul>
         )}

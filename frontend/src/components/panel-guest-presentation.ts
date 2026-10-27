@@ -1,0 +1,162 @@
+import type { Criterion, Fact, Verdict } from "../types";
+
+export const DEMO_REPLY = "Ответ отеля · демо";
+export const DEMO_CALCULATION = "Демо-расчёт";
+export const DEMO_EXPLANATION =
+  "Ответ отеля · демо: в прототипе ответ симулирован";
+export const DEMO_BANNER =
+  "В прототипе ответы нескольких отелей симулированы — так выглядит выдача после ответа отеля";
+
+export function reliability(confidence: number, synthetic = false) {
+  return synthetic
+    ? "Демо"
+    : confidence >= 0.8
+      ? "надёжно"
+      : confidence >= 0.6
+        ? "примерно"
+        : "мало данных";
+}
+export function realHotelier(verdict: Verdict) {
+  return (
+    verdict.status === "yes" &&
+    !verdict.synthetic &&
+    !verdict.disputed &&
+    verdict.hotelier_confirmed === true
+  );
+}
+export function verdictLabel(verdict: Verdict) {
+  if (verdict.disputed) return "Есть противоречие";
+  if (verdict.synthetic)
+    return isDemoAnswer(verdict) ? DEMO_REPLY : DEMO_CALCULATION;
+  if (realHotelier(verdict)) return "Подтвердил отель";
+  return {
+    yes: "по расчёту",
+    partial: "примерно",
+    no: "не подходит",
+    unknown: "мало данных",
+  }[verdict.status];
+}
+export function verdictSymbol(verdict: Verdict) {
+  return verdict.disputed
+    ? "!"
+    : verdict.status === "yes"
+      ? realHotelier(verdict)
+        ? "✓"
+        : "≈"
+      : verdict.symbol;
+}
+export function verdictTone(verdict: Verdict) {
+  return verdict.disputed
+    ? "disputed"
+    : verdict.status === "yes" && !realHotelier(verdict)
+      ? "partial"
+      : verdict.status;
+}
+export function factLabel(fact: Fact) {
+  if (fact.status === "disputed") return "Есть противоречие";
+  if (fact.synthetic) return factDemoLabel(fact);
+  if (fact.status === "confirmed") return "Подтвердил отель";
+  if (fact.status === "unknown" || fact.value === null) return "Мало данных";
+  if (fact.status === "stale") return "Нужна перепроверка";
+  return fact.evidence.some((e) => e.kind === "quote")
+    ? "Сайт отеля · цитата"
+    : fact.evidence.some((e) => e.kind === "open_data")
+      ? "По открытым данным"
+      : "По расчёту";
+}
+/** Presentation only: source records, original quotes and API values stay intact. */
+export function guestText(text: string, synthetic = false) {
+  if (
+    /СИМУЛЯЦИЯ|Синтетический ответ|hotelier_simulator|synthetic-demo|фикстур|demo truth|Вымышленный ответ|Confidence относится|Синтетические данные/i.test(
+      text,
+    )
+  )
+    return synthetic
+      ? DEMO_EXPLANATION
+      : "Подробности источника доступны в данных расчёта.";
+  return text.replace(
+    /(до\s+)?(?:пляж[ауе]?\s*)?[«"]?OSM\s+osm-(?:way|node|relation)-\d+[»"]?/gi,
+    (_, to: string) => (to ? "до ближайшего пляжа" : "ближайший пляж"),
+  );
+}
+export function criterionLabel(c: Criterion) {
+  if (typeof c.value !== "number")
+    return c.value === false && !/(^|\s)(без|нет|не)\s/i.test(c.label)
+      ? `${c.label}: нет`
+      : c.label;
+  const comparison = `${c.op === "lte" ? "≤" : c.op === "gte" ? "≥" : "="} ${c.value.toLocaleString("ru-RU")}`;
+  return /[≤≥=]\s*-?\d+(?:[.,]\d+)?/.test(c.label)
+    ? c.label.replace(/[≤≥=]\s*-?\d+(?:[.,]\d+)?/g, comparison)
+    : `${c.label} ${comparison}${criterionUnit(c) ? ` ${criterionUnit(c)}` : ""}`;
+}
+export function criterionBaseLabel(c: Criterion) {
+  return c.label.split(/[≤≥=]/)[0].trim();
+}
+export function criterionUnit(c: Criterion) {
+  return c.field === "minutes"
+    ? "мин пешком"
+    : c.field === "water_c"
+      ? "°C"
+      : c.field?.endsWith("_m")
+        ? "м"
+        : c.field?.endsWith("_mbps")
+          ? "Мбит/с"
+          : c.field === "max_weight_kg"
+            ? "кг"
+            : c.field === "venues_500m"
+              ? "заведений в 500 м"
+              : "";
+}
+
+export function developerDisplay(value: unknown, synthetic = false): unknown {
+  if (typeof value === "string") return guestText(value, synthetic);
+  if (Array.isArray(value))
+    return value.map((item) => developerDisplay(item, synthetic));
+  if (value && typeof value === "object")
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        developerDisplay(item, synthetic),
+      ]),
+    );
+  return value;
+}
+
+export function isDemoAnswer(verdict: Verdict) {
+  return (
+    !!verdict.synthetic &&
+    !["calculation", "open_data"].includes(verdict.basis || "unknown")
+  );
+}
+export function factDemoLabel(fact: Fact) {
+  if (
+    fact.evidence.some(
+      (e) =>
+        ["hotelier", "simulation"].includes(e.kind) ||
+        e.source_ids.includes("hotelier_simulator"),
+    )
+  )
+    return DEMO_REPLY;
+  if (fact.evidence.some((e) => ["calculation", "open_data"].includes(e.kind)))
+    return DEMO_CALCULATION;
+  // Compact facts defer their source. A neutral badge does not invent it.
+  return "Демо";
+}
+export function factDemoExplanation(fact: Fact) {
+  const label = factDemoLabel(fact);
+  return label === DEMO_REPLY
+    ? DEMO_EXPLANATION
+    : label === DEMO_CALCULATION
+      ? "Демо-расчёт: в прототипе показан пример пересчёта."
+      : "Демо: подробности происхождения загружаются из источника.";
+}
+
+/** Only the known legacy demo metadata prefix is omitted; quote content is verbatim. */
+export function guestQuote(quote: string, synthetic = false) {
+  return synthetic
+    ? quote.replace(
+        /^(?:СИМУЛЯЦИЯ[.:]?\s*|Синтетический ответ для демонстрации:\s*)/i,
+        "",
+      )
+    : quote;
+}

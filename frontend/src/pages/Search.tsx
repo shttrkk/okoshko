@@ -18,6 +18,15 @@ import {
   X,
 } from "lucide-react";
 import { api, useResource } from "../api";
+import {
+  criterionBaseLabel,
+  criterionLabel,
+  criterionUnit,
+  DEMO_BANNER,
+  realHotelier,
+  isDemoAnswer,
+  guestText,
+} from "../components/panel-guest-presentation";
 import { useApp } from "../state";
 import { TravelMap } from "../components/Map";
 import { GroupPlan } from "../components/GroupPlan";
@@ -81,6 +90,14 @@ function tripDates(checkIn: string | null, checkOut: string | null) {
     ? `${day(a)}–${day(b)} ${genitive(b)}`
     : `${day(a)} ${genitive(a)} — ${day(b)} ${genitive(b)}`;
 }
+function exampleHref(query: string) {
+  const params = new URLSearchParams({ q: query });
+  const checkIn = sessionStorage.getItem("okno-example-check-in"),
+    checkOut = sessionStorage.getItem("okno-example-check-out");
+  if (checkIn) params.set("check_in", checkIn);
+  if (checkOut) params.set("check_out", checkOut);
+  return `/search?${params}`;
+}
 const exampleQueries = [
   mashaQuery,
   "с ребёнком и коляской, до пляжа без лестниц",
@@ -94,8 +111,8 @@ const personas = [
     image: "persona-sleep",
     tone: "night",
     title: "Тихий номер, чтобы выспаться",
-    text: "Тихий номер, окна во двор и плотные шторы",
-    query: "тихий номер с хорошей шумоизоляцией и плотными шторами",
+    text: "Тишина ночью и хорошая шумоизоляция окон",
+    query: "тихий номер с хорошей шумоизоляцией",
   },
   {
     icon: Waves,
@@ -170,7 +187,7 @@ const promises = [
   },
 ];
 export function SearchForm({
-  initial = mashaQuery,
+  initial = "",
   compact = false,
   similar = false,
 }: {
@@ -181,17 +198,25 @@ export function SearchForm({
   const navigate = useNavigate(),
     { hotels } = useApp();
   const [text, setText] = useState(initial),
-    [checkIn, setCheckIn] = useState(""),
-    [checkOut, setCheckOut] = useState(""),
+    [checkIn, setCheckIn] = useState(
+      () => sessionStorage.getItem("okno-example-check-in") || "",
+    ),
+    [checkOut, setCheckOut] = useState(
+      () => sessionStorage.getItem("okno-example-check-out") || "",
+    ),
     [similarId, setSimilarId] = useState(""),
     [isSimilar, setIsSimilar] = useState(similar);
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams({ q: text });
+  const runSearch = (query: string) => {
+    setText(query);
+    const params = new URLSearchParams({ q: query });
     if (checkIn) params.set("check_in", checkIn);
     if (checkOut) params.set("check_out", checkOut);
     if (isSimilar && similarId) params.set("similar_to", similarId);
     navigate(`/search?${params}`);
+  };
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    runSearch(text);
   };
   return (
     <form
@@ -212,10 +237,28 @@ export function SearchForm({
         />
       </label>
       {!compact && (
+        <div className="search-example-chips">
+          <button
+            type="button"
+            className="button secondary small"
+            onClick={() => runSearch(mashaQuery)}
+            data-testid="masha-example"
+          >
+            Как у Маши: тишина, закат и море
+          </button>
+        </div>
+      )}
+      {!compact && (
         <button
           type="button"
           className="text-button small group-search-example"
-          onClick={() => setText(groupExample)}
+          onClick={() =>
+            setText((current) =>
+              current.trim()
+                ? `${current.trim()}\n\n${groupExample}`
+                : groupExample,
+            )
+          }
           data-testid="group-search-example"
         >
           Едем компанией? Опишите каждого
@@ -229,7 +272,10 @@ export function SearchForm({
               aria-label="Дата заезда"
               type="date"
               value={checkIn}
-              onChange={(e) => setCheckIn(e.target.value)}
+              onChange={(e) => {
+                setCheckIn(e.target.value);
+                sessionStorage.setItem("okno-example-check-in", e.target.value);
+              }}
               data-testid="check-in"
             />
           </label>
@@ -241,7 +287,13 @@ export function SearchForm({
               type="date"
               value={checkOut}
               min={checkIn}
-              onChange={(e) => setCheckOut(e.target.value)}
+              onChange={(e) => {
+                setCheckOut(e.target.value);
+                sessionStorage.setItem(
+                  "okno-example-check-out",
+                  e.target.value,
+                );
+              }}
               data-testid="check-out"
             />
           </label>
@@ -363,9 +415,7 @@ export function Home() {
               key={p.title}
               className={`scenario-card tone-${p.tone}`}
               style={{ "--i": i } as CSSProperties}
-              onClick={() =>
-                navigate(`/search?q=${encodeURIComponent(p.query)}`)
-              }
+              onClick={() => navigate(exampleHref(p.query))}
             >
               <span className="scenario-art">
                 <img
@@ -515,7 +565,9 @@ function CriteriaEditor({
     onChange({
       ...parsed,
       [group]: parsed[group].map((c, i) =>
-        i === index ? { ...c, ...change } : c,
+        i === index
+          ? { ...c, ...change, label: criterionLabel({ ...c, ...change }) }
+          : c,
       ),
     });
   const drop = (group: "must" | "nice") => {
@@ -651,13 +703,21 @@ function CriteriaEditor({
                 onDragStart={() => setDrag({ index, group })}
                 key={`${c.characteristic_id}:${c.field}:${c.op}:${index}`}
               >
-                <span>{c.label}</span>
-                {c.no_stairs && !/лестниц|ступен/i.test(c.label) && (
-                  <span className="chip-flag">Без лестниц</span>
-                )}
-                {c.no_crossings && !/переход/i.test(c.label) && (
-                  <span className="chip-flag">Без переходов</span>
-                )}
+                <span>
+                  {typeof c.value === "number"
+                    ? criterionBaseLabel(c)
+                    : c.label}
+                </span>
+                {c.no_stairs &&
+                  (typeof c.value === "number" ||
+                    !/лестниц|ступен/i.test(c.label)) && (
+                    <span className="chip-flag">Без лестниц</span>
+                  )}
+                {c.no_crossings &&
+                  (typeof c.value === "number" ||
+                    !/переход/i.test(c.label)) && (
+                    <span className="chip-flag">Без переходов</span>
+                  )}
                 {typeof c.value === "number" && (
                   <label className="chip-threshold">
                     <span>{c.op === "lte" ? "≤" : "≥"}</span>
@@ -673,6 +733,7 @@ function CriteriaEditor({
                         })
                       }
                     />
+                    <span>{criterionUnit(c)}</span>
                   </label>
                 )}
                 <button
@@ -903,37 +964,49 @@ export function requiredStatusCounts(hit: SearchHit) {
   );
   return counts;
 }
-export function requiredStatusLabel(hit: SearchHit) {
+function requiredLabels(hit: SearchHit) {
   const counts = requiredStatusCounts(hit);
-  const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
-  if (!total) return "Обязательных условий нет";
-  if (counts.yes === total)
-    return total === 1
-      ? "Обязательное условие подтверждено"
-      : `Все ${total} обязательных подтверждены`;
-  return `Обязательные: ${[
-    counts.yes && `${counts.yes} подтверждено`,
-    counts.partial && `${counts.partial} — пока неточно`,
-    counts.no && `${counts.no} не подходит`,
-    counts.unknown && `по ${counts.unknown} нет данных`,
-  ]
-    .filter(Boolean)
-    .join(", ")}`;
+  const required = [
+    ...hit.verdicts,
+    ...(hit.room_plan || []).flatMap((item) => item.verdicts),
+  ].filter((v) => v.required);
+  const confirmed = required.filter(realHotelier).length;
+  const demo = required.filter(
+    (v) => isDemoAnswer(v) && v.status === "yes",
+  ).length;
+  const demoCalculation = required.filter(
+    (v) => v.synthetic && !isDemoAnswer(v) && v.status === "yes",
+  ).length;
+  return {
+    counts,
+    labels: {
+      yes: [
+        confirmed && `${confirmed} подтвердил отель`,
+        demo && `${demo} ответ отеля · демо`,
+        demoCalculation && `${demoCalculation} демо-расчёт`,
+        counts.yes - confirmed - demo - demoCalculation > 0 &&
+          `${counts.yes - confirmed - demo - demoCalculation} по расчёту`,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      partial: `${counts.partial} примерно`,
+      no: `${counts.no} не подходит`,
+      unknown: `${counts.unknown} мало данных`,
+    },
+  };
+}
+export function requiredStatusLabel(hit: SearchHit) {
+  const { counts, labels } = requiredLabels(hit);
+  return Object.values(counts).some(Boolean)
+    ? `Обязательные: ${(["yes", "partial", "no", "unknown"] as const)
+        .filter((status) => counts[status])
+        .map((status) => labels[status])
+        .join(", ")}`
+    : "Обязательных условий нет";
 }
 function RequiredStatusSummary({ hit }: { hit: SearchHit }) {
-  const counts = requiredStatusCounts(hit);
+  const { counts, labels } = requiredLabels(hit);
   const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
-  const labels = {
-    yes:
-      counts.yes === total
-        ? total === 1
-          ? "Условие подтверждено"
-          : `Все ${total} подтверждены`
-        : `${counts.yes} подтверждено`,
-    partial: `${counts.partial} — пока неточно`,
-    no: `${counts.no} не подходит`,
-    unknown: `по ${counts.unknown} нет данных`,
-  };
   return (
     <div
       className="required-summary"
@@ -954,7 +1027,7 @@ function RequiredStatusSummary({ hit }: { hit: SearchHit }) {
             .map((status) => (
               <li
                 key={status}
-                className={`required-status ${status}`}
+                className={`required-status ${status === "yes" ? "partial" : status}`}
                 data-testid="required-status"
                 data-status={status}
                 data-count={counts[status]}
@@ -1057,11 +1130,18 @@ function SearchCard({
         {(hit.summary || hit.disappointments.length > 0) && (
           <details className="verdict-caveats result-explanation">
             <summary>Почему этот отель</summary>
-            {hit.summary && <p>{hit.summary}</p>}
+            {hit.summary && (
+              <p>
+                {guestText(
+                  hit.summary,
+                  hit.verdicts.some((v) => v.synthetic),
+                )}
+              </p>
+            )}
             {hit.disappointments.length > 0 && (
               <ul>
                 {hit.disappointments.map((text, index) => (
-                  <li key={index}>{text}</li>
+                  <li key={index}>{guestText(text)}</li>
                 ))}
               </ul>
             )}
@@ -1338,12 +1418,25 @@ export function SearchPage() {
               </p>
               <div className="example-queries">
                 {exampleQueries.map((text) => (
-                  <Link key={text} to={`/search?q=${encodeURIComponent(text)}`}>
+                  <Link key={text} to={exampleHref(text)}>
                     {text}
                   </Link>
                 ))}
               </div>
             </div>
+          )}
+          {results.some((hit) =>
+            [
+              ...hit.verdicts,
+              ...(hit.room_plan || []).flatMap((item) => item.verdicts),
+            ].some(isDemoAnswer),
+          ) && (
+            <p
+              className="demo-results-banner"
+              data-testid="demo-results-banner"
+            >
+              {DEMO_BANNER}
+            </p>
           )}
           {(["all", "almost", "unknown", "browse"] as const).map((group) => {
             const hits = results.filter((r) => groupOf(r) === group);
@@ -1444,10 +1537,9 @@ export function SearchPage() {
           })}
           {resource.data && (
             <p className="results-footnote">
-              {resource.data.total} результатов ·{" "}
-              {Math.round(resource.data.latency_ms)} мс. Шум ночью рассчитан
-              приблизительно; внутри номера он может отличаться. Сторону, этаж и
-              наличие номера подтвердит отель.
+              Показаны {results.length} лучших из {resource.data.total}. Шум
+              ночью рассчитан приблизительно; внутри номера он может отличаться.
+              Сторону, этаж и наличие номера подтвердит отель.
             </p>
           )}
         </div>

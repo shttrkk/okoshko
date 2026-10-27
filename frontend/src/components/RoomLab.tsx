@@ -256,9 +256,16 @@ function ModelFact({
       <h4>{title}</h4>
       {fact ? (
         <>
-          <p>
+          <div className="room-lab-model-value">
             {seaProbability !== null ? (
-              <>Вероятность вида на море по расчёту: {pct(seaProbability)}.</>
+              <>
+                <FactValue fact={fact} />
+                <details className="room-caveats-details">
+                  <summary>Для дотошных</summary>Вероятность вида на море по
+                  расчёту: {pct(seaProbability)}. Это чувствительность модели,
+                  не надёжность данных.
+                </details>
+              </>
             ) : fact.status === "stale" || expired ? (
               "Данные устарели; для этого среза нужна перепроверка."
             ) : fact.status === "disputed" ? (
@@ -266,7 +273,7 @@ function ModelFact({
             ) : (
               <FactValue fact={fact} />
             )}
-          </p>
+          </div>
           {id === "sea_view" && hasValue && !hasModelProbability && (
             <p className="muted small">
               Сообщение источника о виде для выбранного среза.

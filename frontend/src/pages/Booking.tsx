@@ -13,7 +13,16 @@ import {
 } from "../components/ui";
 import type { Passport, PassportItem } from "../types";
 import { GroupPlan } from "../components/GroupPlan";
-import { criterionIdentity, roomScopeText } from "../components/group";
+import {
+  criterionIdentity,
+  roomScopeText,
+  roomEvidenceScope,
+} from "../components/group";
+import {
+  criterionLabel,
+  DEMO_REPLY,
+  guestQuote,
+} from "../components/panel-guest-presentation";
 const statuses: Record<string, string> = {
   draft: "Черновик",
   sent: "Ожидает ответа отеля",
@@ -67,7 +76,11 @@ export function PassportView({
           <span className="eyebrow">
             ПАСПОРТ {passport.id.slice(0, 8).toUpperCase()}
           </span>
-          <h3>{statuses[passport.status] || passport.status}</h3>
+          <h3>
+            {passport.synthetic_booking && passport.status === "confirmed"
+              ? DEMO_REPLY
+              : statuses[passport.status] || passport.status}
+          </h3>
         </div>
         {passport.synthetic_booking && <Synthetic>Демо-бронь</Synthetic>}
       </div>
@@ -103,10 +116,12 @@ export function PassportView({
       {passport.items.map((item) => (
         <div className="passport-item" key={item.id}>
           <span
-            className={`verdict-symbol ${item.status === "confirmed" ? "yes" : item.status === "at_risk" ? "no" : "unknown"}`}
+            className={`verdict-symbol ${item.status === "confirmed" ? (passport.synthetic_booking ? "partial" : "yes") : item.status === "at_risk" ? "no" : "unknown"}`}
           >
             {item.status === "confirmed"
-              ? "✓"
+              ? passport.synthetic_booking
+                ? "≈"
+                : "✓"
               : item.status === "at_risk"
                 ? "!"
                 : "?"}
@@ -125,10 +140,16 @@ export function PassportView({
             )}
             <strong>{item.text}</strong>
             <p>
-              {statuses[item.status] || item.status}
+              {passport.synthetic_booking && item.status === "confirmed"
+                ? DEMO_REPLY
+                : statuses[item.status] || item.status}
               {item.critical && " · критично"}
             </p>
-            {item.response && <blockquote>{item.response}</blockquote>}
+            {item.response && (
+              <blockquote>
+                {guestQuote(item.response, passport.synthetic_booking)}
+              </blockquote>
+            )}
           </div>
         </div>
       ))}
@@ -240,7 +261,7 @@ export function BookingPage() {
     [params.get("passport")],
   );
   const [passport, setPassport] = useState<Passport | null>(null),
-    [guest, setGuest] = useState("Маша"),
+    [guest, setGuest] = useState(""),
     [tripDates, setTripDates] = useState({
       check_in: parsed?.check_in || "",
       check_out: parsed?.check_out || "",
@@ -253,16 +274,49 @@ export function BookingPage() {
   }, [existing.data]);
   useEffect(() => {
     if (detail.data) {
-      const criteria = [...(parsed?.must || []), ...(parsed?.nice || [])];
+      const seen = new Set<string>();
+      const criteria = [
+        ...(parsed?.must || []),
+        ...(parsed?.nice || []),
+      ].filter((criterion) => {
+        const key = criterionIdentity(criterion);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
       const hit = searchResult?.results.find((r) => r.hotel.id === id);
+      const profile = hit?.room_profile || detail.data.room_profile;
+      const roomIds = new Set([
+        "sea_view",
+        "sunset_view",
+        "mountain_view",
+        "quiet_night",
+        "soundproofing",
+        "room_orientation",
+        "morning_sun",
+        "evening_heat",
+        "railway_noise",
+      ]);
       setItems(
         criteria.length
-          ? criteria.map((c, index) => ({
+          ? criteria.map((c) => ({
               id: crypto.randomUUID(),
               characteristic_id: c.characteristic_id,
-              text: `${c.label}${typeof c.value === "number" && !/[≤≥=]\s*-?\d/.test(c.label) ? ` ${c.op === "lte" ? "≤" : c.op === "gte" ? "≥" : "="} ${c.value.toLocaleString("ru-RU")}${c.field === "minutes" ? " мин" : c.field === "water_c" ? " °C" : c.field?.endsWith("_m") ? " м" : ""}` : c.value === false ? ": нет" : ""}`,
-              critical: index < (parsed?.must.length || 0),
-              scope: c.scope || { type: "hotel" },
+              text: criterionLabel(c),
+              critical: !!parsed?.must.some(
+                (must) => criterionIdentity(must) === criterionIdentity(c),
+              ),
+              scope:
+                profile && roomIds.has(c.characteristic_id)
+                  ? roomEvidenceScope({
+                      ...profile.scope,
+                      ...Object.fromEntries(
+                        Object.entries(c.scope || {}).filter(
+                          ([, value]) => value != null,
+                        ),
+                      ),
+                    })
+                  : c.scope || { type: "hotel" },
               fact_ids:
                 hit?.verdicts.find(
                   (v) => v.characteristic_id === c.characteristic_id,
@@ -371,6 +425,7 @@ export function BookingPage() {
                     Как к вам обращаться
                     <input
                       value={guest}
+                      placeholder="Ваше имя"
                       onChange={(e) => setGuest(e.target.value)}
                       maxLength={100}
                       data-testid="passport-guest"
@@ -386,7 +441,9 @@ export function BookingPage() {
                         }
                         data-testid="passport-clear-dates"
                       >
-                        Предварительный выбор без дат
+                        {tripDates.check_in || tripDates.check_out
+                          ? "Убрать даты"
+                          : "Выбрать позже"}
                       </button>
                     </div>
                     <div>
@@ -512,10 +569,29 @@ export function BookingPage() {
                     </div>
                   )}
                   {!parsed?.rooms?.length &&
+                    (detail.data.room_profile ||
+                      searchResult?.results.find((hit) => hit.hotel.id === id)
+                        ?.room_profile) && (
+                      <p
+                        className="passport-recommended-scope"
+                        data-testid="passport-recommended-scope"
+                      >
+                        Просите номер:{" "}
+                        {roomScopeText(
+                          (searchResult?.results.find(
+                            (hit) => hit.hotel.id === id,
+                          )?.room_profile || detail.data.room_profile)!.scope,
+                          detail.data.hotel.floors === null,
+                        )}
+                        . Это пожелание; наличие номера уточнит отель.
+                      </p>
+                    )}
+                  {!parsed?.rooms?.length &&
                     items.map((item, index) => (
                       <div className="passport-edit-item" key={item.id}>
                         <span>0{index + 1}</span>
-                        <input
+                        <textarea
+                          rows={2}
                           aria-label={`Ожидание ${index + 1}`}
                           value={item.text}
                           onChange={(e) =>

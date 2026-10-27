@@ -21,7 +21,8 @@ import { api } from "../api";
 import type { Geo, Hotel } from "../types";
 import { useApp } from "../state";
 import { Empty, Modal } from "./ui";
-import { meters, SIDES } from "./facts";
+import { meters, roundedMinutes, SIDES } from "./facts";
+import { guestText } from "./panel-guest-presentation";
 const empty: GeoJSON.FeatureCollection = {
   type: "FeatureCollection",
   features: [],
@@ -83,7 +84,7 @@ function nearbyPoints(geo: Geo | null): NearbyPoint[] {
       geometry: { type: "Point", coordinates: end },
       properties: {
         kind: "beach",
-        name: walk?.properties?.beach_name || "Конец пешего маршрута до пляжа",
+        name: guestText(walk?.properties?.beach_name || "ближайший пляж"),
         coordinate_source: "route_endpoint",
       },
     });
@@ -579,7 +580,7 @@ function drawGeo(
             properties: {
               label: Number.isFinite(walkMinutes)
                 ? // Map glyphs cover Latin/Cyrillic only: no «≈» here.
-                  `Пляж, ${Math.max(1, Math.round(walkMinutes))} мин пешком`
+                  `Пляж, ${roundedMinutes(walkMinutes)} мин пешком`
                 : "Пляж",
             },
           },
@@ -1558,9 +1559,10 @@ export function GeoModal({
         />
         <section className="geo-reading">
           <div className="eyebrow">Чувствительность расчёта</div>
-          <h3>Вид — это вероятность</h3>
+          <h3>Вид по расчёту</h3>
           {probability !== undefined && probability !== null ? (
-            <>
+            <details className="room-caveats-details">
+              <summary>Для дотошных</summary>
               <div className="probability">
                 {Math.round(probability * 100)}
                 <span>%</span>
@@ -1574,10 +1576,10 @@ export function GeoModal({
                   80% устойчивости: <strong>с {p80}-го этажа</strong>
                 </p>
               )}
-            </>
+            </details>
           ) : (
             <Empty title="Вероятность не рассчитана">
-              Нет достаточных входных данных для Monte Carlo.
+              Для оценки не хватает данных о высоте зданий и рельефе.
             </Empty>
           )}
           {sunsetMinutes !== undefined && sunsetMinutes !== null && (
@@ -1596,8 +1598,7 @@ export function GeoModal({
           )}
           <p className="fine-print">
             Показан сохранённый расчёт отеля. Выбор фасада и этажа фильтрует
-            доступные слои и рассчитанные значения. Новый Monte Carlo не
-            запускается.
+            доступные слои и рассчитанные значения. Новый расчёт не запускается.
           </p>
         </section>
       </div>
@@ -1702,10 +1703,10 @@ export function GeoModal({
           </p>
         )}
       </section>
-      <div className="limitations">
-        <h3>Что учитывать</h3>
+      <details className="limitations">
+        <summary>Для дотошных</summary>
         {geo.limitations?.length ? (
-          geo.limitations.map((l) => <p key={l}>{l}</p>)
+          geo.limitations.map((l) => <p key={l}>{guestText(l)}</p>)
         ) : (
           <p>
             API не передал ограничения расчёта. До подтверждения отелем вид из
@@ -1715,7 +1716,7 @@ export function GeoModal({
         <p>
           Наружный шум рассчитан приближённо и не описывает шумоизоляцию окон.
         </p>
-      </div>
+      </details>
     </Modal>
   );
 }

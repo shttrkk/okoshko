@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Eye, MapPin } from "lucide-react";
 import { record } from "../api";
+import { factDemoLabel, reliability } from "./panel-guest-presentation";
 import type { Claim, Fact, Scope } from "../types";
 import { NearbyPhotos } from "./Photos";
 import {
@@ -22,7 +23,6 @@ import {
   MONTHS_IN,
   MONTHS_SHORT,
   noiseLabel,
-  pct,
   SIDE_ORDER,
   SIDES,
   SIDES_SHORT,
@@ -170,15 +170,17 @@ function SunsetMatrix({
                     </td>
                   );
                 const p = yes.length ? Math.max(...yes.map(prob)) : 0;
-                const level = !reliable(best)
-                  ? "empty"
-                  : !yes.length
-                    ? "no"
-                    : p >= 0.8
-                      ? "high"
-                      : p >= 0.5
-                        ? "mid"
-                        : "low";
+                const level = best.synthetic
+                  ? "low"
+                  : !reliable(best)
+                    ? "empty"
+                    : !yes.length
+                      ? "no"
+                      : p >= 0.8
+                        ? "high"
+                        : p >= 0.5
+                          ? "mid"
+                          : "low";
                 const floor = floorOf(best);
                 const angle = sunsetAngle(best, facadeAzimuths);
                 const oblique =
@@ -204,7 +206,9 @@ function SunsetMatrix({
                         : yes.length
                           ? floor && floor > 1
                             ? `${floor}+`
-                            : "✓"
+                            : best.synthetic
+                              ? "≈"
+                              : "✓"
                           : "—"}
                       {oblique && <sup aria-hidden="true">*</sup>}
                     </button>
@@ -344,7 +348,9 @@ function SolarMatrix({
                         : yes.length
                           ? floor && floor > 1
                             ? `${floor}+`
-                            : "✓"
+                            : best.synthetic
+                              ? "≈"
+                              : "✓"
                           : "—"}
                     </button>
                   </td>
@@ -384,15 +390,17 @@ function SideChips({
     <div className="side-chips">
       {bySide(facts).map(({ side, yes, best }) => {
         const value = v(best);
-        const level = !reliable(best)
-          ? "unknown"
-          : kind === "noise"
-            ? String(value.index || "unknown")
-            : kind === "rail"
-              ? "rail-proxy"
-              : yes.length
-                ? "yes"
-                : "no";
+        const level = best.synthetic
+          ? "demo"
+          : !reliable(best)
+            ? "unknown"
+            : kind === "noise"
+              ? String(value.index || "unknown")
+              : kind === "rail"
+                ? "rail-proxy"
+                : yes.length
+                  ? "yes"
+                  : "no";
         const detail = !reliable(best)
           ? "нужно уточнить"
           : kind === "noise"
@@ -400,7 +408,7 @@ function SideChips({
             : kind === "rail"
               ? `${fmt(value.night_db_min)}–${fmt(value.night_db_max)} дБ · по расчёту`
               : yes.length
-                ? `${floorOf(best) && floorOf(best)! > 1 ? `с ${floorOf(best)} эт.` : "все этажи"} · ${pct(Math.max(...yes.map(prob)))}`
+                ? `${floorOf(best) && floorOf(best)! > 1 ? `с ${floorOf(best)} эт.` : "все этажи"} · по расчёту`
                 : value.available === false
                   ? "не виден"
                   : "нет данных";
@@ -413,6 +421,7 @@ function SideChips({
           >
             <strong>{SIDES[side]}</strong>
             <span>{detail}</span>
+            {best.synthetic && <Synthetic>{factDemoLabel(best)}</Synthetic>}
           </button>
         );
       })}
@@ -694,7 +703,7 @@ function FactCard({
                     : "Сообщение требует перепроверки"}
               </span>
               <span>{scopeText(fact.scope)}</span>
-              {fact.synthetic && <Synthetic />}
+              {fact.synthetic && <Synthetic>{factDemoLabel(fact)}</Synthetic>}
             </button>
           ))}
         </div>
@@ -716,13 +725,21 @@ function FactCard({
       <details className="room-caveats-details fact-reliability">
         <summary>Надёжность данных</summary>
         <p>
-          {pct(confidence)} · оценка полноты и согласованности источников, без
-          гарантии условий в номере.
+          {reliability(
+            confidence,
+            shown.some((fact) => fact.synthetic),
+          )}{" "}
+          · оценка полноты и согласованности источников, без гарантии условий в
+          номере.
         </p>
       </details>
       <div className="fact-card-foot">
         <EvidenceButton fact={rep} claims={claims} />
-        {shown.some((f) => f.synthetic) && <Synthetic />}
+        {shown.some((f) => f.synthetic) && (
+          <Synthetic>
+            {factDemoLabel(shown.find((fact) => fact.synthetic)!)}
+          </Synthetic>
+        )}
         {canAsk &&
           (disputed ||
             needsQuestion(rep) ||

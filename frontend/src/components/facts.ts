@@ -87,10 +87,12 @@ export function fmt(v: unknown, digits = 0) {
 }
 export const pct = (v: unknown) =>
   num(v) === null ? "—" : `${Math.round((v as number) * 100)}%`;
+export const roundedMinutes = (value: number) =>
+  value > 0 ? Math.max(1, Math.floor(value + 0.5)) : 0;
 export function minutes(v: unknown) {
   const n = num(v);
   if (n === null) return "—";
-  return n < 1 ? "меньше минуты" : `≈ ${Math.round(n)} мин`;
+  return `≈ ${roundedMinutes(n)} мин`;
 }
 export function meters(v: unknown) {
   const n = num(v);
@@ -263,10 +265,10 @@ export function humanFact(
     case "accessible_route": {
       return [
         v.wheelchair_suitable === true
-          ? "Проезд на коляске подтверждён явными данными маршрута"
+          ? "По карте маршрут подходит для коляски"
           : v.wheelchair_suitable === false
             ? "В OSM есть явное ограничение проезда на коляске"
-            : "Проезд на коляске не подтверждён",
+            : "Данных о проезде с коляской мало",
         v.has_steps === true
           ? "на маршруте отмечены лестницы"
           : v.has_steps === false
@@ -291,20 +293,13 @@ export function humanFact(
     }
     case "sunset_view": {
       const when = month ? `в ${MONTHS_IN[month - 1]}` : "";
-      if (v.available === false)
-        return [
-          `Не виден ${when}`.trim(),
-          num(v.probability) !== null && `вероятность ${pct(v.probability)}`,
-        ]
-          .filter(Boolean)
-          .join(" · ");
+      if (v.available === false) return `Не виден ${when}`.trim();
       if (v.available !== true) return null;
       return [
         `Виден ${when}`.trim(),
         floorFrom(v.min_floor),
         num(v.visible_minutes) !== null &&
           `видимость солнца последние ${minutes(v.visible_minutes)}`,
-        num(v.probability) !== null && `вероятность ${pct(v.probability)}`,
         sunsetAspectText(fact, facadeAzimuths),
       ]
         .filter(Boolean)
@@ -313,20 +308,9 @@ export function humanFact(
     case "sea_view":
     case "mountain_view": {
       const peaks = Array.isArray(v.peaks) ? v.peaks.join(", ") : "";
-      if (v.available === false)
-        return [
-          "Не виден",
-          num(v.probability) !== null && `вероятность ${pct(v.probability)}`,
-        ]
-          .filter(Boolean)
-          .join(" · ");
+      if (v.available === false) return "Не виден";
       if (v.available !== true) return null;
-      return [
-        "Виден",
-        floorFrom(v.min_floor),
-        peaks,
-        num(v.probability) !== null && `вероятность ${pct(v.probability)}`,
-      ]
+      return ["Виден", floorFrom(v.min_floor), peaks]
         .filter(Boolean)
         .join(" · ");
     }
@@ -358,14 +342,15 @@ export function humanFact(
       if (v.available === false) return "Пешего маршрута до пляжа не нашлось";
       const crossings = Array.isArray(v.crossings) ? v.crossings.length : 0;
       const beachName =
-        typeof v.beach_name === "string"
+        typeof v.beach_name === "string" &&
+        !/^(?:OSM\s*)?osm-(way|node|relation)-/i.test(v.beach_name)
           ? v.beach_name
               .replace(/^Пляж\s*/i, "")
               .replace(/["«»]/g, "")
               .trim()
           : "";
       return [
-        `${minutes(v.minutes)} пешком, ${meters(v.distance_m)} ${beachName ? `до пляжа «${beachName}»` : "до пляжа"}`,
+        `${minutes(v.minutes)} пешком, ${meters(v.distance_m)} ${beachName ? `до пляжа «${beachName}»` : "до ближайшего пляжа"}`,
         num(v.return_minutes) !== null &&
           `обратно ${minutes(v.return_minutes)}${num(v.return_ascent_m) ? `, подъём ${fmt(v.return_ascent_m)} м` : ""}`,
         v.has_steps === true && "есть лестницы",
@@ -505,7 +490,7 @@ export const SOURCE_NAMES: Record<string, string> = {
   open_meteo_climate: "Open-Meteo · климат",
   open_meteo_marine: "Open-Meteo · море",
   hotel_website: "Официальный сайт отеля",
-  hotelier_simulator: "Демонстрационный ответ отеля",
+  hotelier_simulator: "Ответ отеля · демо",
   wikimedia_commons: "Wikimedia Commons",
   wikidata: "Wikidata",
   ookla: "Ookla Open Data",
