@@ -41,12 +41,12 @@ RULES = {
     "beach_walk": r"(?:недалеко|близко|рядом) (?:с |от |до )?(?:моря|морем|пляжа)|(?:идти |дойти |ходить |добраться )?до (?:моря|пляжа)|пешком (?:к морю|до моря)|(?:дорог\w*|маршрут\w*|путь) (?:к морю|к пляжу|до пляжа)|к (?:морю|пляжу)(?:\s+\w+){0,8}\s+пешком|у (?:моря|пляжа)|близк\w* пляж|пляж\w* (?:за|в|не дальше|\d)",
     "pets": r"\bсобак\w*|\bкошк\w*|\bкот(?:ом|енк\w*)\b|\bпитом\w*|\bлабрадор\w*|\bживотн\w*",
     "family_nearby": r"\bдет(?:и|ьми|ей)\b|\bребен(?:ок|ка|ку|ком|ке|очек|очком)\b|\bмалыш\w*|\bколяск\w*|\bплощадк\w*",
-    "connectivity": r"(?:хорош\w*|быстр\w*|стабильн\w*|нормальн\w*)\s+(?:интернет\w*|связ\w*|wi[ -]?fi)|\bинтернет\w*|\bwi[ -]?fi\b|\bудаленк\w*|\bудаленн?\w*\s+работ\w*|\bработ(?:а|ы|у|ать|аю|аем)\b|для работы|\bсвязь\b|\bвидеозвон\w*|\bвидеоконференц\w*|\bзум\b|\bсозвон\w*",
-    "soundproofing": r"\b(?:шумо|звуко)изоляц\w*|двойн\w* (?:ок\w*|стеклопакет\w*)|\bблэкаут\w*|(?:плотн\w*|светонепроницаем\w*) штор\w*|штор\w*[^,;.]{0,30}затемня\w*|\bкондиционер\w*",
+    "connectivity": r"(?:хорош\w*|быстр\w*|стабильн\w*|нормальн\w*)\s+(?:интернет\w*|связ\w*|wi[ -]?fi)|\bинтернет\w*|\bwi[ -]?fi\b|\bудаленк\w*|\b(?:удаленн?\w*|дистанционн\w*)\s+работ\w*|\bработ(?:а|ы|у|ать|аю|аем)\b|для работы|\bсвязь\b|\bвидеозвон\w*|\bвидеоконференц\w*|\bзум\b|\bсозвон\w*",
+    "soundproofing": r"\b(?:шумо|звуко)изоляц\w*|двойн\w* (?:ок\w*|стеклопакет\w*)|\bблэкаут\w*|(?:плотн\w*|светонепроницаем\w*) штор\w*|штор\w*[^,;.]{0,30}затемня\w*(?:\s+(?:комнат\w*|номер\w*))?|\bкондиционер\w*",
     "room_orientation": r"высок\w* этаж\w*|\bбалкон\w*|(?:запад|восточ|север|южн)\w* сторон\w*",
     "climate": r"тепл\w* (?:вода|воды|море)|\bкупаться\b|\bпогод\w*|\bвода\b[^,;.!?]*?(?:градус|°|\d\s*[cс]\b)|(?:вод\w*|море) (?:от|минимум|не ниже|не холоднее|выше)",
     'air_quality': r'\baqi\b|европейск\w* индекс качеств\w* воздух\w*',
-    'nearby_photos': r'\bфото(?:графи\w*)?\s+окрестност\w*|\bснимк\w*\s+окрестност\w*',
+    'nearby_photos': r'\b(?:фото(?:графи\w*)?|снимк\w*)\s+(?:окрестност\w*|вокруг|рядом|поблизости)',
     "car_access": r"\bпарковк\w*|на машин\w*|на автомобил\w*|на авто\b|\bподъезд\w*|\bэлектромобил\w*|\bэлектрокар\w*|\bзарядк\w*|\bзарядн\w* станц\w*",
     "night_pharmacy": r"\bаптек\w*",
     "nightlife": r"в гуще событий|ночн\w* жизн\w*|\bбар(?:ы|ов|ам|ами|ах)?\b|\bпаб(?:ы|ов)?\b|ночн\w* клуб\w*|\bклуб(?:ы|ов)\b|\bтусов\w*|\bдвиж\b|\bдвижух\w*|оживл[её]нн\w*\b(?!\s+(?:дорог|трасс|шоссе|магистрал|перекр[её]ст|проезж|улиц|движени))|\bкафе и ресторан\w*",
@@ -628,6 +628,12 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
                 parking = [m for m in explicit_car if re.search(r'\bпарковк\w*', m[0])]
                 parking_vehicle = [m for m in matches if re.search(CAR_PARKING, m[0])]
                 match = min(parking or parking_vehicle or explicit_car, key=lambda m: (m.start(), -(m.end()-m.start())))
+        if spec.id == 'climate':
+            # Swimming is activity context. A separately stated temperature
+            # property owns its priority instead of creating an extra hard20.
+            properties = [m for m in matches if re.search(r'\b(?:вод\w*|мор[еяю]|морем)\b', m[0])]
+            if properties:
+                match = min(properties, key=lambda m: (m.start(), -(m.end()-m.start())))
         positions[spec.id] = match.start()
         soft, negative, skip = _importance(text, match.start(), match.end())
         if skip:
@@ -706,7 +712,8 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             if re.search(r"двойн\w* (?:ок|стеклопакет)", matched_text):
                 field, value = "windows", "double"
             elif re.search(r"блэкаут|(?:плотн\w*|светонепроницаем\w*) штор|штор\w*.*затемня", matched_text):
-                field, value = "blackout", not negative
+                predicate_negative = bool(re.search(r'\bне\s+(?:(?:долж\w*|полностью)\s+){0,2}затемня\w*', matched_text))
+                field, value = "blackout", not (negative ^ predicate_negative)
             elif re.search(r"кондиционер", matched_text):
                 field, value = "air_conditioning", not negative
         if spec.id == "room_orientation" and re.search(r"балкон", match[0]):
@@ -739,6 +746,8 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             for extra_field, pattern, extra_value in [("windows", r"двойн\w* (?:ок\w*|стеклопакет\w*)", "double"), ("blackout", r"блэкаут\w*|(?:плотн\w*|светонепроницаем\w*) штор\w*|штор\w*[^,;.]{0,30}затемня\w*", True), ("air_conditioning", r"кондиционер\w*", True)]:
                 for extra in re.finditer(pattern, text):
                     extra_soft, extra_negative, extra_skip = _importance(text, extra.start(), extra.end())
+                    if extra_field == 'blackout' and re.search(r'\bне\s+(?:(?:долж\w*|полностью)\s+){0,2}затемня\w*', extra[0]):
+                        extra_negative = not extra_negative
                     if not extra_skip:
                         if extra_negative and not isinstance(extra_value, bool):
                             if extra[0] not in parsed.unmapped:
