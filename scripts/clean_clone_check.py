@@ -53,7 +53,8 @@ def main():
     # Never reuse the previous acceptance run's database or runtime volume.
     project = "okno-clean-" + uuid4().hex[:12]
     environment = {**os.environ, "COMPOSE_PROJECT_NAME": project, "LLM_MODE": "offline", "LLM_API_KEY": ""}
-    environment.pop("DB_URL", None)  # Verify the Compose default, not a developer's database.
+    for name in ("DB_URL", "APP_PORT", "COMPOSE_FILE", "COMPOSE_PROFILES"):
+        environment.pop(name, None)  # Verify product defaults, not ambient overrides.
     launch_environment = environment.copy()
     cli_directory = None
     if args.docker_only_path:
@@ -118,6 +119,22 @@ def main():
             else:
                 raise TimeoutError("Launch exceeded10minutes")
             report["launch_seconds"] = round(time.monotonic()-started, 3)
+            ready_at = datetime.now(UTC)
+            report["health_observed_at"] = ready_at.isoformat()
+            container_id = subprocess.check_output(
+                ["docker", "compose", "ps", "-q", "app"], cwd=args.clone, env=environment, text=True,
+            ).strip()
+            container = json.loads(subprocess.check_output(["docker", "inspect", container_id], text=True))[0]
+            container_started = datetime.fromisoformat(container["State"]["StartedAt"].replace("Z", "+00:00"))
+            report["restart_count"] = container["RestartCount"]
+            if report["restart_count"]:
+                raise RuntimeError("Fresh startup required a container restart")
+            report["container_started_at"] = container["State"]["StartedAt"]
+            report["container_start_to_health_seconds"] = round((ready_at-container_started).total_seconds(), 3)
+            report["container_start_to_health_under_2min"] = report["container_start_to_health_seconds"] < 120
+            runtime_image = json.loads(subprocess.check_output(["docker", "image", "inspect", container["Image"]], text=True))[0]
+            report["image"] = {key: runtime_image[key] for key in ("Id", "Architecture", "Os", "Size")}
+            report["image"]["user"] = runtime_image["Config"]["User"]
             check_environment = {**environment, "OKNO_URL": "http://localhost:8080", "OKNO_DEMO_REPORT": str(args.report.with_name(args.report.stem+"_demo.json"))}
             python = str(ROOT/".venv/bin/python")
             if args.check or args.browser:

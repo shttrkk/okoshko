@@ -313,6 +313,14 @@ def valid_intent_match(cid: str, text: str, match: re.Match) -> bool:
         return False
     if _depicted_property(text, match):
         return False
+    if cid == 'nearby_photos':
+        # Existing local photographs differ from asking someone to take/edit
+        # photographs, or describing the purpose of a real view requirement.
+        before = text[left:match.start()]
+        if re.search(r'\bдля\s*$', before) or re.search(
+                r'\b(?:сделать|сделай\w*|снять|сними\w*|снима\w*|сфотографиру\w*|нарису\w*|обработа\w*|отредактиру\w*)'
+                r'\s+(?:(?:мне|нам|пожалуйста)\s+){0,2}$', before):
+            return False
     if cid == 'quiet_night' and re.search(r'тих\w*\s+океан|тишин\w*\s+в\s+чат\w*', clause):
         return False
     if cid == 'sunset_view' and re.match(r'\s+(?:эпох\w*|эр[аыуе]|импер\w*|цивилиз\w*)\b', after):

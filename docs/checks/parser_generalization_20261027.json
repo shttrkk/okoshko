@@ -1,22 +1,23 @@
 {
   "methodology": "Authored synthetic intent cases, without independent human validation; not hotel accuracy or nDCG. no_data uses explicit authoritative fixture context; similarity uses existing catalogue resolver.",
-  "source_revision": "48091f0",
+  "parser_implementation_commit": "67fda4d25fe44d5dc311c73b606852a5d2a370d5",
+  "integration_parent": "ea9eae3",
   "human_labeled": false,
   "synthetic": true,
   "authored239": {
     "gold": {
       "queries": 239,
-      "exact_matches": 212,
-      "exact_match_rate": 0.887029,
-      "criterion_precision": 0.993243,
-      "criterion_recall": 0.967105,
-      "criterion_true_positive": 294,
+      "exact_matches": 216,
+      "exact_match_rate": 0.903766,
+      "criterion_precision": 0.996622,
+      "criterion_recall": 0.970395,
+      "criterion_true_positive": 295,
       "criterion_expected": 304,
       "criterion_actual": 296,
-      "criteria_exact_match_rate": 0.949791,
-      "unmapped_expectation_accuracy": 0.92887,
+      "criteria_exact_match_rate": 0.958159,
+      "unmapped_expectation_accuracy": 0.941423,
       "unmapped_evaluated_queries": 239,
-      "queries_with_unmapped": 23
+      "queries_with_unmapped": 20
     },
     "splits": {
       "development": {
@@ -35,17 +36,17 @@
       },
       "holdout": {
         "queries": 50,
-        "exact_matches": 29,
-        "exact_match_rate": 0.58,
-        "criterion_precision": 0.983607,
-        "criterion_recall": 0.923077,
-        "criterion_true_positive": 60,
+        "exact_matches": 33,
+        "exact_match_rate": 0.66,
+        "criterion_precision": 1.0,
+        "criterion_recall": 0.938462,
+        "criterion_true_positive": 61,
         "criterion_expected": 65,
         "criterion_actual": 61,
-        "criteria_exact_match_rate": 0.88,
-        "unmapped_expectation_accuracy": 0.66,
+        "criteria_exact_match_rate": 0.92,
+        "unmapped_expectation_accuracy": 0.72,
         "unmapped_evaluated_queries": 50,
-        "queries_with_unmapped": 19
+        "queries_with_unmapped": 16
       }
     },
     "negative": {
@@ -57,8 +58,8 @@
     "input_fingerprint": {
       "version": 1,
       "parser_sha256": {
-        "backend/agents/query_parser.py": "b9d0e33e0c347c8e3d009899d0004009e2b7364254342024a2e93984124dee9e",
-        "backend/agents/query_text.py": "15108938280a04d1ec81ac5b8c59938a0519925d0f3e099d3e3f1a95173e4f0a",
+        "backend/agents/query_parser.py": "b022df186923777cd5788029f5d2773156e8e05674fd23692c422d10fcc6db4c",
+        "backend/agents/query_text.py": "ebffb7717d5f231a95cdd0b213e5b20e3f0bbb00af62854a44129b8444e25a5c",
         "backend/agents/query_rules.py": "365e18f3db37b1c189a8c4bd73689c9654f16b14ce4f3d09e8053085cb98e278",
         "backend/agents/similarity.py": "0de3585c135fb98d3de03abdeb69147135b8467ba537768a4a58c721165c8b7e",
         "backend/contracts/__init__.py": "c7a5746ac4519ef52c85b62f9346a0537f39db8604ee732237f08cd2055bc8f1",

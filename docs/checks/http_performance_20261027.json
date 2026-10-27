@@ -163,15 +163,15 @@
     {
       "text": "тихий номер с видом на закат недалеко от моря",
       "first_sample": {
-        "ms": 124.41545799083542,
+        "ms": 117.23466598778032,
         "bytes": 220804
       },
       "warm": {
         "samples": 20,
-        "p50_ms": 83.21,
-        "p95_ms": 99.25,
-        "min_ms": 77.4,
-        "max_ms": 125.58,
+        "p50_ms": 87.44,
+        "p95_ms": 110.83,
+        "min_ms": 78.62,
+        "max_ms": 114.0,
         "bytes_max": 220804
       },
       "all_in_top20": 3
@@ -179,15 +179,15 @@
     {
       "text": "вид на море с западной стороны не ниже 7 этажа",
       "first_sample": {
-        "ms": 131.57183400471695,
-        "bytes": 105069
+        "ms": 308.492791999015,
+        "bytes": 105068
       },
       "warm": {
         "samples": 20,
-        "p50_ms": 67.35,
-        "p95_ms": 72.14,
-        "min_ms": 62.5,
-        "max_ms": 265.49,
+        "p50_ms": 64.81,
+        "p95_ms": 69.71,
+        "min_ms": 62.89,
+        "max_ms": 69.81,
         "bytes_max": 105069
       },
       "all_in_top20": 14
@@ -195,31 +195,31 @@
     {
       "text": "рядом с пляжем и парковкой",
       "first_sample": {
-        "ms": 90.9831659955671,
+        "ms": 91.54491699882783,
         "bytes": 129637
       },
       "warm": {
         "samples": 20,
-        "p50_ms": 62.01,
-        "p95_ms": 74.68,
-        "min_ms": 53.72,
-        "max_ms": 79.36,
-        "bytes_max": 129638
+        "p50_ms": 63.29,
+        "p95_ms": 88.02,
+        "min_ms": 57.03,
+        "max_ms": 271.89,
+        "bytes_max": 129637
       },
       "all_in_top20": 20
     },
     {
       "text": "в гуще событий, бары и ночная жизнь",
       "first_sample": {
-        "ms": 92.07049998803996,
-        "bytes": 93651
+        "ms": 89.24724999815226,
+        "bytes": 93652
       },
       "warm": {
         "samples": 20,
-        "p50_ms": 58.28,
-        "p95_ms": 63.69,
-        "min_ms": 52.51,
-        "max_ms": 63.71,
+        "p50_ms": 62.21,
+        "p95_ms": 68.96,
+        "min_ms": 58.56,
+        "max_ms": 255.84,
         "bytes_max": 93653
       },
       "all_in_top20": 20
@@ -227,15 +227,15 @@
     {
       "text": "похожий на Brevis apartments",
       "first_sample": {
-        "ms": 594.6804999985034,
-        "bytes": 129001
+        "ms": 410.0766659976216,
+        "bytes": 129002
       },
       "warm": {
         "samples": 20,
-        "p50_ms": 167.98,
-        "p95_ms": 206.29,
-        "min_ms": 158.29,
-        "max_ms": 426.18,
+        "p50_ms": 164.15,
+        "p95_ms": 189.64,
+        "min_ms": 153.26,
+        "max_ms": 193.42,
         "bytes_max": 129002
       },
       "all_in_top20": 0
@@ -244,67 +244,67 @@
   "profiles": {
     "detail_full": {
       "first_sample": {
-        "ms": 159.41616699274164,
+        "ms": 138.81441598641686,
         "bytes": 3603487
       },
       "warm": {
         "samples": 20,
-        "p50_ms": 132.64,
-        "p95_ms": 325.45,
-        "min_ms": 126.73,
-        "max_ms": 354.72,
+        "p50_ms": 137.29,
+        "p95_ms": 316.45,
+        "min_ms": 123.21,
+        "max_ms": 321.53,
         "bytes_max": 3603487
       }
     },
     "compare_full": {
       "first_sample": {
-        "ms": 1126.9373329996597,
+        "ms": 911.3048750004964,
         "bytes": 10141037
       },
       "warm": {
         "samples": 20,
-        "p50_ms": 1105.21,
-        "p95_ms": 1308.69,
-        "min_ms": 901.29,
-        "max_ms": 1426.01,
+        "p50_ms": 1099.71,
+        "p95_ms": 1180.85,
+        "min_ms": 897.0,
+        "max_ms": 1183.41,
         "bytes_max": 10141037
       }
     },
     "detail_compact": {
       "first_sample": {
-        "ms": 66.75566699414048,
+        "ms": 93.8618329964811,
         "bytes": 253327
       },
       "warm": {
         "samples": 20,
-        "p50_ms": 55.26,
-        "p95_ms": 72.77,
-        "min_ms": 52.23,
-        "max_ms": 253.77,
+        "p50_ms": 60.17,
+        "p95_ms": 82.2,
+        "min_ms": 52.02,
+        "max_ms": 261.95,
         "bytes_max": 253327
       }
     },
     "compare_compact": {
       "first_sample": {
-        "ms": 146.13204200577457,
+        "ms": 143.69658300711308,
         "bytes": 753740
       },
       "warm": {
         "samples": 20,
-        "p50_ms": 138.92,
-        "p95_ms": 323.35,
-        "min_ms": 131.2,
-        "max_ms": 360.44,
+        "p50_ms": 134.33,
+        "p95_ms": 317.68,
+        "min_ms": 130.52,
+        "max_ms": 348.43,
         "bytes_max": 753740
       }
     }
   },
   "search_warm": {
     "samples": 100,
-    "p50_ms": 69.35,
-    "p95_ms": 181.0,
-    "min_ms": 52.51,
-    "max_ms": 426.18,
+    "p50_ms": 68.75,
+    "p95_ms": 177.95,
+    "min_ms": 57.03,
+    "max_ms": 271.89,
     "bytes_max": 220804
   },
   "targets": {
@@ -312,20 +312,25 @@
     "compact_detail_under_400KB": true,
     "compact_compare_p95_under_1s": true
   },
-  "measured_at": "2026-10-27T03:11:19.291186+00:00",
-  "source_parent": "6ba019f",
-  "implementation_commit": "65e10457c5f0c2f9af20804d490ab090ccab1811",
+  "measured_at": "2026-10-27T03:42:20.715351+00:00",
+  "integration_parent": "ea9eae3",
+  "implementation_commits": [
+    "65e10457c5f0c2f9af20804d490ab090ccab1811",
+    "67fda4d25fe44d5dc311c73b606852a5d2a370d5"
+  ],
   "source_sha256": {
     "backend/db/repository.py": "43fc2d61202cd6ff261b3237288e5949fc6980f693e9c0ddc44b21b3ab531d43",
-    "backend/agents/query_parser.py": "b9d0e33e0c347c8e3d009899d0004009e2b7364254342024a2e93984124dee9e",
+    "backend/agents/query_parser.py": "b022df186923777cd5788029f5d2773156e8e05674fd23692c422d10fcc6db4c",
+    "backend/agents/query_text.py": "ebffb7717d5f231a95cdd0b213e5b20e3f0bbb00af62854a44129b8444e25a5c",
     "backend/agents/ranker.py": "66b28ead6aecce9a681ae1ed12d180b97f8f300bd919126ccf342f678d2df88d",
     "scripts/benchmark_api.py": "89be53a360289bccf87b40e52956e46f140d06ae9824759ed98556631a1215b8"
   },
   "image": {
-    "Id": "sha256:63b6c800b86c5701ef09830c6cd201042c8eab1a5441d8c48394d89ef175cce9",
+    "Id": "sha256:e640845a59500fd02fcaa81de321795d298ee357a1c5b2c7b7aa913c7978374e",
     "Architecture": "amd64",
     "Os": "linux",
-    "Size": 327449622
+    "Size": 327450107,
+    "user": "10001:10001"
   },
   "environment": {
     "host": "Apple M4; Docker Desktop linux/amd64 emulation",

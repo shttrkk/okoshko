@@ -1,0 +1,31 @@
+{
+  "previous_main": "de955457ce0677706cf04bd891336f37d5ede262",
+  "tree_before": "b6bc43ecc64c80bba391877facdafa7050814a06",
+  "tree_after": "b6bc43ecc64c80bba391877facdafa7050814a06",
+  "history_commit": "ea9eae382a4118a2c198267f97bf8809d35f6b35",
+  "original_tips": [
+    "021651a17625e46ff4434aa2e887fa10a79335b8",
+    "a3b66c8bb81dce76952bd1a2e879870e7c159aa6",
+    "2446d320f07c1593cc31019001fd9db697fe6d51",
+    "83d1007a4e08310f029bfc4ecf803a6bc0ca8bdc",
+    "f2e756330ed0a9dbcab895e751260d8e5772ef60",
+    "98591727472d18e6d30701ee560f756b31e554f6",
+    "37c6b07f84b43481d1f6b870977afbfd1c4ef042",
+    "8dc54203a543e617fb71e6c05fd6732cb266ef60",
+    "4b40e840159741ae56b97d08737f82300ff91af5",
+    "730bdd3d35f25c760291def604743c70004163ee",
+    "ba6b33e1c62e6b68c521d85b272582d51fc52352",
+    "3414ec173d2ec45e41569999bdede39b6f6cf472",
+    "4750f2c3fb77ae9da7cd9f3a7180e3b041239d24",
+    "f3fb782614db5c152f5999b1e2e61a561a91190b",
+    "41ebd94b1301d2782ab53d0ed1ad68cca9c3b8be",
+    "ccd44e6fecef600d16918e1add894f4055ed8250",
+    "e5bff3371dc883186ea3debd1d7db8b4bbb91a6a",
+    "ff45f7f707f253c1fe6692627f9835f30a16da6e",
+    "c7471930c02a8befda2538cce86f8d0d4af25aa3"
+  ],
+  "unchanged_tree": true,
+  "history_rewritten": false,
+  "guards": "1280 tests + 125 subtests, Ruff, frontend lint PASS before unchanged-tree merge",
+  "git_object_format": "sha1"
+}
