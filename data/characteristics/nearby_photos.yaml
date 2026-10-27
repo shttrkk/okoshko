@@ -1,6 +1,7 @@
 id: nearby_photos
 version: 1
 name_ru: Фото рядом
+display_name: Фото рядом
 description: Фото рядом — подтверждённые данные с указанием источника и ограничений
 category: Окружение
 synonyms:

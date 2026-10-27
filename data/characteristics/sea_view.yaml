@@ -1,6 +1,7 @@
 id: sea_view
 version: 1
 name_ru: Вид на море
+display_name: Вид на море
 description: Вид на море — подтверждённые данные с указанием источника и ограничений
 category: Вид
 synonyms:

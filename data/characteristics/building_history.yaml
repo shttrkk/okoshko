@@ -1,6 +1,7 @@
 id: building_history
 version: 1
 name_ru: История здания
+display_name: История здания
 description: История здания — подтверждённые данные с указанием источника и ограничений
 category: Окружение
 synonyms:

@@ -1,6 +1,7 @@
 id: room_orientation
 version: 1
 name_ru: Сторона и этаж номера
+display_name: Сторона и этаж номера
 description: Сторона и этаж номера — подтверждённые данные с указанием источника и
   ограничений
 category: Номер
