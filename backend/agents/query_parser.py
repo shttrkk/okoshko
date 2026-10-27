@@ -214,7 +214,7 @@ def _convert_measurement(number: str, unit: str, field: str) -> float:
     if field == 'minutes' and unit.startswith('час'):
         value *= 60
     if field == 'download_mbps':
-        if unit.startswith('мегабайт'):
+        if unit.startswith(('мегабайт', 'мб/с')):
             value *= 8
         elif unit.startswith(('гбит', 'gbps', 'гигабит')):
             value *= 1000
@@ -327,8 +327,39 @@ def _unsupported_measurement(text: str, match, cid: str) -> tuple[str, str] | No
     return None
 
 
+def _connectivity_followups(text: str, matches: list) -> list:
+    """An adjacent typed speed belongs to the last unambiguous network anchor."""
+    speed = re.compile(r'(?<![-\d.,])\d+(?:[.,]\d+)?\s*' + _measurement_unit('download_mbps') + r'(?![\w/])')
+    foreign = '|'.join(pattern for cid, pattern in RULES.items() if cid != 'connectivity')
+    foreign += r'|\b(?:аптек\w*|пляж\w*|парковк\w*|площадк\w*|цена|стоимост\w*|вес\w*|этаж\w*)\b'
+    foreign += r'|\bномер\w*\s*(?:№\s*)?\d'
+    result = []
+    for anchor in matches:
+        if not valid_intent_match('connectivity', text, anchor) or any(_importance(text, anchor.start(), anchor.end())[1:]):
+            continue
+        _, boundary = clause_bounds(text, anchor.start(), anchor.end())
+        if boundary >= len(text) or re.search(foreign, text[anchor.end():boundary]):
+            continue
+        if text[boundary] in ',;':
+            following = boundary+1
+        elif re.match(r'(?:но|а)\b', text[boundary:]):
+            following = boundary
+        else:
+            continue
+        connector = re.match(r'\s*(?:(?:но|а|и|при этом)\s+)?', text[following:])
+        start = following+connector.end()
+        right = clause_bounds(text, start, start)[1]
+        clause = text[start:right]
+        if re.search(foreign, clause) or re.search(r'\b(?:без|не\s+(?:хочу|хотим|нуж\w*|треб\w*))\b', clause):
+            continue
+        result.extend(speed.finditer(text, start, right))
+    return result
+
+
 def _measurement_clauses(text: str, matches: list, cid: str) -> list:
     """Attach a directly following, noun-free measurement clarification."""
+    if cid == 'connectivity':
+        return [*matches, *_connectivity_followups(text, matches)]
     if cid not in {'beach_walk', 'car_access', 'night_pharmacy', 'family_nearby', 'connectivity', 'climate', 'air_quality', 'green_nearby', 'nightlife'}:
         return matches
     result = list(matches)
@@ -386,6 +417,8 @@ def _nearby_intents(text: str) -> dict:
 
 def _criterion_label(criterion: Criterion, fallback: str, unit: str | None = None) -> str:
     cid = criterion.characteristic_id
+    if cid == 'connectivity' and criterion.field == 'wifi_reported':
+        fallback = 'Сообщено наличие Wi-Fi'
     if criterion.op == 'eq' and criterion.value is False:
         fallback = {
             ('sea_view', 'available'): 'Без вида на море',
@@ -412,6 +445,23 @@ def _criterion_label(criterion: Criterion, fallback: str, unit: str | None = Non
     return ", ".join([fallback, *flags])
 
 
+def _wifi_presence_only(text: str) -> list[re.Match]:
+    """Only an explicit presence request/waiver relaxes inferred Mbps, never a number."""
+    wifi = list(re.finditer(r'\bwi[ -]?fi\b', text))
+    if not wifi or re.search(r'\d+(?:[.,]\d+)?\s*' + _measurement_unit('download_mbps'), text):
+        return []
+    waiver = (r'\b(?:(?:измеренн\w*|гарантированн\w*|высок\w*)\s+)?скорост\w*\s+'
+              r'(?:wi[ -]?fi\s+)?(?:мне\s+)?не\s+(?:обязательн\w*|важн\w*|принципиальн\w*|нужн\w*)\b|'
+              r'\bбез\s+требован\w*\s+к\s+(?:измеренн\w*\s+)?скорост\w*\b')
+    presence = (r'\b(?:только|просто|достаточно)\s+(?:наличи\w*\s+)?wi[ -]?fi\b|'
+                r'\bналичи\w*\s+wi[ -]?fi\b|\bчтобы\s+был\s+wi[ -]?fi\b')
+    matches = [match for match in re.finditer(waiver, text) if any(
+        abs(match.start()-anchor.start()) <= 200 and not re.search(
+            r'(?<!\d)\.(?!\d)|[;!?\n]', text[min(match.end(), anchor.end()):max(match.start(), anchor.start())])
+        for anchor in wifi)]
+    return matches or list(re.finditer(presence, text))
+
+
 def _numeric_mentions(text: str, spec: CharacteristicSpec, matches: list,
                       template: Criterion, warnings: list[str]) -> list[tuple[bool, Criterion]]:
     """Retain explicit limits from every mention, with that mention's priority."""
@@ -430,6 +480,13 @@ def _numeric_mentions(text: str, spec: CharacteristicSpec, matches: list,
     result = []
     for atom in matches:
         soft, negative, skip = _importance(text, atom.start(), atom.end())
+        if spec.id == 'connectivity' and re.fullmatch(r'\d+(?:[.,]\d+)?\s*' + _measurement_unit('download_mbps'), atom[0]):
+            left, right = clause_bounds(text, atom.start(), atom.end())
+            if not re.search(SOFT + '|' + HARD, text[left:right]):
+                previous = max((m for m in matches if m.end() <= atom.start() and not re.fullmatch(
+                    r'\d+(?:[.,]\d+)?\s*' + _measurement_unit('download_mbps'), m[0])), key=lambda m: m.end(), default=None)
+                if previous is not None:
+                    soft = _importance(text, previous.start(), previous.end())[0]
         if skip or negative:
             continue
         atom_fields = fields
@@ -518,6 +575,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
     consumed = []
     positions = {}
     nearby = _nearby_intents(text)
+    wifi_presence = _wifi_presence_only(text)
     for spec in catalog:
         if spec.status != "active":
             continue
@@ -625,6 +683,10 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
                 nearby_preference = (nearby_soft, Criterion(characteristic_id=spec.id, label=spec.name_ru,
                                                           field=nearby_field, op=nearby_op, value=nearby_value))
         op, value = _numeric(text, numeric_match.start(), numeric_match.end(), field, op, value)
+        if spec.id == 'connectivity' and wifi_presence and not negative and (
+                _numeric(text, numeric_match.start(), numeric_match.end(), 'download_mbps', 'gte', None)[1] is None):
+            field, op, value = 'wifi_reported', 'eq', True
+            consumed.extend((m.start(), m.end()) for m in wifi_presence)
         if negative and isinstance(value, bool):
             value = not value
         elif negative and spec.id in {'car_access', 'connectivity', 'night_pharmacy'}:
@@ -757,6 +819,10 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             (parsed.nice if atom_soft else parsed.must).append(extra)
         own_measurement = _numeric(text, match.start(), match.end(), criterion.field, criterion.op, None)[1] if criterion.field else None
         same_priority = [extra for atom_soft, extra in measurements if atom_soft == soft]
+        if spec.id == 'connectivity' and soft and own_measurement is None and any(not priority for priority, _ in measurements):
+            # A later hard speed supersedes the inferred soft default; a later
+            # soft speed must not remove the original hard work requirement.
+            parsed.nice[:] = [c for c in parsed.nice if c is not criterion]
         replaces_default = any(extra.field == criterion.field or
                                spec.id in {'beach_walk', 'night_pharmacy'} and {extra.field, criterion.field} <= {'minutes', 'distance_m'} or
                                criterion.field == 'available' and spec.id in {'quiet_night', 'family_nearby', 'night_pharmacy', 'morning_sun'}

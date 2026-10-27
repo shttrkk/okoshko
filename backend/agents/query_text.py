@@ -111,7 +111,7 @@ _RUSSIAN_MONTHS = ('январе', 'феврале', 'марте', 'апреле
 
 
 def normalize_query_text(value: str) -> str:
-    value = re.sub(r'\b(?:МБ/с|MB/s)\b', 'мегабайт/с', value)
+    value = re.sub(r'(?<![а-яА-ЯёЁa-zA-Z])(?:МБ/с|MB/s)\b', 'мегабайт/с', value)
     text = value.casefold().replace('ё', 'е')
     text = re.sub(r'\bвай[ -]?фай\b', 'wi-fi', text)
     text = re.sub(r'\bтишын([ауые])\b', r'тишин\1', text)
@@ -177,10 +177,15 @@ _THIRD_PERSON_REPORT = (r'\b' + _THIRD_PERSON + r'\s+(?:(?:часто|сейча
                         r'\b(?:работает|работают|живет|живут)\s+(?:(?:моя|мой|наша|наш)\s+)?' + _THIRD_PERSON + r'\b')
 _TRIP_ACTION = r'\b(?:еду|едем|едет|едут|поеду|поедем|поедет|поедут|приеду|приедем|заселимся|путешествуем)\b'
 _ADOPTED_ACTION = _CURRENT_REQUIREMENT + '|' + _TRIP_ACTION
+_PAST_EVENT = (r'\b(?:вчера|позавчера|тогда|потом|на прошлой неделе|в прошлом году)\b'
+               r'[^,;.!?]{0,80}\b(?:[а-я]{3,}л(?:[аои])?|был(?:[аои])?)\b')
+_DEVICE_TASK = (r'\b(?:поставь|положи|переставь|передвинь|подключи|отключи|заряди|забери|возьми)(?:те)?\b'
+                r'[^,;.!?]{0,60}\b(?:телефон\w*|смартфон\w*|планшет\w*|ноутбук\w*)\b')
 
 
 def _reported_context_match(text: str) -> re.Match | None:
-    matches = [m for pattern in (_REPORTED_CONTEXT, _THIRD_PERSON_REPORT) if (m := re.search(pattern, text))]
+    matches = [m for pattern in (_REPORTED_CONTEXT, _THIRD_PERSON_REPORT, _PAST_EVENT)
+               if (m := re.search(pattern, text))]
     return min(matches, key=lambda m: m.start(), default=None)
 
 
@@ -214,8 +219,10 @@ def search_context_text(text: str) -> str:
         other_object = bool(re.search(_OTHER_OBJECT, unquoted))
         reported = bool(re.search(r'\b(?:написал\w*|сказал\w*|обсужда\w*|цитир\w*|называ\w*)\b', unquoted))
         narrative = bool(_reported_context_match(unquoted))
+        device_task = bool(re.search(_DEVICE_TASK, unquoted))
         current_requirement = bool(_adopted_action_match(unquoted))
-        if not hotel_request and (language_task or document_task or other_object or narrative and not current_requirement):
+        if not hotel_request and (language_task or document_task or other_object
+                                  or (narrative or device_task) and not current_requirement):
             result[left:right] = ' ' * (right-left)
         elif quotes and (language_task or document_task or reported):
             for quoted in quotes:
@@ -224,16 +231,25 @@ def search_context_text(text: str) -> str:
     # reported/device clause without suppressing the neighbouring requirement.
     masked = ''.join(result)
     boundaries = [0, *[m.end() for m in re.finditer(r'(?<!\d)[,.]|[,.](?!\d)|[;!?]', masked)], len(masked)]
+    reported_context = False
     for left, right in zip(boundaries, boundaries[1:], strict=False):
+        if left and text[left-1] in '.;!?\n':
+            reported_context = False
         clause = masked[left:right]
         reported = _reported_context_match(clause)
+        device_task = re.search(_DEVICE_TASK, clause)
         adopted = _adopted_action_match(re.sub(_QUOTED, lambda m: ' ' * len(m[0]), clause))
-        if reported and adopted and reported.start() < adopted.start():
+        prefix = reported or device_task
+        if adopted and (reported_context or prefix and prefix.start() < adopted.start()):
             result[left:left+adopted.start()] = ' ' * adopted.start()
+            reported_context = False
             continue
         if re.search(_OTHER_OBJECT, clause) and not re.search(_HOTEL_REQUEST, clause) or (
-                reported and not adopted):
+                (reported or device_task or reported_context) and not adopted):
             result[left:right] = ' ' * (right-left)
+            reported_context = True
+        elif adopted:
+            reported_context = False
     return ''.join(result)
 
 
