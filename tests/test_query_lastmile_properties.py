@@ -45,6 +45,28 @@ def test_photo_purpose_does_not_add_a_gallery_requirement_to_a_real_view_request
     assert conditions(plan) == {("sea_view", "available", "eq", True)}
 
 
+@pytest.mark.parametrize("text", ["Помоги сделать фото вокруг отеля",
+                                 "Хочу сделать снимки поблизости",
+                                 "Хочу снять фото вокруг отеля",
+                                 "Хочу снять фотографии окрестностей",
+                                 "Сделай мне фото вокруг отеля"])
+def test_photo_creation_infinitive_is_not_a_request_for_existing_photos(text, specs):
+    plan = parse(text, specs)
+    assert not plan.must and not plan.nice
+
+
+@pytest.mark.parametrize("text", ["Хочу снять номер с фотографиями окрестностей",
+                                 "Хочу снимать номер с фотографиями окрестностей"])
+def test_renting_a_room_does_not_hide_its_requested_photographs(text, specs):
+    plan = parse(text, specs)
+    assert conditions(plan) == {("nearby_photos", "available", "eq", True)}
+
+
+def test_creation_clause_preserves_a_real_property_in_the_next_clause(specs):
+    plan = parse("Хочу сделать снимки поблизости, но вид на море обязателен", specs)
+    assert conditions(plan) == {("sea_view", "available", "eq", True)}
+
+
 def test_activity_does_not_invent_a_hard_temperature_beside_an_explicit_nice_one(specs):
     plan = parse("Купаться в июле, желательно вода от 22 градусов", specs)
     assert plan.month == 7 and not plan.must

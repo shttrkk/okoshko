@@ -318,7 +318,8 @@ def valid_intent_match(cid: str, text: str, match: re.Match) -> bool:
         # photographs, or describing the purpose of a real view requirement.
         before = text[left:match.start()]
         if re.search(r'\bдля\s*$', before) or re.search(
-                r'\b(?:сделай\w*|сними\w*|снима\w*|сфотографиру\w*|нарису\w*|обработа\w*|отредактиру\w*)\b', before):
+                r'\b(?:сделать|сделай\w*|снять|сними\w*|снима\w*|сфотографиру\w*|нарису\w*|обработа\w*|отредактиру\w*)'
+                r'\s+(?:(?:мне|нам|пожалуйста)\s+){0,2}$', before):
             return False
     if cid == 'quiet_night' and re.search(r'тих\w*\s+океан|тишин\w*\s+в\s+чат\w*', clause):
         return False
