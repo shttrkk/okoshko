@@ -17,6 +17,10 @@ value_schema:
       type:
       - boolean
       - 'null'
+    courtyard:
+      type:
+      - boolean
+      - 'null'
   additionalProperties: true
 methods:
 - tool: hotelier_ask

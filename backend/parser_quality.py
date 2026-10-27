@@ -22,6 +22,7 @@ METHODOLOGY = (
 )
 PARSER_FILES = (
     "backend/agents/query_parser.py",
+    "backend/agents/group_query.py",
     "backend/agents/query_text.py",
     "backend/agents/query_rules.py",
     "backend/agents/similarity.py",

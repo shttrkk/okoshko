@@ -6519,3 +6519,287 @@ h3 {
     animation: none !important;
   }
 }
+
+/* A shared hotel, individual expectations. Uses the resort palette. */
+.group-search-example {
+  align-self: flex-start;
+  margin: -3px 0 10px;
+  color: var(--sea-deep);
+}
+.criteria-shared-heading,
+.room-criteria h3 {
+  font:
+    750 17px/1.35 "Nunito Variable",
+    sans-serif;
+  color: var(--heading);
+}
+.room-criteria {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--sea);
+  border-radius: 12px;
+  background: var(--surface);
+  min-width: 0;
+}
+.room-criteria > p {
+  margin-top: 6px;
+}
+.group-plan {
+  min-width: 0;
+}
+.group-plan.compact {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--sea-soft);
+}
+.group-plan-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--sea-deep);
+  margin-bottom: 10px;
+}
+.group-plan-heading h2 {
+  margin: 0;
+  font:
+    750 25px/1.2 "Nunito Variable",
+    sans-serif;
+  color: var(--heading);
+}
+.group-plan-heading > svg {
+  flex-shrink: 0;
+}
+.group-plan.compact .group-plan-heading h2 {
+  font-size: 18px;
+}
+.group-plan-list {
+  margin-top: 14px;
+}
+.group-plan-row {
+  min-width: 0;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.group-plan-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 4px;
+}
+.group-plan-row-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.group-plan-row-heading > div {
+  flex: 1;
+  min-width: 0;
+}
+.group-plan-row-heading h3 {
+  margin: 0 0 4px;
+  font:
+    750 18px/1.3 "Nunito Variable",
+    sans-serif;
+}
+.group-plan-row-heading > .text-button {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.group-recommendation {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.group-profile-preview {
+  margin-top: 5px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.group-plan-details {
+  margin-top: 9px;
+  font-size: 12px;
+}
+.group-plan-details > summary,
+.room-profile-card > summary,
+.room-suggestion > summary {
+  cursor: pointer;
+  color: var(--sea-deep);
+}
+.group-plan-details[open] > summary {
+  margin-bottom: 12px;
+}
+.group-availability {
+  margin-top: 13px;
+}
+.room-caveats {
+  padding-left: 17px;
+  margin-top: 8px;
+  color: var(--yellow);
+  font-size: 12px;
+  line-height: 1.65;
+}
+.room-suggestion {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--sea-soft);
+}
+.room-suggestion > summary {
+  list-style: none;
+}
+.room-suggestion > summary p {
+  margin: 7px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.room-suggestion > summary .eyebrow {
+  font-size: 10px;
+}
+.room-profiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+.room-profiles > .muted,
+.room-profiles > .error-state {
+  grid-column: 1 / -1;
+}
+.room-profile-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.room-profile-card > summary {
+  list-style: none;
+}
+.room-profile-card h3 {
+  margin: 0 0 7px;
+  font:
+    750 17px/1.35 "Nunito Variable",
+    sans-serif;
+  color: var(--heading);
+}
+.room-profile-card[open] {
+  grid-column: 1 / -1;
+}
+.room-profile-preview,
+.room-profile-copy {
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text);
+  margin-top: 9px;
+}
+.room-profile-card > summary > .text-button {
+  display: inline-flex;
+  margin-top: 10px;
+}
+.room-description {
+  margin-top: 10px;
+  min-width: 0;
+}
+.room-conditional {
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--yellow);
+}
+.room-clauses {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+}
+.room-clauses > li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.room-clause-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 4px;
+}
+.room-lab .room-profiles,
+.room-suggestion .room-profiles {
+  grid-template-columns: minmax(0, 1fr);
+}
+.room-lab-person,
+.group-passport-notice {
+  padding: 12px;
+  background: var(--sea-soft);
+  border-radius: 8px;
+  margin: 12px 0;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.passport-room-label {
+  color: var(--sea-deep);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+.group-passport-preview {
+  margin: 18px 0;
+}
+.group-passport-preview p {
+  line-height: 1.8;
+}
+.group-passport-preview > .text-button {
+  margin-top: 16px;
+}
+@media (max-width: 600px) {
+  .room-profiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .group-plan.compact {
+    padding: 12px;
+  }
+  .group-plan-row-heading {
+    flex-wrap: wrap;
+  }
+  .group-plan-row-heading > .text-button {
+    margin-left: 32px;
+    flex-basis: calc(100% - 32px);
+  }
+  .room-criteria {
+    padding: 13px;
+  }
+  .room-criteria .criteria-group {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+  }
+  .room-criteria .criterion-chip {
+    flex-wrap: wrap;
+    overflow-wrap: anywhere;
+  }
+}
+.criteria-apply {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+.group-plan-row-heading h3 {
+  overflow-wrap: anywhere;
+}
+.room-criteria .criterion-chip > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.group-profile-preview,
+.room-profile-preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.group-plan.compact .group-profile-preview {
+  -webkit-line-clamp: 2;
+}

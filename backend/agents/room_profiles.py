@@ -43,6 +43,7 @@ _LABELS = {
     "beach_walk": "Путь до пляжа",
 }
 _SOLAR = {"sunset_view", "morning_sun", "evening_heat"}
+_MONTHS_IN = ("январе", "феврале", "марте", "апреле", "мае", "июне", "июле", "августе", "сентябре", "октябре", "ноябре", "декабре")
 _CORE = {"sea_view", "sunset_view", "quiet_night", "soundproofing", "beach_walk"}
 _POSITION_CAVEAT = (
     "Это модельное положение в здании. Существование и доступность конкретного номера, "
@@ -177,8 +178,8 @@ def _known_text(cid: str, facts: list[Fact], status: str, month: int) -> tuple[s
     if cid == "sunset_view":
         caveats.append("Закат оценён для выбранного месяца; облачность и реальные окна неизвестны. Минуты означают сумму видимых интервалов, а не непрерывный вид до заката.")
         if status == "no":
-            return f"В месяце {month} закат для этого положения не подтверждается данными.", caveats
-        text = preliminary + f"В месяце {month} есть данные о видимости заката"
+            return f"В {_MONTHS_IN[month - 1]} закат для этого положения не подтверждается данными.", caveats
+        text = preliminary + f"В {_MONTHS_IN[month - 1]} есть данные о видимости заката"
         minutes = _solar_minutes(facts)
         if minutes:
             text += f": {minutes} мин перед закатом по модели последних 5° над горизонтом"
@@ -210,8 +211,8 @@ def _known_text(cid: str, facts: list[Fact], status: str, month: int) -> tuple[s
                               else "Тишина для этого положения не подтверждается источником; данных в дБ нет."), caveats
     if cid == "morning_sun":
         minutes = _solar_minutes(facts)
-        text = (f"В месяце {month} порог утреннего солнца по модели достигнут" if status != "no"
-                else f"В месяце {month} порог утреннего солнца по модели не достигнут")
+        text = (f"В {_MONTHS_IN[month - 1]} порог утреннего солнца по модели достигнут" if status != "no"
+                else f"В {_MONTHS_IN[month - 1]} порог утреннего солнца по модели не достигнут")
         if minutes:
             text += f"; прямое солнце {minutes} мин"
         caveats.append("Утреннее солнце рассчитано на 15-е число месяца в первые три часа после восхода; облачность, окна и шторы неизвестны.")
@@ -225,7 +226,7 @@ def _known_text(cid: str, facts: list[Fact], status: str, month: int) -> tuple[s
             low = min(v["exposure_index_min"] if _number(v.get("exposure_index_min")) else v["exposure_index"] for v in values)
             high = max(v["exposure_index_max"] if _number(v.get("exposure_index_max")) else v["exposure_index"] for v in values)
             index = f"{low:.2f}" if round(low, 2) == round(high, 2) else f"{low:.2f}–{high:.2f}"
-            return preliminary + f"В месяце {month} индекс вечерней солнечной экспозиции: {index.replace('.', ',')} из 1.", ["Индекс вечернего солнца — геометрический прокси, не температура комнаты или прогноз нагрева."]
+            return preliminary + f"В {_MONTHS_IN[month - 1]} индекс вечерней солнечной экспозиции: {index.replace('.', ',')} из 1.", ["Индекс вечернего солнца — геометрический прокси, не температура комнаты или прогноз нагрева."]
     if cid == "soundproofing":
         details = []
         for key, yes, no in (("blackout", "плотные шторы указаны", "плотные шторы не указаны как имеющиеся"),

@@ -12,6 +12,8 @@ import {
   Synthetic,
 } from "../components/ui";
 import type { Passport, PassportItem } from "../types";
+import { GroupPlan } from "../components/GroupPlan";
+import { criterionIdentity, roomScopeText } from "../components/group";
 const statuses: Record<string, string> = {
   draft: "Черновик",
   sent: "Ожидает ответа отеля",
@@ -25,10 +27,12 @@ export function PassportView({
   passport,
   onUpdate,
   hotelier = false,
+  unknownFloors = false,
 }: {
   passport: Passport;
   onUpdate: (p: Passport) => void;
   hotelier?: boolean;
+  unknownFloors?: boolean;
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<Error | null>(null),
@@ -44,7 +48,7 @@ export function PassportView({
       onUpdate(
         await api.passportAction(passport.id, {
           action,
-          room_number: room,
+          room_number: passport.room_requests?.length ? undefined : room,
           text: alternative,
           matched,
         }),
@@ -76,6 +80,26 @@ export function PassportView({
         </span>
         {passport.room_number && <strong>Номер {passport.room_number}</strong>}
       </div>
+      {!!passport.room_requests?.length && (
+        <p
+          className="fine-print group-passport-notice"
+          data-testid="group-passport-notice"
+        >
+          Подтверждение относится к пожеланиям каждой позиции. Количество
+          свободных номеров, вместимость и размещение рядом нужно отдельно
+          согласовать с отелем. Одно общее подтверждение не резервирует
+          несколько номеров.
+        </p>
+      )}
+      {!!passport.room_plan?.length && (
+        <GroupPlan
+          hotelId={passport.hotel_id}
+          items={passport.room_plan}
+          requests={passport.room_requests}
+          unknownFloors={unknownFloors}
+          compact
+        />
+      )}
       {passport.items.map((item) => (
         <div className="passport-item" key={item.id}>
           <span
@@ -88,6 +112,17 @@ export function PassportView({
                 : "?"}
           </span>
           <div>
+            {!!passport.room_requests?.length && (
+              <p
+                className="passport-room-label"
+                data-testid="passport-room-label"
+              >
+                {item.room_label || "Для всех"}
+                {item.room_index !== undefined && item.room_index !== null
+                  ? ` · позиция ${item.room_index + 1}`
+                  : ""}
+              </p>
+            )}
             <strong>{item.text}</strong>
             <p>
               {statuses[item.status] || item.status}
@@ -128,14 +163,16 @@ export function PassportView({
       </div>
       {hotelier ? (
         <div className="passport-actions">
-          <label>
-            Номер
-            <input
-              value={room}
-              onChange={(e) => setRoom(e.target.value)}
-              placeholder="Подтверждённый номер"
-            />
-          </label>
+          {!passport.room_requests?.length && (
+            <label>
+              Номер
+              <input
+                value={room}
+                onChange={(e) => setRoom(e.target.value)}
+                placeholder="Подтверждённый номер"
+              />
+            </label>
+          )}
           <label>
             Комментарий или альтернатива
             <textarea
@@ -148,10 +185,12 @@ export function PassportView({
             <button
               className="button primary small"
               onClick={() => act("confirm")}
-              disabled={busy || !room}
+              disabled={busy || (!passport.room_requests?.length && !room)}
             >
               <Check size={15} />
-              Подтвердить
+              {passport.room_requests?.length
+                ? "Подтвердить пожелания"
+                : "Подтвердить"}
             </button>
             <button
               className="button secondary small"
@@ -260,7 +299,7 @@ export function BookingPage() {
         guest_name: guest,
         check_in: tripDates.check_in || null,
         check_out: tripDates.check_out || null,
-        items,
+        items: parsed?.rooms?.length ? [] : items,
         parsed: parsed
           ? {
               ...parsed,
@@ -281,7 +320,7 @@ export function BookingPage() {
     }
   };
   const catalogueReview = record(detail.data?.hotel.tags?.catalogue_review);
-  if (catalogueReview.disposition === 'hold_for_identity_review')
+  if (catalogueReview.disposition === "hold_for_identity_review")
     return (
       <div className="page-container">
         <BackLink to="/search">К поиску</BackLink>
@@ -317,7 +356,11 @@ export function BookingPage() {
             </div>
           )}
           {passport ? (
-            <PassportView passport={passport} onUpdate={setPassport} />
+            <PassportView
+              passport={passport}
+              onUpdate={setPassport}
+              unknownFloors={detail.data?.hotel.floors === null}
+            />
           ) : (
             <>
               {params.get("passport") && existing.loading && <Loading />}
@@ -403,46 +446,113 @@ export function BookingPage() {
                     <h2>На чём договоримся</h2>
                     <span className="fine-print">Отметьте критичное</span>
                   </div>
-                  {items.map((item, index) => (
-                    <div className="passport-edit-item" key={item.id}>
-                      <span>0{index + 1}</span>
-                      <input
-                        aria-label={`Ожидание ${index + 1}`}
-                        value={item.text}
-                        onChange={(e) =>
-                          setItems((old) =>
-                            old.map((i) =>
-                              i.id === item.id
-                                ? { ...i, text: e.target.value }
-                                : i,
-                            ),
+                  {!!parsed?.rooms?.length && (
+                    <div
+                      className="group-passport-preview"
+                      data-testid="group-passport-preview"
+                    >
+                      <h3>Для всех</h3>
+                      {[
+                        ...parsed.must,
+                        ...parsed.nice,
+                        ...(parsed.no_data || []),
+                      ].map((criterion, index) => (
+                        <p className="small" key={index}>
+                          {criterion.label} ·{" "}
+                          {parsed.must.includes(criterion) ||
+                          parsed.no_data_must?.some(
+                            (item) =>
+                              criterionIdentity(item) ===
+                              criterionIdentity(criterion),
                           )
-                        }
-                      />
-                      <label className="checkbox-label">
+                            ? "критично"
+                            : "желательно"}
+                        </p>
+                      ))}
+                      {parsed.rooms.map((request, index) => (
+                        <section
+                          className="room-criteria"
+                          key={index}
+                          data-testid={`passport-room-request-${index}`}
+                        >
+                          <h3>
+                            {request.label} · позиция {index + 1}
+                          </h3>
+                          <p className="small muted">
+                            {roomScopeText(request.scope)}
+                          </p>
+                          {[
+                            ...request.must,
+                            ...request.nice,
+                            ...(request.no_data || []),
+                          ].map((criterion, at) => (
+                            <p className="small" key={at}>
+                              {criterion.label} ·{" "}
+                              {request.must.includes(criterion) ||
+                              request.no_data_must?.some(
+                                (item) =>
+                                  criterionIdentity(item) ===
+                                  criterionIdentity(criterion),
+                              )
+                                ? "критично"
+                                : "желательно"}
+                              {request.no_data?.includes(criterion)
+                                ? " · нет данных"
+                                : ""}
+                            </p>
+                          ))}
+                        </section>
+                      ))}
+                      <Link
+                        className="text-button small"
+                        to={`/search?q=${encodeURIComponent(parsed.text)}&edit=1`}
+                      >
+                        Изменить пожелания в поиске <ArrowRight size={14} />
+                      </Link>
+                    </div>
+                  )}
+                  {!parsed?.rooms?.length &&
+                    items.map((item, index) => (
+                      <div className="passport-edit-item" key={item.id}>
+                        <span>0{index + 1}</span>
                         <input
-                          type="checkbox"
-                          checked={item.critical}
+                          aria-label={`Ожидание ${index + 1}`}
+                          value={item.text}
                           onChange={(e) =>
                             setItems((old) =>
                               old.map((i) =>
                                 i.id === item.id
-                                  ? { ...i, critical: e.target.checked }
+                                  ? { ...i, text: e.target.value }
                                   : i,
                               ),
                             )
                           }
                         />
-                        Критично
-                      </label>
-                    </div>
-                  ))}
-                  {!items.length && (
+                        <label className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={item.critical}
+                            onChange={(e) =>
+                              setItems((old) =>
+                                old.map((i) =>
+                                  i.id === item.id
+                                    ? { ...i, critical: e.target.checked }
+                                    : i,
+                                ),
+                              )
+                            }
+                          />
+                          Критично
+                        </label>
+                      </div>
+                    ))}
+                  {!parsed?.rooms?.length && !items.length && (
                     <Empty title="Добавьте ожидания в поиске" />
                   )}
                   <p className="fine-print">
-                    Все ожидания относятся к одному номеру. Если стороны или
-                    этажи несовместимы, отель должен предложить альтернативу.
+                    {parsed?.rooms?.length
+                      ? "Для каждой позиции сохраняются отдельные пожелания и положение. Количество и наличие номеров, вместимость и соседство уточнит отель. Подтверждение пожеланий не резервирует несколько свободных номеров."
+                      : "Все ожидания относятся к одному номеру. Если стороны или этажи несовместимы, отель должен предложить альтернативу."}
                   </p>
                   <button
                     className="button primary"
@@ -451,8 +561,8 @@ export function BookingPage() {
                       busy ||
                       dateError ||
                       !guest.trim() ||
-                      !items.length ||
-                      items.some((i) => !i.text.trim())
+                      (!parsed?.rooms?.length &&
+                        (!items.length || items.some((i) => !i.text.trim())))
                     }
                     data-testid="passport-submit"
                   >

@@ -2,14 +2,14 @@
   "methodology": "Authored synthetic intent cases, without independent human validation; not hotel accuracy or nDCG. no_data uses explicit authoritative fixture context; similarity uses existing catalogue resolver.",
   "gold": {
     "queries": 239,
-    "exact_matches": 216,
-    "exact_match_rate": 0.903766,
-    "criterion_precision": 0.996622,
-    "criterion_recall": 0.970395,
-    "criterion_true_positive": 295,
+    "exact_matches": 215,
+    "exact_match_rate": 0.899582,
+    "criterion_precision": 0.99661,
+    "criterion_recall": 0.967105,
+    "criterion_true_positive": 294,
     "criterion_expected": 304,
-    "criterion_actual": 296,
-    "criteria_exact_match_rate": 0.958159,
+    "criterion_actual": 295,
+    "criteria_exact_match_rate": 0.953975,
     "unmapped_expectation_accuracy": 0.941423,
     "unmapped_evaluated_queries": 239,
     "queries_with_unmapped": 20
@@ -17,14 +17,14 @@
   "splits": {
     "development": {
       "queries": 189,
-      "exact_matches": 183,
-      "exact_match_rate": 0.968254,
-      "criterion_precision": 0.995745,
-      "criterion_recall": 0.979079,
-      "criterion_true_positive": 234,
+      "exact_matches": 182,
+      "exact_match_rate": 0.962963,
+      "criterion_precision": 0.995726,
+      "criterion_recall": 0.974895,
+      "criterion_true_positive": 233,
       "criterion_expected": 239,
-      "criterion_actual": 235,
-      "criteria_exact_match_rate": 0.968254,
+      "criterion_actual": 234,
+      "criteria_exact_match_rate": 0.962963,
       "unmapped_expectation_accuracy": 1.0,
       "unmapped_evaluated_queries": 189,
       "queries_with_unmapped": 4
@@ -61,14 +61,14 @@
     },
     "semantic_extraction": {
       "queries": 229,
-      "exact_matches": 207,
-      "exact_match_rate": 0.90393,
-      "criterion_precision": 0.996441,
-      "criterion_recall": 0.968858,
-      "criterion_true_positive": 280,
+      "exact_matches": 206,
+      "exact_match_rate": 0.899563,
+      "criterion_precision": 0.996429,
+      "criterion_recall": 0.965398,
+      "criterion_true_positive": 279,
       "criterion_expected": 289,
-      "criterion_actual": 281,
-      "criteria_exact_match_rate": 0.956332,
+      "criterion_actual": 280,
+      "criteria_exact_match_rate": 0.951965,
       "unmapped_expectation_accuracy": 0.943231,
       "unmapped_evaluated_queries": 229,
       "queries_with_unmapped": 19
@@ -95,6 +95,38 @@
     "criteria_emitted": 0
   },
   "failures": [
+    {
+      "id": "gold-086",
+      "text": "Для детей площадка рядом, для нас закат",
+      "split": "development",
+      "exact": false,
+      "stage": "semantic_extraction",
+      "criteria_exact": false,
+      "true_positive": 1,
+      "expected_count": 2,
+      "actual_count": 1,
+      "unmapped_ok": true,
+      "unmapped_evaluated": true,
+      "has_unmapped": false,
+      "errors": [
+        {
+          "missing_criteria": [
+            [
+              "must",
+              {
+                "characteristic_id": "sunset_view",
+                "field": "available",
+                "no_crossings": false,
+                "no_stairs": false,
+                "op": "eq",
+                "scope": null,
+                "value": true
+              }
+            ]
+          ]
+        }
+      ]
+    },
     {
       "id": "gold-103",
       "text": "Хочу работать у моря",
@@ -760,14 +792,15 @@
   "input_fingerprint": {
     "version": 1,
     "parser_sha256": {
-      "backend/agents/query_parser.py": "95d7a8cefa875965d4fbf0d0de31fcf6c2d491917130b83c96204e9d02f4aa6a",
+      "backend/agents/query_parser.py": "331114247c5f172ed70b21e708dfcdff79d4fad3b501c83574dd6196fe5d3d11",
+      "backend/agents/group_query.py": "fe48146b77ff497c7ab399f906732d5013f2d754665926b4aeb767c1ee52aa49",
       "backend/agents/query_text.py": "ebffb7717d5f231a95cdd0b213e5b20e3f0bbb00af62854a44129b8444e25a5c",
-      "backend/agents/query_rules.py": "365e18f3db37b1c189a8c4bd73689c9654f16b14ce4f3d09e8053085cb98e278",
-      "backend/agents/similarity.py": "0de3585c135fb98d3de03abdeb69147135b8467ba537768a4a58c721165c8b7e",
+      "backend/agents/query_rules.py": "4b1e2263bf75059bb5f15862633cca228152f81708037d12941900647c495601",
+      "backend/agents/similarity.py": "f75c244fdcc1f2ce461af9c3d5ebad5e31263a10223807bad824fa3e3ef1bd49",
       "backend/contracts/__init__.py": "c7a5746ac4519ef52c85b62f9346a0537f39db8604ee732237f08cd2055bc8f1",
       "backend/contracts/models.py": "8139e9443af132ab4fd26e0af41144f1198356f212458d3c93249ae65e0f21ad",
       "backend/tools/registry.py": "8d5de1d0071e13f37075413d8b0a6009a32c7b9fade06b6e641a7bdac98dc424",
-      "backend/parser_quality.py": "9c344dd516b14098833c9bf3f44496288566e0651fdd041afbe1a8376fa65eec",
+      "backend/parser_quality.py": "565c904961bff176488fd1faed871d68dc9eb632a33bc1a329cbefd83153fc9f",
       "scripts/parser_eval.py": "694851c50ef1509832c6af6cacbdc2b127c17e395a1b415c3f5324802569ad70"
     },
     "catalogue_sha256": {
@@ -790,7 +823,7 @@
       "characteristics/pets.yaml": "854e116f1a2b4fb6302f58844bbe4eb32c04717ebc034e079d968d5416cc9ddb",
       "characteristics/quiet_night.yaml": "6e0464cfdef7d899e0122adb580ac29d9963ccfb4becb97032da97dbd2465a0c",
       "characteristics/railway_noise.yaml": "145be9a3575b68d3f3fc0676548533bc249348f3df775e9d170a9843bd0b1b1e",
-      "characteristics/room_orientation.yaml": "681a86bb19a8af0dc5d288e58aa8278e29e94458c44267b789029db76649b517",
+      "characteristics/room_orientation.yaml": "6d59244357b576244c9dd4814d2eddd83dc20ac6a29904f5ad8a980aff561460",
       "characteristics/sea_view.yaml": "a9fecf6bca68144ec4ecccb5b264a31e1b413f0912a9af80ac737ec03ae8de51",
       "characteristics/soundproofing.yaml": "35de37f3b4f0bd390472cdbfaa2eacce58fdb9def55dec514946558717be10ad",
       "characteristics/sunset_view.yaml": "149b80cc5f55745e05d3d64aa44bc689ed26ab6954bffaaeb593e4653ac8feca"

@@ -473,6 +473,7 @@ export function HotelierPage() {
                       <PassportView
                         key={p.id}
                         passport={p}
+                        unknownFloors={data.data?.hotel.floors === null}
                         hotelier
                         onUpdate={(updated) =>
                           data.setData((old) =>

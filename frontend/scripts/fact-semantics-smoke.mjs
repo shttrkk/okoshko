@@ -308,6 +308,7 @@ try {
       return route.fulfill({
         json: [{ ...hotel, floors: unknownFloors ? null : hotel.floors }],
       });
+    if (path.endsWith("/rooms")) return route.fulfill({ json: [] });
     if (path === "/api/characteristics") return route.fulfill({ json: specs });
     if (path === "/api/search")
       return route.fulfill({

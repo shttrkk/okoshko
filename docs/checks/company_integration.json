@@ -1,0 +1,35 @@
+{
+  "checked_at": "2026-10-27T13:56:01.854789+03:00",
+  "code_state": "staged company feature integration; exact parser hashes in data/eval/group_validation_results.json",
+  "llm_mode": "offline",
+  "pytest": {
+    "passed": 1542,
+    "subtests_passed": 125,
+    "command": "set -o pipefail; .venv/bin/python -m pytest -q --cov=backend --cov=geo --cov-report=json:docs/checks/coverage.json"
+  },
+  "coverage": {
+    "covered_lines": 8406,
+    "statements": 9287,
+    "percent": 90.51362119091203
+  },
+  "ruff": "passed",
+  "frontend_lint_typescript": "passed",
+  "audit": "passed",
+  "demo_check": {
+    "passed": 13
+  },
+  "browser_smokes": {
+    "browser": "passed",
+    "fact-refresh": "passed",
+    "fact-semantics": "passed",
+    "group": "passed",
+    "quality-metrics": "passed",
+    "relations": "passed",
+    "scoped-question": "passed",
+    "search-reasons": "passed",
+    "security": "passed"
+  },
+  "browser_executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "production_rebuilt": true,
+  "protected_volume_policy": "okno and okno-demo volumes retained; main checks do not submit claims or group passports"
+}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -15,9 +15,17 @@ import { api, record, useResource } from "../api";
 import { useApp } from "../state";
 import { GeoModal, TravelMap } from "../components/Map";
 import { FactsPanel } from "../components/FactsPanel";
-import { factCardId, SIDES, TRAIT_NAMES, type FacadeAzimuths } from "../components/facts";
+import {
+  factCardId,
+  SIDES,
+  TRAIT_NAMES,
+  type FacadeAzimuths,
+} from "../components/facts";
 import { PanoramaModal } from "../components/Panorama";
 import { RoomLab, type RoomSlice } from "../components/RoomLab";
+import { GroupPlan } from "../components/GroupPlan";
+import { RoomProfileList } from "../components/RoomProfiles";
+import { personalRoomQuery, roomLabParams } from "../components/group";
 import {
   AskButton,
   BackLink,
@@ -175,7 +183,20 @@ function RelatedHotels({ hotel }: { hotel: Hotel }) {
 }
 export function HotelPage() {
   const { id = "" } = useParams();
+  const [params, setParams] = useSearchParams();
   const { specs, parsed } = useApp();
+  const requestedRoomIndex = params.has("room_request")
+    ? Number(params.get("room_request"))
+    : 0;
+  const roomIndex =
+    Number.isInteger(requestedRoomIndex) &&
+    requestedRoomIndex >= 0 &&
+    requestedRoomIndex < (parsed?.rooms?.length || 0)
+      ? requestedRoomIndex
+      : 0;
+  const roomRequest = parsed?.rooms?.[roomIndex];
+  const previewQuery =
+    parsed && roomRequest ? personalRoomQuery(parsed, roomRequest) : parsed;
   const detail = useResource(() => api.hotel(id, parsed), [id, parsed]),
     geoResource = useResource(() => api.geo(id), [id]);
   const [panorama, setPanorama] = useState<string | null>(null),
@@ -294,7 +315,12 @@ export function HotelPage() {
   const scopeConflicts = (d?.conflicts || []).filter((c) => c.kind !== "value");
   const normals = new Map<Side, Set<number>>();
   for (const facade of geoResource.data?.facades || []) {
-    if (!(facade.code in SIDES) || typeof facade.azimuth_deg !== 'number' || !Number.isFinite(facade.azimuth_deg)) continue;
+    if (
+      !(facade.code in SIDES) ||
+      typeof facade.azimuth_deg !== "number" ||
+      !Number.isFinite(facade.azimuth_deg)
+    )
+      continue;
     const side = facade.code as Side;
     const values = normals.get(side) || new Set<number>();
     values.add(((facade.azimuth_deg % 360) + 360) % 360);
@@ -305,7 +331,7 @@ export function HotelPage() {
     if (values.size === 1) facadeAzimuths[side] = [...values][0];
   }
   const catalogueReview = record(d?.hotel.tags?.catalogue_review);
-  if (catalogueReview.disposition === 'hold_for_identity_review')
+  if (catalogueReview.disposition === "hold_for_identity_review")
     return (
       <div className="page-container">
         <BackLink />
@@ -313,10 +339,17 @@ export function HotelPage() {
         <div className="notice" role="status">
           <strong>Объект временно скрыт из подбора</strong>
           <p>{String(catalogueReview.reason_ru)}</p>
-          <p>Идентичность или координаты требуют проверки. Расчёты исходной точки не используются для выбора номера.</p>
-          <a href="/data/seed/catalogue_reviews.json">Источники и основания проверки</a>
+          <p>
+            Идентичность или координаты требуют проверки. Расчёты исходной точки
+            не используются для выбора номера.
+          </p>
+          <a href="/data/seed/catalogue_reviews.json">
+            Источники и основания проверки
+          </a>
         </div>
-        <Link className="button primary" to="/search">Выбрать другой отель</Link>
+        <Link className="button primary" to="/search">
+          Выбрать другой отель
+        </Link>
       </div>
     );
   return (
@@ -504,7 +537,9 @@ export function HotelPage() {
                 <div className="section-heading">
                   <div>
                     <span className="eyebrow">НЕ ПРОСТО ХОРОШИЙ. ВАШ.</span>
-                    <h2>Под ваши ожидания</h2>
+                    <h2>
+                      {parsed?.rooms?.length ? "Для всех" : "Под ваши ожидания"}
+                    </h2>
                   </div>
                   <ShieldCheck size={26} strokeWidth={1.2} />
                 </div>
@@ -538,45 +573,95 @@ export function HotelPage() {
                   </p>
                 )}
               </section>
-              <section className="room-section section-block">
-                <div className="room-compass" aria-hidden="true">
-                  <span className="north">С</span>
-                  <Sun className="room-sun" />
-                  <div className="room-building">
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                    <i />
+              {!!d.room_plan?.length && (
+                <GroupPlan
+                  hotelId={id}
+                  unknownFloors={d.hotel.floors === null}
+                  items={d.room_plan}
+                  requests={parsed?.rooms}
+                  onOpen={(index, item) => {
+                    const next = roomLabParams(item.scope, index);
+                    setParams(next, { replace: true });
+                    window.setTimeout(
+                      () =>
+                        document.getElementById("room-lab")?.scrollIntoView({
+                          behavior: window.matchMedia(
+                            "(prefers-reduced-motion: reduce)",
+                          ).matches
+                            ? "instant"
+                            : "smooth",
+                          block: "start",
+                        }),
+                      100,
+                    );
+                  }}
+                />
+              )}
+              {!d.room_plan?.length && (
+                <section className="room-section section-block">
+                  <div className="room-compass" aria-hidden="true">
+                    <span className="north">С</span>
+                    <Sun className="room-sun" />
+                    <div className="room-building">
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                    </div>
+                    <Waves className="room-waves" />
                   </div>
-                  <Waves className="room-waves" />
-                </div>
-                <div>
-                  <span className="eyebrow">ВПЕЧАТЛЕНИЯ ЖИВУТ В НОМЕРЕ</span>
-                  <h2>Какой номер просить</h2>
-                  <p
-                    className="room-recommendation"
-                    data-testid="room-recommendation"
-                  >
-                    {rec}
-                  </p>
-                  <p className="fine-print">
-                    Совпадение условий нужно подтвердить для одного номера:
-                    стороны, этажа и типа. Схема иллюстративная, точная
-                    геометрия — в расчёте.
-                  </p>
-                  <Link className="text-button" to={`/booking/${id}`}>
-                    Добавить в паспорт ожиданий <ArrowRight size={16} />
-                  </Link>
-                </div>
+                  <div>
+                    <span className="eyebrow">ВПЕЧАТЛЕНИЯ ЖИВУТ В НОМЕРЕ</span>
+                    <h2>Какой номер просить</h2>
+                    <p
+                      className="room-recommendation"
+                      data-testid="room-recommendation"
+                    >
+                      {rec}
+                    </p>
+                    <p className="fine-print">
+                      Совпадение условий нужно подтвердить для одного номера:
+                      стороны, этажа и типа. Схема иллюстративная, точная
+                      геометрия — в расчёте.
+                    </p>
+                    <Link className="text-button" to={`/booking/${id}`}>
+                      Добавить в паспорт ожиданий <ArrowRight size={16} />
+                    </Link>
+                  </div>
+                </section>
+              )}
+              <section
+                className="section-block hotel-room-profiles"
+                data-testid="hotel-room-profiles"
+              >
+                <span className="eyebrow">У КАЖДОЙ СТОРОНЫ СВОЙ ХАРАКТЕР</span>
+                <h2>Какие бывают номера</h2>
+                <p className="muted section-lead">
+                  Модельные положения, не типы номеров отеля
+                </p>
+                <p className="fine-print">
+                  Описание опирается на доступные факты. Планировка, количество,
+                  наличие номеров и расположение окон требуют подтверждения
+                  отеля.
+                </p>
+                <RoomProfileList
+                  hotelId={id}
+                  unknownFloors={d.hotel.floors === null}
+                  scope={{ month: parsed?.month || 9 }}
+                  link
+                />
               </section>
               {!geoResource.loading && (
                 <RoomLab
-                  key={id}
+                  key={`${id}:${params.toString()}`}
                   detail={d}
                   geo={geo}
-                  parsed={parsed}
+                  parsed={previewQuery}
+                  roomLabel={roomRequest?.label}
+                  requestedScope={roomRequest?.scope}
+                  roomIndex={roomRequest ? roomIndex : undefined}
                   mapActive={!!activeRoomSlice}
                   onSliceChange={(slice) => {
                     setRoomSlice(slice ? { hotelId: id, slice } : null);

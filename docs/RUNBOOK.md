@@ -126,3 +126,30 @@ URL репозитория команды и видео пока обознач�
 ## Проверенный ночной запуск 27.10
 
 Source `2d1fa07`: clean clone без .env, новый Compose-проект/пустые volumes, builder prune, Docker-only PATH. Health138,592с; контейнер→health73,112с, restarts0; полный make check + demo13 +11 UI-сцен + Chrome smoke243,837с PASS. Отчёт: [clean_clone_night_20261027_final.json](checks/clean_clone_night_20261027_final.json). Первый прогон сохранён отдельно: устаревший TTL text assertion исправлен, сценарий теперь ждёт фактические evidence/date/method/source. ИсходныйMP4 неизменён. `okno-demo` пересоздан и проверен в offline с исходными seed-состояниями; [final_readiness](checks/final_readiness_20261027.json).
+
+
+## Компания и описания положений
+
+`make group-parser-eval` оценивает авторские групповые запросы и ловушки. `GET /api/hotels/{id}/rooms?month=9` возвращает компактные описания положений с fact_ids; полное доказательство догружается существующим маршрутом `/facts/{id}/evidence`. Число людей не задаёт количество номеров. Ограничения номерного фонда описаны в [GROUP_BOOKING](GROUP_BOOKING.md).
+
+Все браузерные проверки (системный Chrome):
+
+```sh
+for task_smoke in frontend/scripts/*-smoke.mjs; do
+  OKNO_BASE_URL=http://localhost:8080 \
+  OKNO_BROWSER_EXECUTABLE="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  node "$task_smoke" || exit 1
+done
+```
+
+Проверка отдельного чистого клона без `.env`, с временной остановкой приложения `okno-demo` и сохранением его томов:
+
+```sh
+.venv/bin/python scripts/clean_clone_check.py \
+  --clone ../okno-clean-company \
+  --report docs/checks/company_clean_clone.json \
+  --without-env --docker-only-path --check --all-smokes \
+  --stop-current-app --current-project okno-demo --cleanup
+```
+
+`--all-smokes` не записывает видео. `--cleanup` удаляет только созданный проверкой уникальный compose-проект вместе с его томами и клоном. `--prune` дополнительно очищает build cache перед измерением. Проверочные Python/Node-зависимости подключаются только после готовности Docker-продукта.

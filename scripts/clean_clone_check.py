@@ -31,8 +31,11 @@ def main():
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--prune", action="store_true", help="Run the requested docker builder prune -af")
     parser.add_argument("--stop-current-app", action="store_true")
+    parser.add_argument("--current-project", default="okno", help="Existing Compose project to pause without deleting volumes")
     parser.add_argument("--browser", action="store_true", help="Run the real UI preview with the installed demo tooling")
     parser.add_argument("--check", action="store_true", help="Run make check in the clone after product readiness, reusing QA dependencies only")
+    parser.add_argument("--all-smokes", action="store_true", help="Run every frontend/scripts/*-smoke.mjs without recording video")
+    parser.add_argument("--cleanup", action="store_true", help="Remove this temporary project's containers, volumes and clone after the check")
     parser.add_argument("--without-env", action="store_true", help="Prove default startup with no .env file")
     parser.add_argument("--docker-only-path", action="store_true", help="Launch Compose with no host Python/Node in PATH")
     args = parser.parse_args()
@@ -75,11 +78,11 @@ def main():
             (Path(cli_directory.name)/name).symlink_to(executable)
         launch_environment["PATH"] = cli_directory.name
     if args.stop_current_app:
-        command(["docker", "compose", "stop", "app"])
+        command(["docker", "compose", "-p", args.current_project, "stop", "app"])
     with socket.socket() as port_probe:
         if port_probe.connect_ex(("127.0.0.1", 8080)) == 0:
             if args.stop_current_app:
-                command(["docker", "compose", "start", "app"])
+                command(["docker", "compose", "-p", args.current_project, "start", "app"])
             raise RuntimeError("Port8080 is still occupied; cannot verify a fresh application's health")
     report = {"revision": revision, "clone": str(args.clone), "checked_at": datetime.now(UTC).isoformat(),
               "command": "docker compose up --build", "project": project, "fresh_project_volumes": True,
@@ -137,7 +140,7 @@ def main():
             report["image"]["user"] = runtime_image["Config"]["User"]
             check_environment = {**environment, "OKNO_URL": "http://localhost:8080", "OKNO_DEMO_REPORT": str(args.report.with_name(args.report.stem+"_demo.json"))}
             python = str(ROOT/".venv/bin/python")
-            if args.check or args.browser:
+            if args.check or args.browser or args.all_smokes:
                 # Host tooling is attached only after Docker-only readiness.
                 # No dependency from these links participates in the image.
                 (args.clone / '.venv').symlink_to(ROOT / '.venv', target_is_directory=True)
@@ -159,6 +162,15 @@ def main():
                 report["browser_preview"] = "passed"
                 command(['npm', '--prefix', 'frontend', 'run', 'smoke'], cwd=args.clone, env=browser_environment, log=log)
                 report['browser_smoke'] = 'passed'
+            if args.all_smokes:
+                browser_environment = {**check_environment, "OKNO_BASE_URL": "http://localhost:8080"}
+                smokes = sorted((args.clone / "frontend/scripts").glob("*-smoke.mjs"))
+                if not smokes:
+                    raise RuntimeError("No browser smoke scripts found")
+                report["browser_smokes"] = {}
+                for smoke in smokes:
+                    command(["node", str(smoke)], cwd=args.clone / "frontend", env=browser_environment, log=log)
+                    report["browser_smokes"][smoke.name] = "passed"
             report["passed"] = True
         except Exception as error:
             report["error"] = f"{type(error).__name__}: {error}"
@@ -173,7 +185,14 @@ def main():
             report["elapsed_seconds"] = round(time.monotonic()-started, 3)
             args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2)+"\n")
     if args.stop_current_app:
-        command(["docker", "compose", "start", "app"])
+        command(["docker", "compose", "-p", args.current_project, "start", "app"])
+    if args.cleanup:
+        # Only the unique project created above is removed. Existing application
+        # projects and their data volumes are never candidates for cleanup.
+        command(["docker", "compose", "down", "-v", "--remove-orphans"], cwd=args.clone, env=environment)
+        shutil.rmtree(args.clone)
+        report["temporary_project_and_clone_removed"] = True
+        args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2)+"\n")
     if cli_directory is not None:
         cli_directory.cleanup()
     print(json.dumps(report, ensure_ascii=False, indent=2))

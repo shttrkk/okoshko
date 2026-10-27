@@ -26,7 +26,7 @@ NUMERIC_FIELDS = {
 BOOLEAN_FIELDS = {
     'connectivity': {'available', 'wifi_reported'},
     'soundproofing': {'available', 'blackout', 'air_conditioning'},
-    'room_orientation': {'available', 'balcony'},
+    'room_orientation': {'available', 'balcony', 'courtyard'},
     'beach_walk': {'available', 'has_steps'},
     'car_access': {'available', 'ev_available', 'pedestrian_zone'},
 }
@@ -130,6 +130,19 @@ def validate_query_plan(plan: ParsedQuery, baseline: ParsedQuery,
 def apply_region_coverage(parsed: ParsedQuery, coverage: dict[str, dict]) -> ParsedQuery:
     """Project coverage without forgetting hard conditions or edited chip priority."""
     import json
+
+    for room in parsed.rooms:
+        # A newer editor may send an unsupported hard condition directly in
+        # no_data_must. Keep it even when the redundant no_data list is omitted.
+        unknown = [*room.no_data]
+        unknown.extend(c for c in room.no_data_must if c not in unknown
+                       and c not in room.must and c not in room.nice)
+        local = ParsedQuery(text=parsed.text, must=room.must, nice=room.nice,
+                            no_data=unknown, no_data_must=room.no_data_must,
+                            clarifications=room.clarifications)
+        apply_region_coverage(local, coverage)
+        for name in ('must', 'nice', 'no_data', 'no_data_must', 'clarifications'):
+            setattr(room, name, getattr(local, name))
 
     def meaning(criterion):
         data = criterion.model_dump(exclude={'label', 'weight'}, mode='json')

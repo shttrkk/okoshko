@@ -938,6 +938,30 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
 
 def parse_query(request: SearchRequest, catalog: list[CharacteristicSpec], llm=None) -> ParsedQuery:
     """Extract catalogue-backed conditions; offline and user-edited chips are first class."""
+    if request.parsed and request.parsed.rooms:
+        # Editor state is authoritative. Do not re-split its original prompt or
+        # let a provider silently discard a required unsupported room condition.
+        result = request.parsed.model_copy(deep=True)
+        result.text = request.text or result.text
+        if request.check_in:
+            result.check_in, result.month = request.check_in, request.check_in.month
+        if request.check_out:
+            result.check_out = request.check_out
+        return result
+    if not request.parsed:
+        from backend.agents.group_query import parse_group_query
+
+        grouped = parse_group_query(request, catalog, _fallback)
+        if grouped is not None:
+            # Keep the existing region boundary, including capitalised places
+            # whose names are not in the small offline gazetteer. Fragment
+            # normalization must not make an out-of-region request look local.
+            regional = _fallback(request, catalog)
+            if "region_out_of_scope" in regional.unmapped:
+                grouped.unmapped = list(dict.fromkeys([*grouped.unmapped, "region_out_of_scope"]))
+                grouped.clarifications = list(dict.fromkeys([*regional.clarifications,
+                                                            *grouped.clarifications]))[:2]
+            return grouped
     baseline = _fallback(request, catalog)
     if request.parsed:
         result = request.parsed.model_copy(deep=True)

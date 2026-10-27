@@ -27,6 +27,9 @@ def criterion_utility(match, criterion) -> float:
 
 def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
                 specs: list[CharacteristicSpec], *, explain_limit: int | None = None) -> list[SearchHit]:
+    if parsed.rooms:
+        from backend.agents.group_match import rank_group_hotels
+        return rank_group_hotels(hotels, facts, parsed, specs, explain_limit=explain_limit)
     if "region_out_of_scope" in parsed.unmapped:
         return []
     if parsed.similar_to and not searchable({"id": parsed.similar_to}):
@@ -86,6 +89,11 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
         else:
             summary = f"Подтверждено {satisfied} из {must_total} обязательных условий; остальные не выполнены или требуют уточнения."
         hit.room_recommendation = room_from_assessment(assessment, parsed)
+        from backend.agents.room_profiles import describe_room
+        from backend.contracts import RoomScope
+        point = assessment.context
+        hit.room_profile = describe_room(hotel, by_hotel[hotel.id], specs, RoomScope(
+            facade=point.facade, floor_min=point.floor, floor_max=point.floor, month=parsed.month))
         hit.disappointments = disappointments_from_assessment(by_hotel[hotel.id], parsed, assessment)
         hit.summary = summary
         alternatives = []

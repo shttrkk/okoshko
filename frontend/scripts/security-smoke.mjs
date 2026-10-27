@@ -243,6 +243,8 @@ try {
     else if (key === "GET /api/characteristics") value = specs;
     else if (key === "GET /api/status") value = status;
     else if (key === "GET /api/revision") value = revision;
+    else if (request.method() === "GET" && url.pathname.endsWith("/rooms"))
+      value = [];
     else if (key === "POST /api/search") value = search;
     else if (key === `GET /api/hotels/${hotel.id}/geo`) value = originalGeo;
     else if (

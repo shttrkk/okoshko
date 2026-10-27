@@ -165,7 +165,9 @@ def test_search_uses_compact_month_projection_and_skips_it_outside_region(client
     repo.search_facts = compact
     response = client.post("/api/search", json={"text": "В сентябре до пляжа не больше 10 минут"})
     assert response.status_code == 200
-    assert calls == [(["beach_walk"], 9)]
+    from backend.agents.query_match import ROOM_CHARACTERISTICS
+    # The month projection also supplies compact room-position descriptions.
+    assert calls == [(sorted(ROOM_CHARACTERISTICS | {"beach_walk"}), 9)]
     response = client.post("/api/search", json={"text": "Отель в Казани"})
     assert response.status_code == 200 and response.json()["results"] == []
     assert len(calls) == 1

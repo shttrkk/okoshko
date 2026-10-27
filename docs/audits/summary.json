@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-27T04:00:10.816170+00:00",
+  "generated_at": "2026-10-27T10:54:16.369326+00:00",
   "python_vulnerable_packages": 0,
   "python_locks": {
     "python": {
@@ -47,7 +47,7 @@
     "critical": 0,
     "total": 0
   },
-  "npm_lock_sha256": "e67e5be7aeb6eade25ca6d8b7725f9e56981df560e05faf5a1a8409d9807e199",
+  "npm_lock_sha256": "b9ecf6f697d92e3c9e3fb0aeebd007b7f929a7047184bac147f51501dd8ae911",
   "scanner_errors": false,
   "errors": {},
   "exit_codes": {

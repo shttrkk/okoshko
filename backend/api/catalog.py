@@ -21,6 +21,8 @@ from backend.contracts import (
     HotelDetail,
     LabelRequest,
     ParsedQuery,
+    RoomProfile,
+    RoomScope,
     SearchRequest,
     SearchResult,
     Source,
@@ -69,7 +71,9 @@ def search_coverage(rows: list[dict], specs: list[CharacteristicSpec], hotel_cou
     coverage = region_coverage(rows, specs, hotel_count)
     requested = defaultdict(set)
     defaults = {spec.id: spec.search.field for spec in specs}
-    for criterion in [*parsed.must, *parsed.nice, *parsed.no_data]:
+    requested_criteria = [*parsed.must, *parsed.nice, *parsed.no_data,
+                          *[c for room in parsed.rooms for c in [*room.must, *room.nice, *room.no_data]]]
+    for criterion in requested_criteria:
         if criterion.characteristic_id in defaults:
             requested[criterion.characteristic_id].add(criterion.field or defaults[criterion.characteristic_id])
     known = defaultdict(set)
@@ -178,14 +182,18 @@ def details(hotel_ids: list[str], repo, *, text: str = "", month: int | None = N
         eligible = searchable(hotel)
         facts = [Fact.model_validate(row) for row in grouped["facts"][hotel_id]]
         verdicts = []
+        room_plan = []
+        room_profile = None
         if parsed is not None and eligible:
             from backend.agents.ranker import rank_hotels
             hits = rank_hotels([hotel], facts, parsed, specs)
             verdicts = hits[0].verdicts if hits else []
+            room_plan = hits[0].room_plan if hits else []
+            room_profile = hits[0].room_profile if hits else None
         public_facts = [fact.model_copy(update={"evidence": []}) for fact in facts] if compact else facts
         result.append(HotelDetail(hotel=hotel, facts=public_facts, claims=grouped["claims"][hotel_id],
                                   conflicts=grouped["conflicts"][hotel_id], questions=grouped["questions"][hotel_id],
-                                  verdicts=verdicts, room_recommendation=recommend_room(facts, parsed, hotel=hotel) if eligible else 'Идентичность или координаты объекта требуют проверки',
+                                  verdicts=verdicts, room_plan=room_plan, room_profile=room_profile, room_recommendation=recommend_room(facts, parsed, hotel=hotel) if eligible else 'Идентичность или координаты объекта требуют проверки',
                                   disappointments=disappointments(facts, parsed, hotel=hotel) if eligible else ['Модель исходной точки не используется для выбора номера'],
                                   geo={} if compact else read_geo(hotel_id, repo, hotel_row=hotels_by_id[hotel_id],
                                                                events=rows["change_events"], fact_rows=grouped["facts"][hotel_id]),
@@ -266,6 +274,26 @@ def fact_evidence(hotel_id: str, fact_id: str, repo=_REPO):
     return FactEvidence(fact=fact, claims=[row for row in claims if row["hotel_id"] == hotel_id])
 
 
+@router.get("/hotels/{hotel_id}/rooms", response_model=list[RoomProfile])
+def room_profiles(hotel_id: str, month: int = 9, facade: str | None = None,
+                  floor_min: int | None = None, floor_max: int | None = None, repo=_REPO):
+    from pydantic import ValidationError
+
+    from backend.agents.room_profiles import build_room_profiles, describe_room
+    if month not in range(1, 13):
+        raise HTTPException(422, "Месяц должен быть от 1 до 12")
+    hotel = Hotel.model_validate(searchable_hotel(repo, hotel_id))
+    facts = [Fact.model_validate(row) for row in repo.find("facts", hotel_id=hotel_id)]
+    specs = catalog(repo)
+    if facade is not None or floor_min is not None or floor_max is not None:
+        try:
+            scope = RoomScope(facade=facade, floor_min=floor_min, floor_max=floor_max, month=month)
+        except ValidationError as error:
+            raise HTTPException(422, "Некорректный диапазон этажа или сторона") from error
+        return [describe_room(hotel, facts, specs, scope)]
+    return build_room_profiles(hotel, facts, specs, month)
+
+
 @router.get("/hotels/{hotel_id}/geo")
 def geo(hotel_id: str, repo=_REPO):
     return read_geo(hotel_id, repo)
@@ -335,10 +363,15 @@ def search(body: SearchRequest, repo=_REPO):
                 if not parsed.unmapped:
                     parsed.clarifications = [message for message in parsed.clarifications if not message.startswith(
                         ("Что важнее для поездки:", "Не удалось сопоставить с каталогом:"))]
-            ids = None if reference else sorted({criterion.characteristic_id for criterion in [*parsed.must, *parsed.nice, *parsed.no_data]} | {"beach_walk"})
+            from backend.agents.query_match import ROOM_CHARACTERISTICS
+            all_criteria = [*parsed.must, *parsed.nice, *parsed.no_data,
+                            *[c for room in parsed.rooms for c in [*room.must, *room.nice, *room.no_data]]]
+            ids = None if reference else sorted({criterion.characteristic_id for criterion in all_criteria} | ROOM_CHARACTERISTICS | {"beach_walk"})
             # Similarity uses a September profile; explicit extra conditions
             # still require their requested month, rather than September data.
-            fact_month = None if reference and (parsed.must or parsed.nice or parsed.no_data) and parsed.month != 9 else 9 if reference else parsed.month
+            fact_month = None if reference and (parsed.must or parsed.nice or parsed.no_data or parsed.rooms) and parsed.month != 9 else 9 if reference else parsed.month
+            if any(room.scope.month is not None and room.scope.month != parsed.month for room in parsed.rooms):
+                fact_month = None
             rows = repo.search_facts(ids, fact_month) if hasattr(repo, "search_facts") else repo.all("facts")
             eligible = {hotel.id for hotel in hotel_rows}
             rows = [row for row in rows if row['hotel_id'] in eligible]
@@ -361,7 +394,7 @@ def search(body: SearchRequest, repo=_REPO):
                     deadlines = [fact.valid_until.timestamp() for fact in facts if fact.valid_until]
                     repo.search_cache_put(cache_key, read_generation, hits, min(deadlines) if deadlines else None)
             if reference is None:
-                if not parsed.must and not parsed.nice and not parsed.no_data_must:
+                if not parsed.rooms and not parsed.must and not parsed.nice and not parsed.no_data_must:
                     browse = ("Не нашли в запросе условий из каталога, поэтому показываем обзор отелей без подбора. "
                               "Опишите, что важно: тишина, вид на море или закат, дорога к пляжу, парковка, «в гуще событий».")
                     parsed.clarifications = list(dict.fromkeys([browse, *[c for c in parsed.clarifications if not c.startswith("Что важнее")]]))[:2]

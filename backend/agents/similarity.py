@@ -54,12 +54,12 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
         return []
     candidates = [h for h in hotels if h.id != reference_id]
     constrained = {}
-    if parsed is not None and (parsed.must or parsed.nice or parsed.no_data_must):
+    if parsed is not None and (parsed.must or parsed.nice or parsed.no_data_must or parsed.rooms):
         from backend.agents.ranker import rank_hotels
         # Explicit musts remain hard eligibility gates in similarity mode.
         # Nice conditions can move a candidate, without rescuing a failed must.
         constrained = {hit.hotel.id: hit for hit in rank_hotels(candidates, facts, parsed, specs)}
-        candidates = [hotel for hotel in candidates if not parsed.must or constrained[hotel.id].must_satisfied == len(parsed.must)]
+        candidates = [hotel for hotel in candidates if parsed.rooms or not parsed.must or constrained[hotel.id].must_satisfied == len(parsed.must)]
     fields = {s.id: s.search.field for s in specs}
     labels = {s.id: s.name_ru for s in specs}
     units = {s.id: s.search.unit for s in specs}
@@ -86,11 +86,11 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
         if parsed is not None and parsed.nice and constraint:
             score = .8*score + .2*constraint.score
         hit = SearchHit(hotel=hotel, score=round(score, 2),
-                        group=constraint.group if constraint and (parsed.must or parsed.no_data_must) else "almost" if shared else "unknown",
+                        group=constraint.group if constraint and (parsed.must or parsed.no_data_must or parsed.rooms) else "almost" if shared else "unknown",
                         must_satisfied=constraint.must_satisfied if constraint else 0,
                         must_total=constraint.must_total if constraint else 0)
         hit.summary = f"Сходство профиля {hit.score:g}/100: сопоставлены {shared} из {len(reference)} характеристик за сентябрь; учитывается уверенность. Это не гарантия выполнения одного набора условий в одном номере."
-        if constraint and (parsed.must or parsed.no_data_must):
+        if constraint and (parsed.must or parsed.no_data_must or parsed.rooms):
             hit.summary += f" Дополнительные обязательные условия: {hit.must_satisfied} из {hit.must_total}."
         if any(item[2].synthetic for item in reference.values()) or any(row[5].synthetic for row in comparisons):
             hit.summary += " В сравнении есть синтетические факты."
@@ -103,6 +103,8 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
         if constraint:
             hit.verdicts = constraint.verdicts
             hit.room_recommendation = constraint.room_recommendation
+            hit.room_plan = constraint.room_plan
+            hit.room_profile = constraint.room_profile
             hit.disappointments = list(dict.fromkeys([*hit.disappointments, *constraint.disappointments]))
         else:
             hit.room_recommendation = "Сходство относится к профилю отеля; сторону, этаж и доступность номера уточните отдельно."

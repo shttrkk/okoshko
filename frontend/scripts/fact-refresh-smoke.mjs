@@ -258,6 +258,29 @@ try {
     const req = route.request(),
       path = new URL(req.url()).pathname;
     requests.push({ path, method: req.method() });
+    if (path.endsWith("/rooms"))
+      return route.fulfill({
+        json: [
+          {
+            id: "refresh-position",
+            scope: { facade: "W", floor_min: 1, floor_max: 3, month: 9 },
+            title: "Синтетическое положение",
+            description: `Описание положения fixture ${version}`,
+            conditional: true,
+            caveats: ["Только browser fixture"],
+            clauses: [
+              {
+                characteristic_id: "quiet_night",
+                text: `Шум fixture ${version}`,
+                fact_ids: [fact(version).id],
+                evidence_refs: [`evidence-${version}`],
+                status: "partial",
+                synthetic: true,
+              },
+            ],
+          },
+        ],
+      });
     if (path === "/api/revision")
       return route.fulfill({ json: { instance, revision } });
     if (path === "/api/status")
@@ -491,6 +514,27 @@ try {
     fullPage: true,
   });
   await hotelPage.getByRole("button", { name: "Закрыть" }).click();
+  const position = hotelPage.getByTestId("room-profiles").first();
+  await position.locator("summary").first().click();
+  await position.getByTestId("room-clause-evidence").first().click();
+  await hotelPage
+    .getByRole("dialog")
+    .getByText("«Основание fixture 5»")
+    .waitFor();
+  version = 6;
+  revision = 6;
+  await hotelPage
+    .getByRole("dialog")
+    .getByText("«Основание fixture 6»")
+    .waitFor();
+  await position
+    .getByText("Описание положения fixture 6", { exact: true })
+    .first()
+    .waitFor();
+  checks.push(
+    "room descriptions and their open lazy proof follow replacement fact IDs on revision",
+  );
+  await hotelPage.getByRole("button", { name: "Закрыть" }).click();
   await hotelPage.setViewportSize({ width: 390, height: 844 });
   await hotelPage.getByTestId("room-lab").scrollIntoViewIfNeeded();
   assert.equal(
@@ -503,13 +547,13 @@ try {
   await hotelPage.getByTestId("evidence-quiet_night").first().click();
   await hotelPage
     .getByRole("dialog")
-    .getByText("«Основание fixture 5»")
+    .getByText("«Основание fixture 6»")
     .waitFor();
-  version = 6;
-  revision = 6;
+  version = 7;
+  revision = 7;
   await hotelPage
     .getByRole("dialog")
-    .getByText("«Основание fixture 6»")
+    .getByText("«Основание fixture 7»")
     .waitFor();
   checks.push(
     "an already open fact-card EvidenceButton also receives the new value and lazy evidence",

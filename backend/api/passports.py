@@ -11,13 +11,14 @@ from threading import RLock
 from fastapi import APIRouter, Depends, HTTPException
 
 from backend.agents.interviewer import stable_id
-from backend.agents.query_match import route_constraints
+from backend.agents.query_match import MONTHLY, ROOM_CHARACTERISTICS, route_constraints
 from backend.api.hotelier import _get
 from backend.catalogue import searchable
 from backend.contracts import (
     Criterion,
     ExpectationPassport,
     Fact,
+    ParsedQuery,
     PassportAction,
     PassportCreate,
     PassportItem,
@@ -32,7 +33,110 @@ _LOCK = RLock()
 _REPO = Depends(get_repo)
 _AUTH = Depends(require_hotelier)
 _OPTIONAL_AUTH = Depends(optional_principal)
-ROOM_CHARACTERISTICS = {"sea_view", "sunset_view", "mountain_view", "quiet_night", "soundproofing", "room_orientation"}
+_GROUP_CAVEAT = ("Подтверждаются условия размещения по отдельным запросам, а не распределение реальных номеров. "
+                 "Количество свободных номеров, их наличие, вместимость, цена и соседство не подтверждены; "
+                 "одинаковое положение двух запросов не означает две свободные комнаты.")
+
+
+def _room_scope(parsed: ParsedQuery, index: int) -> Scope:
+    requested = parsed.rooms[index].scope
+    return Scope(facade=requested.facade or parsed.facade,
+                 floor_min=requested.floor_min if requested.floor_max is not None else requested.floor_min or parsed.min_floor,
+                 floor_max=requested.floor_max,
+                 room_type=requested.room_type, month=requested.month or parsed.month)
+
+
+def _group_rows(parsed: ParsedQuery, edited: list[PassportItem]):
+    """Keep the criterion mapping keyed by guest index as well as characteristic."""
+    generated = []
+    criteria: dict[str, list[Criterion]] = {}
+    metadata: dict[str, dict] = {}
+    for index, room in [(None, parsed), *enumerate(parsed.rooms)]:
+        scope = _room_scope(parsed, index) if index is not None else Scope(month=parsed.month)
+        label = parsed.rooms[index].label if index is not None else None
+        for critical, unsupported, group in ((True, False, room.must), (False, False, room.nice),
+                                             (True, True, room.no_data_must), (False, True, room.no_data)):
+            for criterion in group:
+                # no_data may also include an already-required unsupported condition.
+                if unsupported and not critical and criterion in room.no_data_must:
+                    continue
+                item = PassportItem(characteristic_id=criterion.characteristic_id, text=criterion.label,
+                                    critical=critical, scope=scope.model_copy(deep=True),
+                                    room_index=index, room_label=label)
+                generated.append(item)
+                criteria[item.id] = [criterion.model_copy(deep=True)]
+                metadata[item.id] = {"unsupported": unsupported, "scope_only": False}
+        if index is not None and not [item for item in generated if item.room_index == index]:
+            position = []
+            if scope.facade:
+                position.append("сторона " + scope.facade)
+            if scope.floor_min and scope.floor_max:
+                position.append(f"этажи {scope.floor_min}–{scope.floor_max}")
+            elif scope.floor_min:
+                position.append(f"этаж не ниже {scope.floor_min}-го")
+            elif scope.floor_max:
+                position.append(f"этаж не выше {scope.floor_max}-го")
+            if scope.room_type:
+                position.append("запрошенный тип «" + scope.room_type + "»")
+            text = "Положение: " + (", ".join(position) if position else "требует уточнения") + "; наличие отдельного номера не подтверждено"
+            item = PassportItem(characteristic_id="room_orientation", text=text,
+                                scope=scope.model_copy(deep=True), room_index=index, room_label=label)
+            generated.append(item)
+            criteria[item.id] = []
+            metadata[item.id] = {"unsupported": False, "scope_only": True}
+    if not edited:
+        return generated, criteria, metadata
+    grouped: dict[tuple[int | None, str], list[PassportItem]] = defaultdict(list)
+    for item in generated:
+        grouped[(item.room_index, item.characteristic_id)].append(item)
+    counts = Counter((item.room_index, item.characteristic_id) for item in edited)
+    positions = Counter()
+    used = set()
+    for item in edited:
+        if item.room_index is not None:
+            if item.room_index >= len(parsed.rooms):
+                raise HTTPException(422, "room_index должен указывать на запрос комнаты в parsed.rooms")
+            item.room_label = parsed.rooms[item.room_index].label
+        elif item.room_label is not None:
+            raise HTTPException(422, "Для подписи комнаты необходимо указать room_index")
+        key = (item.room_index, item.characteristic_id)
+        matching = grouped.get(key, [])
+        if not matching:
+            raise HTTPException(422, "Пункт группового паспорта должен соответствовать критерию этого room_index")
+        used.add(key)
+        if counts[key] == len(matching):
+            matching = [matching[positions[key]]]
+            positions[key] += 1
+        criteria[item.id] = [criterion.model_copy(deep=True) for expected in matching for criterion in criteria[expected.id]]
+        metadata[item.id] = {field: any(metadata[expected.id][field] for expected in matching)
+                             for field in ("unsupported", "scope_only")}
+    # An edited request cannot silently drop another guest or an uneditable unknown.
+    return [*edited, *[item for item in generated if (item.room_index, item.characteristic_id) not in used]], criteria, metadata
+
+
+def _scope_groups(items: list[PassportItem], grouped: bool) -> dict[int | None, list[int]]:
+    groups: dict[int | None, list[int]] = defaultdict(list)
+    for index, item in enumerate(items):
+        if item.critical:
+            groups[item.room_index if grouped else None].append(index)
+    return groups
+
+
+def _incompatible_groups(items: list[PassportItem], grouped: bool) -> set[int | None]:
+    return {key for key, indices in _scope_groups(items, grouped).items()
+            if not scopes_compatible([items[index].scope for index in indices])}
+
+
+def _group_month_applies(fact: Fact, month: int | None) -> bool:
+    value = fact.value if isinstance(fact.value, dict) else {}
+    months = [entry for entry in (fact.scope.month, value.get("month")) if entry is not None]
+    if any(entry != month for entry in months):
+        return False
+    covered = value.get("months")
+    if fact.characteristic_id in MONTHLY:
+        return (bool(months) or isinstance(covered, list) and month in covered) and (
+            not isinstance(covered, list) or month in covered)
+    return True
 
 
 def scopes_compatible(scopes: list[Scope]) -> bool:
@@ -212,8 +316,14 @@ def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
         raise HTTPException(422, "Укажите имя гостя длиной до 120 символов")
     facts = [Fact.model_validate(value) for value in repo.find("facts", hotel_id=request.hotel_id)]
     criteria: dict[str, list[Criterion]] = {}
+    metadata: dict[str, dict] = {}
+    grouped_passport = bool(request.parsed and request.parsed.rooms)
     items = [item.model_copy(deep=True) for item in request.items]
-    if not items and request.parsed:
+    if grouped_passport:
+        items, criteria, metadata = _group_rows(request.parsed, items)
+    elif any(item.room_index is not None or item.room_label is not None for item in items):
+        raise HTTPException(422, "Для комнатных пунктов передайте parsed.rooms")
+    if not grouped_passport and not items and request.parsed:
         for critical, group in ((True, request.parsed.must), (False, request.parsed.nice)):
             for criterion in group:
                 scope = criterion.scope.model_copy(deep=True) if criterion.scope else Scope()
@@ -227,7 +337,7 @@ def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
                 item = PassportItem(characteristic_id=criterion.characteristic_id, text=criterion.label, critical=critical, scope=scope)
                 criteria[item.id] = [criterion.model_copy(deep=True)]
                 items.append(item)
-    if request.items and request.parsed:
+    if not grouped_passport and request.items and request.parsed:
         grouped: dict[str, list[Criterion]] = defaultdict(list)
         for criterion in [*request.parsed.must, *request.parsed.nice]:
             grouped[criterion.characteristic_id].append(criterion)
@@ -245,7 +355,12 @@ def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
     for item in items:
         item_criteria = criteria.setdefault(item.id, [])
         wanted_scopes = [criterion.scope for criterion in item_criteria if criterion.scope]
-        if request.parsed and item.characteristic_id in ROOM_CHARACTERISTICS:
+        if grouped_passport and item.room_index is not None:
+            wanted_scopes.append(_room_scope(request.parsed, item.room_index))
+            wanted_scopes.append(Scope(facade=request.parsed.facade, floor_min=request.parsed.min_floor))
+        elif grouped_passport:
+            wanted_scopes.append(Scope(month=request.parsed.month))
+        elif not grouped_passport and request.parsed and item.characteristic_id in ROOM_CHARACTERISTICS:
             wanted_scopes.append(Scope(facade=request.parsed.facade, floor_min=request.parsed.min_floor))
         for wanted in wanted_scopes:
             combined = _combine_scope(item.scope, wanted)
@@ -282,24 +397,27 @@ def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
     fact_by_id = {fact.id: fact for fact in facts}
     candidate_sets = []
     for item in items:
-        spec = _get(repo, "characteristics", item.characteristic_id, "Характеристика")
+        unsupported = metadata.get(item.id, {}).get("unsupported", False)
+        spec = {} if unsupported else _get(repo, "characteristics", item.characteristic_id, "Характеристика")
         for criterion in criteria.get(item.id, []):
             if criterion.field is None:
                 criterion.field = spec.get("search", {}).get("field", "available")
         if any(fid not in fact_by_id or fact_by_id[fid].characteristic_id != item.characteristic_id for fid in item.fact_ids):
             raise HTTPException(422, "Факты ожидания должны принадлежать этому отелю и характеристике")
         item.status, item.response = "pending", None
-        candidates = _fact_candidates(item, facts, criteria.get(item.id, [])) if item.id not in scope_conflicts else []
+        unverifiable = unsupported or metadata.get(item.id, {}).get("scope_only", False)
+        applicable = [fact for fact in facts if _group_month_applies(fact, item.scope.month)] if grouped_passport else facts
+        candidates = _fact_candidates(item, applicable, criteria.get(item.id, [])) if item.id not in scope_conflicts and not unverifiable else []
         candidate_sets.append(candidates)
-    # Find a shared room scope when several facade/floor alternatives exist.
-    critical_indices = [index for index, item in enumerate(items) if item.critical]
-    choices = [candidate_sets[index] or [(items[index].scope, None)] for index in critical_indices]
-    selected = None
-    # Bound combinations to avoid unbounded work on guest input.
-    for combination in itertools.islice(itertools.product(*choices), 4096):
-        if scopes_compatible([scope for scope, _fact in combination]):
-            selected = dict(zip(critical_indices, combination, strict=False))
-            break
+    # A shared position is required within each guest request, never across guests.
+    selected = {}
+    for indices in _scope_groups(items, grouped_passport).values():
+        choices = [candidate_sets[index] or [(items[index].scope, None)] for index in indices]
+        # Bound combinations per room to avoid a cross-product of group allocations.
+        for combination in itertools.islice(itertools.product(*choices), 4096):
+            if scopes_compatible([scope for scope, _fact in combination]):
+                selected.update(zip(indices, combination, strict=False))
+                break
     for index, item in enumerate(items):
         choice = selected.get(index) if selected else None
         if choice is None and candidate_sets[index]:
@@ -311,26 +429,34 @@ def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
             item.fact_ids = []
     passport = ExpectationPassport(hotel_id=request.hotel_id, guest_name=request.guest_name.strip(),
                                   check_in=request.check_in or (request.parsed.check_in if request.parsed else None),
-                                  check_out=request.check_out or (request.parsed.check_out if request.parsed else None), items=items)
+                                  check_out=request.check_out or (request.parsed.check_out if request.parsed else None), items=items,
+                                  room_requests=[room.model_copy(deep=True) for room in request.parsed.rooms] if grouped_passport else [])
     if passport.check_in and passport.check_out and passport.check_out <= passport.check_in:
         raise HTTPException(422, "Дата выезда должна быть позже заезда")
-    incompatible = bool(scope_conflicts.intersection(item.id for item in items if item.critical)) or not scopes_compatible([item.scope for item in items if item.critical])
+    incompatible_groups = _incompatible_groups(items, grouped_passport)
+    incompatible_groups.update(item.room_index if grouped_passport else None for item in items
+                               if item.critical and item.id in scope_conflicts)
+    incompatible = bool(incompatible_groups)
     if incompatible:
         passport.status = "alternative"
         for item in passport.items:
-            if item.critical:
+            if item.critical and (item.room_index if grouped_passport else None) in incompatible_groups:
                 item.status, item.response = "alternative", "Критичные условия относятся к несовместимым сторонам или этажам; требуется альтернатива."
     _event(passport, "sent", "Паспорт ожиданий передан в локальный демо-кабинет. Бронирование синтетическое.")
+    if grouped_passport:
+        _event(passport, "group_conditions", _GROUP_CAVEAT, room_request_count=len(passport.room_requests))
     if _trip_reviews(passport, facts) and not incompatible:
         passport.status = "at_risk"
     if incompatible:
-        _event(passport, "scope_conflict", "Все критичные условия нельзя подтвердить для одного номера; предложите альтернативу.")
+        _event(passport, "scope_conflict", "Критичные условия внутри одного запроса комнаты несовместимы; предложите альтернативу."
+               if grouped_passport else "Все критичные условия нельзя подтвердить для одного номера; предложите альтернативу.")
     _notify(passport, "Паспорт создан. Ответ отеля появится здесь; внешние сообщения не отправляются.")
     repo.insert("expectation_passports", passport.model_dump(mode="json"))
     for item in items:
         repo.upsert("passport_items", {**item.model_dump(mode="json"), "passport_id": passport.id,
                                       "criteria": [criterion.model_dump(mode="json") for criterion in criteria.get(item.id, [])],
-                                      "scope_conflict": item.id in scope_conflicts})
+                                      "scope_conflict": item.id in scope_conflicts,
+                                      **metadata.get(item.id, {})})
     return passport
 
 
@@ -361,11 +487,22 @@ def passport_action(passport_id: str, request: PassportAction, repo, *, principa
     with _LOCK:
         passport = ExpectationPassport.model_validate(_get(repo, "expectation_passports", passport_id, "Паспорт"))
         authorize_hotel(principal, passport.hotel_id)
+        grouped_passport = bool(passport.room_requests)
         key = stable_id("passport_action", passport.id, request.model_dump_json())
         facts = []
         if request.action == "confirm":
             facts = [Fact.model_validate(value) for value in repo.find("facts", hotel_id=passport.hotel_id)]
-            if passport.check_out or passport.check_in:
+            if grouped_passport:
+                # Group reconfirmation must observe current facts without turning
+                # a retry on an unchanged snapshot into another hotel response.
+                characteristics = {item.characteristic_id for item in passport.items}
+                snapshot = [(fact.id, fact.status, fact.scope.model_dump_json(), fact.value,
+                             fact.valid_until.isoformat() if fact.valid_until else None,
+                             fact.valid_until is None or fact.valid_until > now())
+                            for fact in sorted(facts, key=lambda fact: fact.id)
+                            if fact.characteristic_id in characteristics]
+                key = stable_id(key, snapshot)
+            elif passport.check_out or passport.check_in:
                 # Renewed evidence can be checked with the same confirm action;
                 # an unchanged deadline snapshot still returns the saved result.
                 characteristics = {item.characteristic_id for item in passport.items}
@@ -377,46 +514,64 @@ def passport_action(passport_id: str, request: PassportAction, repo, *, principa
         if len(request.text) > 4000:
             raise HTTPException(422, "Ответ должен быть не длиннее 4000 символов")
         if request.action == "confirm":
-            if not request.room_number or not request.room_number.strip() or len(request.room_number) > 20:
+            if grouped_passport and request.room_number is not None and len(request.room_number) > 4000:
+                raise HTTPException(422, "Общая заметка о размещении должна быть не длиннее 4000 символов")
+            if not grouped_passport and (not request.room_number or not request.room_number.strip() or len(request.room_number) > 20):
                 raise HTTPException(422, "Для локального демо-подтверждения укажите номер комнаты")
             critical = [item for item in passport.items if item.critical]
-            incompatible = not scopes_compatible([item.scope for item in critical])
+            incompatible_groups = _incompatible_groups(passport.items, grouped_passport)
+            incompatible = bool(incompatible_groups)
             declined = []
             alternatives = []
             for item in passport.items:
-                all_related = [fact for fact in facts if fact.characteristic_id == item.characteristic_id]
+                all_related = [fact for fact in facts if fact.characteristic_id == item.characteristic_id
+                               and (not grouped_passport or _group_month_applies(fact, item.scope.month))]
                 related = [fact for fact in all_related if (actual_scope := _effective_scope(fact)) is not None
                            and scopes_compatible([item.scope, actual_scope])]
                 stored = repo.get("passport_items", item.id) or {}
                 item_criteria = _stored_criteria(stored)
                 eligible = [fact for fact in related if _all_hold(fact, item_criteria)]
+                unverifiable = grouped_passport and (stored.get("scope_only") or stored.get("unsupported"))
+                if unverifiable:
+                    eligible = []
+                if grouped_passport:
+                    item.fact_ids = [max(eligible, key=lambda fact: fact.confidence).id] if eligible else []
                 trip_end = passport.check_out or passport.check_in
                 if eligible and trip_end:
                     # Prefer an equally suitable fact reviewed through the stay.
                     chosen = max(eligible, key=lambda fact: (
                         fact.valid_until is None or fact.valid_until.astimezone(UTC).date() >= trip_end, fact.confidence))
                     item.fact_ids = [chosen.id]
-                known_negative = not eligible and any(
+                negative = any(
                     any(_comparison(fact, criterion) is False for criterion in item_criteria)
                     if item_criteria else _comparison(fact) is False for fact in related)
+                known_negative = not eligible and negative and not unverifiable
+                conflicting = grouped_passport and not unverifiable and (
+                    any(fact.status == "disputed" for fact in related) or bool(eligible) and negative)
                 targeted = any((criterion.field or "available") != "available" or criterion.no_stairs or criterion.no_crossings
                                for criterion in item_criteria)
-                unresolved = not eligible and targeted and not known_negative
+                unresolved = not eligible and (targeted or grouped_passport) and not known_negative
                 scope_mismatch = bool(stored.get("scope_conflict")) or not related and any(
                     _all_hold(fact, item_criteria) for fact in all_related)
-                room_mismatch = bool(eligible) and all(
+                room_mismatch = not grouped_passport and bool(eligible) and all(
                     isinstance(fact.value, dict) and fact.value.get("rooms")
                     and request.room_number.strip() not in [str(room) for room in fact.value["rooms"]] for fact in eligible)
-                if incompatible and item.critical:
+                room_key = item.room_index if grouped_passport else None
+                same_room_critical = [required for required in critical
+                                      if not grouped_passport or required.room_index == item.room_index]
+                if room_key in incompatible_groups and item.critical:
                     item.status, item.response = "alternative", "Условия несовместимы для одного номера; выберите сторону или этаж."
-                elif not item.critical and not scopes_compatible([item.scope] + [required.scope for required in critical]):
+                elif not item.critical and not scopes_compatible([item.scope] + [required.scope for required in same_room_critical]):
                     item.status, item.response = "alternative", "Желательное условие несовместимо с критичными условиями выбранного номера."
                 elif scope_mismatch:
                     item.status, item.response = "alternative", "Сведения относятся к другой стороне или этажам; требуется альтернатива."
                     if item.critical:
                         alternatives.append(item.id)
-                elif unresolved:
-                    item.status, item.response = "at_risk", "Нет подтверждённых данных для проверки указанного порога или ограничения."
+                elif conflicting or unresolved:
+                    item.status, item.response = "at_risk", ("Сведения для этого запроса комнаты расходятся или оспариваются; требуется уточнение."
+                                                             if conflicting else "Нет подтверждённых данных для проверки указанного порога или ограничения.")
+                    if unverifiable:
+                        item.response = "Положение и наличие номера или условие без данных требуют отдельного подтверждения; фактическое размещение не установлено."
                     if item.critical:
                         declined.append(item.id)
                 elif known_negative or room_mismatch:
@@ -424,12 +579,21 @@ def passport_action(passport_id: str, request: PassportAction, repo, *, principa
                     if item.critical:
                         declined.append(item.id)
                 else:
-                    item.status, item.response = "confirmed", "Явно подтверждено отельером в локальном демо; это не реальная бронь."
+                    item.status, item.response = "confirmed", ("Условие этого запроса принято отельером в локальном демо; наличие отдельного номера не подтверждено."
+                                                               if grouped_passport else "Явно подтверждено отельером в локальном демо; это не реальная бронь.")
             needs_review = _trip_reviews(passport, facts)
             passport.status = "alternative" if incompatible or alternatives else "at_risk" if declined or needs_review else "confirmed"
-            passport.room_number = request.room_number.strip() if passport.status == "confirmed" else None
-            message = (f"Локальное демо-подтверждение: номер {passport.room_number}. " + (request.text or "Критичные ожидания приняты отельером.")) if passport.status == "confirmed" else "Требуется альтернатива: критичные условия несовместимы или не выполняются."
-            if passport.status == "at_risk" and needs_review:
+            passport.room_number = request.room_number.strip() if request.room_number and (passport.status == "confirmed" or grouped_passport) else None
+            if grouped_passport:
+                message = ("Локальное демо-подтверждение условий размещения. " if passport.status == "confirmed"
+                           else "Условия размещения требуют альтернативы или перепроверки. ") + _GROUP_CAVEAT
+                if passport.room_number:
+                    message += " Общая заметка, не распределение комнат: " + passport.room_number + "."
+                if request.text.strip():
+                    message += " " + request.text.strip()
+            else:
+                message = (f"Локальное демо-подтверждение: номер {passport.room_number}. " + (request.text or "Критичные ожидания приняты отельером.")) if passport.status == "confirmed" else "Требуется альтернатива: критичные условия несовместимы или не выполняются."
+            if not grouped_passport and passport.status == "at_risk" and needs_review:
                 message = (f"Для номера {request.room_number.strip()} в демо нужна перепроверка критичных ожиданий до поездки. "
                            "Назначение номера не гарантирует условия на будущие даты.")
         elif request.action == "alternative":
