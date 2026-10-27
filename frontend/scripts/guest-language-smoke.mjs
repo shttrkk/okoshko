@@ -1,3 +1,4 @@
+import { revealAncestors } from "./panel-guest-smoke-ui.mjs";
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
@@ -269,17 +270,32 @@ const report = await captureGuestPages({
     if (["first-hotel", "primorskaya"].includes(state.page)) {
       const hotelId = new URL(state.url).pathname.split("/").at(-1);
       await checkRoomAdvice(page, state, hotelId);
-      if (hotelId === primorskayaId)
+      if (hotelId === primorskayaId) {
+        const seaAdvice = checkedHotels
+          .get(hotelId)
+          ?.find((item) => item.characteristic_id === "sea_view");
         check(
-          state.roomAdvice &&
-            /Какой номер просить/iu.test(state.roomAdviceHeading || "") &&
-            state.roomAdviceSameSection &&
-            /вид[^\n.!?]{0,30}на море|море из окна/iu.test(state.roomAdvice) &&
-            /5\s*[-–]?\s*(?:го|й|м)?\s*этаж/iu.test(state.roomAdvice),
+          !!seaAdvice,
           state.name,
-          "primorskaya-sea-view-fifth-floor-visible",
-          state.roomAdvice,
+          "primorskaya-sea-view-advice-preserved",
+          seaAdvice,
         );
+        if (seaAdvice) {
+          const goal = page.locator(
+            `[data-advice-id=${JSON.stringify(seaAdvice.id)}]`,
+          );
+          await revealAncestors(goal);
+          const text = await goal.innerText();
+          check(
+            /вид[^\n.!?]{0,30}на море|море из окна/iu.test(text) &&
+              /5\s*[-–]?\s*(?:го|й|м)?\s*этаж/iu.test(text) &&
+              /Какой номер просить/iu.test(state.roomAdviceHeading || ""),
+            state.name,
+            "primorskaya-sea-view-fifth-floor-accessible",
+            text,
+          );
+        }
+      }
     }
   },
 });
@@ -355,3 +371,5 @@ await writeFile(
 );
 console.log(JSON.stringify(result, null, 2));
 if (failures.length) process.exitCode = 1;
+
+process.exit(process.exitCode || 0);

@@ -7098,3 +7098,44 @@ h3 {
   min-height: 64px;
   line-height: 1.5;
 }
+
+/* Requested conditions lead; the full profile remains available on demand. */
+.query-suggestions {
+  margin: 16px 0;
+}
+.room-request-reason {
+  display: block;
+  margin: 10px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.other-hotel-facts {
+  margin-top: 28px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+.other-hotel-facts > summary,
+details.hotel-room-advice > summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+.header-actions .hotelier-logout {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.query-suggestions .button {
+  white-space: normal;
+  text-align: left;
+  max-width: 100%;
+  justify-content: flex-start;
+}
+.room-other-goals {
+  margin-top: 18px;
+}
+.room-other-goals > summary {
+  cursor: pointer;
+  font-weight: 600;
+}

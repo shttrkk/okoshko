@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { chooseSuggestion, QuerySuggestions } from "./panel-guest-query";
 import type { Criterion, RoomRequest } from "../types";
 import { criterionIdentity, roomScopeText } from "./group";
 import {
@@ -197,6 +198,10 @@ export function RoomCriteriaEditor({
           ))}
         </div>
       )}
+      <QuerySuggestions
+        suggestions={room.suggestions}
+        onChoose={(suggestion) => onChange(chooseSuggestion(room, suggestion))}
+      />
       {room.clarifications?.map((text, i) => (
         <p className="fine-print" key={i}>
           {text}

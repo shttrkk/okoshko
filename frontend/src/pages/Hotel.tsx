@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
@@ -12,6 +12,13 @@ import {
 import { api, record, useResource } from "../api";
 import { useApp } from "../state";
 import { guestText } from "../components/panel-guest-presentation";
+import {
+  requestedCriteria,
+  requestedRoomCriteria,
+  roomRequestReason,
+  mobilityContext,
+  contextualDisappointment,
+} from "../components/panel-guest-query";
 import { GeoModal, TravelMap } from "../components/Map";
 import { FactsPanel } from "../components/FactsPanel";
 import {
@@ -83,11 +90,33 @@ function relatedHotels(results: SearchHit[], reference: Hotel) {
     .slice(0, 3);
 }
 function RelatedHotels({ hotel }: { hotel: Hotel }) {
-  // Independent profile browsing must never replace the user's edited query.
-  const related = useResource(
-    () => api.search({ similar_to: hotel.id, text: "", limit: 3 }),
-    [hotel.id],
+  const { parsed, specs } = useApp();
+  const requested = requestedCriteria(parsed);
+  const labels = requested.map(
+    (criterion) =>
+      specs.data?.find((spec) => spec.id === criterion.characteristic_id)
+        ?.name_ru || criterion.label,
   );
+  // Similarity receives the edited conditions and dates, without changing AppState.
+  const related = useResource(() => {
+    const active = parsed ? structuredClone(parsed) : null;
+    return api.search({
+      similar_to: hotel.id,
+      text: active?.text || "",
+      check_in: active?.check_in,
+      check_out: active?.check_out,
+      ...(active
+        ? {
+            parsed: {
+              ...active,
+              similar_to: hotel.id,
+              similar_to_name: hotel.name,
+            },
+          }
+        : {}),
+      limit: 3,
+    });
+  }, [hotel.id, parsed]);
   const candidates = related.data
     ? relatedHotels(related.data.results, hotel)
     : [];
@@ -99,8 +128,10 @@ function RelatedHotels({ hotel }: { hotel: Hotel }) {
       <span className="eyebrow">ПРОФИЛИ ДЛЯ СРАВНЕНИЯ</span>
       <h2>Похожие отели</h2>
       <p className="muted section-lead">
-        Похожи по известным характеристикам в сентябре. Совпадения относятся к
-        отелю в целом, а не к одному номеру.
+        {requested.length
+          ? "Сначала сравниваем по вашим условиям."
+          : "Похожи по известным характеристикам в сентябре."}{" "}
+        Совпадения относятся к отелю в целом, а не к одному номеру.
       </p>
       {related.loading && (
         <p role="status" className="muted">
@@ -115,12 +146,17 @@ function RelatedHotels({ hotel }: { hotel: Hotel }) {
       )}
       <div className="related-hotel-list">
         {candidates.map((hit) => {
-          const similarities = (hit.similarity_reasons || []).filter(
+          const relevantReasons = requested.length
+            ? (hit.similarity_reasons || []).filter((reason) =>
+                labels.some((label) => reason.includes(`«${label}»`)),
+              )
+            : hit.similarity_reasons || [];
+          const similarities = relevantReasons.filter(
             (reason) =>
               !/^Отличается|различается|близкое значение/i.test(reason) &&
               !/[:;]\s*(различается|близкое значение)/i.test(reason),
           );
-          const differences = (hit.similarity_reasons || []).filter(
+          const differences = relevantReasons.filter(
             (reason) => !similarities.includes(reason),
           );
           return (
@@ -169,7 +205,7 @@ function RelatedHotels({ hotel }: { hotel: Hotel }) {
               </div>
               {!!hit.similarity_reasons?.length && (
                 <details className="room-caveats-details">
-                  <summary>Как посчитано</summary>
+                  <summary>Для дотошных</summary>
                   <ul>
                     {hit.similarity_reasons.map((reason) => (
                       <li key={reason}>
@@ -198,6 +234,25 @@ function RelatedHotels({ hotel }: { hotel: Hotel }) {
         </Link>
       )}
     </section>
+  );
+}
+function OptionalRoomTool({
+  children,
+  optional,
+}: {
+  children: ReactNode;
+  optional: boolean;
+}) {
+  return optional ? (
+    <details
+      className="section-block optional-room-tool"
+      data-testid="optional-room-tool"
+    >
+      <summary>Проверить окно · по желанию</summary>
+      {children}
+    </details>
+  ) : (
+    <>{children}</>
   );
 }
 export function HotelPage() {
@@ -231,6 +286,9 @@ export function HotelPage() {
   } | null>(null);
   const d = detail.data,
     geo = geoResource.data || d?.geo || {};
+  const requested = requestedCriteria(parsed);
+  const roomCriteria = requestedRoomCriteria(parsed);
+  const roomReason = roomRequestReason(parsed);
   const verdicts = d?.verdicts || [];
   const disappointments = d?.disappointments || [];
   const rec = d?.room_recommendation;
@@ -440,7 +498,7 @@ export function HotelPage() {
                 data-testid="show-calculation"
               >
                 <Compass size={17} />
-                Показать расчёт <ArrowUpRight size={16} />
+                Показать расчёт <ArrowRight size={16} />
               </button>
               {activeRoomSlice && (
                 <div
@@ -620,15 +678,20 @@ export function HotelPage() {
               <RoomAdviceSection
                 hotelId={id}
                 month={parsed?.month || 9}
-                requestedCharacteristicIds={[
-                  ...(parsed?.must || []),
-                  ...(parsed?.nice || []),
-                ].map((criterion) => criterion.characteristic_id)}
+                requestedCharacteristicIds={requested.map(
+                  (criterion) => criterion.characteristic_id,
+                )}
+                collapsed={!!parsed && !roomCriteria.length}
+                reason={roomReason}
                 recommendation={
-                  !d.room_plan?.length && parsed ? rec : undefined
+                  !d.room_plan?.length && parsed && roomCriteria.length
+                    ? rec
+                    : undefined
                 }
                 profile={
-                  !d.room_plan?.length && parsed ? d.room_profile : undefined
+                  !d.room_plan?.length && parsed && roomCriteria.length
+                    ? d.room_profile
+                    : undefined
                 }
                 onSelect={(scope) => {
                   setParams(roomLabParams(scope), { replace: true });
@@ -642,34 +705,49 @@ export function HotelPage() {
                   );
                 }}
               >
-                {!d.room_plan?.length && parsed && d.room_profile && (
-                  <RoomDescription
-                    hotelId={id}
-                    profile={d.room_profile}
-                    unknownFloors={d.hotel.floors === null}
-                  />
-                )}
+                {!d.room_plan?.length &&
+                  parsed &&
+                  roomCriteria.length > 0 &&
+                  d.room_profile && (
+                    <RoomDescription
+                      hotelId={id}
+                      profile={d.room_profile}
+                      requestedIds={requested.map(
+                        (criterion) => criterion.characteristic_id,
+                      )}
+                      unknownFloors={d.hotel.floors === null}
+                    />
+                  )}
               </RoomAdviceSection>
               {!geoResource.loading && (
-                <RoomLab
-                  key={`${id}:${params.toString()}`}
-                  detail={d}
-                  geo={geo}
-                  parsed={previewQuery}
-                  roomLabel={roomRequest?.label}
-                  requestedScope={roomRequest?.scope}
-                  roomIndex={roomRequest ? roomIndex : undefined}
-                  mapActive={!!activeRoomSlice}
-                  onSliceChange={(slice) => {
-                    setRoomSlice(slice ? { hotelId: id, slice } : null);
-                    if (slice) setSelection(null);
-                  }}
-                  onEvidence={setEvidence}
-                  onPanorama={setPanorama}
-                  questionScope={(characteristicId, slice) =>
-                    questionScope(characteristicId, undefined, slice)
+                <OptionalRoomTool
+                  optional={
+                    !!parsed &&
+                    !roomCriteria.length &&
+                    !params.has("room_side") &&
+                    !params.has("room_floor")
                   }
-                />
+                >
+                  <RoomLab
+                    key={`${id}:${params.toString()}`}
+                    detail={d}
+                    geo={geo}
+                    parsed={previewQuery}
+                    roomLabel={roomRequest?.label}
+                    requestedScope={roomRequest?.scope}
+                    roomIndex={roomRequest ? roomIndex : undefined}
+                    mapActive={!!activeRoomSlice}
+                    onSliceChange={(slice) => {
+                      setRoomSlice(slice ? { hotelId: id, slice } : null);
+                      if (slice) setSelection(null);
+                    }}
+                    onEvidence={setEvidence}
+                    onPanorama={setPanorama}
+                    questionScope={(characteristicId, slice) =>
+                      questionScope(characteristicId, undefined, slice)
+                    }
+                  />
+                </OptionalRoomTool>
               )}
               <section className="disappointments-section section-block">
                 <span className="eyebrow">
@@ -683,7 +761,10 @@ export function HotelPage() {
                         <span>0{i + 1}</span>
                         <p>
                           {guestText(
-                            t,
+                            contextualDisappointment(
+                              t,
+                              mobilityContext(parsed),
+                            ),
                             d.verdicts.some((v) => v.synthetic),
                           )}
                         </p>
@@ -715,6 +796,13 @@ export function HotelPage() {
                     facts={d.facts}
                     claims={d.claims}
                     specs={specs.data || []}
+                    requestedCharacteristicIds={
+                      requested.length
+                        ? requested.map(
+                            (criterion) => criterion.characteristic_id,
+                          )
+                        : undefined
+                    }
                     hotelId={id}
                     month={parsed?.month || 9}
                     facadeAzimuths={facadeAzimuths}

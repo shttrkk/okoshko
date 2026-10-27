@@ -1,4 +1,5 @@
 import { chromium } from "playwright";
+import { blockYandex, closeSmokeBrowser } from "./panel-guest-smoke-ui.mjs";
 import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -53,8 +54,7 @@ export function scopeIsSupported(
     if (characteristicId === "quiet_night") {
       const min = fact.value?.night_db_min;
       const max = fact.value?.night_db_max;
-      numericNoise =
-        Number.isFinite(min) && Number.isFinite(max) && min <= max;
+      numericNoise = Number.isFinite(min) && Number.isFinite(max) && min <= max;
       // A numeric exterior-noise measurement remains evidence when available
       // is false. It does not establish a boolean promise of indoor silence.
       if ((min !== undefined || max !== undefined) && !numericNoise)
@@ -89,8 +89,10 @@ export function scopeIsSupported(
   };
   // A room answer can corroborate the numeric observation, but it cannot
   // supply decibels for a floor interval without a numeric observation.
-  return covers(covered) &&
-    (characteristicId !== "quiet_night" || covers(numericCovered));
+  return (
+    covers(covered) &&
+    (characteristicId !== "quiet_night" || covers(numericCovered))
+  );
 }
 
 export function scopeSupportSelfChecks() {
@@ -181,22 +183,45 @@ export function scopeSupportSelfChecks() {
   const noiseFact = (min, max, value) =>
     fact(min, max, { characteristic_id: "quiet_night", value });
   const noiseCases = [
-    ["numeric-plus-agreeing-room-answer", [
-      noiseFact(1, 5, { night_db_min: 34, night_db_max: 50 }),
-      noiseFact(5, 5, { available: true }),
-    ], true],
-    ["boolean-answer-does-not-fill-numeric-gap", [
-      noiseFact(1, 4, { night_db_min: 34, night_db_max: 50 }),
-      noiseFact(5, 5, { available: true }),
-    ], false],
-    ["boolean-answer-without-numbers", [noiseFact(1, 5, { available: true })], false],
-    ["numeric-plus-contradicting-room-answer", [
-      noiseFact(1, 5, { night_db_min: 34, night_db_max: 50 }),
-      noiseFact(5, 5, { available: false }),
-    ], false],
+    [
+      "numeric-plus-agreeing-room-answer",
+      [
+        noiseFact(1, 5, { night_db_min: 34, night_db_max: 50 }),
+        noiseFact(5, 5, { available: true }),
+      ],
+      true,
+    ],
+    [
+      "boolean-answer-does-not-fill-numeric-gap",
+      [
+        noiseFact(1, 4, { night_db_min: 34, night_db_max: 50 }),
+        noiseFact(5, 5, { available: true }),
+      ],
+      false,
+    ],
+    [
+      "boolean-answer-without-numbers",
+      [noiseFact(1, 5, { available: true })],
+      false,
+    ],
+    [
+      "numeric-plus-contradicting-room-answer",
+      [
+        noiseFact(1, 5, { night_db_min: 34, night_db_max: 50 }),
+        noiseFact(5, 5, { available: false }),
+      ],
+      false,
+    ],
   ];
   for (const [name, facts, expected] of noiseCases)
-    assert.equal(scopeIsSupported(option, facts, { hotelId, characteristicId: "quiet_night" }), expected, name);
+    assert.equal(
+      scopeIsSupported(option, facts, {
+        hotelId,
+        characteristicId: "quiet_night",
+      }),
+      expected,
+      name,
+    );
   return {
     status: "passed",
     checks: [
@@ -352,7 +377,12 @@ export async function visibleSnapshot(page) {
     const roomHeading = headings.find((element) =>
       /Какой номер просить/iu.test(element.innerText),
     );
-    const adviceElement = document.querySelector('[data-testid="room-advice"]');
+    const rawAdviceElement = document.querySelector(
+      '[data-testid="room-advice"]',
+    );
+    const adviceElement = rawAdviceElement?.getClientRects().length
+      ? rawAdviceElement
+      : null;
     const adviceSection =
       roomHeading?.closest("section") || roomHeading?.parentElement;
     return {
@@ -440,6 +470,7 @@ export async function captureGuestPages({
           localStorage.setItem("okno-theme", value);
         }, theme);
         const page = await context.newPage();
+        await blockYandex(page);
         let stateName;
         page.on("pageerror", (error) =>
           errors.push({ state: stateName, message: error.message }),
@@ -507,7 +538,7 @@ export async function captureGuestPages({
       }
     }
   } finally {
-    await browser.close();
+    await closeSmokeBrowser(browser);
   }
   const report = {
     base,
@@ -545,4 +576,5 @@ if (
       2,
     ),
   );
+  process.exit(process.exitCode || 0);
 }

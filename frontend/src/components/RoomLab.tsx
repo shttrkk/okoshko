@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, Eye, MapPin } from "lucide-react";
+import { ArrowRight, Eye, MapPin } from "lucide-react";
 import { api, dateText, record, useResource } from "../api";
 import type {
   Criterion,
@@ -288,7 +288,7 @@ function ModelFact({
             data-testid={`room-lab-evidence-${id}`}
             onClick={() => onEvidence(fact)}
           >
-            Основание <ArrowUpRight size={13} />
+            Основание <ArrowRight size={13} />
           </button>
         </>
       ) : (
@@ -532,7 +532,7 @@ export function RoomLab({
                   data-testid="room-lab-share"
                   href={`/hotel/${encodeURIComponent(detail.hotel.id)}?${shared}`}
                 >
-                  Ссылка на выбранные условия <ArrowUpRight size={13} />
+                  Ссылка на выбранные условия <ArrowRight size={13} />
                 </a>
               </div>
               <div

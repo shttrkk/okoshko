@@ -3,6 +3,11 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile } from "node:fs/promises";
 import { build } from "esbuild";
 import { chromium } from "playwright";
+import {
+  blockYandex,
+  openTechnicalFact,
+  closeSmokeBrowser,
+} from "./panel-guest-smoke-ui.mjs";
 
 // All API, evidence and hotel data are local browser fixtures, never 8080.
 const base = process.env.OKNO_BASE_URL || "http://localhost:5178";
@@ -340,6 +345,7 @@ try {
   });
   const open = async () => {
     const page = await context.newPage();
+    await blockYandex(page);
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("response", (res) => {
       if (res.url().startsWith(base) && res.status() >= 400)
@@ -371,6 +377,9 @@ try {
   checks.push(
     "scoped hotelier false stays false and shares evidence with the displayed value; unrelated Geo 92% is not substituted",
   );
+  const quietCard = page.getByTestId("fact-card-quiet_night");
+  assert.doesNotMatch(await quietCard.innerText(), /40[–-]56.*дБ/);
+  await openTechnicalFact(quietCard);
   const positiveReport = page.getByTestId(`quiet-report-${quietTrue.id}`);
   const negativeReport = page.getByTestId(`quiet-report-${quietFalse.id}`);
   assert.match(
@@ -439,10 +448,22 @@ try {
   const modelPage = await open();
   const modelSea = modelPage.getByTestId("room-lab-fact-sea_view");
   assert.doesNotMatch(await modelSea.innerText(), /\d+%/);
-  assert.equal(JSON.parse(await modelSea.getAttribute("data-model-value")).seaProbability, 0.921875);
+  assert.equal(
+    JSON.parse(await modelSea.getAttribute("data-model-value")).seaProbability,
+    0.921875,
+  );
   await modelSea.locator("summary").click();
-  assert.match(await modelSea.innerText(), /Вероятность вида на море по расчёту: 92%/);
+  assert.match(
+    await modelSea.innerText(),
+    /Вероятность вида на море по расчёту: 92%/,
+  );
   await modelPage.getByTestId("room-lab-floor").selectOption("1");
+  const lowProbability = modelPage
+    .getByTestId("room-lab-fact-sea_view")
+    .locator("details")
+    .first();
+  if ((await lowProbability.getAttribute("open")) === null)
+    await lowProbability.locator(":scope > summary").click();
   assert.match(
     await modelPage.getByTestId("room-lab-fact-sea_view").innerText(),
     /Вероятность вида на море по расчёту: 0%/,
@@ -541,6 +562,7 @@ try {
     define: { "process.env.NODE_ENV": '"production"' },
   });
   const normalPage = await context.newPage();
+  await blockYandex(normalPage);
   normalPage.on("pageerror", (error) => errors.push(error.message));
   await normalPage.route("**/__normal_fixture", (route) =>
     route.fulfill({
@@ -555,6 +577,7 @@ try {
   });
   const panel = normalPage.getByTestId("fact-card-sunset_view");
   await panel.waitFor();
+  await openTechnicalFact(panel);
   const september = panel.getByRole("button", { name: /^север,.*сентябре:/ });
   const may = panel.getByRole("button", { name: /^север,.*мае:/ });
   assert.match(await september.getAttribute("title"), /Закат виден сбоку/);
@@ -562,7 +585,9 @@ try {
     Math.round(Number(await september.getAttribute("data-sunset-angle"))),
     66,
   );
-  const computed = panel.locator('details:has([data-testid="sunset-angle-details"])');
+  const computed = panel
+    .getByTestId("sunset-angle-details")
+    .locator("xpath=..");
   await computed.locator(":scope > summary").click();
   assert.match(await computed.innerText(), /сентябре[^\n]*66°/);
   assert.match(await computed.innerText(), /мае[^\n]*44°/);
@@ -648,5 +673,7 @@ try {
   );
   await context.close();
 } finally {
-  await browser.close();
+  await closeSmokeBrowser(browser);
 }
+
+process.exit(process.exitCode || 0);

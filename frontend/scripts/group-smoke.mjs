@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
+import {
+  closeSmokeBrowser,
+  blockYandex,
+  revealAncestors,
+} from "./panel-guest-smoke-ui.mjs";
 
 // No state-changing requests. Default: real API. Explicit fixture mode supports
 // UI development before the group endpoints are deployed.
@@ -106,6 +111,7 @@ try {
       reducedMotion: "reduce",
     });
     const entry = await guest.newPage();
+    await blockYandex(entry);
     await entry.goto(base);
     await entry.getByTestId("group-search-example").click();
     await entry.getByTestId("search-submit").click();
@@ -179,6 +185,7 @@ try {
     );
   }
   page = await context.newPage();
+  await blockYandex(page);
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("request", (request) => {
     if (request.url().includes("/api/"))
@@ -343,6 +350,7 @@ try {
   const goals = page
     .getByTestId("hotel-room-profiles")
     .getByTestId("room-advice-card");
+  await revealAncestors(goals.first());
   await goals.first().waitFor({ timeout: 45000 });
   assert(
     (await goals.count()) <= 4,
@@ -496,5 +504,7 @@ try {
 } finally {
   if (page) await page.unrouteAll({ behavior: "ignoreErrors" });
   if (page) await page.request.dispose();
-  await browser.close();
+  await closeSmokeBrowser(browser);
 }
+
+process.exit(process.exitCode || 0);

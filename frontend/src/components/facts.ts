@@ -274,8 +274,6 @@ export function humanFact(
           : v.has_steps === false
             ? "на рёбрах маршрута лестницы не отмечены"
             : "о лестницах нет данных",
-        num(v.wheelchair_tag_coverage) !== null &&
-          `теги доступности у ${pct(v.wheelchair_tag_coverage)} рёбер`,
       ]
         .filter(Boolean)
         .join(" · ");

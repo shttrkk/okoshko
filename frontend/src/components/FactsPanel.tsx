@@ -653,85 +653,110 @@ function FactCard({
       <p className="fact-headline">
         {headline(id, facts, month, facadeAzimuths)}
       </p>
-      {id === "sunset_view" && (
-        <SunsetMatrix
-          facts={shown}
-          month={month}
-          onEvidence={onEvidence}
-          facadeAzimuths={facadeAzimuths}
-        />
-      )}
-      {SOLAR.has(id) && (
-        <SolarMatrix facts={shown} month={month} onEvidence={onEvidence} />
-      )}
-      {sided && (
-        <SideChips
-          facts={
-            id === "quiet_night"
-              ? shown.filter((fact) => reportedQuiet(fact) === null)
-              : shown
-          }
-          kind={
-            id === "quiet_night"
-              ? "noise"
-              : id === "railway_noise"
-                ? "rail"
-                : "view"
-          }
-          onEvidence={onEvidence}
-        />
-      )}
-      {quietReports.length > 0 && (
-        <div className="side-chips" data-testid="quiet-reports">
-          {quietReports.map((fact) => (
-            <button
-              key={fact.id}
-              className={`side-chip ${reliable(fact) ? "reported" : "unknown"}`}
-              style={{ gridColumn: "1 / -1" }}
-              data-testid={`quiet-report-${fact.id}`}
-              onClick={() => onEvidence(fact)}
-            >
-              <strong>
-                {SIDES[String(fact.scope.facade || v(fact).facade)] ||
-                  "Сообщение источника"}
-              </strong>
-              <span>
-                {reliable(fact)
-                  ? humanFact(fact)
-                  : fact.status === "disputed"
-                    ? "Сообщение оспаривается; требуется уточнение"
-                    : "Сообщение требует перепроверки"}
-              </span>
-              <span>{scopeText(fact.scope)}</span>
-              {fact.synthetic && <Synthetic>{factDemoLabel(fact)}</Synthetic>}
-            </button>
-          ))}
-        </div>
-      )}
-      {id === "climate" && <ClimateTable facts={shown} month={month} />}
-      {id === "nearby_photos" && <NearbyPhotos value={rep.value} />}
-      {multi &&
-        !sided &&
-        !["sunset_view", "climate", "nearby_photos", ...SOLAR].includes(id) && (
-          <ul className="fact-scopes">
-            {shown.map((f) => (
-              <li key={f.id} data-fact-id={f.id}>
-                <span>{scopeText(f.scope)}</span>
-                <FactValue fact={f} />
-              </li>
-            ))}
-          </ul>
-        )}
-      <details className="room-caveats-details fact-reliability">
-        <summary>Надёжность данных</summary>
+      <details
+        className="room-caveats-details fact-details"
+        open={!canAsk || undefined}
+      >
+        <summary>Подробнее</summary>
         <p>
-          {reliability(
-            confidence,
-            shown.some((fact) => fact.synthetic),
-          )}{" "}
-          · оценка полноты и согласованности источников, без гарантии условий в
-          номере.
+          {humanFact(rep, facadeAzimuths) ||
+            "Подробности зависят от стороны, этажа и месяца; источник можно открыть ниже."}
         </p>
+        <details className="room-caveats-details" open={!canAsk || undefined}>
+          <summary>Для дотошных</summary>
+          {id === "accessible_route" &&
+            typeof v(rep).wheelchair_tag_coverage === "number" && (
+              <p>
+                Явные теги доступности:{" "}
+                {Math.round(Number(v(rep).wheelchair_tag_coverage) * 100)}%
+                рёбер.
+              </p>
+            )}
+          {id === "sunset_view" && (
+            <SunsetMatrix
+              facts={shown}
+              month={month}
+              onEvidence={onEvidence}
+              facadeAzimuths={facadeAzimuths}
+            />
+          )}
+          {SOLAR.has(id) && (
+            <SolarMatrix facts={shown} month={month} onEvidence={onEvidence} />
+          )}
+          {sided && (
+            <SideChips
+              facts={
+                id === "quiet_night"
+                  ? shown.filter((fact) => reportedQuiet(fact) === null)
+                  : shown
+              }
+              kind={
+                id === "quiet_night"
+                  ? "noise"
+                  : id === "railway_noise"
+                    ? "rail"
+                    : "view"
+              }
+              onEvidence={onEvidence}
+            />
+          )}
+          {quietReports.length > 0 && (
+            <div className="side-chips" data-testid="quiet-reports">
+              {quietReports.map((fact) => (
+                <button
+                  key={fact.id}
+                  className={`side-chip ${reliable(fact) ? "reported" : "unknown"}`}
+                  style={{ gridColumn: "1 / -1" }}
+                  data-testid={`quiet-report-${fact.id}`}
+                  onClick={() => onEvidence(fact)}
+                >
+                  <strong>
+                    {SIDES[String(fact.scope.facade || v(fact).facade)] ||
+                      "Сообщение источника"}
+                  </strong>
+                  <span>
+                    {reliable(fact)
+                      ? humanFact(fact)
+                      : fact.status === "disputed"
+                        ? "Сообщение оспаривается; требуется уточнение"
+                        : "Сообщение требует перепроверки"}
+                  </span>
+                  <span>{scopeText(fact.scope)}</span>
+                  {fact.synthetic && (
+                    <Synthetic>{factDemoLabel(fact)}</Synthetic>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+          {id === "climate" && <ClimateTable facts={shown} month={month} />}
+          {id === "nearby_photos" && <NearbyPhotos value={rep.value} />}
+          {multi &&
+            !sided &&
+            !["sunset_view", "climate", "nearby_photos", ...SOLAR].includes(
+              id,
+            ) && (
+              <ul className="fact-scopes">
+                {shown.map((f) => (
+                  <li key={f.id} data-fact-id={f.id}>
+                    <span>{scopeText(f.scope)}</span>
+                    <FactValue fact={f} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          <details className="room-caveats-details fact-reliability">
+            <summary>Надёжность данных</summary>
+            <p>
+              {reliability(
+                confidence,
+                shown.some((fact) => fact.synthetic),
+              )}{" "}
+              · оценка полноты и согласованности источников, без гарантии
+              условий в номере.
+            </p>
+          </details>
+        </details>
       </details>
       <div className="fact-card-foot">
         <EvidenceButton fact={rep} claims={claims} />
@@ -811,6 +836,7 @@ export function FactsPanel({
   selectedTrait,
   questionScope,
   facadeAzimuths,
+  requestedCharacteristicIds,
 }: {
   facts: Fact[];
   claims: Claim[];
@@ -827,7 +853,50 @@ export function FactsPanel({
   selectedTrait?: string;
   questionScope?: (characteristicId: string, fact?: Fact) => Scope | undefined;
   facadeAzimuths?: FacadeAzimuths;
+  requestedCharacteristicIds?: string[];
 }) {
+  if (requestedCharacteristicIds) {
+    const requested = new Set(requestedCharacteristicIds);
+    const primary = facts.filter((fact) =>
+      requested.has(fact.characteristic_id),
+    );
+    const other = facts.filter(
+      (fact) => !requested.has(fact.characteristic_id),
+    );
+    const shared = {
+      claims,
+      specs,
+      hotelId,
+      month,
+      onEvidence,
+      hotelier,
+      onPanorama,
+      onShowOnMap,
+      selectedTrait,
+      questionScope,
+      facadeAzimuths,
+    };
+    return (
+      <div className="requested-facts" data-testid="requested-facts">
+        <FactsPanel {...shared} facts={primary} />
+        {other.length > 0 && (
+          <details
+            className="other-hotel-facts"
+            data-testid="other-hotel-facts"
+            open={
+              selectedTrait && !requested.has(selectedTrait) ? true : undefined
+            }
+          >
+            <summary>
+              Другие характеристики отеля ·{" "}
+              {new Set(other.map((fact) => fact.characteristic_id)).size}
+            </summary>
+            <FactsPanel {...shared} facts={other} />
+          </details>
+        )}
+      </div>
+    );
+  }
   const ids = [...new Set(facts.map((f) => f.characteristic_id))];
   const spec = (id: string) => specs.find((s) => s.id === id);
   const nameOf = (id: string) =>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import {
-  ArrowUpRight,
+  ArrowRight,
   ChevronDown,
   GitCompareArrows,
   Menu,
@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { useApp } from "../state";
+import { api, readHotelierSession } from "../api";
 const links = [
   ["/hotelier", "Отельеру"],
   ["/studio", "Студия"],
@@ -19,7 +20,32 @@ const links = [
   ["/sources", "Источники"],
 ];
 export function Layout() {
-  const { compare, theme, toggleTheme, status } = useApp();
+  const { compare, theme, toggleTheme, status, toast } = useApp();
+  const [session, setSession] = useState(readHotelierSession);
+  const [signingOut, setSigningOut] = useState(false);
+  useEffect(() => {
+    const refresh = () => setSession(readHotelierSession());
+    window.addEventListener("okno-auth-changed", refresh);
+    window.addEventListener("okno-auth-expired", refresh);
+    return () => {
+      window.removeEventListener("okno-auth-changed", refresh);
+      window.removeEventListener("okno-auth-expired", refresh);
+    };
+  }, []);
+  const logout = async () => {
+    setSigningOut(true);
+    try {
+      await api.logout();
+      sessionStorage.removeItem("okno-token");
+      sessionStorage.removeItem("okno-hotelier-session");
+      window.dispatchEvent(new Event("okno-auth-changed"));
+      toast("Вы вышли из кабинета отеля");
+    } catch {
+      toast("Не удалось выйти. Проверьте соединение и повторите попытку.");
+    } finally {
+      setSigningOut(false);
+    }
+  };
   const [menu, setMenu] = useState(false);
   const location = useLocation();
   useEffect(() => {
@@ -52,14 +78,13 @@ export function Layout() {
               aria-expanded={menu}
               onClick={() => setMenu(!menu)}
             >
-              Проект <ChevronDown size={13} />
+              Для команды <ChevronDown size={13} />
             </button>
             {menu && (
               <div className="nav-dropdown">
                 {links.map(([to, name]) => (
                   <NavLink key={to} to={to}>
                     {name}
-                    <ArrowUpRight size={14} />
                   </NavLink>
                 ))}
               </div>
@@ -78,9 +103,21 @@ export function Layout() {
           >
             {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
           </button>
-          <Link className="hotelier-link" to="/hotelier">
-            Вход для отеля <ArrowUpRight size={14} />
-          </Link>
+          {session ? (
+            <button
+              className="text-button hotelier-logout"
+              onClick={logout}
+              disabled={signingOut}
+              data-testid="header-logout"
+              aria-label="Выйти из кабинета"
+            >
+              {signingOut ? "Выходим…" : "Выйти"}
+            </button>
+          ) : (
+            <Link className="hotelier-link" to="/hotelier">
+              Вход для отеля <ArrowRight size={14} />
+            </Link>
+          )}
           <button
             className="icon-button mobile-menu"
             onClick={() => setMenu(!menu)}
@@ -94,6 +131,7 @@ export function Layout() {
           <nav className="mobile-nav">
             <Link to="/search">Найти свой отель</Link>
             <Link to="/compare">Сравнение ({compare.length})</Link>
+            <span className="eyebrow">Для команды</span>
             {links.map(([to, name]) => (
               <Link key={to} to={to}>
                 {name}
@@ -123,7 +161,7 @@ export function Layout() {
             : "Ожидаем подключение API"}
         </div>
         <Link to="/sources">
-          Данные и источники <ArrowUpRight size={13} />
+          Данные и источники <ArrowRight size={13} />
         </Link>
         <span>Сочи, 2026</span>
       </footer>
