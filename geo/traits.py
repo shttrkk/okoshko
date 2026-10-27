@@ -356,8 +356,7 @@ def _railway_no_sources(hotel, data_dir):
         features, tree = _preflight_rail_index(rail_path, rail_digest)
         point = Point(TO_UTM.transform(*hotel_center(hotel)))
         nearby = [features[int(index)] for index in tree.query(point.buffer(650), predicate="intersects")]
-        if source_samples(nearby, kind="rail"):
-            return False
+        sources = source_samples(nearby, kind="rail")
         building_digest = input_digest(building_path)
         if building_digest is None:
             return False
@@ -367,8 +366,17 @@ def _railway_no_sources(hotel, data_dir):
         geometry = metric(shape(matching[0]["geometry"]))
         if not geometry.is_valid:
             geometry = geometry.buffer(0)
-        return (geometry.geom_type in {"Polygon", "MultiPolygon"} and not geometry.is_empty
-                and geometry.intersects(point.buffer(1600)))
+        if (geometry.geom_type not in {"Polygon", "MultiPolygon"} or geometry.is_empty
+                or not geometry.intersects(point.buffer(1600))):
+            return False
+        if not sources:
+            return True
+        # The 650 m hotel candidate circle is wider than the actual facade
+        # observers' range. Use the original noise function and its observers,
+        # not a second physical threshold. With no blockers it cannot lose a
+        # supported rail source; None on every facade proves the same unknown
+        # outcome with the full set of surrounding buildings too.
+        return all(noise_facade(facade, sources, []) is None for facade in extract_facades(geometry))
     except (OSError, ValueError, TypeError, KeyError, AttributeError):
         return False
 
