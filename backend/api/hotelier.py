@@ -9,7 +9,7 @@ from jsonschema import SchemaError, ValidationError
 from psycopg.errors import UniqueViolation
 from referencing.exceptions import Unresolvable
 
-from backend.agents.answer_parser import HOTELIER_VALUE_FIELDS, parse_answer
+from backend.agents.answer_parser import HOTELIER_VALUE_FIELDS, ROOM_GROUP_FIELDS, parse_answer
 from backend.agents.demand import search_demand
 from backend.agents.interviewer import create_question, generate_questions, stable_id
 from backend.agents.resolver import resolve_hotel
@@ -90,6 +90,9 @@ def cabinet(hotel_id: str, repo=_REPO, _user=_AUTH):
                  if fact.get("status") in {"confirmed", "computed"} and isinstance(fact.get("value"), dict) and fact["value"].get("available") is True]
     return {"hotel": hotel, "facts": facts, "claims": repo.find("claims", hotel_id=hotel_id),
             "questions": [q.model_dump(mode="json") for q in questions],
+            "answered_questions": [q for q in repo.find("questions", hotel_id=hotel_id) if q.get("status") == "answered"],
+            "answers": [answer for answer in repo.all("answers") if answer.get("confirmed") and
+                        (question := repo.get("questions", answer["question_id"])) and question["hotel_id"] == hotel_id],
             "conflicts": repo.find("conflicts", hotel_id=hotel_id),
             "passports": repo.find("expectation_passports", hotel_id=hotel_id),
             "strengths": strengths, "search_demand": demand, "demand_synthetic": False}
@@ -133,7 +136,9 @@ def answer_question(question_id: str, request: AnswerRequest, repo=_REPO, _user=
         raise HTTPException(409, "Вопрос уже закрыт; создайте новый вопрос для исправления")
     if request.confirm:
         raise HTTPException(422, "Сначала проверьте предпросмотр, затем подтвердите /api/answers/{id}/confirm")
-    answer = parse_answer(question, request.text, synthetic=_user.synthetic or request.synthetic, llm=LLMClient(repo))
+    # Principal.synthetic describes the demonstration login, not authorship.
+    # Only the simulator (or an explicitly marked input) supplies demo text.
+    answer = parse_answer(question, request.text, synthetic=request.synthetic, llm=LLMClient(repo))
     return _save_preview(answer, question, repo)
 
 
@@ -152,16 +157,18 @@ def confirm_answer(answer_id: str, repo, *, principal: Principal) -> Answer:
         answer = Answer.model_validate(_get(repo, "answers", answer_id, "Ответ"))
         question = Question.model_validate(_get(repo, "questions", answer.question_id, "Вопрос"))
         authorize_hotel(principal, question.hotel_id)
-        answer.synthetic = answer.synthetic or principal.synthetic
         if answer.confirmed:
             if question.status != "answered":
                 question.status = "answered"
                 repo.upsert("questions", question.model_dump(mode="json"))
             return answer
-        if not answer.updates:
-            raise HTTPException(422, "В ответе нет подтверждаемых значений; требуется уточнение")
+        if question.status != "pending":
+            raise HTTPException(409, "Вопрос уже закрыт другим ответом; создайте новый вопрос для исправления")
         expected = parse_answer(question, answer.raw_text, synthetic=answer.synthetic)
-        if [update.model_dump(mode="json") for update in answer.updates] != [update.model_dump(mode="json") for update in expected.updates]:
+        if not answer.updates and answer.disposition != "unknown":
+            raise HTTPException(422, "В ответе нет подтверждаемых значений; требуется уточнение")
+        if (answer.disposition != expected.disposition or
+                [update.model_dump(mode="json") for update in answer.updates] != [update.model_dump(mode="json") for update in expected.updates]):
             raise HTTPException(422, "Предпросмотр не соответствует проверяемым цитатам; создайте новый ответ")
         # Validate the entire preview before the first durable claim write.
         specs = {}
@@ -169,6 +176,10 @@ def confirm_answer(answer_id: str, repo, *, principal: Principal) -> Answer:
             fields = HOTELIER_VALUE_FIELDS.get(update.characteristic_id)
             if not fields or not isinstance(update.value, dict) or set(update.value) - fields:
                 raise HTTPException(422, "Неподдерживаемые поля ответа отельера")
+            groups = update.value.get("groups", [])
+            if update.characteristic_id == "room_orientation" and (not isinstance(groups, list) or
+                    any(not isinstance(group, dict) or set(group) - ROOM_GROUP_FIELDS for group in groups)):
+                raise HTTPException(422, "Неподдерживаемые сведения о группе номеров")
             spec = _get(repo, "characteristics", update.characteristic_id, "Характеристика")
             try:
                 validate_value(update.value, spec["value_schema"])
@@ -176,7 +187,7 @@ def confirm_answer(answer_id: str, repo, *, principal: Principal) -> Answer:
                 raise HTTPException(422, "Значение не соответствует схеме характеристики: " + update.characteristic_id) from exc
             specs[update.characteristic_id] = spec
         source_id = "hotelier_simulator" if answer.synthetic else "hotelier"
-        if not repo.get("sources", source_id):
+        if answer.updates and not repo.get("sources", source_id):
             source = Source(id=source_id, name="Синтетический отельер (демо)" if answer.synthetic else "Заявления отельера",
                             kind="simulation" if answer.synthetic else "hotelier", url="/api/answers/" + answer.id + "/confirm",
                             license="Local demo data", attribution="О!кно: локальный кабинет отельера", observed_at=now(), retrieved_at=now(),
@@ -214,7 +225,8 @@ def confirm_answer(answer_id: str, repo, *, principal: Principal) -> Answer:
             except UniqueViolation:
                 if not repo.get("claims", claim_id):
                     raise
-        resolve_hotel(question.hotel_id, repo)
+        if created:
+            resolve_hotel(question.hotel_id, repo)
         answer.confirmed = True
         answer.created_claim_ids = created
         repo.upsert("answers", answer.model_dump(mode="json"))
@@ -226,9 +238,11 @@ def confirm_answer(answer_id: str, repo, *, principal: Principal) -> Answer:
             run = AgentRun.model_validate(value)
             run.status = "completed"
             run.finished_at = now()
-            run.steps.append(AgentStep(run_id=run.id, seq=len(run.steps), agent="resolver", type="confirmation", name="Ответ подтверждён; факты обновлены",
+            run.steps.append(AgentStep(run_id=run.id, seq=len(run.steps), agent="resolver", type="confirmation",
+                                       name="Ответ принят; данные остаются неизвестными" if answer.disposition == "unknown" else "Ответ подтверждён; факты обновлены",
                                        input={"answer_id": answer.id}, output={"created_claim_ids": created, "synthetic": answer.synthetic},
-                                       rationale="Цитаты сохранены в неизменяемых claims; Resolver обновил facts", evidence_refs=[c for c in created], mode=answer.parser))
+                                       rationale="Отель не располагает данными; новых утверждений нет" if answer.disposition == "unknown" else "Цитаты сохранены в неизменяемых claims; Resolver обновил facts",
+                                       evidence_refs=[c for c in created], mode=answer.parser))
             repo.upsert("agent_runs", run.model_dump(mode="json"))
         return answer
 
