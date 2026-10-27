@@ -601,26 +601,113 @@ try {
     "partial-group-heading-honest",
   );
   const mapLink = fcard.getByTestId("hotel-map-photos-link");
+  const mapRel = (await mapLink.getAttribute("rel")).split(/\s+/u);
   check(
     (await mapLink.getAttribute("target")) === "_blank" &&
-      (await mapLink.getAttribute("rel")).includes("noopener"),
+      ["noopener", "noreferrer"].every((value) => mapRel.includes(value)),
     "external-link-safe",
   );
-  const mapQuery = new URL(await mapLink.getAttribute("href")).searchParams.get(
-    "text",
+  const mapUrl = new URL(await mapLink.getAttribute("href"));
+  check(
+    mapUrl.origin === "https://yandex.ru" && mapUrl.pathname === "/maps/",
+    "map-link-search-destination",
+    mapUrl.href,
   );
   check(
-    [
-      fixtures.hotel.name,
-      String(fixtures.hotel.lat),
-      String(fixtures.hotel.lon),
-    ].every((part) => mapQuery.includes(part)),
-    "map-link-name-and-coordinates",
+    mapUrl.searchParams.get("text") === fixtures.hotel.name,
+    "map-link-name-search",
+    mapUrl.searchParams.get("text"),
   );
+  for (const key of ["ll", "sll"]) {
+    check(
+      mapUrl.searchParams.get(key) ===
+        `${fixtures.hotel.lon},${fixtures.hotel.lat}`,
+      `map-link-${key}-longitude-latitude`,
+      mapUrl.searchParams.get(key),
+    );
+  }
+  check(mapUrl.searchParams.get("z") === "17", "map-link-zoom", mapUrl.href);
   check(
     !fixtureRequests.some(forbiddenHost),
     "fixture-no-map-requests",
     fixtureRequests.filter(forbiddenHost),
+  );
+  // Exact scores remain closed even after opening the human ranking reason.
+  const rankingReasons = [
+    "«Первый вариант»: по условиям у него данные надёжнее; оценка выполнения условий 71 против 65.",
+    "«Другой вариант»: по условиям у него данные надёжнее; оценка выполнения условий 78 против 65.",
+    "«Третий вариант»: по условиям у него данные надёжнее; оценка выполнения условий 82 против 65.",
+  ];
+  fixtures.search.results[1].why_not_higher = rankingReasons;
+  fixtures.search.results.push({
+    ...fixtures.search.results[1],
+    hotel: {
+      ...fixtures.emptyHotel,
+      id: "photos-fixture-almost",
+      name: "Вариант с компромиссом",
+    },
+    group: "almost",
+    why_not_higher: [],
+  });
+  fixtures.search.total = fixtures.search.results.length;
+  await fpage.goto(`${base}/search?q=ranking-fixture`);
+  const rankingDetails = fpage.getByTestId(`search-reasons-${noPhotoHotelId}`);
+  await rankingDetails.locator(":scope > summary").click();
+  check(
+    (await rankingDetails.getByTestId("ranking-reason").count()) === 1,
+    "ranking-generic-score-reasons-deduplicated",
+  );
+  const rankingCalculation = rankingDetails.getByTestId("ranking-calculation");
+  check(
+    (await rankingCalculation.count()) === 1 &&
+      (await rankingCalculation.getAttribute("open")) === null,
+    "ranking-calculation-initially-closed",
+  );
+  check(
+    (await rankingDetails.innerText()).includes(
+      "по условиям у него данные надёжнее",
+    ) && !/\b(?:71|65|78|82)\b/u.test(await rankingDetails.innerText()),
+    "ranking-only-human-text-before-calculation",
+  );
+  await rankingCalculation.locator(":scope > summary").click();
+  check(
+    (await rankingCalculation.innerText()).includes(rankingReasons[0]),
+    "ranking-original-reason-retained",
+  );
+  const notes = await fpage
+    .locator(
+      ".result-group > .result-group-note:not([data-testid=partial-legend])",
+    )
+    .allTextContents();
+  check(
+    notes.length === 3 &&
+      new Set(notes).size === 3 &&
+      notes.every((note) => !/подтвержден/iu.test(note)),
+    "partial-group-notes-distinct-and-honest",
+    notes,
+  );
+  check(
+    (await fpage.getByTestId("partial-legend").count()) === 1,
+    "three-groups-keep-one-legend",
+  );
+  const legacyReason =
+    "«Старый вариант»: выше совокупная оценка выполнения условий с учётом уверенности (89.1 против 63.5); проверьте оговорки в критериях.";
+  fixtures.search.results[1].why_not_higher = [legacyReason];
+  await fpage.goto(`${base}/search?q=legacy-ranking-fixture`);
+  await rankingDetails.locator(":scope > summary").click();
+  check(
+    !/89[.,]1|63[.,]5/u.test(await rankingDetails.innerText()),
+    "legacy-exact-scores-hidden",
+  );
+  await rankingDetails
+    .getByTestId("ranking-calculation")
+    .locator(":scope > summary")
+    .click();
+  check(
+    (
+      await rankingDetails.getByTestId("ranking-calculation").innerText()
+    ).includes(legacyReason),
+    "legacy-original-reason-retained",
   );
   checks.push({
     name: "isolated-fixtures",

@@ -860,18 +860,32 @@ function distinctRankingReasons(reasons: string[] = []) {
         .trim()
         .replace(/^«.*?»:\s*/, "")
         .replace(/\s+/g, " ")
-        .toLocaleLowerCase("ru");
+        .toLocaleLowerCase("ru")
+        .replaceAll("ё", "е");
       // Different reference names must not repeat the same generic explanation.
-      const key = body.startsWith("выше совокупная оценка выполнения условий")
-        ? "score"
-        : body.startsWith("оценки совпадают;")
-          ? "tie"
-          : body.replace(/[.!?]+$/, "");
+      const key =
+        body.startsWith("выше совокупная оценка выполнения условий") ||
+        body.startsWith("по условиям у него данные надежнее")
+          ? "score"
+          : body.startsWith("оценки совпадают;")
+            ? "tie"
+            : body.replace(/[.!?]+$/, "");
       if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
     })
     .slice(0, 3);
+}
+function rankingReasonParts(reason: string) {
+  const beforeDetails = reason.split(";", 1)[0].trim();
+  // Older API responses embedded the exact scores before the separator.
+  const human = beforeDetails
+    .replace(/\s*\(\s*\d+(?:[.,]\d+)?\s+против\s+\d+(?:[.,]\d+)?\s*\)/u, "")
+    .trim();
+  return {
+    human,
+    hasCalculation: reason.includes(";") || human !== beforeDetails,
+  };
 }
 export function requiredStatusCounts(hit: SearchHit) {
   const counts = { yes: 0, partial: 0, no: 0, unknown: 0 };
@@ -1014,9 +1028,23 @@ function SearchCard({
             <summary aria-label={`Почему не выше: ${hit.hotel.name}`}>
               Почему не выше
             </summary>
-            {reasons.map((reason) => (
-              <p key={reason}>{reason}</p>
-            ))}
+            {reasons.map((reason) => {
+              const { human, hasCalculation } = rankingReasonParts(reason);
+              return (
+                <div key={reason} data-testid="ranking-reason">
+                  <p>{human}</p>
+                  {hasCalculation && (
+                    <details
+                      className="room-caveats-details"
+                      data-testid="ranking-calculation"
+                    >
+                      <summary>Как посчитано</summary>
+                      <p>{reason}</p>
+                    </details>
+                  )}
+                </div>
+              );
+            })}
           </details>
         )}
         <div className="card-bottom">
@@ -1272,14 +1300,12 @@ export function SearchPage() {
           )}
           {(["all", "almost", "unknown", "browse"] as const).map((group) => {
             const hits = results.filter((r) => groupOf(r) === group);
-            const hasPartial =
-              group === "all" &&
-              hits.some((hit) =>
-                [
-                  ...hit.verdicts,
-                  ...(hit.room_plan || []).flatMap((item) => item.verdicts),
-                ].some((verdict) => verdict.status === "partial"),
-              );
+            const hasPartial = hits.some((hit) =>
+              [
+                ...hit.verdicts,
+                ...(hit.room_plan || []).flatMap((item) => item.verdicts),
+              ].some((verdict) => verdict.status === "partial"),
+            );
             const legendGroup = (
               ["all", "almost", "unknown", "browse"] as const
             ).find((name) =>
@@ -1326,7 +1352,16 @@ export function SearchPage() {
                   </div>
                   {hasPartial && (
                     <p className="result-group-note">
-                      Часть условий пока подтверждена только предварительно.
+                      {
+                        {
+                          all: "Некоторые совпадения пока неточные — проверьте значки «≈»",
+                          almost:
+                            "Здесь есть уступки по условиям и неточные данные",
+                          unknown:
+                            "Данных не хватает: часть ответов ещё нужно уточнить",
+                          browse: "Некоторые пожелания ещё требуют уточнения",
+                        }[group]
+                      }
                     </p>
                   )}
                   {group === legendGroup && (

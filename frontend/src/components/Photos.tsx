@@ -136,8 +136,13 @@ export function safeHttpUrl(value: unknown): string | null {
   }
 }
 export function yandexHotelUrl(hotel: Pick<Hotel, "name" | "lat" | "lon">) {
+  // Search near the hotel coordinates; this does not identify an organisation card.
+  const center = `${hotel.lon},${hotel.lat}`;
   const params = new URLSearchParams({
-    text: `${hotel.name} ${hotel.lat}, ${hotel.lon}`,
+    text: hotel.name,
+    ll: center,
+    sll: center,
+    z: "17",
   });
   return `https://yandex.ru/maps/?${params}`;
 }
@@ -153,6 +158,7 @@ export function HotelMapPhotosLink({
       className={className}
       data-testid="hotel-map-photos-link"
       href={yandexHotelUrl(hotel)}
+      title="Поиск по названию рядом с отелем"
       target="_blank"
       rel="noopener noreferrer"
     >
