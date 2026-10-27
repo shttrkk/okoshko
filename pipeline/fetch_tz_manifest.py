@@ -117,7 +117,7 @@ def run():
             raise ValueError(f"oversized artifact: {path.name}")
         if path.suffix == ".gz" and path.read_bytes()[4:8] != b"\0\0\0\0":
             raise ValueError(f"non-reproducible gzip mtime: {path.name}")
-    manifest = {"stage": "tz_stage1@1", "generated_at": utcnow(), "runtime_loaded": False, "portfolio_hotels": len(hotels),
+    manifest = {"stage": "tz_prepared@2", "generated_at": utcnow(), "pipeline_writes_database": False, "runtime_loader": "backend.tz_seed.load_tz_seed", "portfolio_hotels": len(hotels),
                 "osm_snapshot": CONFIG["osm"]["snapshot"], "coverage": coverage, "claims": len(claims),
                 "guest_hotels": len(guest_hotels), "guest_coverage": {kind: summarize(values, guest_hotels) for kind, values in flags.items()},
                 "field_coverage": {field: {'source_250': summarize(values, hotels), 'guest_247': summarize(values, guest_hotels)} for field, values in field_flags.items()},
@@ -126,7 +126,7 @@ def run():
                 "outputs": {p.name: output_metadata(p) for p in paths}, "total_artifact_bytes": sum(p.stat().st_size for p in paths),
                 "known_answer_fixture_file": "tests/test_tz_calculators.py", "registry_safety_fixture_file": "tests/test_tz_registry.py",
                 "coverage_semantics": "Per hotel: any true scoped value -> yes; otherwise missing/partial -> unknown; otherwise all known false -> no. This is model/data coverage, not field-verified accuracy or guest-search integration.",
-                "limitations": ["New ledgers/specs are prepared separately; no runtime seed loader, guest parser or ranker wiring", "Climate: 2 representative zonal daily samples -> 3000 derived hotel-month records; repeated hotels do not increase confidence", "GTFS, live service times/night flights, events feed and OpenCellID are unavailable/not used", "No OTA/Ostrovok/Yandex/Google/2GIS/Mapillary data acquisition in this stage"]}
+                "limitations": ["Prepared observations are loaded by backend.tz_seed; coverage describes data availability, not independently verified accuracy", "Climate: 2 representative zonal daily samples -> 3000 derived hotel-month records; repeated hotels do not increase confidence", "GTFS, live service times/night flights, events feed and OpenCellID are unavailable/not used", "No OTA/Ostrovok/Yandex/Google/2GIS/Mapillary data acquisition in this stage"]}
     # A compact digest makes baseline inventory reviewable without replicating
     # the original seeds. Their actual bytes remain untouched.
     baseline_path = SEED / "tz_baseline_integrity.json"
