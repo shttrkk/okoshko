@@ -23,7 +23,7 @@ import { TravelMap } from "../components/Map";
 import { GroupPlan } from "../components/GroupPlan";
 import { RoomCriteriaEditor } from "../components/RoomCriteriaEditor";
 import { RoomSuggestion } from "../components/RoomProfiles";
-import { groupExample } from "../components/group";
+import { groupExample, roomEvidenceScope } from "../components/group";
 import {
   CompareButton,
   Empty,
@@ -33,6 +33,7 @@ import {
   Art,
   Loading,
   Modal,
+  scopeText,
   Synthetic,
   VerdictList,
 } from "../components/ui";
@@ -92,7 +93,7 @@ const personas = [
     icon: Moon,
     image: "persona-sleep",
     tone: "night",
-    title: "Выспаться",
+    title: "Тихий номер, чтобы выспаться",
     text: "Тихий номер, окна во двор и плотные шторы",
     query: "тихий номер с хорошей шумоизоляцией и плотными шторами",
   },
@@ -100,7 +101,7 @@ const personas = [
     icon: Waves,
     image: "persona-sea-view",
     tone: "sea",
-    title: "Море из окна",
+    title: "Номер с видом на море",
     text: "Вид на море с нужного этажа и пляж в паре шагов",
     query: "вид на море из окна и пляж рядом",
   },
@@ -108,7 +109,7 @@ const personas = [
     icon: Footprints,
     image: "persona-family",
     tone: "green",
-    title: "С детьми и коляской",
+    title: "С ребёнком и коляской",
     text: "До пляжа без лестниц и сложных переходов",
     query:
       "до пляжа с коляской без лестниц и перехода трассы, рядом детская площадка",
@@ -133,7 +134,7 @@ const personas = [
     icon: Heart,
     image: "persona-evening",
     tone: "sun",
-    title: "В гуще событий",
+    title: "В центре событий",
     text: "Кафе, вечерние прогулки и живая набережная",
     query: "кафе и бары рядом, в центре событий, недалеко от набережной",
   },
@@ -351,8 +352,8 @@ export function Home() {
       <section className="scenario-section">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">У КАЖДОГО СВОЁ «ХОРОШО»</span>
-            <h2>С чего начнём?</h2>
+            <span className="eyebrow">ГОТОВЫЕ ЗАПРОСЫ</span>
+            <h2>Не знаете, с чего начать?</h2>
           </div>
           <ArrowDown size={23} />
         </div>
@@ -381,6 +382,7 @@ export function Home() {
                 </span>
                 <h3>{p.title}</h3>
                 <p>{p.text}</p>
+                <span className="scenario-cta">Подобрать отели →</span>
                 <ArrowUpRight className="scenario-arrow" size={20} />
               </span>
             </button>
@@ -928,8 +930,12 @@ function SearchCard({
           <ArrowUpRight size={20} />
         </Link>
         <p className="result-summary">
-          {hit.summary ||
-            "Условия проверены по доступным фактам. Неизвестное требует уточнения."}
+          <span>
+            Обязательные: {hit.must_satisfied} из {hit.must_total}
+          </span>
+          {hit.room_profile?.scope.facade && (
+            <span>{scopeText(roomEvidenceScope(hit.room_profile.scope))}</span>
+          )}
         </p>
         <VerdictList
           compact
@@ -956,8 +962,18 @@ function SearchCard({
             />
           )
         )}
-        {hit.disappointments.length > 0 && !hit.room_plan?.length && (
-          <p className="disappointment">Учтите: {hit.disappointments[0]}</p>
+        {(hit.summary || hit.disappointments.length > 0) && (
+          <details className="verdict-caveats result-explanation">
+            <summary>Почему этот отель</summary>
+            {hit.summary && <p>{hit.summary}</p>}
+            {hit.disappointments.length > 0 && (
+              <ul>
+                {hit.disappointments.map((text, index) => (
+                  <li key={index}>{text}</li>
+                ))}
+              </ul>
+            )}
+          </details>
         )}
         {reasons.length > 0 && (
           <details
@@ -978,7 +994,7 @@ function SearchCard({
               <strong>{hit.hotel.price_rub.toLocaleString("ru")} ₽</strong> /
               ночь{" "}
               {hit.hotel.basic_fields_source === "mock_basic_card" && (
-                <Synthetic>цена · макет</Synthetic>
+                <Synthetic>Цена · демо-данные</Synthetic>
               )}
             </span>
           ) : (
@@ -1280,8 +1296,9 @@ export function SearchPage() {
             <p className="results-footnote">
               {resource.data.total} результатов ·{" "}
               {Math.round(resource.data.latency_ms)} мс · режим{" "}
-              {resource.data.mode}. Наружный шум — приближённая модель, не
-              измерение в номере.
+              {resource.data.mode}. Шум ночью рассчитан приблизительно; внутри
+              номера он может отличаться. Сторону, этаж и наличие номера
+              подтвердит отель.
             </p>
           )}
         </div>

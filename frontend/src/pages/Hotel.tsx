@@ -7,9 +7,7 @@ import {
   Eye,
   MapPin,
   ShieldCheck,
-  Sun,
   TriangleAlert,
-  Waves,
 } from "lucide-react";
 import { api, record, useResource } from "../api";
 import { useApp } from "../state";
@@ -24,7 +22,8 @@ import {
 import { PanoramaModal } from "../components/Panorama";
 import { RoomLab, type RoomSlice } from "../components/RoomLab";
 import { GroupPlan } from "../components/GroupPlan";
-import { RoomProfileList } from "../components/RoomProfiles";
+import { RoomAdviceSection } from "../components/RoomAdvice";
+import { RoomDescription } from "../components/RoomProfiles";
 import { personalRoomQuery, roomLabParams } from "../components/group";
 import {
   AskButton,
@@ -428,18 +427,18 @@ export function HotelPage() {
                   data-testid="room-lab-map-context"
                 >
                   <p>
-                    <strong>Модельный срез</strong> ·{" "}
+                    <strong>Выбранные условия</strong> ·{" "}
                     {SIDES[activeRoomSlice.facade]} · {activeRoomSlice.floor}-й{" "}
                     {d.hotel.floors ? "этаж" : "условный уровень"}
                   </p>
                   <span className="muted small">
-                    Выбранная геометрия не подтверждает номер, окно и наличие
-                    мест.
+                    Сторону и этаж проверили по данным. Номер и расположение
+                    окон подтвердит отель.
                   </span>
                   {!hasRoomRays && (
                     <p className="muted small" data-testid="room-lab-rays-note">
-                      В геометрии нет лучей обзора для выбранного уровня. Карта
-                      выделяет фасад; числовая видимость показана в срезе.
+                      Для этого этажа нет рисунка обзора. На карте выделена
+                      сторона здания; результат расчёта — в проверке окна.
                     </p>
                   )}
                   <div className="hotel-map-context-actions">
@@ -458,7 +457,7 @@ export function HotelPage() {
                         })
                       }
                     >
-                      К срезу
+                      К проверке окна
                     </button>
                     <button
                       className="text-button small"
@@ -489,7 +488,7 @@ export function HotelPage() {
                       ` · с ${selectedFact.scope.floor_min}-го этажа`}
                   </p>
                   <span className="muted small">
-                    Показаны доступные геоданные. Наличие окна и условия номера
+                    Показаны доступные данные. Наличие окна и условия номера
                     уточните у отеля.
                   </span>
                   <div className="hotel-map-context-actions">
@@ -597,62 +596,37 @@ export function HotelPage() {
                   }}
                 />
               )}
-              {!d.room_plan?.length && (
-                <section className="room-section section-block">
-                  <div className="room-compass" aria-hidden="true">
-                    <span className="north">С</span>
-                    <Sun className="room-sun" />
-                    <div className="room-building">
-                      <i />
-                      <i />
-                      <i />
-                      <i />
-                      <i />
-                      <i />
-                    </div>
-                    <Waves className="room-waves" />
-                  </div>
-                  <div>
-                    <span className="eyebrow">ВПЕЧАТЛЕНИЯ ЖИВУТ В НОМЕРЕ</span>
-                    <h2>Какой номер просить</h2>
-                    <p
-                      className="room-recommendation"
-                      data-testid="room-recommendation"
-                    >
-                      {rec}
-                    </p>
-                    <p className="fine-print">
-                      Совпадение условий нужно подтвердить для одного номера:
-                      стороны, этажа и типа. Схема иллюстративная, точная
-                      геометрия — в расчёте.
-                    </p>
-                    <Link className="text-button" to={`/booking/${id}`}>
-                      Добавить в паспорт ожиданий <ArrowRight size={16} />
-                    </Link>
-                  </div>
-                </section>
-              )}
-              <section
-                className="section-block hotel-room-profiles"
-                data-testid="hotel-room-profiles"
+              <RoomAdviceSection
+                hotelId={id}
+                month={parsed?.month || 9}
+                recommendation={
+                  !d.room_plan?.length && parsed ? rec : undefined
+                }
+                profile={
+                  !d.room_plan?.length && parsed ? d.room_profile : undefined
+                }
+                onSelect={(scope) => {
+                  setParams(roomLabParams(scope), { replace: true });
+                  window.setTimeout(
+                    () =>
+                      document
+                        .getElementById("room-lab")
+                        ?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        }),
+                    100,
+                  );
+                }}
               >
-                <span className="eyebrow">У КАЖДОЙ СТОРОНЫ СВОЙ ХАРАКТЕР</span>
-                <h2>Какие бывают номера</h2>
-                <p className="muted section-lead">
-                  Модельные положения, не типы номеров отеля
-                </p>
-                <p className="fine-print">
-                  Описание опирается на доступные факты. Планировка, количество,
-                  наличие номеров и расположение окон требуют подтверждения
-                  отеля.
-                </p>
-                <RoomProfileList
-                  hotelId={id}
-                  unknownFloors={d.hotel.floors === null}
-                  scope={{ month: parsed?.month || 9 }}
-                  link
-                />
-              </section>
+                {!d.room_plan?.length && parsed && d.room_profile && (
+                  <RoomDescription
+                    hotelId={id}
+                    profile={d.room_profile}
+                    unknownFloors={d.hotel.floors === null}
+                  />
+                )}
+              </RoomAdviceSection>
               {!geoResource.loading && (
                 <RoomLab
                   key={`${id}:${params.toString()}`}
@@ -690,7 +664,7 @@ export function HotelPage() {
                   </ul>
                 ) : (
                   <p className="muted">
-                    API не выделил отдельных ограничений. Это не гарантия их
+                    Отдельные ограничения пока не найдены. Это не гарантия их
                     отсутствия — уточните критичные детали у отеля.
                   </p>
                 )}

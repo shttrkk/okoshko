@@ -142,8 +142,10 @@ export function sunsetAspectText(fact: Fact, facadeAzimuths?: FacadeAzimuths) {
   if (record(fact.value).available !== true) return "";
   const angle = sunsetAngle(fact, facadeAzimuths);
   return angle === null
-    ? "Возможен боковой сектор; точный угол к нормали фасада неизвестен"
-    : `${angle > 45 ? "Закат сбоку · " : ""}угол ≈ ${fmt(angle)}° к нормали моделируемого фасада`;
+    ? "Точное направление окна неизвестно"
+    : angle > 45
+      ? "Закат виден сбоку"
+      : "Закат перед выбранной стороной";
 }
 /** A boolean report is not a numerical outdoor-noise model. */
 export function reportedQuiet(fact: Fact): boolean | null {
@@ -227,7 +229,7 @@ export function humanFact(
         id === "evening_heat" &&
           exposure !== null &&
           `индекс экспозиции ${exposure} из 1`,
-        "геометрическая оценка",
+        "по расчёту",
       ]
         .filter(Boolean)
         .join(" · ");
@@ -236,7 +238,7 @@ export function humanFact(
       const night = range(v.night_db_min, v.night_db_max);
       return night === null
         ? null
-        : `Наружный шум поездов ночью ${night} дБ · некалиброванный прокси, не измерение в номере`;
+        : `Шум поездов ночью, по расчёту: ${night} дБ`;
     }
     case "beach_surface": {
       const raw = typeof v.surface === "string" ? v.surface : null;
@@ -355,14 +357,15 @@ export function humanFact(
     case "beach_walk": {
       if (v.available === false) return "Пешего маршрута до пляжа не нашлось";
       const crossings = Array.isArray(v.crossings) ? v.crossings.length : 0;
+      const beachName =
+        typeof v.beach_name === "string"
+          ? v.beach_name
+              .replace(/^Пляж\s*/i, "")
+              .replace(/["«»]/g, "")
+              .trim()
+          : "";
       return [
-        `${minutes(v.minutes)} пешком, ${meters(v.distance_m)}${
-          v.beach_name
-            ? ` до «${String(v.beach_name)
-                .replace(/^Пляж\s*/i, "")
-                .replace(/"/g, "")}»`
-            : ""
-        }`,
+        `${minutes(v.minutes)} пешком, ${meters(v.distance_m)} ${beachName ? `до пляжа «${beachName}»` : "до пляжа"}`,
         num(v.return_minutes) !== null &&
           `обратно ${minutes(v.return_minutes)}${num(v.return_ascent_m) ? `, подъём ${fmt(v.return_ascent_m)} м` : ""}`,
         v.has_steps === true && "есть лестницы",
@@ -466,26 +469,25 @@ export function humanFact(
 
 /** Plain-language names for claim methods and sources (ids stay visible). */
 export const METHOD_NAMES: Record<string, string> = {
-  "local_poi_family@1": "Площадка и больница по OSM; переходы на пути не рассчитывались",
+  "local_poi_family@1":
+    "Площадка и больница по OSM; переходы на пути не рассчитывались",
   osm_property_internet_access_v1:
     "Тег интернета у того же объекта OSM; без измерения скорости",
   two_scale_dsm_los_mc_v1:
     "Линия видимости по рельефу и высотам зданий, 64 симуляции",
   astral_monthly_horizon_mc_v1:
     "Положение солнца по месяцам и закрытый горизонт, 64 симуляции",
-  outdoor_noise_proxy_v1: "Модель уличного шума по дорогам и железной дороге",
+  outdoor_noise_proxy_v1: "Расчёт уличного шума по дорогам и железной дороге",
   directed_graph_dijkstra_tobler_v1:
     "Пеший маршрут по графу OSM с учётом уклона",
   exact_quote_v1: "Дословная цитата с сайта отеля",
   "local_poi_lookup@2": "Поиск ближайших объектов OSM",
   "hotelier_answer@1": "Ответ отеля с цитатой",
-  "simulated_hotelier_quote@1": "Синтетический ответ отеля с цитатой",
-  astral_morning_horizon_proxy_v1:
-    "Утреннее солнце по профилю горизонта · геометрический прокси",
+  "simulated_hotelier_quote@1": "Демо-ответ отеля с цитатой",
+  astral_morning_horizon_proxy_v1: "Расчёт утреннего солнца с учётом горизонта",
   astral_evening_exposure_proxy_v1:
     "Вечерняя солнечная экспозиция · не температура комнаты",
-  outdoor_rail_noise_proxy_v1:
-    "Некалиброванный прокси наружного шума железной дороги",
+  outdoor_rail_noise_proxy_v1: "Приближённый расчёт уличного шума поездов",
   osm_beach_surface_v2: "Явный тег покрытия выбранного пляжа в OpenStreetMap",
   osm_route_accessibility_v1:
     "Явные теги доступности рёбер пешего маршрута OSM",
@@ -503,7 +505,7 @@ export const SOURCE_NAMES: Record<string, string> = {
   open_meteo_climate: "Open-Meteo · климат",
   open_meteo_marine: "Open-Meteo · море",
   hotel_website: "Официальный сайт отеля",
-  hotelier_simulator: "Синтетический отельер (демо)",
+  hotelier_simulator: "Демонстрационный ответ отеля",
   wikimedia_commons: "Wikimedia Commons",
   wikidata: "Wikidata",
   ookla: "Ookla Open Data",

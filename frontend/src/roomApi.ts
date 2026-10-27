@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { api, request, useResource } from "./api";
-import type { RoomProfile, RoomScope } from "./types";
+import type { RoomAdvice, RoomProfile, RoomScope } from "./types";
+
+export function roomAdvice(hotelId: string, month = 9) {
+  return request<RoomAdvice[]>(
+    `/api/hotels/${encodeURIComponent(hotelId)}/room-advice?month=${month}`,
+  );
+}
 
 export function roomProfiles(hotelId: string, scope: RoomScope = {}) {
   const params = new URLSearchParams();
@@ -12,7 +18,7 @@ export function roomProfiles(hotelId: string, scope: RoomScope = {}) {
     `/api/hotels/${encodeURIComponent(hotelId)}/rooms?${params}`,
   ).then((profiles) => {
     if (!Array.isArray(profiles))
-      throw new Error("API не передал список модельных положений.");
+      throw new Error("Не удалось получить советы по сторонам и этажам.");
     return profiles;
   });
 }

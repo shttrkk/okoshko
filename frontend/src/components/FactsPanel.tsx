@@ -233,16 +233,22 @@ function SunsetMatrix({
           Видимость фасада не подтверждает наличие окна.
         </span>
         <span>
+          «*» — закат виден сбоку. Направление реального окна неизвестно.
+        </span>
+      </p>
+      <details className="room-caveats-details">
+        <summary>Как посчитано</summary>
+        <p>
           «*» — закат сбоку, больше 45° к нормали моделируемого фасада.
           Направление реального окна не проверено.
-        </span>
+        </p>
         {missingNormals && (
-          <span>
+          <p>
             Модель допускает боковой сектор. Для части расчётов точный угол
             неизвестен; компасная сторона не заменяет нормаль фасада.
-          </span>
+          </p>
         )}
-      </p>
+      </details>
     </div>
   );
 }
@@ -335,13 +341,20 @@ function SolarMatrix({
           ))}
         </tbody>
       </table>
-      <p className="matrix-legend solar-proxy-note">
-        Геометрическая оценка на 15-е число месяца: ✓ — не менее 20 минут
-        прямого солнца; «7+» — начиная с 7-го этажа в рассчитанном диапазоне.
-        «&lt;20» — меньше 20 минут, «?» — требуется уточнение. Нажмите клетку
-        для диапазона этажей и значений. Облачность и наличие окна неизвестны;
-        индекс экспозиции не измеряет температуру комнаты.
+      <p className="matrix-legend">
+        ✓ — есть прямое солнце; «7+» — с 7-го этажа; «?» — нужно уточнить.
+        Нажмите на месяц, чтобы увидеть источник.
       </p>
+      <details className="room-caveats-details">
+        <summary>Как посчитано</summary>
+        <p className="matrix-legend solar-proxy-note">
+          Геометрическая оценка на 15-е число месяца: ✓ — не менее 20 минут
+          прямого солнца; «7+» — начиная с 7-го этажа в рассчитанном диапазоне.
+          «&lt;20» — меньше 20 минут, «?» — требуется уточнение. Нажмите клетку
+          для диапазона этажей и значений. Облачность и наличие окна неизвестны;
+          индекс экспозиции не измеряет температуру комнаты.
+        </p>
+      </details>
     </div>
   );
 }
@@ -372,7 +385,7 @@ function SideChips({
           : kind === "noise"
             ? `${noiseLabel[String(value.index)] || "нет данных"}${typeof value.night_db_max === "number" ? ` · до ${fmt(value.night_db_max)} дБ` : ""}`
             : kind === "rail"
-              ? `${fmt(value.night_db_min)}–${fmt(value.night_db_max)} дБ · прокси`
+              ? `${fmt(value.night_db_min)}–${fmt(value.night_db_max)} дБ · по расчёту`
               : yes.length
                 ? `${floorOf(best) && floorOf(best)! > 1 ? `с ${floorOf(best)} эт.` : "все этажи"} · ${pct(Math.max(...yes.map(prob)))}`
                 : value.available === false
@@ -466,15 +479,14 @@ export function headline(
   }
   if (SOLAR.has(id)) {
     const inMonth = shown.filter((f) => f.scope.month === month);
-    if (!inMonth.length)
-      return `Для ${MONTHS_IN[month - 1]} нет геометрической оценки.`;
+    if (!inMonth.length) return `Для ${MONTHS_IN[month - 1]} нет расчёта.`;
     const yes = sideList(bySide(inMonth));
     const summary =
       yes ||
       (inMonth.every((f) => v(f).available === false)
         ? "на рассчитанных фасадах меньше 20 минут"
         : "достаточность прямого солнца неизвестна");
-    return `${id === "morning_sun" ? "Утреннее" : "Вечернее"} прямое солнце в ${MONTHS_IN[month - 1]}: ${summary}. Геометрическая оценка, не прогноз погоды${id === "evening_heat" ? " и не температура номера" : ""}.`;
+    return `${id === "morning_sun" ? "Утреннее" : "Вечернее"} прямое солнце в ${MONTHS_IN[month - 1]}: ${summary}. По расчёту; погода может отличаться${id === "evening_heat" ? " и не температура номера" : ""}.`;
   }
   if (id === "sunset_view") {
     const inMonth = shown.filter(
@@ -489,9 +501,7 @@ export function headline(
       .filter((row) => row.yes.length)
       .flatMap((row) => {
         const angle = sunsetAngle(row.best, facadeAzimuths);
-        return angle !== null && angle > 45
-          ? [`${SIDES[row.side]} (≈ ${fmt(angle)}° к нормали фасада)`]
-          : [];
+        return angle !== null && angle > 45 ? [SIDES[row.side]] : [];
       });
     const missingNormals = inMonth.some(
       (fact) =>
@@ -506,7 +516,7 @@ export function headline(
       .filter((m): m is number => typeof m === "number")
       .sort((a, b) => a - b);
     return list
-      ? `В ${MONTHS_IN[month - 1]} модель показывает видимость заката: ${list}.${oblique.length ? ` Закат сбоку: ${oblique.join(", ")}.` : ""}${missingNormals ? " Модель допускает боковой сектор; точный угол к фасаду неизвестен." : ""}`
+      ? `В ${MONTHS_IN[month - 1]} закат по расчёту виден: ${list}.${oblique.length ? ` Закат сбоку: ${oblique.join(", ")}.` : ""}${missingNormals ? " Точное направление окна неизвестно." : ""}`
       : !inMonth.length || !inMonth.every((f) => v(f).available === false)
         ? `В ${MONTHS_IN[month - 1]} видимость заката неизвестна.`
         : `В ${MONTHS_IN[month - 1]} закат на рассчитанных фасадах не виден.${good.length ? ` Виден в месяцах: ${good.map((m) => MONTHS_SHORT[m - 1]).join(", ")}.` : ""}`;
@@ -515,7 +525,7 @@ export function headline(
     const list = sideList(bySide(shown));
     const what = id === "sea_view" ? "Море" : "Горы";
     return list
-      ? `Модель показывает видимость ${id === "sea_view" ? "моря" : "гор"}: ${list}.`
+      ? `По расчёту видны ${id === "sea_view" ? "море" : "горы"}: ${list}.`
       : shown.every((f) => v(f).available === false)
         ? `${what === "Море" ? "Моря" : "Гор"} на рассчитанных фасадах не видно.`
         : `Вид на ${id === "sea_view" ? "море" : "горы"} требует уточнения.`;
@@ -526,8 +536,8 @@ export function headline(
     const quiet = bySide(model).filter((r) => v(r.best).index === "quiet");
     const modelText = model.length
       ? quiet.length
-        ? `По наружной модели тише: ${quiet.map((r) => SIDES[r.side]).join(", ")}.`
-        : "Модель не выделила тихий фасад. Наружный шум не определяет тишину в номере."
+        ? `По расчёту уличного шума тише: ${quiet.map((r) => SIDES[r.side]).join(", ")}.`
+        : "Расчёт не выделил тихую сторону. Наружный шум не определяет тишину в номере."
       : "";
     const reportText =
       reports.length === 1
@@ -622,12 +632,6 @@ function FactCard({
     >
       <div className="fact-card-head">
         <h4>{name}</h4>
-        <span
-          className="fact-confidence"
-          title="Уверенность модели, не гарантия результата"
-        >
-          уверенность {pct(confidence)}
-        </span>
       </div>
       <p className="fact-headline">
         {headline(id, facts, month, facadeAzimuths)}
@@ -701,6 +705,13 @@ function FactCard({
             ))}
           </ul>
         )}
+      <details className="room-caveats-details fact-reliability">
+        <summary>Надёжность данных</summary>
+        <p>
+          {pct(confidence)} · оценка полноты и согласованности источников, без
+          гарантии условий в номере.
+        </p>
+      </details>
       <div className="fact-card-foot">
         <EvidenceButton fact={rep} claims={claims} />
         {shown.some((f) => f.synthetic) && <Synthetic />}

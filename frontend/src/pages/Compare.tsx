@@ -183,7 +183,7 @@ export function ComparePage() {
                                 >
                                   {verdict.disputed ? "!" : verdict.symbol}
                                 </span>
-                                {verdict.text}
+                                {verdict.text.split(";")[0]}
                               </p>
                             )}
                             {known.length && rep ? (
@@ -192,17 +192,20 @@ export function ComparePage() {
                                   {headline(id, allFacts, month)}
                                 </p>
                                 {known.some((f) => f.synthetic) && (
-                                  <Synthetic>Синтетика</Synthetic>
+                                  <Synthetic />
                                 )}
-                                <small>
-                                  Уверенность{" "}
-                                  {Math.round(
-                                    Math.max(
-                                      ...known.map((f) => f.confidence),
-                                    ) * 100,
-                                  )}
-                                  %
-                                </small>
+                                <details className="verdict-caveats">
+                                  <summary>Надёжность данных</summary>
+                                  <p>
+                                    {Math.round(
+                                      Math.max(
+                                        ...known.map((f) => f.confidence),
+                                      ) * 100,
+                                    )}
+                                    % · оценка полноты и согласованности
+                                    источников
+                                  </p>
+                                </details>
                                 <EvidenceButton fact={rep} claims={h.claims} />
                                 {needsQuestion(rep) && (
                                   <AskButton
