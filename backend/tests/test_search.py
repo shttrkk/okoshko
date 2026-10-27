@@ -159,6 +159,7 @@ def test_stroller_route_can_explicitly_require_no_steps(catalog):
     hit = rank_hotels([hotel("h")], [fact("h", "beach_walk", {"available": True, "minutes": 7, "has_steps": True})], parsed, catalog)[0]
     assert hit.group != "all"
     assert hit.verdicts[0].status == "no"
+    assert "отмечены лестницы" in hit.verdicts[0].text.split(";", 1)[0]
 
 
 @pytest.mark.parametrize("value,expected", [
@@ -199,6 +200,9 @@ def test_family_route_constraints_are_and_at_real_route_confidence(minutes, step
     assert hit.group == group and hit.verdicts[0].status == status
     if steps is True:
         assert "без лестниц" in hit.verdicts[0].caveat and "отмечены лестницы" in hit.verdicts[0].caveat
+        assert "отмечены лестницы" in hit.verdicts[0].text.split(";", 1)[0]
+    if crossings:
+        assert "отмечены переходы" in hit.verdicts[0].text.split(";", 1)[0]
 
 
 def test_soft_route_preference_is_not_promoted_to_a_requirement(catalog):
@@ -438,8 +442,9 @@ def test_oblique_sunset_uses_honest_compass_range_and_lower_score(catalog):
     direct, oblique = hits
     assert direct.hotel.id == "west" and direct.score > oblique.score
     assert oblique.group == "all" and oblique.verdicts[0].confidence == .9
-    assert "закат сбоку" in oblique.verdicts[0].text and "38–83°" in oblique.verdicts[0].text
-    assert "точная нормаль окна неизвестна" in oblique.verdicts[0].text
+    assert "38–83°" in oblique.verdicts[0].caveat
+    assert "точная нормаль окна неизвестна" in oblique.verdicts[0].caveat
+    assert "нормал" not in oblique.verdicts[0].text and "модел" not in oblique.verdicts[0].text
     assert "±75°" in oblique.verdicts[0].caveat and "±22,5°" in oblique.verdicts[0].caveat
     assert "перед закатом солнце видно ≈ 28 мин" in oblique.verdicts[0].text
     assert "не гарантия непрерывного" in oblique.verdicts[0].caveat
@@ -452,7 +457,8 @@ def test_sunset_actual_normal_from_evidence_overrides_compass_sector(catalog):
     aspect = sunset_aspect(item)
     assert aspect.exact_normal and aspect.angle_deg == 35 and not aspect.oblique
     hit = rank_hotels([hotel("h")], [item], required("sunset_view"), catalog)[0]
-    assert "нормали окна ≈ 35°" in hit.verdicts[0].text
+    assert "нормали окна ≈ 35°" in hit.verdicts[0].caveat
+    assert "закат перед окнами" in hit.verdicts[0].text
     assert "закат сбоку" not in hit.verdicts[0].text and "±22,5°" not in hit.verdicts[0].caveat
     item.evidence[0].inputs["facade_azimuth_deg"] = 10
     assert sunset_aspect(item).angle_deg == 70 and sunset_aspect(item).oblique
@@ -487,12 +493,30 @@ def test_all_must_accepts_supported_estimate_but_not_unknown_details(catalog):
     query = ParsedQuery(text="known synthetic route", must=[Criterion(characteristic_id="beach_walk", label="Пляж", field="minutes", op="lte", value=10)])
     [hit] = rank_hotels([hotel("a")], [fact("a", "beach_walk", {"available": True, "minutes": 8}, confidence=.66)], query, catalog)
     assert hit.group == "all" and hit.verdicts[0].status == "partial"
-    assert hit.verdicts[0].confidence == .66 and "предварительно" in hit.summary
+    assert hit.verdicts[0].confidence == .66 and "Пока неточно" in hit.summary
     [low] = rank_hotels([hotel("a")], [fact("a", "beach_walk", {"available": True, "minutes": 8}, confidence=.38)], query, catalog)
     assert low.group != "all"
     pets = ParsedQuery(text="с собакой", must=[Criterion(characteristic_id="pets", label="Питомцы", field="available")], pet_weight_kg=20)
     [incomplete] = rank_hotels([hotel("a")], [fact("a", "pets", {"available": True}, confidence=.85)], pets, catalog)
     assert incomplete.group != "all"  # High confidence cannot fill missing weight/species.
+
+
+def test_guest_wording_keeps_uncertainty_and_proof_without_repeated_room_warning(catalog):
+    item = fact("guest", "quiet_night", {"available": True, "night_db_min": 41.2,
+                "night_db_max": 49.7}, side="W", low=5, high=8, confidence=.65, synthetic=True)
+    query = ParsedQuery(text="", must=[Criterion(characteristic_id="quiet_night", label="Тишина ночью")])
+    before = item.model_dump()
+    [hit] = rank_hotels([hotel("guest")], [item], query, catalog)
+    assert hit.group == "all" and hit.verdicts[0].status == "partial"
+    assert hit.verdicts[0].confidence == .65 and hit.verdicts[0].synthetic
+    assert hit.verdicts[0].fact_ids == [item.id] and hit.verdicts[0].evidence_refs
+    assert "±8 дБ" in hit.verdicts[0].caveat and "Синтетические" in hit.verdicts[0].caveat
+    assert "Можно уточнить номер: западная сторона, 5–8-й этажи." == hit.room_recommendation
+    main = " ".join([hit.summary, hit.room_recommendation, *[v.text for v in hit.verdicts]])
+    assert "≈ 41–50 дБ по расчёту" in main
+    assert not any(term in main.lower() for term in ("модел", "прокси", "синтет", "нормал", "pmtiles"))
+    assert not hit.disappointments  # Generic uncertainty belongs to the criterion's caveat.
+    assert item.model_dump() == before
 
 
 def overlap_query(*, floor=5, month=9, room_type=None):

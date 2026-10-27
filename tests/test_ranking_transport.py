@@ -86,7 +86,7 @@ def test_synthetic_reference_is_disclosed_even_with_real_candidate_facts(catalog
     facts = [fact("reference", "sea_view", {"available": True}, side="W", low=1, synthetic=True),
              fact("candidate", "sea_view", {"available": True}, side="W", low=1)]
     [hit] = similar_hotels("reference", hotels, facts, catalog)
-    assert "синтетические факты" in hit.summary
     assert hit.verdicts[0].synthetic
-    assert any("синтетическ" in reason for reason in hit.similarity_reasons)
-    assert any("синтетическ" in warning for warning in hit.disappointments)
+    assert hit.verdicts[0].fact_ids and hit.verdicts[0].evidence_refs
+    assert not any("синтет" in reason for reason in [hit.summary, *hit.similarity_reasons])
+    assert sum("демо-данных" in warning for warning in hit.disappointments) == 1

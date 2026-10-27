@@ -28,7 +28,7 @@ from backend.contracts import (
     SearchHit,
 )
 
-INVENTORY_CAVEAT = "Это модельные положения в здании. Сколько таких номеров свободно, их вместимость и соседство уточнит отель."
+INVENTORY_CAVEAT = "Сколько таких номеров свободно, их вместимость и соседство уточнит отель."
 
 
 def room_query(room: RoomRequest, parsed: ParsedQuery) -> ParsedQuery:
@@ -267,7 +267,7 @@ def evaluate_room(
         item.scope = RoomScope(month=room.scope.month or parsed.month)
     elif not criteria and complete:
         item.recommendation = (
-            "Модельный диапазон в пределах известной этажности; наличие номера уточнит отель"
+            "Этажи входят в известный диапазон; наличие номера уточнит отель"
         )
     if describe is not None:
         item.profile = describe(hotel, facts, specs, scope)

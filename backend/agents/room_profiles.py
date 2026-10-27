@@ -11,9 +11,11 @@ import math
 
 from backend.agents.explainer import SIDES, approximate
 from backend.agents.query_match import (
+    FLOOR_DOMAIN_CAVEAT,
     FLOOR_DOMAIN_UNKNOWN,
     Match,
     assess_hotel,
+    evaluate_fact,
     fresh,
     hotel_floor_count,
     scope_values,
@@ -25,6 +27,8 @@ from backend.contracts import (
     Fact,
     Hotel,
     ParsedQuery,
+    RoomAdvice,
+    RoomAdviceOption,
     RoomClause,
     RoomProfile,
     RoomScope,
@@ -395,7 +399,7 @@ def _title(scope: RoomScope, unknown_height: bool) -> str:
         parts.append(f"{low}-й этаж")
     else:
         parts.append(f"{low}–{high}-й этажи")
-    return "Модельное положение: " + ", ".join(parts)
+    return ", ".join(parts).capitalize()
 
 
 def describe_room(hotel: Hotel, facts: list[Fact], specs: list[CharacteristicSpec], scope: RoomScope,
@@ -431,6 +435,7 @@ def describe_room(hotel: Hotel, facts: list[Fact], specs: list[CharacteristicSpe
         if requested.floor_min not in (None, 1) or requested.floor_max not in (None, 1):
             caveats.append("Запрошенные этажи не подтверждены; ниже показан только условный уровень 1.")
         caveats.append(FLOOR_DOMAIN_UNKNOWN + ". Для просмотра доступен только условный уровень 1.")
+        caveats.append(FLOOR_DOMAIN_CAVEAT + ".")
     if outside:
         caveats.append("Существование этажей за пределами известной этажности отеля не подтверждено.")
     briefs = {}
@@ -447,30 +452,207 @@ def describe_room(hotel: Hotel, facts: list[Fact], specs: list[CharacteristicSpe
                        clauses=clauses, caveats=list(dict.fromkeys(caveats)), conditional=True)
 
 
-def build_room_profiles(hotel: Hotel, facts: list[Fact], specs: list[CharacteristicSpec], month: int = 9,
-                        *, geo: dict | None = None, limit: int = 12) -> list[RoomProfile]:
-    """Return a bounded representative set; omitted intervals are not merged."""
+def _room_scopes(hotel: Hotel, facts: list[Fact], month: int,
+                 characteristic_id: str | None = None, *, coalesce: bool = True) -> list[RoomScope]:
+    """Partition the complete known domain before selecting or limiting positions."""
     if not 1 <= month <= 12:
         raise ValueError("month must be between 1 and 12")
-    if limit <= 0:
-        return []
     relevant = [f for f in facts if f.hotel_id == hotel.id and f.characteristic_id in _LABELS
                 and f.characteristic_id != "beach_walk" and _month_matches(f, month)
-                and not scope_values(f).get("room_type")]
+                and not scope_values(f).get("room_type")
+                and (characteristic_id is None or f.characteristic_id == characteristic_id)]
     sides = [side for side in SIDES if any(scope_values(f).get("facade") == side for f in relevant)] or [None]
     high = hotel_floor_count(hotel) or 1
     scopes = []
     for side in sides:
         subset = [f for f in relevant if not scope_values(f).get("facade") or scope_values(f)["facade"] == side]
+        intervals = _coalesced_intervals(high, subset) if coalesce else _intervals(1, high, subset)
         scopes.extend(RoomScope(facade=side, floor_min=low, floor_max=upper, month=month)
-                      for low, upper in _coalesced_intervals(high, subset))
+                      for low, upper in intervals)
     # Round-robin sides retains geographic diversity when a facade has many cuts.
     levels = {id(s): sum(t.facade == s.facade and t.floor_min < s.floor_min for t in scopes) for s in scopes}
     scopes.sort(key=lambda s: (levels[id(s)],
                                list(SIDES).index(s.facade) if s.facade else 0))
+    return scopes
+
+
+def _profile_usefulness(profile: RoomProfile, facts_by_id: dict[str, Fact]) -> float:
+    weights = {"sea_view": 8, "sunset_view": 6, "mountain_view": 4, "quiet_night": 3,
+               "morning_sun": 2, "soundproofing": 1}
+    total = 0
+    for clause in profile.clauses:
+        if clause.characteristic_id not in weights or clause.status not in {"yes", "partial"}:
+            continue
+        facts = [facts_by_id[fid] for fid in clause.fact_ids]
+        # A mixed range or an unresolved disagreement is not a useful positive.
+        if not facts or not all(fresh(f) and f.evidence and f.supporting_claim_ids
+                                and isinstance(f.value, dict) and f.value.get("available") is True for f in facts):
+            continue
+        if clause.status == "partial" and min(f.confidence for f in facts) < .6:
+            continue
+        total += weights[clause.characteristic_id] * (1 if clause.status == "yes" else .5)
+    return total
+
+
+def build_room_profiles(hotel: Hotel, facts: list[Fact], specs: list[CharacteristicSpec], month: int = 9,
+                        *, geo: dict | None = None, limit: int = 12) -> list[RoomProfile]:
+    """Rank the complete partition, then return a bounded representative set."""
+    scopes = _room_scopes(hotel, facts, month)
+    if limit <= 0:
+        return []
+    profiles = [describe_room(hotel, facts, specs, scope, geo=geo) for scope in scopes]
+    by_id = {f.id: f for f in facts}
+    # Stable geographic round-robin order breaks ties without losing upper-floor
+    # strengths simply because twelve lower-floor positions came first.
+    profiles.sort(key=lambda profile: -_profile_usefulness(profile, by_id))
     cap = min(limit, 12)
-    profiles = [describe_room(hotel, facts, specs, scope, geo=geo) for scope in scopes[:cap]]
-    if len(scopes) > cap:
-        for profile in profiles:
-            profile.caveats.append(f"Показаны {cap} из {len(scopes)} модельных положений; остальные стороны или диапазоны не объединены с показанными.")
-    return profiles
+    selected = profiles[:cap]
+    if len(profiles) > cap:
+        for profile in selected:
+            profile.caveats.append(f"Показаны {cap} из {len(profiles)} положений; остальные стороны или диапазоны не объединены с показанными.")
+    return selected
+
+
+_SIDE_NAMES = {"N": "север", "NE": "северо-восток", "E": "восток", "SE": "юго-восток",
+               "S": "юг", "SW": "юго-запад", "W": "запад", "NW": "северо-запад"}
+_ADVICE_IDS = ("sea_view", "quiet_night", "morning_sun", "sunset_view")
+
+
+def _join_words(parts: list[str]) -> str:
+    return ", ".join(parts[:-1]) + " и " + parts[-1] if len(parts) > 1 else parts[0]
+
+
+def _advice_options(hotel: Hotel, facts: list[Fact], specs: list[CharacteristicSpec], cid: str,
+                    month: int) -> list[RoomAdviceOption]:
+    relevant = sorted((f for f in facts if f.hotel_id == hotel.id and f.characteristic_id == cid
+                       and _month_matches(f, month) and not scope_values(f).get("room_type")), key=lambda f: f.id)
+    options = []
+    for scope in _room_scopes(hotel, relevant, month, cid, coalesce=False):
+        if not scope.facade:
+            continue
+        criterion = _criterion(cid, scope, scope.floor_min)
+        if cid == "quiet_night":
+            # Compare numeric outdoor estimates, without changing available or
+            # claiming that a preliminary estimate confirms quiet in a room.
+            criterion = criterion.model_copy(update={"field": "night_db_max", "op": "gte", "value": 0})
+        selected = [f for f in relevant if _eligible(f, scope)]
+        parsed = ParsedQuery(text="", must=[criterion], facade=scope.facade, month=month)
+        match = assess_hotel(selected, parsed, specs, hotel=hotel).matches[0]
+        if not match.condition_met or match.status not in {"yes", "partial"}:
+            continue
+        # Equally scoped corroboration keeps every reference (and demo flag).
+        # A weaker contrary observation must not disappear behind a strong yes.
+        domains = [scope_values(f) for f in match.facts]
+        witnesses = [f for f in selected if scope_values(f) in domains and fresh(f)
+                     and f.evidence and f.supporting_claim_ids]
+        matches = [evaluate_fact(f, criterion, parsed, criterion.field, hotel=hotel) for f in witnesses]
+        if not matches or not all(m.condition_met and m.status in {"yes", "partial"} for m in matches):
+            continue
+        if cid in {"sea_view", "sunset_view"} and not all(m.supported for m in matches):
+            continue
+        # Every named side needs an explicit witness in the selected evidence.
+        if not any(scope_values(f).get("facade") == scope.facade for f in witnesses):
+            continue
+        if cid == "quiet_night" and not all(isinstance(f.value, dict)
+                and _number(f.value.get("night_db_min")) and _number(f.value.get("night_db_max"))
+                and 0 <= f.value["night_db_min"] <= f.value["night_db_max"] for f in witnesses):
+            continue
+        if cid == "quiet_night" and (max(f.value["night_db_min"] for f in witnesses)
+                                     > min(f.value["night_db_max"] for f in witnesses)):
+            continue  # Disjoint estimates for the same slice need reconciliation.
+        options.append(RoomAdviceOption(scope=scope, status="partial" if any(
+                       m.status == "partial" for m in matches) else "yes",
+                       fact_ids=sorted(f.id for f in witnesses),
+                       evidence_refs=sorted({e.id for f in witnesses for e in f.evidence}),
+                       synthetic=any(_synthetic(f) for f in witnesses)))
+    return options
+
+
+def _merge_advice_options(options: list[RoomAdviceOption]) -> list[RoomAdviceOption]:
+    merged: list[RoomAdviceOption] = []
+    for option in sorted(options, key=lambda o: (list(SIDES).index(o.scope.facade), o.scope.floor_min)):
+        if merged and merged[-1].scope.facade == option.scope.facade and (
+                merged[-1].scope.floor_max + 1 == option.scope.floor_min):
+            previous = merged[-1]
+            previous.scope = previous.scope.model_copy(update={"floor_max": option.scope.floor_max})
+            previous.fact_ids = sorted(set(previous.fact_ids + option.fact_ids))
+            previous.evidence_refs = sorted(set(previous.evidence_refs + option.evidence_refs))
+            previous.status = "partial" if "partial" in {previous.status, option.status} else "yes"
+            previous.synthetic |= option.synthetic
+        else:
+            merged.append(option.model_copy(deep=True))
+    return merged
+
+
+def _advice_positions(options: list[RoomAdviceOption], hotel: Hotel) -> str:
+    grouped: dict[tuple[int, int], list[str]] = {}
+    for option in options:
+        scope = option.scope
+        grouped.setdefault((scope.floor_min, scope.floor_max), []).append(_SIDE_NAMES[scope.facade])
+    phrases = []
+    for (low, high), sides in grouped.items():
+        if low > 1 and high == hotel_floor_count(hotel):
+            floors = f"с {low}-го этажа"
+        elif low == high:
+            floors = f"{low}-й этаж"
+        else:
+            floors = f"{low}–{high}-й этажи"
+        phrases.append(_join_words(sides) + " " + floors)
+    return "; ".join(phrases)
+
+
+def build_room_advice(hotel: Hotel, facts: list[Fact], specs: list[CharacteristicSpec], month: int = 9
+                      ) -> list[RoomAdvice]:
+    """Four guest goals, independently proven over all intervals, never /rooms' cap."""
+    if not 1 <= month <= 12:
+        raise ValueError("month must be between 1 and 12")
+    if hotel_floor_count(hotel) is None:
+        return []  # Conditional preview levels cannot establish advice about real floors.
+    by_id = {f.id: f for f in facts}
+    advice = []
+    for cid in _ADVICE_IDS:
+        options = _advice_options(hotel, facts, specs, cid, month)
+        if cid == "quiet_night" and options:
+            # Keep estimates in the lowest rounded upper-noise band. This is a
+            # comparison among covered numeric slices, not all hotel windows.
+            def upper(option):
+                return max(by_id[fid].value["night_db_max"] for fid in option.fact_ids)
+            best_band = min(math.floor(upper(o) + .5) for o in options)
+            options = [o for o in options if math.floor(upper(o) + .5) == best_band]
+        options = _merge_advice_options(options)
+        if not options:
+            continue
+        fact_ids = sorted({fid for option in options for fid in option.fact_ids})
+        selected_facts = [by_id[fid] for fid in fact_ids]
+        status = "partial" if any(o.status == "partial" for o in options) else "yes"
+        title = "Меньше уличного шума" if cid == "quiet_night" else _LABELS[cid]
+        text = title + " — " + _advice_positions(options, hotel)
+        caveats = [_POSITION_CAVEAT]
+        if cid == "quiet_night":
+            text += "; ночью " + _range(selected_facts, "night_db_min", "night_db_max") + " дБ по расчёту"
+            caveats.append("Сравниваются только стороны и этажи с численной оценкой наружного шума; для остальных сторон данных может не быть. Близкие округлённые оценки не означают достоверную разницу в шуме.")
+        elif cid in _SOLAR:
+            text += f" в {_MONTHS_IN[month - 1]}"
+            minutes = _solar_minutes(selected_facts)
+            if minutes:
+                text += "; " + minutes + " мин" + (" утром" if cid == "morning_sun" else " перед закатом")
+            if cid == "sunset_view":
+                aspects = [sunset_aspect(f) for f in selected_facts]
+                if all(a is not None and a.minimum_deg > 45 for a in aspects):
+                    text += ", закат сбоку"
+                elif all(a is not None and a.maximum_deg <= 45 for a in aspects):
+                    text += ", закат перед окнами"
+        text += "."
+        if status == "partial":
+            text += " Пока неточно — уточните у отеля."
+        _, notes = _known_text(cid, selected_facts, status, month)
+        caveats.extend(notes)
+        caveats.extend(note for f in selected_facts for e in f.evidence for note in e.limitations)
+        if any(o.synthetic for o in options):
+            caveats.append("Часть совета основана на демонстрационных данных; реальное подтверждение отеля нужно получить отдельно.")
+        identity = json.dumps([hotel.id, cid, month, [o.model_dump(mode="json") for o in options]], sort_keys=True)
+        advice.append(RoomAdvice(id="advice_" + hashlib.sha256(identity.encode()).hexdigest()[:20],
+                      characteristic_id=cid, title=title, text=text, options=options, fact_ids=fact_ids,
+                      evidence_refs=sorted({ref for option in options for ref in option.evidence_refs}),
+                      status=status, synthetic=any(o.synthetic for o in options), caveats=list(dict.fromkeys(caveats))))
+    return advice

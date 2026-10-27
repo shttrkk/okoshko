@@ -54,8 +54,8 @@ def test_single_floor_positive_does_not_cover_a_requested_range():
     assert "часть этажей" in item.text
     assert "есть данные о видимости" not in item.text
     profiles = build_room_profiles(hotel(), [sea], [])
-    assert [(p.scope.floor_min, p.scope.floor_max) for p in profiles] == [(1, 2), (3, 3), (4, 6)]
-    assert [clause(p, "sea_view").status for p in profiles] == ["unknown", "yes", "unknown"]
+    assert [(p.scope.floor_min, p.scope.floor_max) for p in profiles] == [(3, 3), (1, 2), (4, 6)]
+    assert [clause(p, "sea_view").status for p in profiles] == ["yes", "unknown", "unknown"]
 
 
 def test_wider_requested_range_uses_all_intervals_including_a_negative_interior():
@@ -155,7 +155,7 @@ def test_room_type_and_unspecified_facade_do_not_select_evidence_from_another_po
 
 def test_descriptions_are_positions_without_invented_room_inventory():
     profile = describe([fact("sea_view")])
-    assert profile.conditional and profile.title.startswith("Модельное положение")
+    assert profile.conditional and profile.title == "Западная сторона, 1–6-й этажи"
     assert any("направление реальных окон нужно подтвердить" in c for c in profile.caveats)
     assert any("его тип, кровати" in c for c in profile.caveats)
     assert "₽" not in profile.description and "номер 50" not in profile.description

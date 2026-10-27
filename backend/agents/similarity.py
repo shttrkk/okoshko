@@ -93,8 +93,7 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
         if constraint and (parsed.must or parsed.no_data_must or parsed.rooms):
             hit.summary += f" Дополнительные обязательные условия: {hit.must_satisfied} из {hit.must_total}."
         if any(item[2].synthetic for item in reference.values()) or any(row[5].synthetic for row in comparisons):
-            hit.summary += " В сравнении есть синтетические факты."
-            hit.disappointments.append("Часть сравнения профилей основана на синтетических фактах симулятора, а не на подтверждении реального отеля.")
+            hit.disappointments.append("Часть сравнения основана на демо-данных; подтвердите эти условия у отеля.")
         scored.append((hit, comparisons, constraint))
     scored.sort(key=lambda item: (-item[0].score, item[0].hotel.id))
     for index, (hit, comparisons, constraint) in enumerate(scored):
@@ -123,8 +122,6 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
                 text = f"Отличается «{labels[cid]}»: здесь {right_text}, у выбранного отеля {left_text}"
             text += f"; уверенность фактов {fact.confidence:.0%} / {reference[cid][1]:.0%}."
             synthetic = fact.synthetic or reference[cid][2].synthetic
-            if synthetic:
-                text += " В сравнении есть синтетический факт."
             hit.similarity_reasons.append(text)
             if not any(v.characteristic_id == cid for v in hit.verdicts):
                 hit.verdicts.append(CriterionVerdict(characteristic_id=cid, label=labels[cid],
