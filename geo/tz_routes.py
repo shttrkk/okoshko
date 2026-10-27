@@ -115,9 +115,9 @@ class NearbyRoutes:
         options, unknown_hours = [], 0
         for feature in features:
             properties = feature["properties"]
-            if not category(properties, kind):
+            if kind is not None and not category(properties, kind):
                 continue
-            if kind.startswith("night_"):
+            if kind and kind.startswith("night_"):
                 opened = open_at_two(properties.get("opening_hours"))
                 unknown_hours += opened is None
                 if opened is not True:

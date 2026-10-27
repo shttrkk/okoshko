@@ -1,0 +1,75 @@
+id: climate_days
+version: 1
+name_ru: Солнце и дождливые дни
+display_name: Солнце и дождливые дни
+description: 'Модельная выборка 2016–2025: солнечный день ≥6 ч сияния, дождливый ≥1
+  мм; влажный месяц ≥12 дождливых дней. Вода ≥22 °C условно комфортна, 18–22 °C прохладная.'
+category: Окружение
+synonyms:
+- солнечные дни
+- без дождей
+- сезон дождей
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+    sunny_days:
+      type:
+      - number
+      - 'null'
+    rainy_days:
+      type:
+      - number
+      - 'null'
+    wet_month_proxy:
+      type:
+      - boolean
+      - 'null'
+    water_c:
+      type:
+      - number
+      - 'null'
+    water_comfort:
+      type:
+      - string
+      - 'null'
+    complete_sun_years:
+      type:
+      - integer
+      - 'null'
+    complete_rain_years:
+      type:
+      - integer
+      - 'null'
+  required:
+  - available
+  additionalProperties: true
+methods:
+- tool: prepared_observation
+  params:
+    kind: climate_days
+    sunny_hours: 6
+    rainy_mm: 1
+    wet_month_days: 12
+    comfortable_c: 22
+    cool_c: 18
+  rationale: 'Модельная выборка 2016–2025: солнечный день ≥6 ч сияния, дождливый ≥1
+    мм; влажный месяц ≥12 дождливых дней. Вода ≥22 °C условно комфортна, 18–22 °C
+    прохладная.'
+ttl_days: 365
+change_triggers:
+- kind: source_snapshot_changed
+search:
+  kind: numeric
+  field: sunny_days
+  default_op: gte
+  default_value: 15
+  explain_ok: Солнце и дождливые дни — есть данные по карте
+  explain_bad: Условие не подтверждено рассчитанным значением; отсутствие данных остаётся
+    неизвестным
+hotelier_answerable: false
+status: active

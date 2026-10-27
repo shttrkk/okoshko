@@ -78,8 +78,8 @@ def run():
             rows.append(observation(hotel["id"], kind, value, source_ids=["osm_geofabrik", "copernicus_dem", "tz_osm_geofabrik"],
                                     emit_claim=value is not None, method="tz_directed_poi_routes@1"))
         family = {key: compact(found[key]) for key in ("playground", "hospital", "children_hospital", "promenade")}
-        family["available"] = True if family["playground"] and family["playground"]["available"] else None
-        rows.append(observation(hotel["id"], "family_routes", family, source_ids=["osm_geofabrik", "copernicus_dem"], method="tz_directed_family_routes@1"))
+        family = {"walk_"+key: value for key, value in family.items()}
+        rows.append(observation(hotel["id"], "family_nearby", family, source_ids=["osm_geofabrik", "copernicus_dem"], method="tz_directed_family_routes@1"))
         reachable_stops = []
         if arrival:
             for stop in stops:

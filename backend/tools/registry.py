@@ -168,7 +168,7 @@ class Registry:
                                **{name: {"type": "number", "minimum": low, "maximum": high} for name, (low, high) in extra_parameters.items()}},
                                "required": ["kind"], "additionalProperties": False}, prior_reliability=.55,
         )
-        self.handlers["prepared_observation"] = lambda context, call: prepared_observations(self.data_dir, context, call.params)
+        self.handlers["prepared_observation"] = lambda context, call: prepared_observations(self.data_dir, context, call.params, events=self.repo.all("change_events") if self.repo is not None else ())
 
     def list(self):
         return list(self.specs.values())
@@ -185,7 +185,7 @@ class Registry:
     def _cached(self, context, call):
         if call.tool == "viewshed_facade" and call.params.get("target") == "landmark":
             from backend.tools.tz_observation import prepared_observations
-            return prepared_observations(self.data_dir, context, {"kind": "landmark_view", **call.params})
+            return prepared_observations(self.data_dir, context, {"kind": "landmark_view", **call.params}, events=self.repo.all("change_events") if self.repo is not None else ())
         canonical = {"sun_window":"sunset_view","noise_facade":"quiet_night","walk_route":"beach_walk",
                      "climate":"climate","air_quality":"air_quality","connectivity":"connectivity",
                      "wikidata_lookup":"building_history","photos_nearby":"nearby_photos"}.get(call.tool)

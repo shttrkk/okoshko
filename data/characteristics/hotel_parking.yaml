@@ -1,0 +1,62 @@
+id: hotel_parking
+version: 1
+name_ru: Собственная парковка
+display_name: Собственная парковка
+description: 'Собственная парковка: только точная положительная OSM связь или ответ
+  владельца. Стоимость, бронирование и зарядка неизвестны до ответа владельца; отсутствие
+  связи не означает отсутствия парковки.'
+category: Окружение
+synonyms:
+- своя парковка
+- собственная парковка отеля
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+    private_parking:
+      type:
+      - boolean
+      - 'null'
+    private_parking_osm_ids:
+      type: array
+      items:
+        type: string
+    fee_rub_per_day:
+      type:
+      - number
+      - 'null'
+    reservation_required:
+      type:
+      - boolean
+      - 'null'
+    ev_charging:
+      type:
+      - boolean
+      - 'null'
+  additionalProperties: true
+methods:
+- tool: prepared_observation
+  params:
+    kind: hotel_parking
+  rationale: 'Собственная парковка: только точная положительная OSM связь или ответ
+    владельца. Стоимость, бронирование и зарядка неизвестны до ответа владельца; отсутствие
+    связи не означает отсутствия парковки.'
+- tool: hotelier_ask
+  params: {}
+  rationale: Стоимость и условия парковки подтверждает владелец
+ttl_days: 180
+change_triggers:
+- kind: source_snapshot_changed
+search:
+  kind: boolean
+  field: private_parking
+  default_op: eq
+  default_value: true
+  explain_ok: Собственная парковка — явное условие подтверждено источником
+  explain_bad: Собственная парковка — условие не подтверждено; пропуски остаются неизвестными
+hotelier_answerable: true
+status: active

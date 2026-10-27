@@ -1,0 +1,62 @@
+id: airport_noise
+version: 1
+name_ru: Рядом с аэропортом
+display_name: Рядом с аэропортом
+description: 'Геометрический риск: ВПП в 3 км или продолжение оси ВПП на 6 км с полушириной
+  500 м. Это не шум в дБ и не расписание рейсов.'
+category: Окружение
+synonyms:
+- рядом с аэропортом
+- далеко от аэропорта
+- без шума самолетов
+- не слышно самолетов
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+    in_corridor:
+      type:
+      - boolean
+      - 'null'
+    runway_distance_m:
+      type:
+      - number
+      - 'null'
+    noise_db:
+      type:
+      - number
+      - 'null'
+    night_flights:
+      type:
+      - boolean
+      - 'null'
+  required:
+  - available
+  additionalProperties: true
+methods:
+- tool: prepared_observation
+  params:
+    kind: airport_noise
+    airport_iata: AER
+    corridor_extension_m: 6000
+    corridor_half_width_m: 500
+    nearby_m: 3000
+  rationale: 'Геометрический риск: ВПП в 3 км или продолжение оси ВПП на 6 км с полушириной
+    500 м. Это не шум в дБ и не расписание рейсов.'
+ttl_days: 90
+change_triggers:
+- kind: source_snapshot_changed
+search:
+  kind: boolean
+  field: available
+  default_op: eq
+  default_value: true
+  explain_ok: Отель попадает в геометрическую зону риска аэропорта
+  explain_bad: Условие не подтверждено рассчитанным значением; отсутствие данных остаётся
+    неизвестным
+hotelier_answerable: false
+status: active

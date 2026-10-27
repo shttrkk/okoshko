@@ -54,13 +54,14 @@ snapshots:
 	node scripts/render_building_snapshots.mjs $(or $(BASE),http://localhost:8080)
 	python3 -m scripts.build_snapshot_index
 
-.PHONY: tz-osm-data tz-derived-data tz-climate-data tz-data
-# Incremental stage one only: never rebuilds or loads the original seed/facts.
+.PHONY: tz-osm-data tz-derived-data tz-climate-data tz-stage2-data tz-data
+# Incremental supplemental data only: never rebuilds the original seed/facts.
 tz-osm-data:
 	$(PYTHON) -m pipeline.fetch_osm_extra
 	$(PYTHON) -m pipeline.fetch_tz_areas
 	$(PYTHON) -m pipeline.fetch_tz_osm_metadata
 	$(PYTHON) -m pipeline.fetch_tz_fisht
+	$(PYTHON) -m pipeline.fetch_tz_places
 tz-climate-data:
 	$(PYTHON) -m pipeline.fetch_tz_climate
 tz-derived-data:
@@ -70,5 +71,12 @@ tz-derived-data:
 	$(PYTHON) -m pipeline.fetch_tz_history
 	$(PYTHON) -m pipeline.fetch_tz_landmarks
 	$(PYTHON) -m pipeline.fetch_tz_transfer_diagnostics
+	$(PYTHON) -m pipeline.fetch_tz_location
+	$(PYTHON) -m pipeline.fetch_tz_metadata
+	$(PYTHON) -m pipeline.fetch_tz_supplements
+	$(PYTHON) -m pipeline.fetch_tz_catalog
+	$(PYTHON) -m pipeline.fetch_tz_manifest
+tz-stage2-data:
+	$(PYTHON) -m pipeline.fetch_tz_catalog
 	$(PYTHON) -m pipeline.fetch_tz_manifest
 tz-data: tz-osm-data tz-climate-data tz-derived-data

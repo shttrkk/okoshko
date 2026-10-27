@@ -69,8 +69,8 @@ def write_stage(name, observations, sources, *, inputs, limitations=()):
                 "evidence": [{"id": stable_id([row["id"], scope, inputs]), "kind": row.get("evidence_kind", "calculation"),
                               "label": row.get("label", "Расчёт по сохранённым открытым данным"),
                               "source_ids": row.get("source_ids", [row.get("source", "tz_osm_geofabrik")]),
-                              "artifact": "/data/seed/"+evidence_path.name, "inputs": {"input_sha256": {**inputs, **row.get("input_sha256", {})}, "observation_id": row["id"]},
-                              "output": {"observation_id": row["id"]}, "limitations": list(limitations)+row.get("limitations", [])}]}
+                              "artifact": "/data/seed/"+evidence_path.name, "inputs": {"input_sha256": {**inputs, **row.get("input_sha256", {})}, "observation_id": row["id"], **({"supplementary_observation": True} if row.get("supplementary_observation") else {}), **({"informational_observation": True} if row.get("informational_observation") else {})},
+                              "output": {"observation_id": row["id"], **({"supplementary_observation": True} if row.get("supplementary_observation") else {}), **({"informational_observation": True} if row.get("informational_observation") else {})}, "limitations": list(limitations)+row.get("limitations", [])}]}
         for reference in row.get("related_artifacts", []):
             data["evidence"].append({"id": stable_id([row["id"], reference]), "kind": "open_data", "label": "Общая зоновая исходная выборка",
                                      "source_ids": row.get("source_ids", [data["source"]]), "artifact": reference,

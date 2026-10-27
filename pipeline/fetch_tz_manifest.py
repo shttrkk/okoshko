@@ -9,14 +9,18 @@ from pathlib import Path
 
 import yaml
 
+from backend.catalogue import searchable
 from backend.contracts import CharacteristicSpec, Claim, Source
 from backend.contracts.validation import validate_value
 from pipeline.common import CONFIG, ROOT, SEED, dump, output_metadata, sha, utcnow
 
 
 def run():
-    hotels = {h["id"] for h in json.loads((SEED / "hotels.json").read_text())}
+    hotel_rows = json.loads((SEED / 'hotels.json').read_text())
+    hotels = {h['id'] for h in hotel_rows}
+    guest_hotels = {h['id'] for h in hotel_rows if searchable(h, ROOT / 'data')}
     claims, flags, stages, sources, checked_hashes = [], defaultdict(lambda: defaultdict(list)), {}, {}, {}
+    field_flags, target_flags = defaultdict(lambda: defaultdict(list)), defaultdict(lambda: defaultdict(list))
     for path in sorted(SEED.glob("tz_*_manifest.json")):
         stages[path.name] = json.loads(path.read_text())
     for path in sorted(SEED.glob("tz_*_sources.json")):
@@ -33,6 +37,17 @@ def run():
                     raise ValueError("observation hotel outside portfolio")
                 value = row.get("value") or {}
                 flags[row["kind"]][row["hotel_id"]].append(value.get("available"))
+                if row['kind'] == 'landmark_view' and value.get('landmark_id'):
+                    target_flags[value['landmark_id']][row['hotel_id']].append(value.get('available'))
+                for field in {'building_history': ['history_information', 'historic_designation', 'explicit_building_date', 'architecture'],
+                              'family_nearby': ['walk_playground.available', 'walk_hospital.available', 'walk_children_hospital.available', 'walk_promenade.available'],
+                              'car_access': ['mapped_road_access', 'walk_parking.available', 'walk_ev.available'],
+                              'climate': ['sunny_days', 'rainy_days', 'wet_month_proxy'],
+                              'location_access': ['in_central_sochi', 'center_route.available', 'station_route.available', 'bus_stop_route.available']}.get(row['kind'], []):
+                    field_value = value
+                    for part in field.split('.'):
+                        field_value = field_value.get(part) if isinstance(field_value, dict) else None
+                    field_flags[row['kind']+'.'+field][row['hotel_id']].append(field_value)
     specs = {}
     for directory in [ROOT / "data/characteristics", ROOT / "data/characteristics/tz_draft"]:
         for path in directory.glob("*.yaml"):
@@ -51,6 +66,8 @@ def run():
                     validate_value(claim.value, spec.value_schema)
                     if (claim.valid_until-claim.observed_at).total_seconds() > spec.ttl_days*86400:
                         raise ValueError("claim exceeds specification TTL")
+                if claim.characteristic_id == "landmark_view" and claim.scope.landmark_id != claim.value.get("landmark_id"):
+                    raise ValueError("landmark target scope mismatch")
                 if claim.characteristic_id == "construction_nearby":
                     value = claim.value
                     eligible = [row for row in value.get("candidates", []) if row.get("eligible_current")]
@@ -80,9 +97,15 @@ def run():
         raise ValueError("duplicate Claim ID")
     fisht_path = SEED / "tz_fisht_manifest.json"
     if fisht_path.exists() and not json.loads(fisht_path.read_text()).get("confirmed_height"):
-        if any(c.characteristic_id == "landmark_view" and c.value.get("landmark_id") == "fisht" for c in claims):
+        if any(c.characteristic_id == "landmark_view" and c.value.get("landmark_id") == "fisht" and
+               (c.value.get("available") is not None or c.value.get("record_type") != "target_metadata" or c.value.get("height_available") is not False) for c in claims):
             raise ValueError("Fisht LOS must remain disabled without confirmed height")
     coverage = {}
+    def summarize(values, population):
+        counts = Counter('yes' if any(v is True for v in values.get(hotel, [])) else
+                         'known' if any(v is not None and not isinstance(v, bool) for v in values.get(hotel, [])) else
+                         'unknown' if not values.get(hotel) or any(v is None for v in values[hotel]) else 'no' for hotel in population)
+        return {key: counts[key] for key in ('yes', 'no', 'known', 'unknown')}
     for kind, values in flags.items():
         if set(values) != hotels:
             raise ValueError(f"incomplete portfolio processing: {kind}")
@@ -96,6 +119,9 @@ def run():
             raise ValueError(f"non-reproducible gzip mtime: {path.name}")
     manifest = {"stage": "tz_stage1@1", "generated_at": utcnow(), "runtime_loaded": False, "portfolio_hotels": len(hotels),
                 "osm_snapshot": CONFIG["osm"]["snapshot"], "coverage": coverage, "claims": len(claims),
+                "guest_hotels": len(guest_hotels), "guest_coverage": {kind: summarize(values, guest_hotels) for kind, values in flags.items()},
+                "field_coverage": {field: {'source_250': summarize(values, hotels), 'guest_247': summarize(values, guest_hotels)} for field, values in field_flags.items()},
+                "landmark_target_coverage": {target: {'source_250': summarize(values, hotels), 'guest_247': summarize(values, guest_hotels)} for target, values in target_flags.items()},
                 "sources": list(sources.values()), "stages": sorted(stages),
                 "outputs": {p.name: output_metadata(p) for p in paths}, "total_artifact_bytes": sum(p.stat().st_size for p in paths),
                 "known_answer_fixture_file": "tests/test_tz_calculators.py", "registry_safety_fixture_file": "tests/test_tz_registry.py",
@@ -103,13 +129,14 @@ def run():
                 "limitations": ["New ledgers/specs are prepared separately; no runtime seed loader, guest parser or ranker wiring", "Climate: 2 representative zonal daily samples -> 3000 derived hotel-month records; repeated hotels do not increase confidence", "GTFS, live service times/night flights, events feed and OpenCellID are unavailable/not used", "No OTA/Ostrovok/Yandex/Google/2GIS/Mapillary data acquisition in this stage"]}
     # A compact digest makes baseline inventory reviewable without replicating
     # the original seeds. Their actual bytes remain untouched.
-    baseline_path = Path("/tmp/okno-tz-baseline-sha.json")
+    baseline_path = SEED / "tz_baseline_integrity.json"
     if baseline_path.exists():
-        baseline = json.loads(baseline_path.read_text())
+        baseline_record = json.loads(baseline_path.read_text())
+        baseline = baseline_record["files"]
         changed = [p for p, expected in baseline.items() if not (ROOT / p).is_file() or sha(ROOT / p) != expected]
         if changed:
             raise ValueError(f"original files changed: {changed}")
-        manifest["baseline_integrity"] = {"files": len(baseline), "changed": 0, "inventory_sha256": hashlib.sha256(json.dumps(baseline, sort_keys=True).encode()).hexdigest()}
+        manifest["baseline_integrity"] = {"baseline_commit": baseline_record["baseline_commit"], "files": len(baseline), "changed": 0, "inventory_sha256": hashlib.sha256(json.dumps(baseline, sort_keys=True).encode()).hexdigest()}
     dump(SEED / "tz_manifest.json", manifest)
     print(json.dumps({k: manifest[k] for k in ("claims", "total_artifact_bytes", "coverage")}, ensure_ascii=False, sort_keys=True), flush=True)
     return manifest

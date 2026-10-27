@@ -17,6 +17,39 @@ value_schema:
       type:
       - boolean
       - 'null'
+    walk_playground: &id001
+      type:
+      - object
+      - 'null'
+      properties:
+        available:
+          type:
+          - boolean
+          - 'null'
+        minutes:
+          type:
+          - number
+          - 'null'
+        distance_m:
+          type:
+          - number
+          - 'null'
+        ascent_m:
+          type:
+          - number
+          - 'null'
+        has_steps:
+          type:
+          - boolean
+          - 'null'
+        crossings:
+          type: array
+          items:
+            type: object
+      additionalProperties: true
+    walk_hospital: *id001
+    walk_children_hospital: *id001
+    walk_promenade: *id001
   additionalProperties: true
 methods:
 - tool: poi_nearby
@@ -24,6 +57,11 @@ methods:
     kind: family
   rationale: С детьми — подтверждённые данные с указанием источника и ограничений
   when: null
+- tool: prepared_observation
+  params:
+    kind: family_nearby
+  rationale: Дополнительные явные поля открытых данных; исходное available и прямая
+    дистанция не переопределяются
 combine: null
 ttl_days: 180
 change_triggers: []

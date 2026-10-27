@@ -80,7 +80,7 @@ def test_all_new_yaml_use_registered_safe_methods():
     registry = Registry(None)
     new = ["airport_noise", "airport_transfer", "landmark_view", "night_open", "dog_walk", "veterinary_nearby", "pet_shop_nearby", "construction_nearby", "mobile_masts", "climate_days", "car_arrival"]
     for kind in new:
-        spec = CharacteristicSpec.model_validate(yaml.safe_load((Path(__file__).parents[1] / "data/characteristics/tz_draft" / (kind+".yaml")).read_text()))
-        assert spec.status == "draft"
+        spec = CharacteristicSpec.model_validate(yaml.safe_load((Path(__file__).parents[1] / "data/characteristics" / (kind+".yaml")).read_text()))
+        assert spec.status == "active"
         for call in spec.methods:
             registry.validate(call)

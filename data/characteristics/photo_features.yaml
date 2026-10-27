@@ -1,0 +1,58 @@
+id: photo_features
+version: 1
+name_ru: Явные признаки здания
+display_name: Явные признаки здания
+description: Только явные OSM теги точно связанного отеля/контура либо текст metadata
+  Commons с точным depicts QID. Без распознавания изображений, без догадки по названию
+  или близости.
+category: Окружение
+synonyms: []
+scope: hotel
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+    balcony:
+      type:
+      - boolean
+      - 'null'
+    terrace:
+      type:
+      - boolean
+      - 'null'
+    pool:
+      type:
+      - boolean
+      - 'null'
+    evidence_records:
+      type: array
+      items:
+        type: object
+    unknown_reason:
+      type:
+      - string
+      - 'null'
+  additionalProperties: true
+methods:
+- tool: prepared_observation
+  params:
+    kind: photo_features
+  rationale: Только явные OSM теги точно связанного отеля/контура либо текст metadata
+    Commons с точным depicts QID. Без распознавания изображений, без догадки по названию
+    или близости.
+ttl_days: 180
+change_triggers:
+- kind: source_snapshot_changed
+search:
+  kind: boolean
+  field: balcony
+  default_op: eq
+  default_value: true
+  explain_ok: Явные признаки здания — явное условие подтверждено источником
+  explain_bad: Явные признаки здания — условие не подтверждено; пропуски остаются
+    неизвестными
+hotelier_answerable: false
+status: active

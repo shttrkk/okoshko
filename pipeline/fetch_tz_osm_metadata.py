@@ -27,7 +27,7 @@ def run():
               "elements": elements, "missing_ids": sorted(ids-elements.keys()),
               "limitations": ["No history diff: construction tag's modification date is unknown", "Download/retrieval date does not prove activity", "Geofabrik excludes contributor personal metadata"]}
     dump(SEED / "tz_osm_element_metadata.json", output)
-    dump(SEED / "tz_metadata_manifest.json", {"stage": "tz_osm_metadata@1", "snapshot": CONFIG["osm"]["snapshot"],
+    dump(SEED / "tz_element_metadata_manifest.json", {"stage": "tz_osm_metadata@1", "snapshot": CONFIG["osm"]["snapshot"],
         "generated_at": utcnow(), "elements": len(elements), "missing": output["missing_ids"],
         "outputs": {"tz_osm_element_metadata.json": {"sha256": sha(SEED / "tz_osm_element_metadata.json"), "bytes": (SEED / "tz_osm_element_metadata.json").stat().st_size}}})
     print({"elements": len(elements), "missing": len(output["missing_ids"])}, flush=True)

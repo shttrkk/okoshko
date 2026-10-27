@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 from shapely.geometry import Point
 
-from geo.coordinates import TO_UTM, angle_difference, azimuth
+from geo.coordinates import TO_UTM, TO_WGS, angle_difference, azimuth
 from geo.views import los_to_point
 
 
@@ -41,7 +41,7 @@ def contour_target(geometry, terrain, *, height_m=None):
             "base_m": base, "height_source": "osm_height_and_dsm_ground"}
 
 
-def landmark_visibility(snapshot, landmark, terrain, buildings, *, sector_deg=60, max_distance_m=30000):
+def landmark_visibility(snapshot, landmark, terrain, buildings, *, sector_deg=60, max_distance_m=30000, ray_records=None):
     floors = snapshot.get("floors", {})
     if floors.get("count") is None or not snapshot.get("building") or not landmark.get("target"):
         return []
@@ -61,6 +61,13 @@ def landmark_visibility(snapshot, landmark, terrain, buildings, *, sector_deg=60
         for floor in range(1, floors["count"]+1):
             eye = floors["base_m"]+(floor-1)*floors["floor_height_m"]+floors["eye_offset_m"]
             checks = [los_to_point(p, eye, xy, z, terrain, obstacles, step_m=10) for p in points]
+            if ray_records is not None:
+                for point, check in zip(points, checks, strict=True):
+                    ray_records.append({'landmark_id': landmark['id'], 'facade': facade['code'], 'floor': floor,
+                                        'start': list(TO_WGS.transform(*point)), 'target': list(TO_WGS.transform(*xy)),
+                                        'eye_z_m': eye, 'target_z_m': z, 'available': check['visible'] if check.get('coverage') == 1 else None,
+                                        'blocking_building_ids': check['blocking_building_ids'], 'terrain_blocked': check.get('terrain_blocked'),
+                                        'terrain_coverage': check.get('coverage')})
             known = all(c.get("coverage", 0) == 1 for c in checks)
             values.append({"available": any(c["visible"] for c in checks) if known else None,
                            "blocking_building_ids": sorted({oid for c in checks for oid in c["blocking_building_ids"]}),
