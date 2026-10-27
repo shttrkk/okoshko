@@ -68,6 +68,31 @@ ROOM_COUNT = re.compile(r'\b(?P<count>\d+|(?:' + '|'.join(COUNT_WORDS)
                         + r')(?:\s+(?:' + '|'.join(COUNT_WORDS) + r')){0,2})\s+(?:номер(?:а|ов)?|комнат(?:а|ы|у)?|комнат)\b')
 MONTH = r'январ|феврал|март|апрел|ма[йяе]|июн|июл|август|сентябр|октябр|ноябр|декабр'
 LIMIT_MESSAGE = 'Поддерживается до 12 отдельных пожеланий к номерам. Уточните состав запросов; наличие номеров не подтверждено.'
+WISH_VERBS = (r'хочет|хотят|просит|просят|предпочитает|предпочитают|желает|желают|'
+              r'нужен|нужна|нужно|нужны|важен|важна|важно|важны|желательно|требуется')
+CAPITAL_WORD = r'[А-ЯЁA-Z][А-ЯЁа-яёA-Za-z-]{1,40}'
+BARE_RECIPIENT = re.compile(r'\b(?P<name>' + CAPITAL_WORD + r'(?:\s+' + CAPITAL_WORD
+                            + r'){0,2})\b(?=\s*(?::|[–—])|\s+(?i:' + WISH_VERBS + r')\b)')
+PAST_ACTION = (r'сказал\w*|рассказал\w*|говор\w*|сообщ\w*|ответил\w*|написал\w*|написали|'
+               r'позвон\w*|звон\w*|отправ\w*|прислал\w*|дал(?:и|а)?|выдал\w*|'
+               r'заселил\w*|поселил\w*|предложил\w*|предоставил\w*|достал(?:ся|ась|ись)|получил\w*')
+# This scan only identifies reported clauses to exclude; it never creates an
+# active named request without the delimiter/wish syntax above.
+REPORTED_NAMED = re.compile(r'\b(?P<name>' + CAPITAL_WORD + r'(?:\s+' + CAPITAL_WORD
+    + r'){0,2})\b(?=\s+(?i:(?:не\s+)?(?:' + PAST_ACTION
+    + r')|раньше|тогда|вчера|позавчера|уже|(?:в|на)\s+прошл\w*)\b)')
+SERVICE_LABELS = frozenset(('я мы вы нам мне себе всем все для в во на от до по с а и но не ни '
+    'да то это так вот если когда как чтобы при после перед без из у к об о над под за про между '
+    'отель отели гостиница гостиницы номер номера комната комнаты тип '
+    'условия требования пожелания запрос поездка даты дата месяц заезд выезд количество '
+    'обязательно желательно важно нужно нужен нужна нужны ищем ищу хотим хочу подберите '
+    'пожалуйста просьба пожелание хотелось можно нельзя пусть сегодня завтра вчера раньше тогда '
+    'вид море горы закат тишина тихо балкон парковка аптека площадка климат солнце интернет '
+    'сочи адлер сириус бюджет итого пример описание отзыв отзывы').split())
+CALENDAR_LABEL = re.compile(r'(?:(?:январ|феврал|апрел|июн|июл|сентябр|октябр|ноябр|декабр)'
+                            r'(?:ь|я|е|ю|ем)|(?:март|август)(?:а|е|у|ом)?|ма[йяею]|маем|'
+                            r'понедельник|вторник|среда|четверг|пятница|суббота|воскресенье)')
+
 
 
 @dataclass(frozen=True)
@@ -75,6 +100,13 @@ class Fragment:
     label: str
     text: str
     shared: bool = False
+
+
+@dataclass(frozen=True)
+class Marker:
+    start: int
+    end: int
+    kind: str
 
 
 def _unquoted(text: str) -> str:
@@ -109,55 +141,138 @@ def _room_count(plain: str) -> int | None:
 
 
 def _recipient_request(after: str) -> bool:
-    body = re.sub(r'^\s*[-–—:]?\s*', '', after)
-    # Explicit facts about people and correspondence do not request a position.
+    body = re.sub(r'^[\s:–—-]*', '', after)
+    # Temporal narratives and accommodation already offered/assigned are facts
+    # about the past, rather than a request for another modelled position.
+    if re.match(r'(?:(?:в|на)\s+прошл\w*|прошл\w*\s+(?:раз|год|лето)|раньше|тогда|вчера|позавчера)\b', body):
+        return False
     return not re.match(r'(?:\d+\s*(?:лет|года?|годиков)\b|'
-                        r'(?:сказал\w*|говор\w*|сообщ\w*|ответил\w*|написал\w*|написали|'
-                        r'позвон\w*|звон\w*|отправ\w*|прислал\w*|там\s+был\w*)\b|'
+                        r'(?:(?:уже|сначала|потом)\s+)?(?:не\s+)?'
+                        r'(?:' + PAST_ACTION + r'|там\s+был\w*)\b|'
                         r'не\s+(?:нуж\w*|треб\w*)\s+(?:отдельн\w*\s+)?(?:номер\w*|комнат\w*)\b)', body)
 
 
 def _position_request(after: str, *, count: int | None, numbered: bool) -> bool:
+    from backend.agents.query_parser import HARD, SOFT
+
+    tail = re.sub(r'^[\s:–—-]*', '', after)
+    if re.match(r'(?:отел\w*|гостиниц\w*|корпус\w*|здани\w*|город\w*|район\w*|'
+                r'семь\w*|поездк\w*|году|месяц\w*)\b', tail):
+        return False
     body = re.sub(r'^\s*(?:номер\w*|комнат\w*)?\s*[-–—:]?\s*', '', after)
     if re.match(r'(?:из|раз|этаж|на\s+(?:план\w*|фото\w*|снимк\w*)|в\s+(?:рейтинг\w*|списк\w*))\b', body):
         return False
-    return bool(numbered or count or re.match(r'(?:с\b|без\b|тих\w*|тишин\w*|не\b|вид\w*|балкон\w*|море\b|горы\b|во\s+двор)', body))
+    # A room count sets the requested cardinality. It is never evidence that
+    # every subsequent ordinal (e.g. «в одном отеле») identifies a room.
+    return bool(numbered or re.match(r'(?:' + SOFT + '|' + HARD
+        + r'|с\b|без\b|тих\w*|тишин\w*|не\b|вид\w*|балкон\w*|море\b|горы\b|во\s+двор)', body))
+
+
+def _one_shared_room(plain: str, markers: list[Marker], count: int | None) -> bool:
+    if count is not None and count >= 2:
+        return False
+    one = r'(?:один|одна|одну|одного|одной|одном|1|единственный|единственная)'
+    common = r'(?:общ\w*|семейн\w*|совместн\w*|больш\w*)'
+    unit = r'(?:номер\w*|комнат\w*)'
+    explicit = bool(re.search(r'\b' + one + r'\s+(?:' + common + r'\s+){0,3}' + unit + r'\b', plain)
+        or re.search(r'\b(?:общ\w*|семейн\w*)\s+' + unit + r'\s+(?:для|на)\s+всех\b', plain)
+        or re.search(r'\b(?:один|одна)\s+(?:общий|общая|семейный|семейная)(?=\s*[,;:.!?]|$)', plain))
+    if not explicit:
+        return False
+    if sum(marker.kind in {'ordinal', 'numbered'} for marker in markers) >= 2:
+        return False
+    for match in re.finditer(r'\b(?:отдельн\w*|собственн\w*|свой|своя)\s+' + unit + r'\b', plain):
+        before, after = plain[max(0, match.start()-35):match.start()], plain[match.end():match.end()+35]
+        if not (re.search(r'\bне\s+(?:нуж\w*|хот\w*|треб\w*)\s*$', before)
+                or re.match(r'\s+не\s+(?:нуж\w*|треб\w*)', after)):
+            return False
+    return True
+
+
+def _candidate_markers(text: str, plain: str) -> list[Marker]:
+    candidates = [Marker(match.start(), match.end(), match.lastgroup or '') for match in MARKERS.finditer(plain)]
+    # Capitalization supplies a syntactic label, without a dictionary of people.
+    # Overlapping established recipient/shared syntax keeps its existing meaning.
+    for pattern, kind in ((BARE_RECIPIENT, 'named'), (REPORTED_NAMED, 'reported_named')):
+        for match in pattern.finditer(_unquoted(text)):
+            if any(marker.start < match.end() and match.start() < marker.end for marker in candidates):
+                continue
+            label = match['name'].casefold().replace('ё', 'е')
+            first = label.split()[0]
+            if first in SERVICE_LABELS or first in COUNT_WORDS or CALENDAR_LABEL.fullmatch(first):
+                continue
+            if not plain[match.start():match.end()].strip():
+                continue
+            body = re.split(r'[;,.!?\n]', plain[match.end():], maxsplit=1)[0].strip(' :–—-')
+            if not body:
+                continue
+            candidates.append(Marker(match.start(), match.end(), kind))
+    return sorted(candidates, key=lambda marker: marker.start)
 
 
 def _fragments(text: str) -> tuple[list[Fragment], int | None]:
     plain = search_context_text(_unquoted(text).casefold().replace('ё', 'е'))
-    count = _room_count(plain)
-    markers = []
-    for match in MARKERS.finditer(plain):
-        if not _at_clause_start(plain, match.start()):
+    # Preserve adopted quoted wishes while removing the discourse that the
+    # existing context helper has already classified as reported/narrative.
+    operative, available = list(search_context_text(text.casefold().replace('ё', 'е'))), []
+    candidates = _candidate_markers(text, plain)
+    for marker in candidates:
+        if not _at_clause_start(plain, marker.start):
             continue
-        after = plain[match.end():]
+        after = plain[marker.end:]
         if not _recipient_request(after):
+            # Commas can enumerate features of the old room. Stop at a new
+            # recipient/current request or a sentence, rather than leaking the
+            # remainder of that list into today's shared requirements.
+            boundary = re.search(r'(?<!\d)[.]|[.](?!\d)|[;!?\n]', after)
+            end = marker.end + boundary.start() if boundary else len(text)
+            for following in candidates:
+                if (marker.end <= following.start < end and following.kind not in {'ordinal', 'numbered'}
+                        and _at_clause_start(plain, following.start)):
+                    end = following.start
+                    break
+            current = re.search(r'\b(?:теперь|сейчас|на\s+этот\s+раз)\b', plain[marker.end:end])
+            if current:
+                end = marker.end + current.start()
+            operative[marker.start:end] = ' '*(end-marker.start)
             continue
-        if (match['ordinal'] or match['numbered']) and not _position_request(
-                after, count=count, numbered=bool(match['numbered'])):
+        if marker.kind != 'reported_named':
+            available.append(marker)
+    operative_text = ''.join(operative)
+    operative_plain = search_context_text(_unquoted(operative_text).casefold().replace('ё', 'е'))
+    count = _room_count(operative_plain)
+    markers = []
+    for marker in available:
+        if not operative_plain[marker.start:marker.end].strip():
             continue
-        markers.append(match)
-    personal = [match for match in markers if not match['shared']]
-    distinct_recipients = {plain[match.start():match.end()] for match in personal}
+        after = operative_plain[marker.end:]
+        if marker.kind in {'ordinal', 'numbered'} and not _position_request(
+                after, count=count, numbered=marker.kind == 'numbered'):
+            continue
+        markers.append(marker)
+    if _one_shared_room(operative_plain, markers, count):
+        return [], None
+    personal = [marker for marker in markers if marker.kind != 'shared']
+    distinct_recipients = {plain[marker.start:marker.end] for marker in personal}
     # One recipient is a single request; a headcount never establishes rooms.
     if len(distinct_recipients) < 2 and not (count is not None and count >= 2):
         return [], None
     fragments = []
     if markers:
-        fragments.append(Fragment('', text[:markers[0].start()], True))
-        for index, match in enumerate(markers):
-            end = markers[index+1].start() if index+1 < len(markers) else len(text)
-            label = text[match.start():match.end()].strip()
+        fragments.append(Fragment('', operative_text[:markers[0].start], True))
+        for index, marker in enumerate(markers):
+            end = markers[index+1].start if index+1 < len(markers) else len(text)
+            label = text[marker.start:marker.end].strip()
             label = label[:1].upper() + label[1:]
-            fragments.append(Fragment(label, text[match.end():end], bool(match['shared'])))
+            fragments.append(Fragment(label, operative_text[marker.end:end], marker.kind == 'shared'))
     else:
-        fragments.append(Fragment('', text, True))
+        fragments.append(Fragment('', operative_text, True))
     return fragments, count
 
 
 def _clean_context(text: str) -> str:
     text = ROOM_COUNT.sub(' ', text.casefold().replace('ё', 'е'))
+    text = re.sub(r'^\s*(?:едем|еду|поедем|путешествуем|отдыхаем)\s+(?:компанией|группой)\b', ' ', text)
     text = re.sub(r'\b(?:семья|компания|группа)(?:\s+из)?\s+\d+\s*(?:человек|людей|гостей)?', ' ', text)
     text = re.sub(r'\b(?:нас|мы)\s+\d+\s*(?:человек|людей|гостей)?', ' ', text)
     text = re.sub(r'\bбез\s+(?:особых\s+)?(?:пожеланий|требований)\b', ' ', text)
@@ -166,6 +281,9 @@ def _clean_context(text: str) -> str:
     text = re.sub(r'\b(?:всей|большой|нашей|дружной)\s+семьей\b', ' ', text)
     text = re.sub(r'\b(?:ищем|подыскиваем|забронировать|забронируйте|бронируем|бронировать)\b', ' ', text)
     text = re.sub(r'\bкомнат[а-я]*\b', 'номер', text)
+    text = re.sub(r'\bв\s+одн(?:ом|ой)\s+(?:отел\w*|гостиниц\w*)\b', ' ', text)
+    text = re.sub(r'\b(?:хочет|хотят|просит|просят|предпочитает|предпочитают|желает|желают)\b',
+                  lambda match: match[0] if re.search(r'\bне\s+$', text[:match.start()]) else ' ', text)
     text = re.sub(r'^\s*(?:номер\w*\s*)?(?:[-–—:/•]\s*)+', '', text)
     return re.sub(r'^\s*(?:номер\w*\s*)?[-–—:]\s*', '', text).strip(' ,;:.!?')
 
@@ -236,7 +354,7 @@ def parse_group_query(request: SearchRequest, catalog: list[CharacteristicSpec],
     shared_text = ' '.join(fragment.text for fragment in fragments if fragment.shared)
     # Travel dates mentioned at the end still govern the whole party. A local
     # explicit month can additionally narrow the request through RoomScope.
-    metadata_text = shared_text if re.search(r'\b(?:' + MONTH + r')\w*\b|\d{4}-\d{2}-\d{2}', shared_text.casefold()) else request.text
+    metadata_text = shared_text if re.search(r'\b(?:' + MONTH + r')\w*\b|\d{4}-\d{2}-\d{2}', shared_text.casefold()) else ' '.join(fragment.text for fragment in fragments)
     check_in, check_out, month, warnings = _dates(normalize_query_text(metadata_text), request)
     result = ParsedQuery(text=request.text, check_in=check_in, check_out=check_out, month=month,
                          clarifications=warnings[:2], mode='offline')
