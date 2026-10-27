@@ -181,7 +181,33 @@ def _name_score(rest: list[str], name: str) -> float:
 
 
 def reference_hotel(text: str, hotels: list[Hotel]) -> tuple[Hotel | None, list[str]]:
-    """Find «похожий на X» / «как X» in a query. Returns (hotel, ambiguous names)."""
+    """Resolve a similarity request to catalogue identity; never invent IDs."""
+    english = re.match(
+        r'^\s*(?:please\s+)?(?:i\s+(?:want|need)\s+)?'
+        r'(?:something\s+like|similar\s+to|(?:find|show)\s+(?:(?:me|us)\s+)?'
+        r'(?:(?:a|an|some)\s+)?hotels?\s+(?:like|similar\s+to))\s+(?P<rest>.+)',
+        text.casefold().replace('ё', 'е'))
+    if english:
+        rest = english['rest']
+        words = list(re.finditer(r'[\w+-]+', rest))
+        # Full names must occupy the beginning of the reference operand. Keep
+        # punctuation until the boundary check: a comma can introduce a wish.
+        candidates = []
+        for hotel in hotels:
+            name = re.findall(r'[\w+-]+', _norm(hotel.name))
+            if not name or len(words) < len(name) or [m[0] for m in words[:len(name)]] != name:
+                continue
+            suffix = rest[words[len(name)-1].end():].lstrip(' \t\"\'»”')
+            if suffix and not re.match(r'[,;.!?]|(?:but|with|and|where|in|for|from|only|without|except|on)\b', suffix):
+                continue
+            candidates.append((len(name), len(_norm(hotel.name)), hotel))
+        if not candidates:
+            return None, []
+        longest = max((words, length) for words, length, _ in candidates)
+        top = sorted((hotel for words, length, hotel in candidates if (words, length) == longest), key=lambda hotel: hotel.id)
+        if len({hotel.id for hotel in top}) > 1:
+            return None, list(dict.fromkeys(hotel.name for hotel in top))[:5]
+        return top[0], []
     norm = _norm(text)
     match, exact_only = SIMILAR_PATTERN.search(norm), False
     if not match:
@@ -205,6 +231,19 @@ def reference_hotel(text: str, hotels: list[Hotel]) -> tuple[Hotel | None, list[
 def only_reference_phrase(text: str, name: str) -> bool:
     """Remove a recognized name fragment, never unrelated unknown conditions."""
     normalized = _norm(text)
+    english = re.fullmatch(
+        r'(?:please\s+)?(?:i\s+(?:want|need)\s+)?'
+        r'(?:something\s+like|similar\s+to|(?:find|show)\s+(?:(?:me|us)\s+)?'
+        r'(?:(?:a|an|some)\s+)?(?:(?:hotels?|отел\w*)\s+)?(?:like|similar\s+to))\s+(?P<rest>.+)',
+        normalized)
+    if english:
+        # The caller already verified this name. The parser may have removed
+        # hotel/article words and numbers from an unmapped fragment, but any
+        # remaining amenity/price term must keep the whole fragment visible.
+        rest = re.sub(r'\s+(?:but|and|with)$', '', english['rest'])
+        tokens = _tokens(rest)
+        names = _tokens(_norm(name)) + _tokens(_translit(_norm(name)))
+        return bool(tokens) and all(token in names or _translit(token) in names for token in tokens)
     match = SIMILAR_PATTERN.fullmatch(normalized) or LIKE_PATTERN.fullmatch(normalized)
     if match is None:
         return False

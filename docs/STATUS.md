@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 02:58 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 03:19 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -157,3 +157,5 @@
 - 27.10.2026 02:57: test(search): freeze independent release intent validation cases; 833 passed, 1 warning, 125 subtests passed in 51.50s; Ruff и frontend lint PASS.
 
 - 27.10.2026 02:58: docs(checks): measure six traits on cached Gelendzhik region; 833 passed, 1 warning, 125 subtests passed in 47.17s; Ruff и frontend lint PASS.
+
+- 27.10.2026 03:19: fix(search): resolve bounded English similarity requests; 865 passed, 1 warning, 125 subtests passed in 55.20s; Ruff и frontend lint PASS.
