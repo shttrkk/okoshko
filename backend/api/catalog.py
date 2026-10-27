@@ -69,7 +69,7 @@ def searchable_hotel(repo, hotel_id: str):
 
 def search_coverage(rows: list[dict], specs: list[CharacteristicSpec], hotel_count: int,
                     parsed: ParsedQuery) -> dict[str, dict]:
-    """Coverage of the requested fields; a known sibling field is not evidence."""
+    """Keep primary field coverage separate from partial evidence of Wi-Fi presence."""
     coverage = region_coverage(rows, specs, hotel_count)
     requested = defaultdict(set)
     defaults = {spec.id: spec.search.field for spec in specs}
@@ -79,10 +79,14 @@ def search_coverage(rows: list[dict], specs: list[CharacteristicSpec], hotel_cou
         if criterion.characteristic_id in defaults:
             requested[criterion.characteristic_id].add(criterion.field or defaults[criterion.characteristic_id])
     known = defaultdict(set)
+    wifi_reported = set()
     at = now()
     for row in rows:
         if row["characteristic_id"] not in requested or not current_value({**row, "value": True}, at):
             continue
+        if (row["characteristic_id"] == "connectivity" and isinstance(row.get("value"), dict)
+                and row["value"].get("wifi_reported") is True and row.get("evidence") and row.get("supporting_claim_ids")):
+            wifi_reported.add(row["hotel_id"])
         for field in requested[row["characteristic_id"]]:
             value = row.get("value")
             if isinstance(value, dict):
@@ -100,6 +104,9 @@ def search_coverage(rows: list[dict], specs: list[CharacteristicSpec], hotel_cou
             status = ("available" if count == hotel_count else "partial") if count else (
                 "awaiting_hotels" if spec.hotelier_answerable else "no_data")
             coverage[spec.id]["fields"][field] = {"status": status}
+            if spec.id == "connectivity" and field in {"download_mbps", "upload_mbps", "latency_ms"} and wifi_reported:
+                coverage[spec.id]["fields"][field].update(partial_evidence=True, wifi_reported_count=len(wifi_reported))
+                coverage[spec.id].update(partial_evidence=True, wifi_reported_count=len(wifi_reported))
     return coverage
 
 

@@ -91,7 +91,7 @@ def test_neighbor_or_ambiguous_alias_does_not_supply_hotel_wifi(changes):
     assert extract["rejected_aliases"]
 
 
-def test_default_work_search_stays_unknown_after_materializing_wlan():
+def test_default_work_search_reports_wifi_presence_without_meeting_the_speed_requirement():
     assert spec().search.field == "download_mbps" and spec().search.default_op == "gte"
     assert spec().search.default_value == 30
     rows = claims_from_extract(encoded(fixture_extract()), spec())
@@ -103,7 +103,8 @@ def test_default_work_search_stays_unknown_after_materializing_wlan():
     request = ParsedQuery(text="Интернет для работы от 30 Мбит/с", must=[
         Criterion(characteristic_id="connectivity", label="Скорость ≥30 Мбит/с", field="download_mbps", op="gte", value=30)])
     assessment = assess_hotel(facts, request, [spec()])
-    assert assessment.matches[0].status == "unknown"
+    assert assessment.matches[0].status == "partial"
+    assert assessment.matches[0].value is None and not assessment.matches[0].condition_met
     assert not assessment.matches[0].supported
 
 

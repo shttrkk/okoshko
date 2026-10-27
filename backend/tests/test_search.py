@@ -185,11 +185,11 @@ def test_route_constraints_known_answers_and_missing_flags(value, expected):
 
 @pytest.mark.parametrize("minutes,steps,crossings,group,status", [
     (7, False, [], "all", "partial"),
-    (7, True, [], "unknown", "unknown"),
-    (7, False, ["railway"], "unknown", "unknown"),
+    (7, True, [], "almost", "no"),
+    (7, False, ["railway"], "almost", "no"),
     (7, None, [], "unknown", "unknown"),
     (7, False, None, "unknown", "unknown"),
-    (12, False, [], "unknown", "unknown"),
+    (12, False, [], "almost", "no"),
 ])
 def test_family_route_constraints_are_and_at_real_route_confidence(minutes, steps, crossings, group, status, catalog):
     parsed = parse_query(SearchRequest(text="до пляжа с коляской без лестниц и без переходов"), catalog)

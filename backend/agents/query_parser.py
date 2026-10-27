@@ -20,7 +20,14 @@ from backend.agents.query_text import (
     source_phrase,
     valid_intent_match,
 )
-from backend.contracts import CharacteristicSpec, Criterion, ParsedQuery, Scope, SearchRequest
+from backend.contracts import (
+    CharacteristicSpec,
+    Criterion,
+    ParsedQuery,
+    QuerySuggestion,
+    Scope,
+    SearchRequest,
+)
 from backend.llm.client import UnsafeOutput
 from backend.security import contains_runtime_secret
 from backend.tools.registry import EV_CHARGING_NEAR_M
@@ -66,6 +73,7 @@ RULES['railway_noise'] += r'|\bжелезнодорожн\w*\s+шум(?:а|у|о
 RULES['evening_heat'] += r'|\b(?:поменьше\s+вечерн\w*\s+солнц\w*|индекс\w*\s+вечерн\w*\s+экспозиц\w*)'
 RULES['beach_surface'] += r'|\bпесок\b[^,;.!?]{0,30}\bна\s+пляж\w*'
 RULES['nearby_photos'] += r'|\b(?:фотографи\w*|снимк\w*)\s+(?:его\s+)?(?:окрестност\w*|район\w*)'
+RULES['beach_walk'] += r'|\b(?:море|пляж\w*)\s+(?:совсем\s+)?(?:недалеко|близко)\b|\bблизко\s+к\s+(?:морю|пляжу)\b'
 # "подальше от баров" asks for a calm area: the same measurement, opposite threshold.
 AWAY = r"(?:подальше|вдали|далеко|подальш\w*)\s+от\s+$"
 CALM_VENUES_MAX = 10
@@ -90,6 +98,78 @@ CAR_CHARGING = r"\bзарядк\w*\s+для\s+(?:электромобил|эле
 
 def normalized(text: str) -> str:
     return normalize_query_text(text)
+
+
+def _stroller_trip_matches(text: str) -> list[re.Match]:
+    """A stated travelling circumstance, rather than every mention of a stroller."""
+    pattern = (r'\b(?:с\s+(?:(?:детск|инвалидн)\w*\s+)?коляск(?:ой|ами)|'
+               r'в\s+(?:(?:детск|инвалидн)\w*\s+)?коляск(?:е|ах)|'
+               r'с\s+(?:\w+\s+){0,2}(?:ребен\w*|детьми|малыш\w*)\s+и\s+коляск(?:ой|ами)|коляска)\b')
+    result = []
+    for match in re.finditer(pattern, text):
+        left, right = clause_bounds(text, match.start(), match.end())
+        clause, before = text[left:right], text[left:match.start()]
+        if match[0] == 'коляска' and clause.strip() != 'коляска':
+            continue
+        if any(m.start() <= match.start() < m.end() for m in re.finditer(r'«[^»]+»|"[^"]+"|“[^”]+”', text)):
+            continue
+        if re.search(r'\b(?:если|вдруг|возможно|допустим|например|сравн\w*)\b|в отличие|может быть', clause):
+            continue
+        if (re.search(r'\b(?:не|без)\s*$', before)
+                or re.search(r'\bне\s+(?:ед\w*|поед\w*|бер\w*|возьм\w*)|коляск\w*\s+не\s+(?:нуж\w*|бер\w*)', clause)):
+            continue
+        if re.search(SOFT, before) and not re.search(r'\b(?:едем|еду|поедем|поеду|будем|буду)\b', before):
+            continue
+        if valid_intent_match('accessible_route', text, match):
+            result.append(match)
+    return result
+
+
+def _query_suggestions(parsed: ParsedQuery, catalog: list[CharacteristicSpec]) -> list[QuerySuggestion]:
+    """Whitelist-backed spelling suggestions; nothing enters must/nice until a click."""
+    from backend.agents.query_rules import _valid_shape
+
+    if not parsed.unmapped or 'region_out_of_scope' in parsed.unmapped:
+        return []
+    text = normalized(parsed.text)
+    excluded = {c.characteristic_id for c in [*parsed.must, *parsed.nice]}
+    names = catalogue_suggestions(text, parsed.unmapped, catalog, excluded)
+    result = []
+    for spec in catalog:
+        if spec.status != 'active' or spec.name_ru not in names or spec.id in excluded:
+            continue
+        if spec.id == 'beach_walk' and not re.search(r'\b(?:мор[еяю]|морем|пляж\w*)\b', text):
+            continue
+        token = next((word for fragment in parsed.unmapped for word in re.findall(r'[а-яa-z]{5,}', fragment)
+                      if spec.name_ru in catalogue_suggestions(text, [word], [spec])), None)
+        if token is None:
+            continue
+        fragment = source_phrase(parsed.text, token)[:300]
+        match = re.search(r'\b' + re.escape(token) + r'\b', text)
+        soft, negative, skip = _importance(text, match.start(), match.end()) if match else (False, False, False)
+        if negative or skip:
+            continue
+        criterion = Criterion(characteristic_id=spec.id, label=spec.display_name or spec.name_ru,
+                              field=spec.search.field, op=spec.search.default_op, value=spec.search.default_value)
+        if not _valid_shape(criterion, spec):
+            continue
+        criterion.label = _criterion_label(criterion, criterion.label, spec.search.unit)
+        result.append(QuerySuggestion(label=('Добавить: ' + criterion.label)[:160], criterion=criterion,
+                                      required=not soft, fragment=fragment))
+    return result[:2]
+
+
+def _whitelist_suggestions(parsed: ParsedQuery, catalog: list[CharacteristicSpec]) -> ParsedQuery:
+    from backend.agents.query_rules import _valid_shape
+
+    specs = {spec.id: spec for spec in catalog if spec.status == 'active'}
+    for target in [parsed, *parsed.rooms]:
+        target.suggestions = [item for item in target.suggestions
+                              if item.criterion.characteristic_id in specs
+                              and _valid_shape(item.criterion, specs[item.criterion.characteristic_id])][:2]
+        if 'region_out_of_scope' in parsed.unmapped:
+            target.suggestions = []
+    return parsed
 
 
 @lru_cache(maxsize=1024)
@@ -788,7 +868,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
                     (parsed.nice if charging_soft else parsed.must).append(extra)
         if spec.id == "beach_walk":
             for flag, extra_field, label, pattern, extra_value in [
-                ("no_stairs", "has_steps", "Без лестниц до пляжа", r"без (?:лестниц\w*|ступен\w*)|\bколяск\w*|лестниц\w*[^,;.!?]{0,70}(?:не должно|не будет|нет)|не (?:поднима\w*|спуска\w*)(?:\s+\w+){0,3}\s+(?:лестниц\w*|ступен\w*)", False),
+                ("no_stairs", "has_steps", "Без лестниц до пляжа", r"без (?:лестниц\w*|ступен\w*)|лестниц\w*[^,;.!?]{0,70}(?:не должно|не будет|нет)|не (?:поднима\w*|спуска\w*)(?:\s+\w+){0,3}\s+(?:лестниц\w*|ступен\w*)", False),
                 ("no_crossings", "crossings", "Без переходов до пляжа", r"(?:без (?:дорожн\w*\s+)?(?:переход\w*|пересечени\w*)(?:\s+(?:и\s+)?переход\w*)?|без (?:лестниц\w*|ступен\w*)\s+и\s+(?:дорожн\w*\s+)?переход\w*)(?:\s+(?:через\s+)?(?:трасс\w*|дорог\w*|шоссе|железн\w*\s+дорог\w*))?|переход\w*\s+через\s+дорог\w*\s+исключен\w*|не (?:переход\w*|пересек\w*)(?:\s+\w+){0,3}\s+(?:дорог\w*|трасс\w*|шоссе|улиц\w*)|переход\w*[^,;.!?]{0,60}(?:не должно|не будет|нет)", []),
             ]:
                 for extra in re.finditer(pattern, text):
@@ -859,6 +939,18 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         if any(c.field == absence and c.value is False for absence, positives in presence_fields.items()
                if any(other.field in positives for other in hard) for c in hard):
             warnings.append('Обязательные условия противоречат друг другу: «' + spec.name_ru + '». Уточните, нужно ли это условие.')
+    trips = _stroller_trip_matches(text)
+    if trips and any(spec.id == 'beach_walk' and spec.status == 'active' for spec in catalog):
+        positions.setdefault('beach_walk', trips[0].start())
+        existing = [c for c in parsed.must if c.characteristic_id == 'beach_walk' and c.field != 'has_steps']
+        if existing:
+            for criterion in existing:
+                criterion.no_stairs = True
+                criterion.label = _criterion_label(criterion, 'До пляжа', 'мин пешком' if criterion.field == 'minutes' else None)
+        elif not any(c.characteristic_id == 'beach_walk' and c.field == 'has_steps' and c.value is False for c in parsed.must):
+            parsed.must.append(Criterion(characteristic_id='beach_walk', label='Маршрут до пляжа без лестниц',
+                                         field='has_steps', value=False))
+        consumed.extend((m.start(), m.end()) for m in trips)
     residual = list(source_text)
     for start, end in consumed:
         residual[start:end] = " " * (end-start)
@@ -934,6 +1026,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
         'романтическая поездка' if re.search(r'годовщин|романти|медов\w* месяц', text) else None)
     if not any(c.characteristic_id == 'pets' and c.value is True for c in criteria):
         parsed.pet_weight_kg = None
+    parsed.suggestions = _query_suggestions(parsed, catalog)
     return parsed
 
 
@@ -948,7 +1041,7 @@ def parse_query(request: SearchRequest, catalog: list[CharacteristicSpec], llm=N
             result.check_in, result.month = request.check_in, request.check_in.month
         if request.check_out:
             result.check_out = request.check_out
-        return result
+        return _whitelist_suggestions(result, catalog)
     if not request.parsed:
         from backend.agents.group_query import parse_group_query
 
@@ -962,7 +1055,7 @@ def parse_query(request: SearchRequest, catalog: list[CharacteristicSpec], llm=N
                 grouped.unmapped = list(dict.fromkeys([*grouped.unmapped, "region_out_of_scope"]))
                 grouped.clarifications = list(dict.fromkeys([*regional.clarifications,
                                                             *grouped.clarifications]))[:2]
-            return grouped
+            return _whitelist_suggestions(grouped, catalog)
     baseline = _fallback(request, catalog)
     if request.parsed:
         result = request.parsed.model_copy(deep=True)
@@ -1014,4 +1107,4 @@ def parse_query(request: SearchRequest, catalog: list[CharacteristicSpec], llm=N
     if "region_out_of_scope" in baseline.unmapped:
         result.unmapped = list(dict.fromkeys([*result.unmapped, "region_out_of_scope"]))
         result.clarifications = baseline.clarifications
-    return result
+    return _whitelist_suggestions(result, catalog)
