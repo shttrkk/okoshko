@@ -68,8 +68,27 @@ export function languageFindings(text) {
   const frequentWords = new Map();
   for (const word of text.toLocaleLowerCase("ru").match(/[\p{L}]{4,}/gu) || [])
     frequentWords.set(word, (frequentWords.get(word) || 0) + 1);
+  const emptyBeachQuotes = new Map();
+  for (const match of text.matchAll(/«\s*»|""/gu)) {
+    const start = text.lastIndexOf("\n", match.index - 1) + 1;
+    const nextLine = text.indexOf("\n", match.index + match[0].length);
+    const phrase = text
+      .slice(start, nextLine === -1 ? undefined : nextLine)
+      .replace(/\s+/gu, " ")
+      .trim();
+    if (
+      !/пляж|пешком|маршрут|\d+(?:[.,]\d+)?\s*(?:км|м|мин)(?:\s|$)|до\s*[«"]/iu.test(
+        phrase,
+      )
+    )
+      continue;
+    const item = emptyBeachQuotes.get(phrase) || { phrase, count: 0 };
+    item.count += 1;
+    emptyBeachQuotes.set(phrase, item);
+  }
   return {
     forbiddenPhrases,
+    emptyBeachQuotes: [...emptyBeachQuotes.values()],
     repeatedPhrases: [...counts.values()]
       .filter((item) => item.count > 2)
       .sort((a, b) => b.count - a.count),
@@ -144,8 +163,11 @@ export async function visibleSnapshot(page) {
             : null,
       },
       roomAdvice:
-        (roomHeading?.closest("section") || roomHeading?.parentElement)
-          ?.innerText || null,
+        (
+          document.querySelector('[data-testid="room-advice"]') ||
+          roomHeading?.closest("section") ||
+          roomHeading?.parentElement
+        )?.innerText || null,
     };
   });
 }

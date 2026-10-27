@@ -234,6 +234,13 @@ const report = await captureGuestPages({
         code: "guest-repeated-sentence",
         ...item,
       });
+    if (["search", "first-hotel", "primorskaya"].includes(state.page))
+      for (const item of state.emptyBeachQuotes)
+        failures.push({
+          state: state.name,
+          code: "guest-empty-beach-name",
+          ...item,
+        });
     check(
       state.scrollWidth <= state.viewportWidth + 1,
       state.name,
