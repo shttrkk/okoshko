@@ -7,11 +7,13 @@ import type {
   Geo,
   HotelDetail,
   ParsedQuery,
+  RoomScope,
   Scope,
   Side,
 } from "../types";
 import { MONTHS, MONTHS_IN, pct, SIDE_ORDER, SIDES } from "./facts";
 import { ErrorState, FactValue, scopeText, Synthetic, VerdictList } from "./ui";
+import { RoomProfileList } from "./RoomProfiles";
 
 export interface RoomSlice {
   facade: Side;
@@ -80,7 +82,10 @@ interface ScopeConflict {
   required: boolean;
   reason: string;
 }
-function scopeConflict(criterion: Criterion, slice: RoomSlice) {
+function scopeConflict(
+  criterion: { scope?: RoomScope | null },
+  slice: RoomSlice,
+) {
   const scope = criterion.scope;
   if (scope?.facade && scope.facade !== slice.facade)
     return `нужна сторона «${SIDES[scope.facade]}»`;
@@ -93,9 +98,22 @@ function scopeConflict(criterion: Criterion, slice: RoomSlice) {
   return null;
 }
 /** Intersect the requested room with the preview; never replace a hard scope. */
-function sliceQuery(parsed: ParsedQuery | null, slice: RoomSlice | null) {
+function sliceQuery(
+  parsed: ParsedQuery | null,
+  slice: RoomSlice | null,
+  requestedScope?: RoomScope,
+) {
   const conflicts: ScopeConflict[] = [];
   if (!parsed || !slice) return { query: null, conflicts };
+  if (requestedScope) {
+    const reason = scopeConflict({ scope: requestedScope }, slice);
+    if (reason)
+      conflicts.push({
+        label: "Положение выбранной позиции",
+        required: true,
+        reason,
+      });
+  }
   if (parsed.facade && parsed.facade !== slice.facade)
     conflicts.push({
       label: "Сторона исходного запроса",
@@ -298,6 +316,9 @@ export function RoomLab({
   onPanorama,
   mapActive,
   questionScope,
+  roomLabel,
+  roomIndex,
+  requestedScope,
 }: {
   detail: HotelDetail;
   geo: Geo;
@@ -306,6 +327,9 @@ export function RoomLab({
   onEvidence: (fact: Fact) => void;
   onPanorama: (side: string) => void;
   mapActive: boolean;
+  roomLabel?: string;
+  roomIndex?: number;
+  requestedScope?: RoomScope;
   questionScope?: (
     characteristicId: string,
     slice: RoomSlice,
@@ -318,8 +342,10 @@ export function RoomLab({
   const [slice, setSlice] = useState(() =>
     initialSlice(facades, boundary.maximum, parsed),
   );
-  const [open, setOpen] = useState(() =>
-    new URLSearchParams(window.location.search).has("room_side"),
+  const [open, setOpen] = useState(
+    () =>
+      new URLSearchParams(window.location.search).has("room_side") ||
+      new URLSearchParams(window.location.search).has("room_request"),
   );
   const sliceChange = useRef(onSliceChange);
   sliceChange.current = onSliceChange;
@@ -327,7 +353,7 @@ export function RoomLab({
   useEffect(() => {
     sliceChange.current(open && valid ? slice : null);
   }, [open, valid, slice]);
-  const plan = sliceQuery(parsed, valid ? slice : null);
+  const plan = sliceQuery(parsed, valid ? slice : null, requestedScope);
   const key = JSON.stringify([detail.hotel.id, plan.query]);
   const evaluation = useResource(
     () =>
@@ -353,6 +379,7 @@ export function RoomLab({
     room_floor: String(slice.floor),
     room_month: String(slice.month),
   });
+  if (roomIndex !== undefined) shared.set("room_request", String(roomIndex));
   const extra = [
     ["mountain_view", "Горы"],
     ["sunset_view", "Закат"],
@@ -383,6 +410,12 @@ export function RoomLab({
             Модельный срез, не подтверждённый номер или окно. Наличие номера,
             расположение окон и условия внутри комнаты нужно уточнить у отеля.
           </p>
+          {roomLabel && (
+            <p className="room-lab-person" data-testid="room-lab-person">
+              Пожелания: <strong>{roomLabel}</strong>. Общие условия и даты
+              сохранены.
+            </p>
+          )}
           {!valid ? (
             <p className="muted">
               Нет фасадной геометрии для выбора стороны. Модельный срез пока
@@ -546,6 +579,16 @@ export function RoomLab({
                   </div>
                 </details>
               )}
+              <RoomProfileList
+                hotelId={detail.hotel.id}
+                scope={{
+                  facade: slice.facade,
+                  floor_min: slice.floor,
+                  floor_max: slice.floor,
+                  month: slice.month,
+                }}
+                open={open}
+              />
               <div className="room-lab-query" data-testid="room-lab-query">
                 <h3>Условия исходного запроса в срезе</h3>
                 {!parsed ||

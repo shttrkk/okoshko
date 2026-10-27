@@ -20,6 +20,10 @@ import {
 import { api, useResource } from "../api";
 import { useApp } from "../state";
 import { TravelMap } from "../components/Map";
+import { GroupPlan } from "../components/GroupPlan";
+import { RoomCriteriaEditor } from "../components/RoomCriteriaEditor";
+import { RoomSuggestion } from "../components/RoomProfiles";
+import { groupExample } from "../components/group";
 import {
   CompareButton,
   Empty,
@@ -37,6 +41,7 @@ import type {
   Fact,
   HotelDetail,
   ParsedQuery,
+  RoomRequest,
   SearchHit,
   SearchRequest,
   Verdict,
@@ -45,10 +50,17 @@ export const mashaQuery = "тихий номер с видом на закат �
 function criterionKey(c: Criterion) {
   const scope = c.scope;
   return JSON.stringify([
-    c.characteristic_id, c.field, c.op, c.value,
-    scope?.facade ?? null, scope?.floor_min ?? null, scope?.floor_max ?? null,
-    scope?.month ?? null, scope?.room_type ?? null,
-    !!c.no_stairs, !!c.no_crossings,
+    c.characteristic_id,
+    c.field,
+    c.op,
+    c.value,
+    scope?.facade ?? null,
+    scope?.floor_min ?? null,
+    scope?.floor_max ?? null,
+    scope?.month ?? null,
+    scope?.room_type ?? null,
+    !!c.no_stairs,
+    !!c.no_crossings,
   ]);
 }
 function tripDates(checkIn: string | null, checkOut: string | null) {
@@ -198,6 +210,16 @@ export function SearchForm({
           required={!isSimilar}
         />
       </label>
+      {!compact && (
+        <button
+          type="button"
+          className="text-button small group-search-example"
+          onClick={() => setText(groupExample)}
+          data-testid="group-search-example"
+        >
+          Едем компанией? Опишите каждого
+        </button>
+      )}
       <div className="search-form-bottom">
         <div className="date-inputs">
           <label>
@@ -341,9 +363,7 @@ export function Home() {
               className={`scenario-card tone-${p.tone}`}
               style={{ "--i": i } as CSSProperties}
               onClick={() =>
-                navigate(
-                  `/search?q=${encodeURIComponent(p.query)}`,
-                )
+                navigate(`/search?q=${encodeURIComponent(p.query)}`)
               }
             >
               <span className="scenario-art">
@@ -607,6 +627,9 @@ function CriteriaEditor({
           </div>
         )}
       </div>
+      {!!parsed.rooms?.length && (
+        <h3 className="criteria-shared-heading">Для всех</h3>
+      )}
       {(["must", "nice"] as const).map((group) => (
         <div
           className="criteria-group"
@@ -709,9 +732,11 @@ function CriteriaEditor({
           {specs.data
             ?.filter(
               (s) =>
-                ![...parsed.must, ...parsed.nice, ...(parsed.no_data || [])].some(
-                  (c) => c.characteristic_id === s.id,
-                ),
+                ![
+                  ...parsed.must,
+                  ...parsed.nice,
+                  ...(parsed.no_data || []),
+                ].some((c) => c.characteristic_id === s.id),
             )
             .map((s) => (
               <option key={s.id} value={s.id}>
@@ -719,13 +744,15 @@ function CriteriaEditor({
               </option>
             ))}
         </select>
-        <button
-          className="text-button"
-          onClick={onApply}
-          disabled={busy || dateError}
-        >
-          Применить <ArrowRight size={15} />
-        </button>
+        {!parsed.rooms?.length && (
+          <button
+            className="text-button"
+            onClick={onApply}
+            disabled={busy || dateError}
+          >
+            Применить <ArrowRight size={15} />
+          </button>
+        )}
       </div>
       {(parsed.similar_to_name || !!parsed.no_data?.length) && (
         <div className="criteria-extra">
@@ -735,25 +762,48 @@ function CriteriaEditor({
             </span>
           )}
           {parsed.no_data?.map((c, index) => {
-            const hard = (parsed.no_data_must || []).some((item) => criterionKey(item) === criterionKey(c));
+            const hard = (parsed.no_data_must || []).some(
+              (item) => criterionKey(item) === criterionKey(c),
+            );
             return (
-              <span className="criterion-chip no-data-chip" key={`${criterionKey(c)}:${index}`}>
-                <span>{c.label} · {hard ? "обязательно · " : "желательно · "}нет данных в регионе</span>
+              <span
+                className="criterion-chip no-data-chip"
+                key={`${criterionKey(c)}:${index}`}
+              >
+                <span>
+                  {c.label} · {hard ? "обязательно · " : "желательно · "}нет
+                  данных в регионе
+                </span>
                 <button
                   aria-label={`Сделать ${c.label} ${hard ? "желательным" : "обязательным"}`}
                   title={hard ? "Сделать желательным" : "Сделать обязательным"}
-                  onClick={() => onChange({
-                    ...parsed,
-                    no_data_must: hard
-                      ? (parsed.no_data_must || []).filter((item) => criterionKey(item) !== criterionKey(c))
-                      : [...(parsed.no_data_must || []), c],
-                  })}
-                >{hard ? "↓" : "↑"}</button>
-                <button aria-label={`Убрать ${c.label}`} onClick={() => onChange({
-                  ...parsed,
-                  no_data: parsed.no_data?.filter((_, i) => i !== index),
-                  no_data_must: (parsed.no_data_must || []).filter((item) => criterionKey(item) !== criterionKey(c)),
-                })}><X size={12} /></button>
+                  onClick={() =>
+                    onChange({
+                      ...parsed,
+                      no_data_must: hard
+                        ? (parsed.no_data_must || []).filter(
+                            (item) => criterionKey(item) !== criterionKey(c),
+                          )
+                        : [...(parsed.no_data_must || []), c],
+                    })
+                  }
+                >
+                  {hard ? "↓" : "↑"}
+                </button>
+                <button
+                  aria-label={`Убрать ${c.label}`}
+                  onClick={() =>
+                    onChange({
+                      ...parsed,
+                      no_data: parsed.no_data?.filter((_, i) => i !== index),
+                      no_data_must: (parsed.no_data_must || []).filter(
+                        (item) => criterionKey(item) !== criterionKey(c),
+                      ),
+                    })
+                  }
+                >
+                  <X size={12} />
+                </button>
               </span>
             );
           })}
@@ -771,6 +821,32 @@ function CriteriaEditor({
           </p>
         ) : null;
       })()}
+      {parsed.rooms?.map((room, index) => (
+        <RoomCriteriaEditor
+          key={index}
+          room={room}
+          index={index}
+          onChange={(updated) =>
+            onChange({
+              ...parsed,
+              rooms: parsed.rooms?.map((item, i) =>
+                i === index ? updated : item,
+              ),
+            })
+          }
+        />
+      ))}
+      {!!parsed.rooms?.length && (
+        <div className="criteria-apply">
+          <button
+            className="button secondary small"
+            onClick={onApply}
+            disabled={busy || dateError}
+          >
+            Применить <ArrowRight size={15} />
+          </button>
+        </div>
+      )}
     </section>
   );
 }
@@ -797,6 +873,8 @@ function distinctRankingReasons(reasons: string[] = []) {
 }
 function SearchCard({
   hit,
+  month,
+  roomRequests,
   index,
   firstResultId,
   active,
@@ -806,6 +884,8 @@ function SearchCard({
   onEvidence,
 }: {
   hit: SearchHit;
+  month: number;
+  roomRequests?: RoomRequest[];
   index: number;
   firstResultId?: string;
   active: boolean;
@@ -857,11 +937,22 @@ function SearchCard({
           hotelId={hit.hotel.id}
           onEvidence={(v) => onEvidence(hit.hotel.id, v)}
         />
-        {hit.room_recommendation && (
-          <div className="room-hint">
-            <span>Ваш номер</span>
-            <p>{hit.room_recommendation}</p>
-          </div>
+        {hit.room_plan?.length ? (
+          <GroupPlan
+            hotelId={hit.hotel.id}
+            items={hit.room_plan}
+            requests={roomRequests}
+            compact
+          />
+        ) : (
+          hit.room_recommendation && (
+            <RoomSuggestion
+              hotelId={hit.hotel.id}
+              recommendation={hit.room_recommendation}
+              profile={hit.room_profile}
+              month={hit.room_profile?.scope.month || month}
+            />
+          )
         )}
         {hit.disappointments.length > 0 && (
           <p className="disappointment">Учтите: {hit.disappointments[0]}</p>
@@ -905,10 +996,12 @@ function SearchCard({
 }
 export function SearchPage() {
   const [params] = useSearchParams();
-  const { setParsed, setSearchResult, status } = useApp();
+  const { parsed: savedParsed, setParsed, setSearchResult, status } = useApp();
   const q = params.get("q") || mashaQuery;
   const [request, setRequest] = useState<SearchRequest>({
     text: q,
+    parsed:
+      params.has("edit") && savedParsed?.text === q ? savedParsed : undefined,
     check_in: params.get("check_in"),
     check_out: params.get("check_out"),
     similar_to: params.get("similar_to"),
@@ -929,6 +1022,8 @@ export function SearchPage() {
   useEffect(() => {
     setRequest({
       text: q,
+      parsed:
+        params.has("edit") && savedParsed?.text === q ? savedParsed : undefined,
       check_in: params.get("check_in"),
       check_out: params.get("check_out"),
       similar_to: params.get("similar_to"),
@@ -971,6 +1066,7 @@ export function SearchPage() {
     !resource.data.parsed.must.length &&
     !resource.data.parsed.nice.length &&
     !resource.data.parsed.no_data_must?.length &&
+    !resource.data.parsed.rooms?.length &&
     !resource.data.parsed.similar_to;
   const groupOf = (hit: SearchHit) =>
     noCriteria && hit.group === "all" ? "browse" : hit.group;
@@ -995,15 +1091,10 @@ export function SearchPage() {
             {status.data?.hotel_count ?? "…"} отелей
           </span>
           <span>
-            {request.check_in
-              ? new Intl.DateTimeFormat("ru", {
-                  day: "numeric",
-                  month: "long",
-                }).format(new Date(request.check_in))
-              : "Даты не указаны"}
-            {request.check_out
-              ? ` — ${new Intl.DateTimeFormat("ru", { day: "numeric", month: "long" }).format(new Date(request.check_out))}`
-              : ""}
+            {tripDates(
+              (resource.data?.parsed ?? request).check_in ?? null,
+              (resource.data?.parsed ?? request).check_out ?? null,
+            )}
           </span>
         </div>
       </div>
@@ -1043,9 +1134,21 @@ export function SearchPage() {
           )}
           <ErrorState error={resource.error} retry={resource.reload} />
           {!!resource.data?.parsed.no_data_must?.length && (
-            <div className="clarification" role="status" data-testid="missing-required-data">
+            <div
+              className="clarification"
+              role="status"
+              data-testid="missing-required-data"
+            >
               <strong>Полное совпадение нельзя подтвердить</strong>
-              <p>Для обязательных условий пока нет данных: {resource.data.parsed.no_data_must.map((c) => c.label).join(", ")}. Ни один отель не считается совпавшим по всем обязательным условиям. Можно уточнить эти сведения у отеля или сделать условие желательным.</p>
+              <p>
+                Для обязательных условий пока нет данных:{" "}
+                {resource.data.parsed.no_data_must
+                  .map((c) => c.label)
+                  .join(", ")}
+                . Ни один отель не считается совпавшим по всем обязательным
+                условиям. Можно уточнить эти сведения у отеля или сделать
+                условие желательным.
+              </p>
             </div>
           )}
           {!noCriteria &&
@@ -1152,6 +1255,8 @@ export function SearchPage() {
                     <SearchCard
                       key={hit.hotel.id}
                       hit={hit}
+                      month={resource.data?.parsed.month || 9}
+                      roomRequests={resource.data?.parsed.rooms}
                       index={results.indexOf(hit)}
                       firstResultId={firstResultId}
                       active={activeId === hit.hotel.id}

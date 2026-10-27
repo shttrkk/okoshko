@@ -199,6 +199,8 @@ try {
     return route.fulfill({ body: bytes });
   });
   await context.route("**/api/**", async (route) => {
+    if (new URL(route.request().url()).pathname.endsWith("/rooms"))
+      return route.fulfill({ json: [] });
     const request = route.request(),
       path = new URL(request.url()).pathname;
     requests.push({ path, method: request.method() });

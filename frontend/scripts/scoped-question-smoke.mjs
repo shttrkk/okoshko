@@ -248,6 +248,7 @@ try {
     const request = route.request(),
       path = new URL(request.url()).pathname;
     requests.push({ path, method: request.method() });
+    if (path.endsWith("/rooms")) return route.fulfill({ json: [] });
     if (path === "/api/revision")
       return route.fulfill({
         json: { instance: "scoped-question-fixture", revision: 0 },
