@@ -66,12 +66,12 @@ export function landmarkHeightSource(source: unknown) {
   if (typeof source !== "string" || !source)
     return "Высота не подтверждена; видимость не рассчитана";
   if (source.includes("osm_building_levels"))
-    return "Высота модели по этажности здания на карте и модели поверхности";
+    return "Высота приблизительно по этажности на карте, с учётом рельефа";
   if (source.includes("osm_height"))
-    return "Высота из явной отметки на карте и модели поверхности";
+    return "Высота по отметке на карте, с учётом рельефа";
   if (source.includes("wikidata"))
-    return "Высота из Wikidata и модели поверхности";
-  if (source.includes("dsm")) return "Верх контура по модели поверхности";
+    return "Высота по Wikidata, с учётом рельефа";
+  if (source.includes("dsm")) return "Верх контура с учётом рельефа";
   return "Высота модели из сохранённого источника";
 }
 export function isSupplementalFact(fact: Fact) {

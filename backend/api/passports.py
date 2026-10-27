@@ -157,7 +157,12 @@ def _value_comparison(fact: Fact, criterion: Criterion | None = None) -> bool | 
         actual = value
         for part in field.split("."):
             actual = actual.get(part) if isinstance(actual, dict) else None
-        if field != "available" and value.get("available") is False:
+        # In prepared proximity data available=false means beyond its default
+        # radius, not a denial of a known distance under an edited threshold.
+        independent_metric = (fact.characteristic_id in {"airport_noise", "veterinary_nearby", "pet_shop_nearby"}
+                              and isinstance(actual, int | float) and not isinstance(actual, bool))
+        independent_fallback = fact.characteristic_id == "dog_walk" and field.startswith("ordinary_park_fallback.")
+        if field != "available" and value.get("available") is False and not independent_metric and not independent_fallback:
             return False
     if actual is None:
         return None
@@ -195,6 +200,8 @@ def _value_comparison(fact: Fact, criterion: Criterion | None = None) -> bool | 
 def _comparison(fact: Fact, criterion: Criterion | None = None) -> bool | None:
     """Conjoin the numeric/boolean condition with known route constraints."""
     if fact.status not in {"computed", "confirmed"} or fact.value is None or fact.valid_until and fact.valid_until <= now():
+        return None
+    if criterion and criterion.scope and not same_target(criterion.scope, fact.scope):
         return None
     primary = _value_comparison(fact, criterion)
     route = route_constraints(fact, criterion) if criterion else True
@@ -240,12 +247,19 @@ def _stored_criteria(stored: dict) -> list[Criterion]:
     return [Criterion.model_validate(value) for value in values]
 
 
+def same_target(wanted: Scope, actual: Scope) -> bool:
+    # Target identity qualifies a fact, not the physical position of the room.
+    return wanted.landmark_id is None or wanted.landmark_id == actual.landmark_id
+
+
 def _combine_scope(wanted: Scope, actual: Scope) -> Scope | None:
-    if not scopes_compatible([wanted, actual]):
+    if (not scopes_compatible([wanted, actual]) or wanted.landmark_id and actual.landmark_id
+            and wanted.landmark_id != actual.landmark_id):
         return None
     data = wanted.model_dump()
-    for key in ("facade", "room_type", "month"):
-        data[key] = data[key] or getattr(actual, key)
+    for key in ("facade", "room_type", "month", "landmark_id"):
+        if data.get(key) is not None or getattr(actual, key) is not None:
+            data[key] = data.get(key) or getattr(actual, key)
     data["floor_min"] = max(filter(None, [wanted.floor_min, actual.floor_min]), default=None)
     data["floor_max"] = min(filter(None, [wanted.floor_max, actual.floor_max]), default=None)
     data["type"] = "room_type" if data["room_type"] else "floor_range" if data["facade"] and (data["floor_min"] or data["floor_max"]) else "facade" if data["facade"] else "hotel"
@@ -255,7 +269,8 @@ def _combine_scope(wanted: Scope, actual: Scope) -> Scope | None:
 def _fact_candidates(item: PassportItem, facts: list[Fact], criteria: list[Criterion]):
     candidates = []
     for fact in facts:
-        if fact.characteristic_id != item.characteristic_id or not _all_hold(fact, criteria):
+        if (fact.characteristic_id != item.characteristic_id or not same_target(item.scope, fact.scope)
+                or not _all_hold(fact, criteria)):
             continue
         actual_scope = _effective_scope(fact)
         scope = _combine_scope(item.scope, actual_scope) if actual_scope else None
@@ -527,7 +542,7 @@ def passport_action(passport_id: str, request: PassportAction, repo, *, principa
                 all_related = [fact for fact in facts if fact.characteristic_id == item.characteristic_id
                                and (not grouped_passport or _group_month_applies(fact, item.scope.month))]
                 related = [fact for fact in all_related if (actual_scope := _effective_scope(fact)) is not None
-                           and scopes_compatible([item.scope, actual_scope])]
+                           and scopes_compatible([item.scope, actual_scope]) and same_target(item.scope, actual_scope)]
                 stored = repo.get("passport_items", item.id) or {}
                 item_criteria = _stored_criteria(stored)
                 eligible = [fact for fact in related if _all_hold(fact, item_criteria)]

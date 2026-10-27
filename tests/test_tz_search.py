@@ -180,7 +180,7 @@ def test_airport_exposure_only_softly_changes_a_requested_quiet_score():
     exposed = rank_hotels(hotels, [quiet, risk], parsed, catalogue())[0]
     assert exposed.group == plain.group == 'all'
     assert exposed.score < plain.score
-    assert any('геометрический риск' in note for note in exposed.disappointments)
+    assert any('Слышимость самолётов' in note and 'неизвестны' in note for note in exposed.disappointments)
     distant = risk.model_copy(update={'value': {'available': False, 'runway_distance_m': 20000}})
     assert rank_hotels(hotels, [quiet, distant], parsed, catalogue())[0].score == plain.score
 

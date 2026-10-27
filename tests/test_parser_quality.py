@@ -300,3 +300,11 @@ def test_atomic_publication_failure_keeps_old_artifact_and_removes_temp_file(tmp
     with pytest.raises(OSError):
         parser_eval.write_report(path, {"new": True})
     assert path.read_text() == '{"old":true}' and list(tmp_path.iterdir()) == [path]
+
+
+def test_new_landmark_catalogue_invalidates_old_parser_measurement(measured):
+    _, data, _, _ = measured
+    directory = data / 'landmarks'
+    directory.mkdir()
+    (directory / 'sochi.yaml').write_text('landmarks: []\n')
+    assert_unavailable(read(measured), 'catalogue_changed_recompute_required')

@@ -409,6 +409,7 @@ class SearchRequest(Model):
     parsed: ParsedQuery | None = None
     similar_to: str | None = None
     limit: int = Field(default=20, ge=1, le=250)
+    compact: bool = False
 
     @model_validator(mode="after")
     def dates(self) -> SearchRequest:

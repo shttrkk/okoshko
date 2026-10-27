@@ -35,7 +35,7 @@ REVISION_TABLES = frozenset({"hotels", "characteristics", "questions", "answers"
                              "change_events", "expectation_passports", "passport_items"})
 
 COMPACT_FACT = """(payload-'evidence') || jsonb_build_object('evidence', COALESCE(
-    (SELECT jsonb_agg((evidence-'inputs'-'output') || jsonb_build_object('inputs',
+    (SELECT jsonb_agg((evidence-'inputs'-'output'-'limitations') || jsonb_build_object('inputs',
       jsonb_strip_nulls(jsonb_build_object(
         'facade_azimuth_deg', evidence->'inputs'->'facade_azimuth_deg',
         'window_half_angle_deg', evidence->'inputs'->'window_half_angle_deg'))))
@@ -46,7 +46,7 @@ COMPACT_FACT = """(payload-'evidence') || jsonb_build_object('evidence', COALESC
 def search_fact(value: dict) -> dict:
     """Retain small geometry scalars used by explanations, never raw arrays."""
     return {**value, "evidence": [
-        {**{key: field for key, field in evidence.items() if key not in {"inputs", "output"}},
+        {**{key: field for key, field in evidence.items() if key not in {"inputs", "output", "limitations"}},
          "inputs": {key: field for key, field in evidence.get("inputs", {}).items()
                     if key in {"facade_azimuth_deg", "window_half_angle_deg"} and field is not None}}
         for evidence in value.get("evidence", [])]}
@@ -370,7 +370,8 @@ class Repository:
             return conn.execute("SELECT md5(string_agg(id,',' ORDER BY id)) FROM claims WHERE (payload->>'valid_until')::timestamptz <= now()").fetchone()[0]
 
     def search_facts(self, characteristic_ids: list[str] | None = None, month: int | None = None) -> list[dict]:
-        # Keep evidence references, quotes and limitations; omit repeated raw calculation payloads.
+        # Keep references and quotes. Full source-method limitations are loaded
+        # by the evidence API, rather than repeated in every search snapshot.
         query = "SELECT " + COMPACT_FACT + " FROM facts"
         with self._search_lock:
             if self._search_snapshot is None:

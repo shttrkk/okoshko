@@ -55,3 +55,15 @@ def test_geo_passes_selected_room_and_durable_changes_to_saved_landmark_layer(tm
     assert overlay.call_args.args == ('test-hotel', 10, 'W', 5)
     assert overlay.call_args.kwargs == {'data_dir': tmp_path, 'events': changes}
     assert result['landmark_metadata'][0]['height_available'] is False
+
+
+def test_compact_values_keep_unknowns_route_metrics_and_target_identity_without_raw_indexes():
+    value = {'available': None, 'unknown_reason': 'height unavailable', 'landmark_id': 'fisht',
+             'target': {'raw': [1, 2]}, 'blocking_building_ids': ['b'],
+             'route': {'minutes': 6.7, 'distance_m': 500, 'has_steps': False, 'node_ids': [1, 2]},
+             'water_c': 22.1, 'annual_samples': [{'year': 2025}], 'rainy_days': 10}
+    result = catalog.compact_fact_value(value)
+    assert result == {'available': None, 'unknown_reason': 'height unavailable', 'landmark_id': 'fisht',
+                      'route': {'minutes': 6.7, 'distance_m': 500, 'has_steps': False},
+                      'water_c': 22.1, 'rainy_days': 10}
+    assert value['blocking_building_ids'] == ['b'] and value['route']['node_ids'] == [1, 2]

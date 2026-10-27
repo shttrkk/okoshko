@@ -218,10 +218,22 @@ def detail(hotel_id: str, repo, **kwargs) -> HotelDetail:
     return details([hotel_id], repo, **kwargs)[0]
 
 
+def compact_fact_value(value):
+    """Calculation inputs and long indexes belong in lazy evidence, not every card."""
+    deferred = {"node_ids", "blocking_building_ids", "calculation_parameters", "annual_samples",
+                "water_download", "candidates", "target", "sources", "model", "value_semantics"}
+    if isinstance(value, dict):
+        return {key: compact_fact_value(field) for key, field in value.items() if key not in deferred}
+    if isinstance(value, list):
+        return [compact_fact_value(field) for field in value]
+    return value
+
+
 def compact_payload(value: HotelDetail) -> dict:
     """Omit optional empty evidence fields; validators restore their defaults."""
     payload = value.model_dump(mode="json")
     for fact in payload["facts"]:
+        fact["value"] = compact_fact_value(fact.get("value"))
         if fact.get("synthetic") is False:
             fact.pop("synthetic")
         if fact.get("conflicting_claim_ids") == []:
@@ -237,6 +249,53 @@ def compact_payload(value: HotelDetail) -> dict:
                 if evidence.get(key) is None or evidence.get(key) == {}:
                     evidence.pop(key, None)
     return payload
+
+
+def search_explanations(hits, fact_rows):
+    """Keep actionable caveats; load repeated source-method limitations as proof."""
+    limits = defaultdict(set)
+    for fact in fact_rows:
+        for evidence in fact.get("evidence", []):
+            for limitation in evidence.get("limitations", []):
+                limits[fact["hotel_id"]].update(part.strip() for part in limitation.split("; "))
+
+    def brief(text, omitted):
+        if not text:
+            return text
+        return "; ".join(part for part in text.split("; ") if part.strip() not in omitted) or None
+
+    def profile(value, omitted):
+        if value is None:
+            return None
+        return value.model_copy(update={"caveats": [short for text in value.caveats if (short := brief(text, omitted))]})
+
+    result = []
+    for hit in hits:
+        omitted = limits[hit.hotel.id]
+        verdicts = [verdict.model_copy(update={"caveat": brief(verdict.caveat, omitted)}) for verdict in hit.verdicts]
+        rooms = [room.model_copy(update={
+            "verdicts": [verdict.model_copy(update={"caveat": brief(verdict.caveat, omitted)}) for verdict in room.verdicts],
+            "profile": profile(room.profile, omitted),
+            "caveats": [short for text in room.caveats if (short := brief(text, omitted))],
+        }) for room in hit.room_plan]
+        result.append(hit.model_copy(update={"verdicts": verdicts, "room_plan": rooms,
+                                             "room_profile": profile(hit.room_profile, omitted)}))
+    return result
+
+
+def bounded_search_page(result: SearchResult, budget: int = 390_000) -> SearchResult:
+    """A requested limit is an upper bound; retain a complete ranked prefix."""
+    envelope = result.model_copy(update={"results": []}).model_dump_json().encode("utf-8")
+    used, kept = len(envelope), []
+    for hit in result.results:
+        amount = len(hit.model_dump_json().encode("utf-8")) + bool(kept)
+        if used + amount > budget:
+            break
+        kept.append(hit)
+        used += amount
+    if result.results and not kept:
+        raise HTTPException(413, "Слишком много условий для одной карточки. Сократите запрос и попробуйте снова.")
+    return result.model_copy(update={"results": kept})
 
 
 @router.get("/revision")
@@ -366,6 +425,7 @@ def search(body: SearchRequest, repo=_REPO):
     from backend.agents.ranker import rank_hotels, similar_hotels
     started = time.monotonic()
     trace = Trace(repo, "search", trigger="user")
+    rows = []
     try:
         # Capture before reading either catalog or facts. A concurrent write at
         # any point during parsing/ranking must not cache an older snapshot.
@@ -401,6 +461,8 @@ def search(body: SearchRequest, repo=_REPO):
             all_criteria = [*parsed.must, *parsed.nice, *parsed.no_data,
                             *[c for room in parsed.rooms for c in [*room.must, *room.nice, *room.no_data]]]
             ids = None if reference else sorted({criterion.characteristic_id for criterion in all_criteria} | ROOM_CHARACTERISTICS | {"beach_walk"})
+            if ids is not None and any(c.characteristic_id == "quiet_night" for c in all_criteria):
+                ids = sorted({*ids, "airport_noise"})
             # Similarity uses a September profile; explicit extra conditions
             # still require their requested month, rather than September data.
             fact_month = None if reference and (parsed.must or parsed.nice or parsed.no_data or parsed.rooms) and parsed.month != 9 else 9 if reference else parsed.month
@@ -435,8 +497,10 @@ def search(body: SearchRequest, repo=_REPO):
         trace.step("search", "decision", "Ранжирование по фактам", output={"total": len(hits), "hotel_ids": [hit.hotel.id for hit in hits[:body.limit]]},
                    rationale="Обязательные условия проверены для совместимой стороны и этажей; неизвестное не засчитано как выполненное")
         trace.finish()
-        result = SearchResult(parsed=parsed, results=hits[:body.limit], total=len(hits),
+        result = SearchResult(parsed=parsed, results=search_explanations(hits[:body.limit], rows), total=len(hits),
                               latency_ms=(time.monotonic()-started)*1000, run_id=trace.run.id, mode=parsed.mode)
+        if body.compact:
+            result = bounded_search_page(result)
         repo.insert("search_queries", {"id": uid(), "text": body.text, "parsed": parsed.model_dump(mode="json"),
                                       "results": [hit.hotel.id for hit in result.results], "latency_ms": result.latency_ms,
                                       "created_at": now().isoformat(), "run_id": trace.run.id})

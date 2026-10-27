@@ -1,33 +1,33 @@
 {
   "methodology": "Authored synthetic intent cases, without independent human validation; not hotel accuracy or nDCG. no_data uses explicit authoritative fixture context; similarity uses existing catalogue resolver.",
   "gold": {
-    "queries": 247,
-    "exact_matches": 224,
-    "exact_match_rate": 0.906883,
-    "criterion_precision": 0.996743,
-    "criterion_recall": 0.968354,
-    "criterion_true_positive": 306,
-    "criterion_expected": 316,
-    "criterion_actual": 307,
-    "criteria_exact_match_rate": 0.955466,
+    "queries": 271,
+    "exact_matches": 248,
+    "exact_match_rate": 0.915129,
+    "criterion_precision": 0.996979,
+    "criterion_recall": 0.970588,
+    "criterion_true_positive": 330,
+    "criterion_expected": 340,
+    "criterion_actual": 331,
+    "criteria_exact_match_rate": 0.95941,
     "unmapped_expectation_accuracy": 0.947368,
     "unmapped_evaluated_queries": 247,
-    "queries_with_unmapped": 20
+    "queries_with_unmapped": 21
   },
   "splits": {
     "development": {
-      "queries": 197,
-      "exact_matches": 190,
-      "exact_match_rate": 0.964467,
-      "criterion_precision": 0.995935,
-      "criterion_recall": 0.976096,
-      "criterion_true_positive": 245,
-      "criterion_expected": 251,
-      "criterion_actual": 246,
-      "criteria_exact_match_rate": 0.964467,
+      "queries": 221,
+      "exact_matches": 214,
+      "exact_match_rate": 0.968326,
+      "criterion_precision": 0.996296,
+      "criterion_recall": 0.978182,
+      "criterion_true_positive": 269,
+      "criterion_expected": 275,
+      "criterion_actual": 270,
+      "criteria_exact_match_rate": 0.968326,
       "unmapped_expectation_accuracy": 1.0,
       "unmapped_evaluated_queries": 197,
-      "queries_with_unmapped": 5
+      "queries_with_unmapped": 6
     },
     "holdout": {
       "queries": 50,
@@ -60,18 +60,18 @@
       "queries_with_unmapped": 1
     },
     "semantic_extraction": {
-      "queries": 237,
-      "exact_matches": 215,
-      "exact_match_rate": 0.907173,
-      "criterion_precision": 0.996575,
-      "criterion_recall": 0.966777,
-      "criterion_true_positive": 291,
-      "criterion_expected": 301,
-      "criterion_actual": 292,
-      "criteria_exact_match_rate": 0.953586,
+      "queries": 261,
+      "exact_matches": 239,
+      "exact_match_rate": 0.915709,
+      "criterion_precision": 0.996835,
+      "criterion_recall": 0.969231,
+      "criterion_true_positive": 315,
+      "criterion_expected": 325,
+      "criterion_actual": 316,
+      "criteria_exact_match_rate": 0.957854,
       "unmapped_expectation_accuracy": 0.949367,
       "unmapped_evaluated_queries": 237,
-      "queries_with_unmapped": 19
+      "queries_with_unmapped": 20
     },
     "similarity_resolution": {
       "queries": 3,
@@ -89,7 +89,7 @@
     }
   },
   "negative": {
-    "queries": 124,
+    "queries": 131,
     "queries_with_false_criteria": 0,
     "false_criteria_rate": 0.0,
     "criteria_emitted": 0
@@ -768,50 +768,68 @@
   "input_fingerprint": {
     "version": 1,
     "parser_sha256": {
-      "backend/agents/query_parser.py": "23338308e489f41630739ebf0d57c46758e8598d0e2d943262a48ecd63604e7e",
-      "backend/agents/group_query.py": "1766ff6b9a5b42e4d6df0a0b590661e17ddbb7837202b4c82997876605d75454",
-      "backend/agents/query_text.py": "112f46f91203c04f4d5dbb838accde773227f6d81e91ca569c0df2578319bdaf",
-      "backend/agents/query_rules.py": "1928337335eee94dcb69fd553311a15e535946af34f1d087c6e2a342bfac3a13",
+      "backend/agents/query_parser.py": "e5c1d6553e2f229dfc124298b6290d49ccbf6fa0019c067dfc82e41cdd95e7d8",
+      "backend/agents/group_query.py": "3f1b5ff15fb4e9b1f96f3fd964964e747a65850457bfffce8e1ccdd4ab286853",
+      "backend/agents/query_text.py": "7587ff00de4113fe88ea75ec13ddf661130f6ecee9b3a6606e51520b2f7f9e05",
+      "backend/agents/query_rules.py": "c56026b893b57da9a9f395e7e532be309977e03dcb1e33fd0cf7e2fd0e29971e",
       "backend/agents/similarity.py": "63de24b7e952a878752080aee6d3a7addbab9d889970b0c591aeb4928097e8c4",
       "backend/contracts/__init__.py": "c7a5746ac4519ef52c85b62f9346a0537f39db8604ee732237f08cd2055bc8f1",
-      "backend/contracts/models.py": "a8cacd8d57802fa52ff872f75fc7917b725e9846e2499713b436ce98f7b9ad87",
-      "backend/tools/registry.py": "8d5de1d0071e13f37075413d8b0a6009a32c7b9fade06b6e641a7bdac98dc424",
-      "backend/parser_quality.py": "565c904961bff176488fd1faed871d68dc9eb632a33bc1a329cbefd83153fc9f",
+      "backend/contracts/models.py": "8113524afb5f27e3a56117f03450cbbc43f56020def831cfd7ffd1b4ae8fac06",
+      "backend/tools/registry.py": "6e53450d5a2d9abefca367e1ea0dc93ed3b9e1b3ebc3fd1b57639f99895d3fca",
+      "backend/parser_quality.py": "e6672c6a975fbba626809222e7a57ef5419b5a58ddad9d1e49b4e211a6626830",
       "scripts/parser_eval.py": "694851c50ef1509832c6af6cacbdc2b127c17e395a1b415c3f5324802569ad70"
     },
     "catalogue_sha256": {
       "characteristics/accessible_route.yaml": "710667ade89a9d60f214a744ae11d25fe8c9a2b798da505765740f2ce933229a",
       "characteristics/air_quality.yaml": "42f8486a2aa10fd71891e7d1df393ca398732b8e70837f015f95bae61020c719",
+      "characteristics/airport_noise.yaml": "5450c6f5204ca5a9848a00bdb7a1893a576a6fef4f7ee6f62687fac333f12efc",
+      "characteristics/airport_transfer.yaml": "154481ca8a5edbd1394d69af7aaa0ce4a83defdfd303c39a6baaeb563ef717bd",
       "characteristics/beach_surface.yaml": "b26dd7536e057c8b92cda1a9f40192237c1e82a18ce01a8ec1b184ffaa878546",
       "characteristics/beach_walk.yaml": "22051fe1c2a7db825e32f8d0fc5670c9749413de8ee68a155bb7d95268888780",
-      "characteristics/building_history.yaml": "c386d709efa61c253cdc15fad50661ace4820379658598f8988dbf0a74ecf0d3",
-      "characteristics/car_access.yaml": "7495f1d933abd87bb13d47bda44db3b0d004ddda4044a4f767d3c48395ce0446",
+      "characteristics/building_history.yaml": "1171b1a3df65ad17a9e439d9da8308383c5b004506b03f8c48c1ba7641ce91b9",
+      "characteristics/car_access.yaml": "7b6c24a0b9ef573e0fa237c5cc60de394e82ebed7bbbe96602c77fa2d50a56ad",
+      "characteristics/car_arrival.yaml": "089016279426d85041281418597e991fc49394f677dbc3a5e4cf2b34fe2f43bf",
       "characteristics/climate.yaml": "f827618c65fe9beef2f8a7a226b9f4258769f673f9bb145320811c4f132f015f",
+      "characteristics/climate_days.yaml": "e68deb3786e09531db207423cc8fd503420f4dac636f7f1e92c2b99d4812c30f",
       "characteristics/connectivity.yaml": "aa7e40cf76e307d74fae86adcec4384f80a5a944ed30c7fea12a7fe3f27207c9",
+      "characteristics/construction_nearby.yaml": "7ff8e7e1ac975d6dc0da903c894ea948f50fdd7e27a3603eb5f188e6f324cb9c",
+      "characteristics/dog_walk.yaml": "6daaeb657f328ecf8968da2156555211947373edc09e7f276fb004a4655f2d0c",
       "characteristics/evening_heat.yaml": "6204b8e235c37933ffd772f21844203e32082c807ae33766dff16d9d3ad2c17c",
-      "characteristics/family_nearby.yaml": "8ec9364847cea590c8083acd02e0e68fbf9164d1b8eb4ea7cb6a199b2fd6d12b",
+      "characteristics/events_nearby.yaml": "9997329a21de3fcde2455e6bf95dfe1ae5f78952e38db2b93acf0f3ae3db2b8e",
+      "characteristics/family_nearby.yaml": "33239bd688fe733aa5a4fa479581e070e98bdaa0f74517a33436c788f75fb6da",
       "characteristics/green_nearby.yaml": "2e06ae77aaa073abdd2b63473725cb6c11edf23bb063295d03bf676140f3de74",
+      "characteristics/hotel_parking.yaml": "8920e60dc1b5cf818d7c26380883a36c7950216b8013e9e5f2a2f4db8be83372",
+      "characteristics/landmark_view.yaml": "1f0ff550ef18da55047fdbff70addda966407bbccea493ab24581ae61a9eebb4",
+      "characteristics/location_access.yaml": "5f196ad40cfa0f756be1afe2bbab6890cfc8a754e60d86df7e3c60b9fe24e22f",
+      "characteristics/mobile_internet.yaml": "78382348af971f410def3a0d5e80489651cd78a68ca833c78528ad67b4680b1e",
+      "characteristics/mobile_masts.yaml": "7c89f79f68acd562c68fa4afbc5390bc0fef8000913305c3c75af90f38b08acc",
       "characteristics/morning_sun.yaml": "3a12c8e57d2716e1efbdb90bfe3423373046c007c34982ee67c0ade9baf0e7f8",
       "characteristics/mountain_view.yaml": "3558b687ef0abcb3d2ce1b96b5b131a5305d317f8c0baaf63b4d85895995207b",
       "characteristics/nearby_photos.yaml": "b28b37c4545aa4604056c9764ef60f52ac0a7a53aa6c2ac6a575da81e2a3e6ee",
+      "characteristics/night_open.yaml": "e67b15bfc035a043c04f4d80c2564e051b49ebfb8557a16b7f4f82005d93d884",
       "characteristics/night_pharmacy.yaml": "29610377abcc057c88f74dc011461b1f1dfb58f6cab814dd43b005993c46d69b",
       "characteristics/nightlife.yaml": "7b81e5b4af43a7fe5f31a466c23240ab62dde72cdd502754bcd678878f5c7c24",
+      "characteristics/pet_shop_nearby.yaml": "9d995de5f66df69785a2116a508159db4c2317e20b07899383fba04e9ebdeb1c",
       "characteristics/pets.yaml": "69862fe40b4f88a9eb026252e672ae7c6f090096f37e3bd0034c7f9ddc75379c",
+      "characteristics/photo_features.yaml": "23027caeb09797e0ede19b61929c422d7c3f337c2257f03f2689ef34b061125e",
       "characteristics/quiet_night.yaml": "f78f48d37c0aca4aabb45245386ff0e5a62c42af5d635083952c7db8962fc2aa",
       "characteristics/railway_noise.yaml": "8e96459bd6e64dd99740ec2658a08b838bef980249e50aed5c217b23dd7ac7f2",
       "characteristics/room_orientation.yaml": "068cab8652ff657f759640b25802ca04dbe0a4e1bcf86f269e44c1ed3b24a4d1",
       "characteristics/sea_view.yaml": "254ca872b8fb214262d4dc884e934018092479f4bb6ff5bb4e956dc895b92933",
       "characteristics/soundproofing.yaml": "470bc425c746f5a2a1695b5390b0d1ce5a1eed379855dc9a18d3c602e0e1c61f",
-      "characteristics/sunset_view.yaml": "2cc43abdaeeeef5a3763245fbbd229cf2746838cdc7e51806d06dd65f9c0f69f"
+      "characteristics/sunset_view.yaml": "2cc43abdaeeeef5a3763245fbbd229cf2746838cdc7e51806d06dd65f9c0f69f",
+      "characteristics/veterinary_nearby.yaml": "f8407b53c7685c00d59a73be9806c2073f87dd8239d71f919deef9e3a2bd28c2",
+      "landmarks/location_centers.yaml": "1afb613f25c3e5b3168986b7b2aabe1bb3438352cd29417b74ee6bdd1cd99b45",
+      "landmarks/sochi.yaml": "e0a7eb955d41a9614ff9c0e8eb0581abbf22214c7d4cac829dc757bd670d0e15"
     },
     "corpora": {
       "gold": {
         "path": "eval/queries_gold.jsonl",
-        "sha256": "449373d5b1802de1b5910aefe121fa744761a5470fe3c8dfa9fcc9e0c863d0c0"
+        "sha256": "43eada069b04b811291bbede294160f00d8fb9b17b3a2271380791b6a3125dd6"
       },
       "negative": {
         "path": "eval/queries_negative.jsonl",
-        "sha256": "d48ef67873bcb1d577f923cf4a392e798e6c5865bfb88faf77bc97e194dc8570"
+        "sha256": "067dee59e4922db0a8713928f8eb1969d2fc9a6e313e2ff5e85931d33fdb2d2c"
       }
     },
     "fixture_sha256": {
@@ -823,7 +841,7 @@
     "evaluation_year": 2026
   },
   "corpus_sha256": {
-    "gold": "449373d5b1802de1b5910aefe121fa744761a5470fe3c8dfa9fcc9e0c863d0c0",
-    "negative": "d48ef67873bcb1d577f923cf4a392e798e6c5865bfb88faf77bc97e194dc8570"
+    "gold": "43eada069b04b811291bbede294160f00d8fb9b17b3a2271380791b6a3125dd6",
+    "negative": "067dee59e4922db0a8713928f8eb1969d2fc9a6e313e2ff5e85931d33fdb2d2c"
   }
 }

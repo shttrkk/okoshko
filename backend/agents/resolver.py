@@ -526,12 +526,13 @@ def reconcile_conflicts(repo, conflicts: list[Conflict], hotel_ids: set[str]) ->
             repo.upsert("conflicts", payload)
 
 
-def resolve_hotel(hotel_id: str, repo) -> list[Fact]:
+def resolve_hotel(hotel_id: str, repo, *, events: list[dict] | None = None) -> list[Fact]:
     claims = [Claim.model_validate(value) for value in repo.find("claims", hotel_id=hotel_id)]
     specs = [CharacteristicSpec.model_validate(value) for value in repo.all("characteristics")]
     hotel = repo.get("hotels", hotel_id) or {}
     facts, conflicts = resolve_claims(hotel_id, claims, specs, repo.all("sources"), known_floors=hotel.get("floors"))
-    events = [event for event in repo.all('change_events') if hotel_id in event.get('affected_hotel_ids', [])]
+    if events is None:
+        events = [event for event in repo.all('change_events') if hotel_id in event.get('affected_hotel_ids', [])]
     facts = stale_prepared_landmarks(facts, events)
     if hasattr(repo,"replace_facts"):
         repo.replace_facts(hotel_id,[fact.model_dump(mode="json") for fact in facts])

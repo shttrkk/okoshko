@@ -5722,6 +5722,11 @@
             "minimum": 1.0,
             "title": "Limit",
             "default": 20
+          },
+          "compact": {
+            "type": "boolean",
+            "title": "Compact",
+            "default": false
           }
         },
         "additionalProperties": false,

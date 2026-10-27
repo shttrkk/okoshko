@@ -223,6 +223,7 @@ export interface SearchResult {
   mode: Mode;
 }
 export interface SearchRequest {
+  compact?: boolean;
   text: string;
   check_in?: string | null;
   check_out?: string | null;

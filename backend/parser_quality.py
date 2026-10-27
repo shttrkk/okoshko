@@ -85,7 +85,8 @@ def parser_input_fingerprint(
         "parser_sha256": {name: _sha256(source_root / name) for name in PARSER_FILES},
         "catalogue_sha256": {
             path.relative_to(data_dir).as_posix(): _sha256(path)
-            for path in sorted((data_dir / "characteristics").glob("*.yaml"))
+            for path in sorted([*(data_dir / "characteristics").glob("*.yaml"),
+                                *(data_dir / "landmarks").glob("*.yaml")])
         },
         "corpora": {
             name: {"path": _corpus_path(path, data_dir), "sha256": _sha256(path)}

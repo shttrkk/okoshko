@@ -69,7 +69,7 @@ def _tz_details(fact: Fact, criterion: Criterion) -> str | None:
         detail = ('до взлётной полосы ' + approximate(distance) + ' м по карте') if distance is not None else 'расстояние до полосы неизвестно'
         if value.get('in_corridor') is True:
             detail += '; отель под продолжением оси полосы'
-        return detail + '. Это геометрический риск, слышимость и ночные рейсы неизвестны'
+        return detail + '. Слышимость самолётов и ночные рейсы неизвестны'
     if cid == 'airport_transfer':
         transfers = value.get('transfers')
         if transfers is not None:
@@ -304,7 +304,7 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
         text = prefixes[match.status] + ": " + match.reason + ("; " + detail if detail else "")
     caveats = []
     if match.risk_facts:
-        caveats.append('Рядом аэропорт или коридор захода: геометрический риск снижает оценку тишины; слышимость самолётов и ночные рейсы не измерялись')
+        caveats.append('Рядом аэропорт или направление захода самолётов: учитываем это при оценке тишины; слышимость и ночные рейсы не измерялись')
     if match.status in {"unknown", "partial", "no"}:
         caveats.append(match.reason)
     if match.reason == FLOOR_DOMAIN_UNKNOWN:

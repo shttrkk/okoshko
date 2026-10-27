@@ -268,7 +268,7 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
     if route_field and route_field[0] in value:
         actual = value_at(fact, '.'.join(route_field))
     if fact.characteristic_id == 'airport_noise' and field_name == 'noise_db':
-        return Match(facts=[fact], reason='Слышимость самолётов не измерялась; карта показывает только геометрическую близость к полосе и коридору', value=actual)
+        return Match(facts=[fact], reason='Слышимость самолётов не измерялась; по карте известны расстояние до взлётной полосы и направление захода', value=actual)
     if fact.characteristic_id == 'mobile_masts' and field_name == 'available':
         return Match(facts=[fact], reason='Число мачт на карте не подтверждает покрытие 4G/5G или скорость мобильного интернета')
     if fact.characteristic_id == 'building_history' and field_name == 'available':

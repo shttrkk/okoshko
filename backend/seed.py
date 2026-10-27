@@ -5,6 +5,7 @@ import csv
 import gzip
 import json
 import logging
+import time
 from pathlib import Path
 
 import psycopg
@@ -113,8 +114,12 @@ def load_seed(data_dir: Path = DATA):
     logging.info("Address supplement: %s", apply_address_supplement(data_dir, DB_URL))
     logging.info("Seed ready: %s hotels", get_repo().count("hotels"))
     if get_repo().count("hotels"):
+        phase_started = time.monotonic()
         bootstrap_poi(get_repo(),data_dir)
+        logging.info("Local POI ready in %.3fs", time.monotonic() - phase_started)
+        phase_started = time.monotonic()
         logging.info("Resolver materialized %s", resolve_all(get_repo()))
+        logging.info("Materialization completed in %.3fs", time.monotonic() - phase_started)
         seed_collect_run(get_repo())
         from backend.agents.freshness import seed_change_event
         event = seed_change_event(get_repo(), data_dir)

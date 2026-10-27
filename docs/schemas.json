@@ -5807,6 +5807,11 @@
         "minimum": 1,
         "title": "Limit",
         "type": "integer"
+      },
+      "compact": {
+        "default": false,
+        "title": "Compact",
+        "type": "boolean"
       }
     },
     "title": "SearchRequest",

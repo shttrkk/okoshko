@@ -258,7 +258,7 @@ export const api = {
       list.map((s) => ({ ...s, name_ru: s.display_name || s.name_ru })),
     ),
   search: (body: SearchRequest, signal?: AbortSignal) =>
-    request<SearchResult>("/api/search", body, signal),
+    request<SearchResult>("/api/search", { ...body, compact: true }, signal),
   hotel: (hotelId: string, parsed?: ParsedQuery | null) =>
     parsed
       ? request<HotelDetail>(
