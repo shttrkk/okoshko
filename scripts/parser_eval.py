@@ -8,9 +8,10 @@ are reported separately and do not imply that text parsing can infer coverage.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
+import os
 import sys
+import tempfile
 from collections import Counter
 from pathlib import Path
 
@@ -23,6 +24,7 @@ from backend.agents.query_parser import parse_query  # noqa: E402
 from backend.agents.query_rules import apply_region_coverage  # noqa: E402
 from backend.agents.similarity import reference_hotel  # noqa: E402
 from backend.contracts import CharacteristicSpec, Hotel, SearchRequest  # noqa: E402
+from backend.parser_quality import MEASURED, parser_input_fingerprint  # noqa: E402
 
 GROUPS = ('must', 'nice', 'no_data')
 CRITERION_KEYS = ('characteristic_id', 'field', 'op', 'value', 'scope', 'no_stairs', 'no_crossings')
@@ -139,6 +141,41 @@ def evaluate(gold: list[dict], negatives: list[dict], catalog=None, hotels=None)
             'failures': [row for row in [*results, *negative_results] if not row['exact']]}
 
 
+def produce_report(gold_path: Path, negative_path: Path, *, split: str | None = None) -> dict:
+    """Keep evaluation metrics intact and attest the actual offline input bytes."""
+    fingerprint = parser_input_fingerprint(ROOT/'data', source_root=ROOT,
+                                           gold_path=gold_path, negative_path=negative_path, split=split)
+    if not fingerprint['catalogue_sha256'] or any(value is None for value in fingerprint['parser_sha256'].values()):
+        raise ValueError('Parser sources and characteristic YAMLs must exist before measurement')
+    gold = load_jsonl(gold_path)
+    if split:
+        gold = [row for row in gold if row['split'] == split]
+    report = evaluate(gold, load_jsonl(negative_path))
+    after = parser_input_fingerprint(ROOT/'data', source_root=ROOT,
+                                     gold_path=gold_path, negative_path=negative_path, split=split)
+    if fingerprint != after:
+        raise RuntimeError('Parser evaluation inputs changed during measurement; no report published')
+    report.update({'status': MEASURED, 'human_labeled': False, 'synthetic': True,
+                   'input_fingerprint': fingerprint,
+                   'corpus_sha256': {name: value['sha256'] for name,value in fingerprint['corpora'].items()}})
+    return report
+
+
+def write_report(path: Path, report: dict) -> None:
+    """Publish atomically so the optional quality reader never sees partial JSON."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=path.parent,
+                                         prefix='.'+path.name+'.', suffix='.tmp', delete=False) as file:
+            temporary = Path(file.name)
+            file.write(json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False)+'\n')
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--gold', type=Path, default=ROOT/'data/eval/queries_gold.jsonl')
@@ -147,15 +184,9 @@ def main() -> None:
     parser.add_argument('--output', type=Path)
     parser.add_argument('--failures', action='store_true')
     args = parser.parse_args()
-    gold = load_jsonl(args.gold)
-    if args.split:
-        gold = [row for row in gold if row['split'] == args.split]
-    report = evaluate(gold, load_jsonl(args.negative))
-    report['corpus_sha256'] = {name: hashlib.sha256(path.read_bytes()).hexdigest()
-                               for name, path in [('gold', args.gold), ('negative', args.negative)]}
+    report = produce_report(args.gold, args.negative, split=args.split)
     if args.output:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2)+'\n')
+        write_report(args.output, report)
     print(json.dumps(report if args.failures else {key: value for key, value in report.items() if key != 'failures'},
                      ensure_ascii=False, indent=2))
 
