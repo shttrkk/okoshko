@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import json
 import logging
 
@@ -18,6 +19,31 @@ router = APIRouter(prefix="/api", tags=["runs"])
 _REPO = Depends(get_repo)
 _OPTIONAL_AUTH = Depends(optional_principal)
 logger = logging.getLogger(__name__)
+
+
+def public_run(value: dict) -> dict:
+    """Public search traces expose execution, never the guest's free text."""
+    result = copy.deepcopy(value)
+    if result.get("kind") != "search":
+        return result
+    result = {key: item for key, item in result.items() if key in AgentRun.model_fields}
+    result["trigger"] = "user"
+    result["hotel_id"] = None
+    result["characteristic_id"] = None
+    if result.get("error"):
+        result["error"] = "Не удалось обработать запрос гостя"
+    for step in result.get("steps", []):
+        total = step.get("output", {}).get("total")
+        step["agent"] = "search"
+        step["type"] = "decision"
+        step["name"] = "Запрос гостя" if step.get("seq") == 0 else "Подбор отелей"
+        step["input"] = {"summary": "Запрос гостя"}
+        step["output"] = {"total": total} if type(total) is int and total >= 0 else {}
+        step["rationale"] = "Личный текст скрыт; показан ход обработки запроса."
+        step["evidence_refs"] = []
+        if step.get("error"):
+            step["error"] = "Не удалось выполнить шаг поиска"
+    return result
 
 
 def run_collection(body, repo, trace):
@@ -54,7 +80,7 @@ def runs(repo=_REPO, _user=_OPTIONAL_AUTH):
         if newest and newest["id"] not in shown:
             latest.append(newest)
             shown.add(newest["id"])
-    return latest
+    return [public_run(value) for value in latest]
 
 
 @router.get("/runs/{run_id}", response_model=AgentRun)
@@ -63,14 +89,14 @@ def run(run_id: str, repo=_REPO, _user=_OPTIONAL_AUTH):
 
 
 def _read_run(run_id, repo, principal):
-    value = required(repo, "agent_runs", run_id, "Прогон")
+    value = copy.deepcopy(required(repo, "agent_runs", run_id, "Прогон"))
     if value.get("kind") == "interview":
         if principal is None:
             raise HTTPException(401, "Войдите в демо-кабинет отельера", headers={"WWW-Authenticate": "Bearer"})
         authorize_hotel(principal, value.get("hotel_id"))
     steps = repo.find("agent_steps", run_id=run_id) or value.get("steps", [])
     value["steps"] = sorted(steps, key=lambda row: row["seq"])
-    return value
+    return public_run(value)
 
 
 @router.get("/runs/{run_id}/stream")
