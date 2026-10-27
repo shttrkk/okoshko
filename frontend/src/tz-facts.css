@@ -1,0 +1,91 @@
+.place-facts {
+  margin-top: 1.5rem;
+}
+.place-facts > summary {
+  font-size: 1.15rem;
+  color: var(--heading);
+}
+.place-facts > .muted {
+  max-width: 64ch;
+}
+.tz-observations {
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+}
+.tz-observation {
+  border-top: 1px solid var(--line);
+  padding-top: 0.7rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tz-observation > p {
+  margin: 0.4rem 0;
+}
+.tz-observation .evidence-button {
+  margin-top: 0.25rem;
+}
+.comparison-table .tz-observations {
+  margin-top: 0.8rem;
+}
+.tz-observation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+.room-lab-landmark {
+  margin-top: 1rem;
+  min-width: 0;
+}
+.room-lab-landmark > label {
+  display: grid;
+  gap: 0.4rem;
+  max-width: 100%;
+  margin-bottom: 0.8rem;
+}
+.room-lab-landmark select {
+  width: 100%;
+  min-width: 0;
+}
+.map-landmark-marker {
+  width: 30px;
+  height: 30px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #765684;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+.map-landmark-proof {
+  position: absolute;
+  z-index: 30;
+  left: 12px;
+  bottom: 56px;
+  max-width: min(340px, calc(100% - 70px));
+  max-height: calc(100% - 145px);
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+.map-landmark-proof > summary {
+  position: sticky;
+  top: -10px;
+  z-index: 1;
+  padding: 0.25rem 0;
+  background: var(--surface);
+  cursor: pointer;
+  font-weight: 700;
+}
+.map-landmark-proof p {
+  margin: 0.6rem 0;
+}
+.map-landmark-proof[open] > div {
+  margin-top: 0.8rem;
+}

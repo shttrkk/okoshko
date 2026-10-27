@@ -20,7 +20,8 @@ import {
   contextualDisappointment,
 } from "../components/panel-guest-query";
 import { GeoModal, TravelMap } from "../components/Map";
-import { FactsPanel } from "../components/FactsPanel";
+import { PlaceFacts } from "../components/PlaceFacts";
+import { landmarkName } from "../components/tz-facts";
 import {
   factCardId,
   SIDES,
@@ -65,6 +66,7 @@ const roomQuestionTraits = new Set([
   "morning_sun",
   "evening_heat",
   "railway_noise",
+  "landmark_view",
 ]);
 const normalizedName = (name: string) =>
   name
@@ -327,6 +329,9 @@ export function HotelPage() {
         floor_min: slice.floor,
         floor_max: slice.floor,
         month: slice.month,
+        ...(characteristicId === "landmark_view" && slice.landmarkId
+          ? { landmark_id: slice.landmarkId }
+          : {}),
       };
     return selectedFact?.characteristic_id === characteristicId
       ? selectedFact.scope
@@ -361,8 +366,26 @@ export function HotelPage() {
         ? factCardId(fact.characteristic_id)
         : `hotel-map-${id}`,
     );
+    let parent = node?.parentElement;
+    while (parent) {
+      if (parent instanceof HTMLDetailsElement) parent.open = true;
+      parent = parent.parentElement;
+    }
     node?.scrollIntoView({ behavior: "smooth", block: "center" });
     node?.focus({ preventScroll: true });
+  };
+  const openWindow = (fact: Fact) => {
+    const next = roomLabParams(fact.scope);
+    if (fact.scope.landmark_id)
+      next.set("room_landmark", fact.scope.landmark_id);
+    setParams(next, { replace: true });
+    window.setTimeout(
+      () =>
+        document
+          .getElementById("room-lab")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      100,
+    );
   };
   const focusVerdict = (verdict: Verdict) => {
     const own = d?.facts.filter((fact) => verdict.fact_ids.includes(fact.id));
@@ -479,6 +502,11 @@ export function HotelPage() {
                 hotels={[d.hotel]}
                 activeId={id}
                 geo={geo}
+                landmarkId={
+                  activeRoomSlice?.landmarkId ||
+                  selectedFact?.scope.landmark_id ||
+                  undefined
+                }
                 month={activeRoomSlice?.month || parsed?.month || 9}
                 facade={selectedSide}
                 floor={
@@ -571,6 +599,16 @@ export function HotelPage() {
                       ? "Показаны доступные данные. Наличие окна и условия номера уточните у отеля."
                       : "Показаны доступные данные. Подробности и ограничения — в основании."}
                   </span>
+                  {selectedFact.characteristic_id === "landmark_view" && (
+                    <p
+                      className="muted small"
+                      data-testid="landmark-map-context"
+                    >
+                      Цель: {landmarkName(selectedFact)}. На карте показаны
+                      сохранённая цель и доступные лучи для выбранной стороны и
+                      этажа. Наличие окна подтвердит отель.
+                    </p>
+                  )}
                   <div className="hotel-map-context-actions">
                     <button
                       className="text-button small"
@@ -584,6 +622,16 @@ export function HotelPage() {
                     >
                       Основание
                     </button>
+                    {selectedFact.characteristic_id === "landmark_view" &&
+                      selectedSide && (
+                        <button
+                          className="text-button small"
+                          data-testid="landmark-map-window"
+                          onClick={() => openWindow(selectedFact)}
+                        >
+                          Проверить окно
+                        </button>
+                      )}
                     {selectedSide && (
                       <button
                         className="text-button small"
@@ -793,7 +841,7 @@ export function HotelPage() {
                   </Empty>
                 )}
                 {d.facts.length > 0 && (
-                  <FactsPanel
+                  <PlaceFacts
                     facts={d.facts}
                     claims={d.claims}
                     specs={specs.data || []}
@@ -811,6 +859,7 @@ export function HotelPage() {
                     questionScope={questionScope}
                     onPanorama={setPanorama}
                     onShowOnMap={(fact) => focusFact(fact, "map")}
+                    onOpenWindow={openWindow}
                     selectedTrait={selectedFact?.characteristic_id}
                   />
                 )}

@@ -2,6 +2,9 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowRight, X } from "lucide-react";
 import { api, useResource } from "../api";
+import { TzFactDetails } from "../components/TzFactDetails";
+import { isSupplementalFact } from "../components/tz-facts";
+import "../tz-facts.css";
 import {
   reliability,
   factDemoLabel,
@@ -53,6 +56,12 @@ export function ComparePage() {
   const priority = [...(parsed?.must || []), ...(parsed?.nice || [])].map(
     (c) => c.characteristic_id,
   );
+  for (const room of parsed?.rooms || [])
+    priority.push(
+      ...[...room.must, ...room.nice].map(
+        (criterion) => criterion.characteristic_id,
+      ),
+    );
   const allIds = [
     ...new Set(
       d?.hotels.flatMap((h) => h.facts.map((f) => f.characteristic_id)) || [],
@@ -204,7 +213,9 @@ export function ComparePage() {
                                 )}
                               </p>
                             )}
-                            {known.length && rep ? (
+                            {(known.length ||
+                              allFacts.some(isSupplementalFact)) &&
+                            rep ? (
                               <div className="compare-fact">
                                 <p className="compare-summary">
                                   {headline(id, allFacts, month)}
@@ -216,27 +227,46 @@ export function ComparePage() {
                                     )}
                                   </Synthetic>
                                 )}
-                                <details className="verdict-caveats">
-                                  <summary>Надёжность данных</summary>
-                                  <p>
-                                    {reliability(
-                                      Math.max(
-                                        ...known.map((f) => f.confidence),
-                                      ),
-                                      known.some((f) => f.synthetic),
-                                    )}{" "}
-                                    · оценка полноты и согласованности
-                                    источников
-                                  </p>
-                                </details>
-                                <EvidenceButton fact={rep} claims={h.claims} />
-                                {needsQuestion(rep) && (
-                                  <AskButton
-                                    compact
-                                    hotelId={h.hotel.id}
-                                    characteristicId={id}
+                                {allFacts.some(isSupplementalFact) ? (
+                                  <details className="verdict-caveats">
+                                    <summary>Подробнее и основания</summary>
+                                    <TzFactDetails
+                                      facts={allFacts}
+                                      claims={h.claims}
+                                      month={month}
+                                    />
+                                  </details>
+                                ) : (
+                                  <details className="verdict-caveats">
+                                    <summary>Надёжность данных</summary>
+                                    <p>
+                                      {reliability(
+                                        Math.max(
+                                          ...known.map((f) => f.confidence),
+                                        ),
+                                        known.some((f) => f.synthetic),
+                                      )}{" "}
+                                      · оценка полноты и согласованности
+                                      источников
+                                    </p>
+                                  </details>
+                                )}
+                                {!allFacts.some(isSupplementalFact) && (
+                                  <EvidenceButton
+                                    fact={rep}
+                                    claims={h.claims}
                                   />
                                 )}
+                                {needsQuestion(rep) &&
+                                  d.characteristics.find(
+                                    (spec) => spec.id === id,
+                                  )?.hotelier_answerable !== false && (
+                                    <AskButton
+                                      compact
+                                      hotelId={h.hotel.id}
+                                      characteristicId={id}
+                                    />
+                                  )}
                                 {known.length > 1 && (
                                   <Link
                                     className="text-button"

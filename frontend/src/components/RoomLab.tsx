@@ -14,11 +14,13 @@ import type {
 import { MONTHS, MONTHS_IN, pct, SIDE_ORDER, SIDES } from "./facts";
 import { ErrorState, FactValue, scopeText, Synthetic, VerdictList } from "./ui";
 import { RoomProfileList } from "./RoomProfiles";
+import { landmarkLabel, landmarkName } from "./tz-facts";
 
 export interface RoomSlice {
   facade: Side;
   floor: number;
   month: number;
+  landmarkId?: string;
 }
 const roomTraits = new Set([
   "sea_view",
@@ -30,6 +32,7 @@ const roomTraits = new Set([
   "morning_sun",
   "evening_heat",
   "railway_noise",
+  "landmark_view",
 ]);
 const integer = (value: unknown) =>
   typeof value === "number" &&
@@ -55,12 +58,14 @@ function initialSlice(
   facades: Side[],
   maximum: number,
   parsed: ParsedQuery | null,
+  landmarkId?: string,
 ) {
   const params = new URLSearchParams(window.location.search);
   const side = params.get("room_side") as Side | null;
   const floor = Number(params.get("room_floor"));
   const month = Number(params.get("room_month"));
   return {
+    landmarkId: params.get("room_landmark") || landmarkId,
     facade:
       side && facades.includes(side)
         ? side
@@ -83,7 +88,7 @@ interface ScopeConflict {
   reason: string;
 }
 function scopeConflict(
-  criterion: { scope?: RoomScope | null },
+  criterion: { scope?: (RoomScope & { landmark_id?: string | null }) | null },
   slice: RoomSlice,
 ) {
   const scope = criterion.scope;
@@ -95,6 +100,12 @@ function scopeConflict(
     return `нужен этаж не выше ${scope.floor_max}-го`;
   if (scope?.month && scope.month !== slice.month)
     return `условие относится к ${MONTHS_IN[scope.month - 1]}`;
+  if (
+    scope?.landmark_id &&
+    slice.landmarkId &&
+    scope.landmark_id !== slice.landmarkId
+  )
+    return `нужна цель «${landmarkLabel(scope.landmark_id)}»`;
   return null;
 }
 /** Intersect the requested room with the preview; never replace a hard scope. */
@@ -148,6 +159,9 @@ function sliceQuery(
       floor_min: slice.floor,
       floor_max: slice.floor,
       month: slice.month,
+      ...(criterion.characteristic_id === "landmark_view" && slice.landmarkId
+        ? { landmark_id: slice.landmarkId }
+        : {}),
     },
   });
   return {
@@ -176,7 +190,10 @@ function inSlice(fact: Fact, slice: RoomSlice) {
     (typeof low !== "number" || low <= slice.floor) &&
     (typeof high !== "number" || high >= slice.floor) &&
     (typeof month !== "number" || month === slice.month) &&
-    (!Array.isArray(value.months) || value.months.includes(slice.month))
+    (!Array.isArray(value.months) || value.months.includes(slice.month)) &&
+    (fact.characteristic_id !== "landmark_view" ||
+      !slice.landmarkId ||
+      (fact.scope.landmark_id || value.landmark_id) === slice.landmarkId)
   );
 }
 function sliceFact(facts: Fact[], id: string, slice: RoomSlice) {
@@ -191,7 +208,12 @@ function sliceFact(facts: Fact[], id: string, slice: RoomSlice) {
   );
   // Hotel-wide view claims do not prove a window on the selected side/level.
   const scoped = roomTraits.has(id)
-    ? own.filter((fact) => fact.scope.facade || record(fact.value).facade)
+    ? own.filter(
+        (fact) =>
+          fact.scope.facade ||
+          record(fact.value).facade ||
+          (id === "landmark_view" && record(fact.value).available == null),
+      )
     : own;
   return [...scoped].sort((a, b) => {
     const width = (fact: Fact) =>
@@ -343,8 +365,27 @@ export function RoomLab({
     geo.facades?.some((facade) => facade.code === side),
   ) as Side[];
   const boundary = floorBoundary(detail, geo);
+  const landmarks = [
+    ...new Map(
+      detail.facts
+        .filter((fact) => fact.characteristic_id === "landmark_view")
+        .map((fact) => [
+          String(
+            fact.scope.landmark_id || record(fact.value).landmark_id || "",
+          ),
+          fact,
+        ]),
+    ).entries(),
+  ].filter(([id]) => !!id);
   const [slice, setSlice] = useState(() =>
-    initialSlice(facades, boundary.maximum, parsed),
+    initialSlice(
+      facades,
+      boundary.maximum,
+      parsed,
+      [...(parsed?.must || []), ...(parsed?.nice || [])].find(
+        (criterion) => criterion.characteristic_id === "landmark_view",
+      )?.scope?.landmark_id || undefined,
+    ),
   );
   const [open, setOpen] = useState(
     () =>
@@ -384,6 +425,7 @@ export function RoomLab({
     room_month: String(slice.month),
   });
   if (roomIndex !== undefined) shared.set("room_request", String(roomIndex));
+  if (slice.landmarkId) shared.set("room_landmark", slice.landmarkId);
   const extra = [
     ["mountain_view", "Горы"],
     ["sunset_view", "Закат"],
@@ -564,6 +606,61 @@ export function RoomLab({
                   onEvidence={onEvidence}
                 />
               </div>
+              {landmarks.length > 0 && (
+                <div
+                  className="room-lab-landmark"
+                  data-testid="room-lab-landmark"
+                >
+                  <label>
+                    Достопримечательность
+                    <select
+                      aria-label="Достопримечательность"
+                      data-testid="room-lab-landmark-select"
+                      value={slice.landmarkId || landmarks[0][0]}
+                      onChange={(event) =>
+                        setSlice({ ...slice, landmarkId: event.target.value })
+                      }
+                    >
+                      {landmarks.map(([id, fact]) => (
+                        <option key={id} value={id}>
+                          {landmarkName(fact)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <ModelFact
+                    id="landmark_view"
+                    title="Вид на выбранную достопримечательность"
+                    facts={detail.facts}
+                    slice={{
+                      ...slice,
+                      landmarkId: slice.landmarkId || landmarks[0][0],
+                    }}
+                    geo={geo}
+                    onEvidence={onEvidence}
+                  />
+                  <button
+                    className="text-button small"
+                    data-testid="room-lab-landmark-map"
+                    onClick={() => {
+                      const selected = {
+                        ...slice,
+                        landmarkId: slice.landmarkId || landmarks[0][0],
+                      };
+                      setSlice(selected);
+                      onSliceChange(selected);
+                      document
+                        .getElementById(`hotel-map-${detail.hotel.id}`)
+                        ?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
+                    }}
+                  >
+                    <MapPin size={14} /> Цель и лучи на карте
+                  </button>
+                </div>
+              )}
               {extra.length > 0 && (
                 <details className="room-lab-extra">
                   <summary>Ещё условия</summary>

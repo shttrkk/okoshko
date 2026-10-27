@@ -23,6 +23,8 @@ import { useApp } from "../state";
 import { Empty, Modal } from "./ui";
 import { meters, roundedMinutes, SIDES } from "./facts";
 import { guestText } from "./panel-guest-presentation";
+import { landmarkHeightSource, landmarkLabel } from "./tz-facts";
+import { LandmarkMapProof } from "./TzFactDetails";
 const empty: GeoJSON.FeatureCollection = {
   type: "FeatureCollection",
   features: [],
@@ -502,6 +504,8 @@ function drawGeo(
   facade?: string,
   month = 9,
   focusTrait?: string,
+  landmarkId?: string,
+  suppressLandmarkRays = false,
 ) {
   const facades: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
@@ -520,14 +524,17 @@ function drawGeo(
       : focusTrait === "mountain_view"
         ? ["mountain", "mountains"]
         : null;
-  const cones = target
-    ? {
-        ...allCones,
-        features: allCones.features.filter((f) =>
-          target.includes(String(f.properties?.target)),
-        ),
-      }
-    : allCones;
+  const cones =
+    focusTrait === "landmark_view" || landmarkId
+      ? empty
+      : target
+        ? {
+            ...allCones,
+            features: allCones.features.filter((f) =>
+              target.includes(String(f.properties?.target)),
+            ),
+          }
+        : allCones;
   const sun = geo?.sun_paths
     ?.find((s) => s.month === month)
     ?.points.filter((p) => p.elevation_deg >= 0)
@@ -563,6 +570,26 @@ function drawGeo(
   const building = geo?.building
     ? { type: "FeatureCollection" as const, features: [geo.building] }
     : empty;
+  const landmarkTargets = {
+    type: "FeatureCollection" as const,
+    features: (geo?.landmark_targets?.features || []).filter(
+      (feature) =>
+        !landmarkId || feature.properties?.landmark_id === landmarkId,
+    ),
+  };
+  const landmarkRays = {
+    type: "FeatureCollection" as const,
+    features:
+      suppressLandmarkRays || !floor
+        ? []
+        : (geo?.landmark_rays?.features || []).filter(
+            (feature) =>
+              feature.geometry.type === "LineString" &&
+              feature.properties?.floor === floor &&
+              (!facade || feature.properties?.facade === facade) &&
+              (!landmarkId || feature.properties?.landmark_id === landmarkId),
+          ),
+  };
   // Mark where the walk ends so the route reads as «hotel → beach».
   const walk = (
     geo?.route as GeoJSON.FeatureCollection | undefined
@@ -596,8 +623,43 @@ function drawGeo(
     ["route-end", routeEnd],
     ["crossings", geo?.crossings || empty],
     ["sunset", sunset],
+    ["landmark-targets", landmarkTargets],
+    ["landmark-rays", landmarkRays],
   ] as const)
     put(map, id, data);
+  safeLayer(map, {
+    id: "landmark-contours-fill",
+    type: "fill",
+    source: "landmark-targets",
+    filter: ["==", ["geometry-type"], "Polygon"],
+    paint: { "fill-color": "#8e789b", "fill-opacity": 0.24 },
+  });
+  safeLayer(map, {
+    id: "landmark-contours-line",
+    type: "line",
+    source: "landmark-targets",
+    filter: ["==", ["geometry-type"], "Polygon"],
+    paint: {
+      "line-color": "#765684",
+      "line-width": 3,
+      "line-dasharray": [3, 2],
+    },
+  });
+  safeLayer(map, {
+    id: "landmark-rays-line",
+    type: "line",
+    source: "landmark-rays",
+    paint: {
+      "line-color": [
+        "case",
+        ["==", ["get", "available"], true],
+        "#22775b",
+        "#b85c4c",
+      ],
+      "line-width": 3,
+      "line-dasharray": [4, 2],
+    },
+  });
   safeLayer(map, {
     id: "focused-facade-line",
     type: "line",
@@ -744,6 +806,11 @@ function drawGeo(
       "crossings-circle",
     ],
     sun: ["sunset-line"],
+    landmark: [
+      "landmark-contours-fill",
+      "landmark-contours-line",
+      "landmark-rays-line",
+    ],
   }))
     for (const id of ids)
       map.setLayoutProperty(
@@ -866,6 +933,7 @@ export function TravelMap({
   facade,
   month = 9,
   focusTrait,
+  landmarkId,
 }: {
   hotels?: Hotel[];
   activeId?: string | null;
@@ -881,6 +949,7 @@ export function TravelMap({
   facade?: string;
   month?: number;
   focusTrait?: string;
+  landmarkId?: string;
 }) {
   const { theme } = useApp();
   const container = useRef<HTMLDivElement>(null),
@@ -889,6 +958,7 @@ export function TravelMap({
   const poiMarkers = useRef<maplibregl.Marker[]>([]);
   const poiPopup = useRef<maplibregl.Popup | null>(null);
   const facadeMarker = useRef<maplibregl.Marker | null>(null);
+  const landmarkMarkers = useRef<maplibregl.Marker[]>([]);
   const [ready, setReady] = useState(false),
     [rendered, setRendered] = useState(false),
     [error, setError] = useState(""),
@@ -997,12 +1067,14 @@ export function TravelMap({
       poiPopup.current?.remove();
       facadeMarker.current?.remove();
       facadeMarker.current = null;
+      landmarkMarkers.current.forEach((marker) => marker.remove());
+      landmarkMarkers.current = [];
       map.remove();
       mapRef.current = null;
     };
   }, [theme, hero, large]);
   useEffect(() => {
-    if (providedGeo) {
+    if (providedGeo && !floor) {
       setGeo(providedGeo);
       return;
     }
@@ -1011,18 +1083,19 @@ export function TravelMap({
       return;
     }
     let active = true;
+    setGeo(providedGeo || null);
     api
-      .geo(activeId)
+      .geo(activeId, { month, facade, floor })
       .then((g) => {
         if (active) setGeo(g);
       })
       .catch(() => {
-        if (active) setGeo(null);
+        if (active) setGeo(providedGeo || null);
       });
     return () => {
       active = false;
     };
-  }, [activeId, providedGeo]);
+  }, [activeId, providedGeo, month, facade, floor]);
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
@@ -1111,6 +1184,61 @@ export function TravelMap({
     };
   }, [geo, ready, hero, focusTrait]);
   useEffect(() => {
+    landmarkMarkers.current.forEach((marker) => marker.remove());
+    landmarkMarkers.current = [];
+    const map = mapRef.current;
+    if (!map || !ready || hero || !layers.includes("landmark")) return;
+    landmarkMarkers.current = (geo?.landmark_targets?.features || [])
+      .filter(
+        (feature): feature is GeoJSON.Feature<GeoJSON.Point> =>
+          feature.geometry.type === "Point" &&
+          (!landmarkId || feature.properties?.landmark_id === landmarkId),
+      )
+      .map((feature) => {
+        const properties = feature.properties || {};
+        const id = String(properties.landmark_id || "");
+        const element = document.createElement("button");
+        element.type = "button";
+        element.className = "map-landmark-marker";
+        element.textContent = "Д";
+        element.title = String(properties.name || landmarkLabel(id));
+        element.setAttribute("aria-label", `Цель расчёта: ${element.title}`);
+        element.dataset.testid = `map-landmark-${id}`;
+        element.onclick = (event) => {
+          event.stopPropagation();
+          poiPopup.current?.remove();
+          const content = document.createElement("div");
+          content.className = "map-poi-popup";
+          content.dataset.testid = "landmark-popup";
+          const title = document.createElement("strong");
+          title.textContent = element.title;
+          const description = document.createElement("p");
+          description.textContent = `${landmarkHeightSource(properties.height_source)}. Проверяется верх моделируемого контура.`;
+          const proof = document.createElement("details");
+          const summary = document.createElement("summary");
+          summary.textContent = "Для дотошных";
+          const source = document.createElement("p");
+          source.textContent = `Источник высоты: ${properties.height_source || "неизвестен"}`;
+          proof.append(summary, source);
+          content.append(title, description, proof);
+          poiPopup.current = new maplibregl.Popup({
+            offset: 18,
+            maxWidth: "280px",
+          })
+            .setLngLat(feature.geometry.coordinates as [number, number])
+            .setDOMContent(content)
+            .addTo(map);
+        };
+        return new maplibregl.Marker({ element })
+          .setLngLat(feature.geometry.coordinates as [number, number])
+          .addTo(map);
+      });
+    return () => {
+      landmarkMarkers.current.forEach((marker) => marker.remove());
+      landmarkMarkers.current = [];
+    };
+  }, [geo, ready, hero, layers, landmarkId]);
+  useEffect(() => {
     facadeMarker.current?.remove();
     const map = mapRef.current;
     if (!map || !ready || hero || focusTrait !== "room_orientation" || !facade)
@@ -1149,19 +1277,49 @@ export function TravelMap({
     if (!focusTrait) return;
     const layer = ["quiet_night", "railway_noise"].includes(focusTrait)
       ? "noise"
-      : ["sea_view", "mountain_view"].includes(focusTrait)
-        ? "view"
-        : ["beach_walk", "accessible_route", "beach_surface"].includes(
-              focusTrait,
-            )
-          ? "route"
-          : focusTrait === "sunset_view"
-            ? "sun"
-            : null;
+      : focusTrait === "landmark_view" || landmarkId
+        ? "landmark"
+        : ["sea_view", "mountain_view"].includes(focusTrait)
+          ? "view"
+          : ["beach_walk", "accessible_route", "beach_surface"].includes(
+                focusTrait,
+              )
+            ? "route"
+            : focusTrait === "sunset_view"
+              ? "sun"
+              : null;
     if (layer)
       setLayers((old) => (old.includes(layer) ? old : [...old, layer]));
     const map = mapRef.current;
     if (!map || !ready || !geo?.center) return;
+    if (layer === "landmark") {
+      const targets =
+        geo.landmark_targets?.features.filter(
+          (feature) =>
+            !landmarkId || feature.properties?.landmark_id === landmarkId,
+        ) || [];
+      if (!targets.length) return;
+      const bounds = new maplibregl.LngLatBounds(geo.center, geo.center);
+      const extend = (coordinates: unknown) => {
+        if (!Array.isArray(coordinates)) return;
+        if (
+          typeof coordinates[0] === "number" &&
+          typeof coordinates[1] === "number"
+        )
+          bounds.extend(coordinates as [number, number]);
+        else coordinates.forEach(extend);
+      };
+      targets.forEach((feature) => {
+        if ("coordinates" in feature.geometry)
+          extend(feature.geometry.coordinates);
+      });
+      map.fitBounds(bounds, {
+        padding: { top: 105, bottom: 100, left: 65, right: 65 },
+        maxZoom: 16.2,
+        duration: 650,
+      });
+      return;
+    }
     const points = nearbyPoints(geo).filter((f) =>
       POI_KINDS[String(f.properties?.kind)].trait.includes(focusTrait),
     );
@@ -1175,7 +1333,7 @@ export function TravelMap({
       maxZoom: 16.2,
       duration: 650,
     });
-  }, [focusTrait, geo, ready]);
+  }, [focusTrait, landmarkId, geo, ready]);
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready || !hero) return;
@@ -1191,7 +1349,17 @@ export function TravelMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
-    drawGeo(map, geo, layers, floor, facade, month, focusTrait);
+    drawGeo(
+      map,
+      geo,
+      layers,
+      floor,
+      facade,
+      month,
+      focusTrait,
+      landmarkId,
+      !!extraGeometry,
+    );
     put(map, "scenario-building", extraGeometry || empty);
     safeLayer(map, {
       id: "scenario-building",
@@ -1208,7 +1376,17 @@ export function TravelMap({
         "fill-extrusion-opacity": 0.9,
       },
     });
-  }, [geo, layers, ready, floor, facade, month, extraGeometry, focusTrait]);
+  }, [
+    geo,
+    layers,
+    ready,
+    floor,
+    facade,
+    month,
+    extraGeometry,
+    focusTrait,
+    landmarkId,
+  ]);
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready || hero) return;
@@ -1235,6 +1413,18 @@ export function TravelMap({
     }
   }, [geo?.hotel_id, geo?.center?.[0], geo?.center?.[1], ready, hotelKey]);
   const selected = hotels.find((h) => h.id === (hoverId || activeId));
+  const selectedTargets = (geo?.landmark_targets?.features || []).filter(
+    (feature) => !landmarkId || feature.properties?.landmark_id === landmarkId,
+  );
+  const selectedRays =
+    !floor || extraGeometry
+      ? []
+      : (geo?.landmark_rays?.features || []).filter(
+          (feature) =>
+            feature.properties?.floor === floor &&
+            (!facade || feature.properties?.facade === facade) &&
+            (!landmarkId || feature.properties?.landmark_id === landmarkId),
+        );
   return (
     <div
       className={`travel-map ${hero ? "hero-map" : ""} ${large ? "large-map" : ""}`}
@@ -1247,6 +1437,9 @@ export function TravelMap({
       data-selected-facade={facade}
       data-selected-floor={floor}
       data-selected-month={month}
+      data-selected-landmark={landmarkId}
+      data-landmark-target-count={selectedTargets.length}
+      data-landmark-ray-count={selectedRays.length}
     >
       <div className="map-canvas" ref={container} />
       {error && (
@@ -1267,6 +1460,9 @@ export function TravelMap({
               ["sun", "Закат"],
               ["view", "Вид"],
               ["route", "До моря"],
+              ...(geo?.landmark_targets?.features.length
+                ? [["landmark", "Объекты"]]
+                : []),
             ].map(([id, label]) => (
               <button
                 key={id}
@@ -1381,6 +1577,20 @@ export function TravelMap({
               ))}
             </div>
           )}
+          {layers.includes("landmark") &&
+            (selectedTargets.length > 0 ||
+              landmarkId ||
+              focusTrait === "landmark_view") && (
+              <LandmarkMapProof
+                targets={selectedTargets}
+                rays={selectedRays}
+                metadata={geo?.landmark_metadata}
+                warnings={geo?.warnings}
+                landmarkId={landmarkId}
+                floor={floor}
+                scenario={!!extraGeometry}
+              />
+            )}
         </>
       )}
       <div className="map-source">
@@ -1407,6 +1617,7 @@ export function TravelMap({
             floor={floor}
             facade={facade}
             focusTrait={focusTrait}
+            landmarkId={landmarkId}
           />
         </Modal>
       )}

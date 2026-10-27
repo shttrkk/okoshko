@@ -1,5 +1,6 @@
 import { record } from "../api";
 import type { Fact, Side } from "../types";
+import { PLACE_NAMES, tzHumanFact } from "./tz-facts";
 export const MONTHS = [
   "январь",
   "февраль",
@@ -64,6 +65,7 @@ export const SIDES_SHORT: Record<string, string> = {
   NW: "СЗ",
 };
 export const TRAIT_NAMES: Record<string, string> = {
+  ...PLACE_NAMES,
   morning_sun: "Утреннее солнце",
   evening_heat: "Вечернее солнце",
   railway_noise: "Железнодорожный шум",
@@ -208,6 +210,8 @@ export function humanFact(
   facadeAzimuths?: FacadeAzimuths,
 ): string | null {
   const v = record(fact.value);
+  const supplementary = tzHumanFact(fact);
+  if (supplementary) return supplementary;
   if (fact.value === null || fact.status === "unknown") return null;
   const id = fact.characteristic_id;
   const month = num(fact.scope.month);
