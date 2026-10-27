@@ -1,0 +1,268 @@
+{
+  "schema": "hotel_identity_reviews_v1",
+  "method": "primary_sources_and_geometry_identity_check_v1",
+  "generated_at": "2026-10-27T00:53:16Z",
+  "policy_applied": true,
+  "purpose_ru": "Проверенные исключения из гостиничного поиска до уточнения идентичности и геопривязки объектов. Исходные записи и их геофакты сохраняются.",
+  "expert_confidence_note_ru": "Все confidence — явные некалиброванные экспертные оценки необходимости review, не статистический результат.",
+  "reviews": [
+    {
+      "hotel_id": "overture-129b6d6a-76ce-4140-8495-3eca01fa691d",
+      "name_at_review": "Сочи. Пляж Отеля Звездный",
+      "disposition": "hold_for_identity_review",
+      "reason_ru": "Карточка пляжа отеля используется как самостоятельный lodging-кандидат. Точка лежит внутри OSM natural=beach, а основной корпус Звёздного и его официальный адрес находятся отдельно.",
+      "source": "read_only_hotel_identity_audit_2026-10-27",
+      "method": "primary_sources_and_geometry_identity_check_v1",
+      "confidence": {
+        "value": 0.98,
+        "kind": "expert_uncalibrated",
+        "meaning_ru": "Экспертная уверенность в необходимости проверки этой идентичности; не вероятность отсутствия гостиницы и не калиброванная метрика."
+      },
+      "observed_at": "2026-10-27T00:53:16Z",
+      "valid_until": "2026-11-26T00:53:16Z",
+      "validity_note_ru": "Предложенный срок повторной проверки 30 дней. Истечение не подтверждает lodging и не должно автоматически делать объект пригодным к бронированию.",
+      "seed_point": {
+        "lat": 43.585403973784345,
+        "lon": 39.71355564749299
+      },
+      "input_fingerprints": {
+        "data/seed/hotels.json": "45cd3b05b6f5b0129864278b648ea4991e439593d0cd63a8a571388af0a1a6f6",
+        "data/seed/overture_places.json": "8c9df7f9703a1b8c8e71d6604b49443adefa37f822eb017802a1a20281eedf5e",
+        "geo_artifact": {
+          "path": "data/geo/overture-129b6d6a-76ce-4140-8495-3eca01fa691d.json",
+          "sha256": "51f04ec8e8008b5a6cd91503509ef4cbed6893f8fc4c993d9ed395f384996291"
+        }
+      },
+      "evidence": [
+        {
+          "kind": "geometry_association",
+          "geometry_id": "overture-099f1095-e8d5-4ccc-a233-677a0874e3ff",
+          "url": null,
+          "artifact": "data/geo/overture-129b6d6a-76ce-4140-8495-3eca01fa691d.json",
+          "check": {
+            "method": "nearest_30m",
+            "distance_m": 15.25159973243508,
+            "point_inside_associated_building": false,
+            "seed_hotel_has_footprint": false
+          },
+          "source_snapshot_at": "2026-10-21T00:00:00Z"
+        },
+        {
+          "kind": "osm_geometry_identity",
+          "url": "https://www.openstreetmap.org/way/52505450",
+          "geometry_id": "osm-way-52505450",
+          "source": "osm_geofabrik",
+          "source_snapshot_at": "2026-10-25T21:21:21Z",
+          "artifact": "data/seed/beaches.geojson.gz",
+          "artifact_sha256": "73794b9fc9cf89be693995588024d54550948962286e1b9cbfb4a8089577462d",
+          "tags": {
+            "natural": "beach",
+            "surface": "pebblestone"
+          },
+          "check": {
+            "operation": "polygon_covers_candidate_point",
+            "contains": true
+          }
+        },
+        {
+          "kind": "official_hotel_page",
+          "url": "https://zvezdny4.nichost.ru/",
+          "quote": "Гагарина, 5",
+          "interpretation_ru": "Сайт гостиницы указывает адрес корпуса отдельно от пляжного комплекса; описывает пешую дорогу к морю за 15–20 минут.",
+          "access": "primary_site_search_index; live_fetch_timeout"
+        },
+        {
+          "kind": "official_hotel_amenity_page",
+          "url": "https://zvezdny4.nichost.ru/restaurants/",
+          "quote": "пляжного комплекса отеля",
+          "interpretation_ru": "Пляжный комплекс описан как инфраструктура гостиницы на берегу, отдельно от основного корпуса."
+        },
+        {
+          "kind": "related_lodging_geometry",
+          "url": "https://www.openstreetmap.org/way/51277929",
+          "geometry_id": "osm-way-51277929",
+          "related_hotel_id": "osm-way-51277929",
+          "check": {
+            "method": "WGS84_geodesic_between_seed_points",
+            "distance_m": 1280.4,
+            "related_lat": 43.5953926,
+            "related_lon": 39.72146316959113
+          }
+        }
+      ],
+      "limitations_ru": [
+        "Не проводилась проверка на местности или кадастровая идентификация. Наличие строений у пляжа не отрицается.",
+        "Первичный сайт гостиницы доступен в поисковом индексе, прямые web-fetch давали timeout; актуальность адреса не подтверждена независимым звонком.",
+        "Seed адрес основного Звёздного Гагарина, 2 расходится с официальным Гагарина, 5; это отдельный вопрос.",
+        "Решение относится только к beach candidate ID; не объявляет реальную гостиницу несуществующей."
+      ]
+    },
+    {
+      "hotel_id": "overture-6f163d7e-6eea-4cf3-bce8-79dc3e6e7f5c",
+      "name_at_review": "Сочи",
+      "disposition": "hold_for_identity_review",
+      "reason_ru": "Городская карточка «Сочи» с официальным муниципальным URL попала в hotel-класс. Самостоятельная гостиничная идентичность и адрес по этой точке не подтверждены.",
+      "source": "read_only_hotel_identity_audit_2026-10-27",
+      "method": "primary_sources_and_geometry_identity_check_v1",
+      "confidence": {
+        "value": 0.93,
+        "kind": "expert_uncalibrated",
+        "meaning_ru": "Экспертная уверенность в необходимости проверки этой идентичности; не вероятность отсутствия гостиницы и не калиброванная метрика."
+      },
+      "observed_at": "2026-10-27T00:53:16Z",
+      "valid_until": "2026-11-26T00:53:16Z",
+      "validity_note_ru": "Предложенный срок повторной проверки 30 дней. Истечение не подтверждает lodging и не должно автоматически делать объект пригодным к бронированию.",
+      "seed_point": {
+        "lat": 43.585888053121,
+        "lon": 39.727503928579
+      },
+      "input_fingerprints": {
+        "data/seed/hotels.json": "45cd3b05b6f5b0129864278b648ea4991e439593d0cd63a8a571388af0a1a6f6",
+        "data/seed/overture_places.json": "8c9df7f9703a1b8c8e71d6604b49443adefa37f822eb017802a1a20281eedf5e",
+        "geo_artifact": {
+          "path": "data/geo/overture-6f163d7e-6eea-4cf3-bce8-79dc3e6e7f5c.json",
+          "sha256": "dd73af98c345504f9e0f1e38ea90b0001f85ee73a50898c058f61f16780423d7"
+        }
+      },
+      "evidence": [
+        {
+          "kind": "geometry_association",
+          "geometry_id": "osm-way-51105599",
+          "url": "https://www.openstreetmap.org/way/51105599",
+          "artifact": "data/geo/overture-6f163d7e-6eea-4cf3-bce8-79dc3e6e7f5c.json",
+          "check": {
+            "method": "nearest_30m",
+            "distance_m": 3.24140445017518,
+            "point_inside_associated_building": false,
+            "seed_hotel_has_footprint": false
+          },
+          "source_snapshot_at": "2026-10-25T21:21:21Z"
+        },
+        {
+          "kind": "municipal_primary_document",
+          "url": "https://edu.sochi.ru/im/PostanovlenieAdministratsiigorodaSochiot02.06.20161361.pdf",
+          "quote": "на официальном интернет-сайте администрации города Сочи: http://www.sochiadm.ru",
+          "interpretation_ru": "Документ муниципального органа прямо определяет роль URL как сайта администрации."
+        },
+        {
+          "kind": "official_redirect_check",
+          "url": "http://www.sochiadm.ru/",
+          "final_url": "https://sochi.ru/",
+          "quote": "Администрация города Сочи",
+          "check": {
+            "method": "http_get_follow_redirects",
+            "status_code": 200,
+            "redirects": [
+              {
+                "status_code": 301,
+                "location": "https://www.sochiadm.ru:443/"
+              },
+              {
+                "status_code": 301,
+                "location": "https://sochi.ru/"
+              }
+            ],
+            "html_title_prefix": "Администрация города Сочи"
+          }
+        },
+        {
+          "kind": "raw_identity_fields",
+          "artifact": "data/seed/overture_places.json",
+          "source_record_id": "102061373214658",
+          "upstream_class": "hotel",
+          "name": "Сочи",
+          "website": "http://www.sochiadm.ru/",
+          "has_freeform_address": false,
+          "has_phone": false
+        }
+      ],
+      "limitations_ru": [
+        "Муниципальный сайт доказывает городскую сущность URL, но не отсутствие любой гостиницы по этим координатам.",
+        "Ближайший контур Горького, 11 не является доказанным адресом гостиницы или здания администрации.",
+        "Официальный регламент исторический (2016); текущая redirect-цепочка проверена 27 октября 2026.",
+        "Это hold для идентичности, а не утверждение о несуществовании гостиниц с похожим названием."
+      ]
+    },
+    {
+      "hotel_id": "overture-43748b4b-4201-473e-aa6a-c8e34bcaede4",
+      "name_at_review": "Radisson Blu Resort & Congress Centre, Sochi",
+      "disposition": "hold_for_identity_review",
+      "reason_ru": "Реальная гостиница Radisson Blu Resort & Congress Centre / нынешний Mantera Resort & Congress неверно локализована в центральном Сочи; geo привязал её к OSM зданию городской администрации на Советской, 26 вместо официального адреса Сириус, Голубая, 1А.",
+      "source": "read_only_hotel_identity_audit_2026-10-27",
+      "method": "primary_sources_and_geometry_identity_check_v1",
+      "confidence": {
+        "value": 0.99,
+        "kind": "expert_uncalibrated",
+        "meaning_ru": "Экспертная уверенность в необходимости проверки этой идентичности; не вероятность отсутствия гостиницы и не калиброванная метрика."
+      },
+      "observed_at": "2026-10-27T00:53:16Z",
+      "valid_until": "2026-11-26T00:53:16Z",
+      "validity_note_ru": "Предложенный срок повторной проверки 30 дней. Истечение не подтверждает lodging и не должно автоматически делать объект пригодным к бронированию.",
+      "seed_point": {
+        "lat": 43.58548355,
+        "lon": 39.7231102
+      },
+      "input_fingerprints": {
+        "data/seed/hotels.json": "45cd3b05b6f5b0129864278b648ea4991e439593d0cd63a8a571388af0a1a6f6",
+        "data/seed/overture_places.json": "8c9df7f9703a1b8c8e71d6604b49443adefa37f822eb017802a1a20281eedf5e",
+        "geo_artifact": {
+          "path": "data/geo/overture-43748b4b-4201-473e-aa6a-c8e34bcaede4.json",
+          "sha256": "5a10cd325124ce8990180222eeab1670c410a34c50927a78eab812e730c65ab0"
+        }
+      },
+      "evidence": [
+        {
+          "kind": "geometry_association",
+          "geometry_id": "osm-way-44573570",
+          "url": "https://www.openstreetmap.org/way/44573570",
+          "artifact": "data/geo/overture-43748b4b-4201-473e-aa6a-c8e34bcaede4.json",
+          "check": {
+            "method": "nearest_30m",
+            "distance_m": 17.528398667255544,
+            "point_inside_associated_building": false,
+            "seed_hotel_has_footprint": false
+          },
+          "source_snapshot_at": "2026-10-25T21:21:21Z"
+        },
+        {
+          "kind": "osm_geometry_identity",
+          "url": "https://www.openstreetmap.org/way/44573570",
+          "geometry_id": "osm-way-44573570",
+          "source": "osm_geofabrik",
+          "source_snapshot_at": "2026-10-25T21:21:21Z",
+          "artifact": "data/seed/buildings.geojson.gz",
+          "artifact_sha256": "681b83e5248270d8d80a4d072d2e13152c7166242b3ab563038670f3e0461b7b",
+          "tags": {
+            "amenity": "townhall",
+            "name": "Администрация города Сочи",
+            "addr:street": "Советская улица",
+            "addr:housenumber": "26"
+          },
+          "check": {
+            "method": "existing_geo_nearest_30m",
+            "distance_m": 17.528398667255544,
+            "contains": false
+          }
+        },
+        {
+          "kind": "official_operator_rebranding",
+          "url": "https://mantera.ru/news/gruppa-mantera-vpervye-prezentovala-sozdannuyu-ekosistemu-gostepriimstva-na-vystavke-mitt2024/",
+          "published_at": "2024-03-21",
+          "interpretation_ru": "Оператор связывает Mantera Resort & Congress с бывшим Radisson Blu Resort & Congress Centre и сообщает о переходе в январе 2024 года."
+        },
+        {
+          "kind": "official_operator_hotel_address",
+          "url": "https://mantera.ru/upload/iblock/772/f8kelovk6y0e7ag06iwqn9x58q73fyog.pdf",
+          "quote": "ул. Голубая, 1А",
+          "interpretation_ru": "Презентация оператора указывает Сириус, Голубая, 1А; это несовместимо с привязкой к администрации в центральном Сочи."
+        }
+      ],
+      "limitations_ru": [
+        "Первичный оператор подтверждает название и адрес, но surveyed координаты гостиницы не извлекались.",
+        "Ближайший townhall-контур находится в 17.53 м от точки; точка не лежит внутри него. Это всё равно не подтверждает гостиничную привязку.",
+        "Данные upstream содержат устаревший бренд; это не доказательство закрытия реального отеля.",
+        "Решение относится к неверно локализованному candidate ID; не удаляет объект оператора и не меняет seed."
+      ]
+    }
+  ]
+}
