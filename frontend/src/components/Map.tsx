@@ -8,7 +8,7 @@ import type {
 } from "maplibre-gl";
 import { PMTiles, Protocol } from "pmtiles";
 import {
-  ArrowUpRight,
+  ArrowRight,
   Compass,
   Expand,
   Layers3,
@@ -1342,7 +1342,7 @@ export function TravelMap({
                   className="text-button map-open"
                   onClick={() => onOpen(selected.id)}
                 >
-                  Открыть отель <ArrowUpRight size={14} />
+                  Открыть отель <ArrowRight size={14} />
                 </button>
               )}
             </div>

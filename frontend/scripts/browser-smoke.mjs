@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import { existsSync } from "node:fs";
+import { closeSmokeBrowser, blockYandex } from "./panel-guest-smoke-ui.mjs";
 import assert from "node:assert/strict";
 
 const base = process.env.OKNO_BASE_URL || "http://localhost:8080";
@@ -13,6 +14,7 @@ try {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
   });
+  await blockYandex(page);
   const errors = [],
     failures = [],
     requests = [];
@@ -75,7 +77,10 @@ try {
   await page.locator(".evidence-button").first().click();
   const proofDialog = page.getByRole("dialog");
   await proofDialog.waitFor();
-  await proofDialog.locator(".evidence-card").first().waitFor({ timeout: 30000 });
+  await proofDialog
+    .locator(".evidence-card")
+    .first()
+    .waitFor({ timeout: 30000 });
   await proofDialog.locator(".evidence-card summary").first().click();
   const proofText = await proofDialog.innerText();
   assert.match(proofText, /Данные получены[\s\S]*Актуально до/);
@@ -96,6 +101,7 @@ try {
     isMobile: true,
     hasTouch: true,
   });
+  await blockYandex(mobile);
   await mobile.goto(base);
   await mobile.getByTestId("search-submit").waitFor();
   assert.equal(
@@ -128,5 +134,7 @@ try {
     ),
   );
 } finally {
-  await browser.close();
+  await closeSmokeBrowser(browser);
 }
+
+process.exit(process.exitCode || 0);

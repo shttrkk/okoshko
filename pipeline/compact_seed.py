@@ -18,6 +18,14 @@ from pipeline.common import ROOT, SEED, dump, output_metadata, read, sha
 def run():
     manifest = read(SEED / "manifest.json")
     outputs = manifest["outputs"]
+    # A fresh core export may rebuild outputs without this supplemental input.
+    # Validate and retain the published snapshot; never fetch it during compaction.
+    district_snapshot = SEED / "admin_districts.geojson.gz"
+    district_key = str(district_snapshot.relative_to(ROOT))
+    if district_snapshot.exists() and district_key not in outputs:
+        from pipeline.enrich_addresses import read_snapshot
+        read_snapshot(district_snapshot)
+        outputs[district_key] = output_metadata(district_snapshot)
     logical_paths = sorted(set(SEED.glob("*.geojson")) | {p.with_suffix("") for p in SEED.glob("*.geojson.gz")})
     report = []
     for logical in logical_paths:
@@ -54,6 +62,8 @@ def run():
             path.unlink()
         outputs.pop(key, None)
     dump(SEED / "manifest.json", manifest)
+    from pipeline.enrich_addresses import run as enrich_addresses
+    enrich_addresses(SEED.parent)
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return report
 

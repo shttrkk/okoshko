@@ -200,7 +200,7 @@ def route_constraints(fact: Fact, criterion: Criterion) -> bool | None:
         return None
     value = fact.value if isinstance(fact.value, dict) else {}
     checks = []
-    if criterion.no_stairs:
+    if criterion.no_stairs or criterion.field == "has_steps" and criterion.op == "eq" and criterion.value is False:
         steps = value.get("has_steps")
         checks.append(not steps if isinstance(steps, bool) else None)
     if criterion.no_crossings:
@@ -217,7 +217,7 @@ def route_constraints(fact: Fact, criterion: Criterion) -> bool | None:
 def _route_reason(fact: Fact, criterion: Criterion) -> str:
     value = fact.value if isinstance(fact.value, dict) else {}
     details = []
-    if criterion.no_stairs:
+    if criterion.no_stairs or criterion.field == "has_steps" and criterion.op == "eq" and criterion.value is False:
         if value.get("has_steps") is True:
             details.append("на маршруте отмечены лестницы")
         elif value.get("has_steps") is not False:
@@ -228,7 +228,8 @@ def _route_reason(fact: Fact, criterion: Criterion) -> str:
             details.append("на маршруте отмечены переходы")
         elif crossings is None or isinstance(crossings, bool):
             details.append("нет сведений о переходах")
-    return "Маршрут " + ("без лестниц и переходов" if criterion.no_stairs and criterion.no_crossings else "без лестниц" if criterion.no_stairs else "без переходов") + " не подтверждён: " + "; ".join(details)
+    stairs = criterion.no_stairs or criterion.field == "has_steps" and criterion.value is False
+    return "Маршрут " + ("без лестниц и переходов" if stairs and criterion.no_crossings else "без лестниц" if stairs else "без переходов") + " не подтверждён: " + "; ".join(details)
 
 
 def real_room_confirmation(fact: Fact) -> bool:
@@ -273,8 +274,7 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
         if route_result is None and result is not False:
             return Match(facts=[fact], reason=_route_reason(fact, criterion), value=actual)
         if route_result is False:
-            return Match("no" if fact.confidence >= TRUSTED_CONFIDENCE else "unknown", [fact],
-                         _route_reason(fact, criterion), actual)
+            return Match("no", [fact], _route_reason(fact, criterion).replace(" не подтверждён:", " не подходит:"), actual)
     incomplete = False
     if fact.characteristic_id == "pets" and result and criterion.value is True:
         if parsed.pet_weight_kg is not None:
@@ -293,6 +293,9 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
             elif not allowed.intersection(aliases[requested]) and not allowed.intersection({"all", "любые", "pets", "животные"}):
                 result = False
     if result is None:
+        if (fact.characteristic_id == "connectivity" and field_name in {"download_mbps", "upload_mbps", "latency_ms"}
+                and actual is None and _finite_number(criterion.value) and value.get("wifi_reported") is True):
+            return Match("partial", [fact], "Wi-Fi указан, скорость не измерена", actual, condition_met=False)
         if fact.characteristic_id == "soundproofing" and field_name == "available" and any(value.get(k) is not None for k in ("windows", "blackout", "air_conditioning")):
             return Match("partial", [fact], "Есть сведения об окнах, но шумоизоляция не подтверждена", actual)
         return Match(facts=[fact], reason="Нужное поле не подтверждено", value=actual)
@@ -301,7 +304,9 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
     ):
         return Match("partial", [fact], "Общее заявление о виде не подтверждает сторону и этаж конкретного номера", actual)
     if result and (fact.confidence < TRUSTED_CONFIDENCE or incomplete):
-        return Match("partial", [fact], "Есть предварительные данные; нужно уточнить ограничения" if incomplete else "Предварительная оценка с низкой уверенностью", actual, condition_met=not incomplete)
+        return Match("partial", [fact], "Есть предварительные данные; нужно уточнить ограничения" if incomplete else "Пока неточно — лучше уточнить у отеля", actual, condition_met=not incomplete)
+    if result is False and _finite_number(actual) and _finite_number(criterion.value) and criterion.op in {"lte", "gte", "eq"}:
+        return Match("no", [fact], "Известное значение не соответствует заданному порогу", actual)
     if not result and fact.confidence < TRUSTED_CONFIDENCE:
         return Match("unknown", [fact], "По расчёту скорее нет, но уверенность низкая", actual)
     return Match("yes" if result else "no", [fact], "Условие выполнено" if result else "Условие не выполняется", actual, condition_met=result)

@@ -3,7 +3,6 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowDown,
   ArrowRight,
-  ArrowUpRight,
   Footprints,
   Heart,
   Laptop,
@@ -26,11 +25,21 @@ import {
   realHotelier,
   isDemoAnswer,
   guestText,
+  humanExplanation,
+  verdictCaveat,
 } from "../components/panel-guest-presentation";
 import { useApp } from "../state";
 import { TravelMap } from "../components/Map";
 import { GroupPlan } from "../components/GroupPlan";
 import { RoomCriteriaEditor } from "../components/RoomCriteriaEditor";
+import {
+  chooseSuggestion,
+  QuerySuggestions,
+  roomRequestReason,
+  requestedCriteria,
+  mobilityContext,
+  contextualDisappointment,
+} from "../components/panel-guest-query";
 import { RoomSuggestion } from "../components/RoomProfiles";
 import { groupExample, roomEvidenceScope } from "../components/group";
 import {
@@ -433,7 +442,7 @@ export function Home() {
                 <h3>{p.title}</h3>
                 <p>{p.text}</p>
                 <span className="scenario-cta">Подобрать отели →</span>
-                <ArrowUpRight className="scenario-arrow" size={20} />
+                <ArrowRight className="scenario-arrow" size={20} />
               </span>
             </button>
           ))}
@@ -515,7 +524,7 @@ export function Home() {
           ? `${status.data.hotel_count ?? hotels.data?.length ?? "…"} отелей · характеристик в каталоге: ${status.data.characteristic_count ?? "…"}`
           : "Подключаем каталог реальных отелей"}
         <Link to="/quality">
-          Как проверяем качество <ArrowUpRight size={13} />
+          Как проверяем качество <ArrowRight size={13} />
         </Link>
       </section>
     </div>
@@ -884,6 +893,12 @@ function CriteriaEditor({
           </p>
         ) : null;
       })()}
+      <QuerySuggestions
+        suggestions={parsed.suggestions}
+        onChoose={(suggestion) =>
+          onChange(chooseSuggestion(parsed, suggestion))
+        }
+      />
       {parsed.rooms?.map((room, index) => (
         <RoomCriteriaEditor
           key={index}
@@ -1044,6 +1059,9 @@ function SearchCard({
   hit,
   month,
   roomRequests,
+  roomReason,
+  requestedIds,
+  withMobility,
   index,
   firstResultId,
   active,
@@ -1055,6 +1073,9 @@ function SearchCard({
   hit: SearchHit;
   month: number;
   roomRequests?: RoomRequest[];
+  roomReason: string;
+  requestedIds: string[];
+  withMobility: boolean;
   index: number;
   firstResultId?: string;
   active: boolean;
@@ -1064,6 +1085,11 @@ function SearchCard({
   onEvidence: (hotelId: string, v: Verdict) => void;
 }) {
   const navigate = useNavigate();
+  const visibleVerdicts = requestedIds.length
+    ? hit.verdicts.filter((verdict) =>
+        requestedIds.includes(verdict.characteristic_id),
+      )
+    : hit.verdicts;
   const reasons =
     index > 0 && index < 4 && hit.hotel.id !== firstResultId
       ? distinctRankingReasons(hit.why_not_higher)
@@ -1094,17 +1120,17 @@ function SearchCard({
         </div>
         <Link className="hotel-name" to={`/hotel/${hit.hotel.id}`}>
           <h3>{hit.hotel.name}</h3>
-          <ArrowUpRight size={20} />
+          <ArrowRight size={20} />
         </Link>
         <div className="result-summary">
-          <RequiredStatusSummary hit={hit} />
+          <RequiredStatusSummary hit={{ ...hit, verdicts: visibleVerdicts }} />
           {hit.room_profile?.scope.facade && !hit.room_recommendation && (
             <span>{scopeText(roomEvidenceScope(hit.room_profile.scope))}</span>
           )}
         </div>
         <VerdictList
           compact
-          verdicts={hit.verdicts}
+          verdicts={visibleVerdicts}
           hotelId={hit.hotel.id}
           onEvidence={(v) => onEvidence(hit.hotel.id, v)}
         />
@@ -1117,61 +1143,102 @@ function SearchCard({
             compact
           />
         ) : (
+          roomReason &&
           hit.room_recommendation && (
             <RoomSuggestion
               hotelId={hit.hotel.id}
               unknownFloors={hit.hotel.floors === null}
               recommendation={hit.room_recommendation}
+              reason={roomReason}
+              requestedIds={requestedIds}
               profile={hit.room_profile}
               month={hit.room_profile?.scope.month || month}
             />
           )
         )}
-        {(hit.summary || hit.disappointments.length > 0) && (
-          <details className="verdict-caveats result-explanation">
-            <summary>Почему этот отель</summary>
+        {(hit.summary ||
+          hit.disappointments.length > 0 ||
+          reasons.length > 0) && (
+          <details
+            className="verdict-caveats result-explanation"
+            data-testid="card-details"
+          >
+            <summary>Подробнее</summary>
             {hit.summary && (
               <p>
-                {guestText(
+                {humanExplanation(
                   hit.summary,
                   hit.verdicts.some((v) => v.synthetic),
+                  1,
                 )}
               </p>
             )}
             {hit.disappointments.length > 0 && (
-              <ul>
-                {hit.disappointments.map((text, index) => (
-                  <li key={index}>{guestText(text)}</li>
-                ))}
-              </ul>
+              <p>
+                {humanExplanation(
+                  contextualDisappointment(
+                    hit.disappointments[0],
+                    withMobility,
+                  ),
+                )}
+              </p>
             )}
-          </details>
-        )}
-        {reasons.length > 0 && (
-          <details
-            className="verdict-caveats"
-            data-testid={`search-reasons-${hit.hotel.id}`}
-          >
-            <summary aria-label={`Почему не выше: ${hit.hotel.name}`}>
-              Почему не выше
-            </summary>
-            {reasons.map((reason) => {
-              const { human, hasCalculation } = rankingReasonParts(reason);
-              return (
-                <div key={reason} data-testid="ranking-reason">
-                  <p>{human}</p>
-                  {hasCalculation && (
-                    <details
-                      className="room-caveats-details"
-                      data-testid="ranking-calculation"
-                    >
-                      <summary>Как посчитано</summary>
-                      <p>{reason}</p>
-                    </details>
+            <details className="room-caveats-details" data-testid="card-proof">
+              <summary>Для дотошных</summary>
+              {hit.summary && (
+                <p>
+                  {guestText(
+                    hit.summary,
+                    hit.verdicts.some((v) => v.synthetic),
                   )}
-                </div>
-              );
-            })}
+                </p>
+              )}
+              {hit.disappointments.length > 0 && (
+                <ul>
+                  {hit.disappointments.map((text, index) => (
+                    <li key={index}>
+                      {guestText(contextualDisappointment(text, withMobility))}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {hit.verdicts.map((verdict, index) => (
+                <p key={index}>
+                  {guestText(verdict.text, verdict.synthetic)}{" "}
+                  {verdictCaveat(verdict)}
+                </p>
+              ))}
+              {reasons.length > 0 && (
+                <details data-testid={`search-reasons-${hit.hotel.id}`}>
+                  <summary aria-label={`Почему не выше: ${hit.hotel.name}`}>
+                    Почему не выше
+                  </summary>
+                  {reasons.map((reason) => {
+                    const { human, hasCalculation } =
+                      rankingReasonParts(reason);
+                    return (
+                      <div key={reason} data-testid="ranking-reason">
+                        <p>{human}</p>
+                        {hasCalculation && (
+                          <details
+                            className="room-caveats-details"
+                            data-testid="ranking-calculation"
+                          >
+                            <summary>Расчёт сравнения</summary>
+                            <p>
+                              {guestText(
+                                reason,
+                                hit.verdicts.some((v) => v.synthetic),
+                              )}
+                            </p>
+                          </details>
+                        )}
+                      </div>
+                    );
+                  })}
+                </details>
+              )}
+            </details>
           </details>
         )}
         <div className="card-bottom">
@@ -1518,6 +1585,11 @@ export function SearchPage() {
                       hit={hit}
                       month={resource.data?.parsed.month || 9}
                       roomRequests={resource.data?.parsed.rooms}
+                      withMobility={mobilityContext(resource.data?.parsed)}
+                      requestedIds={requestedCriteria(
+                        resource.data?.parsed,
+                      ).map((criterion) => criterion.characteristic_id)}
+                      roomReason={roomRequestReason(resource.data?.parsed)}
                       index={results.indexOf(hit)}
                       firstResultId={firstResultId}
                       active={activeId === hit.hotel.id}

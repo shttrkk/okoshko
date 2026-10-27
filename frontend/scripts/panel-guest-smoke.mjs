@@ -6,7 +6,7 @@ import { chromium } from "playwright";
 
 // Run against the rebuilt application; search and evidence use its real API. All question/passport mutations below are intercepted fixtures.
 const base = process.env.OKNO_BASE_URL || "http://localhost:8080";
-const apiBase = process.env.OKNO_API_BASE_URL || "http://localhost:8080";
+const apiBase = process.env.OKNO_API_BASE_URL || base;
 const artifacts = resolve(
   process.env.OKNO_PANEL_GUEST_ARTIFACTS ||
     fileURLToPath(new URL("../../runtime/panel-guest-after", import.meta.url)),
@@ -276,7 +276,26 @@ try {
     must_matched: 3,
   };
   await fixture.page.route("**/api/search", (route) =>
-    route.fulfill({ json: { ...seed, results: [fixtureHit], total: 1 } }),
+    route.fulfill({
+      json: {
+        ...seed,
+        parsed: {
+          ...seed.parsed,
+          must: variants.map((verdict) => ({
+            characteristic_id: verdict.characteristic_id,
+            label: verdict.label,
+            field: "available",
+            op: "eq",
+            value: true,
+          })),
+          nice: [],
+          no_data: [],
+          no_data_must: [],
+        },
+        results: [fixtureHit],
+        total: 1,
+      },
+    }),
   );
   await fixture.page.route(
     `**/api/hotels/${hotelId}/facts/panel-guest-fact/evidence`,
@@ -295,25 +314,31 @@ try {
     await fixture.page.getByTestId("demo-results-banner").count(),
     1,
   );
-  const verdicts = fixture.page.locator(".verdict-list > li");
+  const verdicts = fixture.page.locator(".result-card .verdict-list > li");
+  const sea = verdicts.filter({
+    has: fixture.page.getByText("Вид на море", { exact: true }),
+  });
+  const realAnswer = verdicts.filter({
+    has: fixture.page.getByText("Сторона и этаж", { exact: true }),
+  });
+  const demoAnswer = verdicts.filter({
+    has: fixture.page.getByText("С питомцем", { exact: true }),
+  });
+  assert.equal((await sea.locator(".verdict-symbol").innerText()).trim(), "≈");
+  assert.match(await sea.innerText(), /по расчёту/);
   assert.equal(
-    (await verdicts.nth(0).locator(".verdict-symbol").innerText()).trim(),
-    "≈",
-  );
-  assert.match(await verdicts.nth(0).innerText(), /по расчёту/);
-  assert.equal(
-    (await verdicts.nth(1).locator(".verdict-symbol").innerText()).trim(),
+    (await realAnswer.locator(".verdict-symbol").innerText()).trim(),
     "✓",
   );
-  assert.match(await verdicts.nth(1).innerText(), /Подтвердил отель/);
+  assert.match(await realAnswer.innerText(), /Подтвердил отель/);
   assert.equal(
-    (await verdicts.nth(2).locator(".verdict-symbol").innerText()).trim(),
+    (await demoAnswer.locator(".verdict-symbol").innerText()).trim(),
     "≈",
   );
-  assert.match(await verdicts.nth(2).innerText(), /Ответ отеля · демо/);
-  assert(!(await verdicts.nth(2).locator(".verdict-symbol.yes").count()));
+  assert.match(await demoAnswer.innerText(), /Ответ отеля · демо/);
+  assert(!(await demoAnswer.locator(".verdict-symbol.yes").count()));
   await screenshot(fixture.page, "1440-status-fixture");
-  await verdicts.nth(2).getByRole("button").first().click();
+  await demoAnswer.getByRole("button").first().click();
   await fixture.page.getByRole("dialog").waitFor();
   await fixture.page
     .getByRole("dialog")
@@ -435,7 +460,11 @@ try {
   );
   await fixture.page.locator(".verdict-text").first().click();
   await fixture.page.getByRole("dialog").waitFor();
-  await fixture.page.getByRole("dialog").locator(".evidence-card").first().waitFor();
+  await fixture.page
+    .getByRole("dialog")
+    .locator(".evidence-card")
+    .first()
+    .waitFor();
   assert.match(
     await fixture.page.getByRole("dialog").innerText(),
     /Демо-расчёт/,

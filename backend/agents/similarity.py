@@ -64,6 +64,12 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
     fields = {s.id: s.search.field for s in specs}
     labels = {s.id: getattr(s, "display_name", None) or s.name_ru for s in specs}
     units = {s.id: s.search.unit for s in specs}
+    active = list(dict.fromkeys(c.characteristic_id for c in (
+        [*parsed.must, *[c for room in parsed.rooms for c in room.must],
+         *parsed.nice, *[c for room in parsed.rooms for c in room.nice]] if parsed else [])))
+    priority = {cid: index for index, cid in enumerate(active)}
+    def requested_first(row):
+        return priority.get(row[1], len(priority))
     scored = []
     for hotel in candidates:
         fingerprint = _fingerprint(by_hotel[hotel.id], specs)
@@ -114,11 +120,11 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
         shown = [row for row in comparisons if isinstance(row[3], bool) or not isinstance(row[3], int | float)
                  or field_unit(fields[row[1]], units[row[1]])
                  and not (row[5].scope.facade or reference[row[1]][2].scope.facade)]
-        matches = sorted((row for row in shown if row[3] == row[4]), key=lambda row: (-row[0], row[1]))[:3]
+        matches = sorted((row for row in shown if row[3] == row[4]), key=lambda row: (requested_first(row), -row[0], row[1]))[:3]
         differences = sorted((row for row in shown if row[3] != row[4]
                               and _profile_value(row[3], fields[row[1]], units[row[1]]) != _profile_value(row[4], fields[row[1]], units[row[1]])),
-                             key=lambda row: (-WEIGHTS.get(row[1], 1)*min(reference[row[1]][1], row[5].confidence)*(1-row[2]), row[1]))[:2]
-        for _, cid, closeness, left, right, fact in [*matches, *differences]:
+                             key=lambda row: (requested_first(row), -WEIGHTS.get(row[1], 1)*min(reference[row[1]][1], row[5].confidence)*(1-row[2]), row[1]))[:2]
+        for _, cid, closeness, left, right, fact in sorted([*matches, *differences], key=requested_first):
             left_text = _profile_value(left, fields[cid], units[cid])
             right_text = _profile_value(right, fields[cid], units[cid])
             if left == right:

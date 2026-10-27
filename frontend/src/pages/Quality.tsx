@@ -25,7 +25,6 @@ import {
   ErrorState,
   FactValue,
   Loading,
-  names,
   PageIntro,
   scopeText,
   Synthetic,
@@ -51,6 +50,16 @@ const rate = (value: unknown) =>
   value <= 1
     ? value
     : null;
+const canonical = (value: unknown): unknown =>
+  Array.isArray(value)
+    ? value.map(canonical)
+    : value && typeof value === "object"
+      ? Object.fromEntries(
+          Object.entries(value)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, item]) => [key, canonical(item)]),
+        )
+      : value;
 function metricStatus(status: unknown) {
   if (status === "not_measured" || !status)
     return "Измерение ещё не опубликовано.";
@@ -308,10 +317,23 @@ function ParserIntentMetrics({ value }: { value: unknown }) {
   );
 }
 export function QualityPage() {
+  const { specs } = useApp();
+  const characteristicName = (id: string) =>
+    specs.data?.find((spec) => spec.id === id)?.name_ru || "Характеристика";
   const quality = useResource(api.quality);
   const q = quality.data,
     coverage = record(q?.coverage),
     groups = record(q?.label_groups);
+  const website = record(groups.weak_website);
+  const websiteCount =
+    typeof website.evaluated === "number" &&
+    Number.isInteger(website.evaluated) &&
+    website.evaluated > 0 &&
+    rate(website.accuracy) !== null
+      ? website.evaluated
+      : null;
+  const websiteAgreements =
+    websiteCount !== null ? Number(website.accuracy) * websiteCount : null;
   return (
     <div className="page-container quality-page">
       <PageIntro
@@ -330,460 +352,501 @@ export function QualityPage() {
       <ErrorState error={quality.error} retry={quality.reload} />
       {q && (
         <>
-          {q.filter_comparison ? (
-            <section className="quality-group" data-testid="filter-comparison">
-              <span className="eyebrow">
-                СРАВНЕНИЕ ФИЛЬТРОВ · СОХРАНЁННАЯ МОДЕЛЬ
-              </span>
-              <h2>
-                {number(q.filter_comparison.search.outside_radius_supported)}{" "}
-                кандидатов за пределами радиуса
-              </h2>
-              <p>
-                Модель нашла совместимые море и закат у{" "}
-                {number(q.filter_comparison.search.outside_radius_supported)}{" "}
-                отелей дальше {number(q.filter_comparison.settings.radius_m)} м
-                от картированной береговой линии. Из них{" "}
-                {number(q.filter_comparison.search.outside_radius_partial)} —
-                предварительные результаты. Это дополнительные модельные
-                кандидаты для проверки, а не реальные окна, рост конверсии или
-                измеренная точность.
-              </p>
-              <div className="metric-row">
-                <div>
-                  <span>
-                    Простой фильтр ≤
-                    {number(q.filter_comparison.settings.radius_m)} м
-                  </span>
-                  <strong>
-                    {number(q.filter_comparison.baseline.within_radius)}
-                  </strong>
-                  <small>
-                    из {number(q.filter_comparison.population.hotels)} отелей
-                  </small>
-                </div>
-                <div>
-                  <span>Море и закат из одного номера</span>
-                  <strong>
-                    {number(q.filter_comparison.search.compatible_supported)}
-                  </strong>
-                  <small>
-                    {number(q.filter_comparison.search.partial_supported)}{" "}
-                    предварительных
-                  </small>
-                </div>
-                <div>
-                  <span>Вне радиуса · модель нашла оба</span>
-                  <strong>
-                    {number(
-                      q.filter_comparison.search.outside_radius_supported,
-                    )}
-                  </strong>
-                  <small>не прошли бы простой фильтр близости</small>
-                </div>
-                <div>
-                  <span>Этажность неизвестна</span>
-                  <strong>
-                    {number(q.filter_comparison.population.unknown_floor_count)}
-                  </strong>
-                  <small>не даёт уверенно отрицать верхние этажи</small>
-                </div>
-              </div>
-              <p className="fine-print">
-                Месяц:{" "}
-                {new Intl.DateTimeFormat("ru", {
-                  month: "long",
-                  timeZone: "UTC",
-                }).format(
-                  new Date(
-                    Date.UTC(2026, q.filter_comparison.settings.month - 1, 15),
-                  ),
-                )}
-                . Поиск с{" "}
-                {number(q.filter_comparison.settings.search_min_floor)}-го
-                этажа, уверенность ≥
-                {percent(q.filter_comparison.settings.confidence_floor)}; для
-                отрицательного вывода ≥
-                {percent(
-                  q.filter_comparison.settings.negative_confidence_floor,
-                )}
-                . Расстояние до берега — по прямой, не пешим маршрутом.
-                Учитываются только расчёты по открытым данным, без
-                демонстрационных ответов отеля и сценария «новый дом».
-              </p>
-              <details>
-                <summary>
-                  Что модель знает внутри радиуса и где остаются пробелы
-                </summary>
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Внутри радиуса</th>
-                        <th>Положительные</th>
-                        <th>Из них неполные</th>
-                        <th>Модельные отрицательные</th>
-                        <th>Неизвестно</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(["sea_view", "sunset_view"] as const).map((cid) => {
-                        const v =
-                          q.filter_comparison!.baseline.views_within_radius[
-                            cid
-                          ];
-                        return (
-                          <tr key={cid}>
-                            <th>{names[cid]}</th>
-                            <td>{number(v.positive)}</td>
-                            <td>{number(v.partial_positive)}</td>
-                            <td>{number(v.model_negative)}</td>
-                            <td>{number(v.unknown)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                <p className="fine-print">
-                  Отрицательный результат требует известной этажности и
-                  уверенных отрицательных значений во всех смоделированных
-                  фасадах и этажах. Он не означает «нет ни одного реального
-                  окна».
-                </p>
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>На всей выборке</th>
-                        <th>
-                          Положительные расчёты только с{" "}
-                          {number(q.filter_comparison.settings.k_floor)}-го
-                          этажа
-                        </th>
-                        <th>При уверенном отрицании ниже</th>
-                        <th>Положительные расчёты с одного фасада</th>
-                        <th>При уверенном отрицании остальных</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(["sea_view", "sunset_view"] as const).map((cid) => {
-                        const v = q.filter_comparison!.scoped[cid];
-                        return (
-                          <tr key={cid}>
-                            <th>{names[cid]}</th>
-                            <td>
-                              {number(v.observed_positive_only_at_or_above_k)}
-                            </td>
-                            <td>{number(v.model_only_at_or_above_k)}</td>
-                            <td>
-                              {number(v.observed_positive_only_one_facade)}
-                            </td>
-                            <td>{number(v.model_only_one_facade)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                <p className="fine-print">
-                  Левые числа описывают только найденные положительные расчёты;
-                  там, где расчёта нет, значение остаётся неизвестным. Строгие
-                  числа справа дополнительно требуют уверенного «нет» для
-                  остальных сторон и этажей. Фасады модели не заменяют
-                  планировку номеров.
-                </p>
-                {q.filter_comparison.limitations.map((limitation) => (
-                  <p className="fine-print" key={limitation}>
-                    {limitation}
-                  </p>
-                ))}
-                <p className="fine-print">
-                  Версия данных: {q.filter_comparison.seed_version}.
-                  Сформировано: {dateText(q.filter_comparison.generated_at)}.
-                </p>
-                <code>{q.filter_comparison.settings.reproduce}</code>
-                <p>
-                  <a
-                    className="text-button"
-                    href="/data/eval/filter_baseline.json"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Полный отчёт и SHA256 входов <ExternalLink size={14} />
-                  </a>
-                </p>
-              </details>
-            </section>
-          ) : (
-            <p className="fine-print">
-              Сравнение фильтров для текущей версии данных ещё не опубликовано.
+          <section className="limitations" data-testid="quality-summary">
+            <p>
+              Вручную проверено: {number(q.manual_label_count)} независимых
+              меток.{" "}
+              {q.manual_label_count === 0
+                ? "Независимая точность на реальных отелях пока не измерена."
+                : "Основания и результаты ручной проверки приведены ниже."}
             </p>
-          )}
-          {q.provenance && (
-            <section className="quality-group" data-testid="fact-provenance">
-              <span className="eyebrow">
-                ПРОИСХОЖДЕНИЕ ЗНАЧЕНИЙ В ТЕКУЩЕМ СТЕНДЕ
-              </span>
-              <h2>
-                {percent(q.provenance.synthetic_share)} известных значений
-                опираются на синтетику
-              </h2>
-              <div className="metric-row">
-                <div>
-                  <span>Без синтетических оснований</span>
-                  <strong>{number(q.provenance.non_synthetic)}</strong>
-                </div>
-                <div>
-                  <span>Синтетические · включая смешанные</span>
-                  <strong>{number(q.provenance.synthetic)}</strong>
-                </div>
-                <div>
-                  <span>Смешанные · уже входят в синтетические</span>
-                  <strong>{number(q.provenance.mixed)}</strong>
-                </div>
-                <div>
-                  <span>Неизвестные, пустые, устаревшие, спорные</span>
-                  <strong>{number(q.provenance.unknown_stale_disputed)}</strong>
-                </div>
-              </div>
-              <p className="fine-print">
-                Единица счёта — отдельное значение характеристики для стороны,
-                этажа или месяца, а не отель. Знаменатель доли:{" "}
-                {number(q.provenance.known)} известных актуальных значений.
-                Смешанные значения считаются синтетическими и не выдаются за
-                реальное подтверждение. Значения без синтетики тоже бывают
-                модельными и требуют проверки.
-              </p>
-            </section>
-          )}
-          <div className="quality-stats">
-            <div>
-              <span className="eyebrow">ПРОФИЛИ</span>
-              <strong>{number(q.hotel_count)}</strong>
-              <span>отелей в каталоге</span>
-            </div>
-            <div>
-              <span className="eyebrow">ПОКРЫТИЕ ФАКТАМИ</span>
-              <strong>{percent(coverage.ratio)}</strong>
-              <span>
-                {number(coverage.known_pairs)} из {number(coverage.total_pairs)}{" "}
-                пар
-              </span>
-            </div>
-            <div>
-              <span className="eyebrow">РУЧНАЯ РАЗМЕТКА</span>
-              <strong>{number(q.manual_label_count)}</strong>
-              <span>независимых меток</span>
-            </div>
-            <div>
-              <span className="eyebrow">ВОПРОСЫ ОТЕЛЬЕРУ</span>
-              <strong>{percent(q.question_share)}</strong>
-              <span>по определению метрики API</span>
-            </div>
-          </div>
-          <section className="quality-evaluation">
-            <div className="section-heading">
-              <div>
+            <p>
+              {websiteCount !== null &&
+              websiteAgreements !== null &&
+              Math.abs(websiteAgreements - Math.round(websiteAgreements)) < 1e-6
+                ? `С утверждениями сайтов совпало ${number(Math.round(websiteAgreements))} из ${number(websiteCount)} проверенных примеров.`
+                : "Сопоставление с сайтами пока не измерено."}{" "}
+              Сайты описывают свои отели; это не независимая проверка.
+            </p>
+            <p>
+              {q.provenance
+                ? `Неизвестных, устаревших или спорных значений: ${number(q.provenance.unknown_stale_disputed)}. Отдельные стороны, этажи и месяцы считаются раздельно.`
+                : "Сводка актуальности значений пока не передана."}
+            </p>
+          </section>
+          <details>
+            <summary>
+              Подробности для команды и разработчиков: методика и метрики
+            </summary>
+            {q.filter_comparison ? (
+              <section
+                className="quality-group"
+                data-testid="filter-comparison"
+              >
                 <span className="eyebrow">
-                  РАЗНЫЕ ОСНОВАНИЯ — РАЗНЫЕ ВЫВОДЫ
+                  СРАВНЕНИЕ ФИЛЬТРОВ · СОХРАНЁННАЯ МОДЕЛЬ
                 </span>
-                <h2>С чем сравнивали</h2>
-              </div>
-              <span className="badge">
-                {q.status === "awaiting_independent_labels"
-                  ? "Ожидает независимой разметки"
-                  : q.status === "measured"
-                    ? "Есть размеченные примеры"
-                    : textValue(q.status)}
-              </span>
-            </div>
-            {Object.entries(groups).length ? (
-              Object.entries(groups).map(([name, data]) => {
-                const g = record(data);
-                const characteristics = record(g.characteristics);
-                return (
-                  <article className="quality-group" key={name}>
-                    <div className="section-heading">
-                      <div>
-                        <span className="eyebrow">
-                          {name === "manual"
-                            ? "НЕЗАВИСИМАЯ ПРОВЕРКА"
-                            : name === "weak_website"
-                              ? "СЛАБАЯ РАЗМЕТКА"
-                              : "ПРОВЕРОЧНЫЙ НАБОР"}
-                        </span>
-                        <h3>
-                          {name === "manual"
-                            ? "Человек + проверяемый источник"
-                            : name === "weak_website"
-                              ? "Утверждения с сайтов отелей"
-                              : name}
-                        </h3>
-                      </div>
-                      <span>{number(g.label_count)} меток</span>
-                    </div>
-                    {name !== "manual" && (
-                      <p className="fine-print">
-                        {name === "weak_website"
-                          ? "Самоописание отеля — слабая метка. Эти результаты нельзя выдавать за независимую точность."
-                          : "Синтетический или внутренний набор показывает работу механизма и не измеряет точность на реальных отелях."}
-                      </p>
-                    )}
-                    <div className="metric-row">
-                      {[
-                        ["accuracy", "Accuracy"],
-                        ["precision", "Precision"],
-                        ["recall", "Recall"],
-                        ["brier", "Brier"],
-                        ["ece", "ECE"],
-                      ].map(([key, label]) => (
-                        <div key={key}>
-                          <span>{label}</span>
-                          <strong>
-                            {key === "brier" || key === "ece"
-                              ? number(g[key], 3)
-                              : percent(g[key])}
-                          </strong>
-                        </div>
-                      ))}
-                    </div>
-                    {Object.keys(characteristics).length > 0 && (
-                      <div className="table-scroll">
-                        <table className="data-table">
-                          <thead>
-                            <tr>
-                              <th>Характеристика</th>
-                              <th>Метки</th>
-                              <th>Оценено</th>
-                              <th>Точность</th>
-                              <th>Воздержания</th>
+                <h2>
+                  {number(q.filter_comparison.search.outside_radius_supported)}{" "}
+                  кандидатов за пределами радиуса
+                </h2>
+                <p>
+                  Модель нашла совместимые море и закат у{" "}
+                  {number(q.filter_comparison.search.outside_radius_supported)}{" "}
+                  отелей дальше {number(q.filter_comparison.settings.radius_m)}{" "}
+                  м от картированной береговой линии. Из них{" "}
+                  {number(q.filter_comparison.search.outside_radius_partial)} —
+                  предварительные результаты. Это дополнительные модельные
+                  кандидаты для проверки, а не реальные окна, рост конверсии или
+                  измеренная точность.
+                </p>
+                <div className="metric-row">
+                  <div>
+                    <span>
+                      Простой фильтр ≤
+                      {number(q.filter_comparison.settings.radius_m)} м
+                    </span>
+                    <strong>
+                      {number(q.filter_comparison.baseline.within_radius)}
+                    </strong>
+                    <small>
+                      из {number(q.filter_comparison.population.hotels)} отелей
+                    </small>
+                  </div>
+                  <div>
+                    <span>Море и закат из одного номера</span>
+                    <strong>
+                      {number(q.filter_comparison.search.compatible_supported)}
+                    </strong>
+                    <small>
+                      {number(q.filter_comparison.search.partial_supported)}{" "}
+                      предварительных
+                    </small>
+                  </div>
+                  <div>
+                    <span>Вне радиуса · модель нашла оба</span>
+                    <strong>
+                      {number(
+                        q.filter_comparison.search.outside_radius_supported,
+                      )}
+                    </strong>
+                    <small>не прошли бы простой фильтр близости</small>
+                  </div>
+                  <div>
+                    <span>Этажность неизвестна</span>
+                    <strong>
+                      {number(
+                        q.filter_comparison.population.unknown_floor_count,
+                      )}
+                    </strong>
+                    <small>не даёт уверенно отрицать верхние этажи</small>
+                  </div>
+                </div>
+                <p className="fine-print">
+                  Месяц:{" "}
+                  {new Intl.DateTimeFormat("ru", {
+                    month: "long",
+                    timeZone: "UTC",
+                  }).format(
+                    new Date(
+                      Date.UTC(
+                        2026,
+                        q.filter_comparison.settings.month - 1,
+                        15,
+                      ),
+                    ),
+                  )}
+                  . Поиск с{" "}
+                  {number(q.filter_comparison.settings.search_min_floor)}-го
+                  этажа, уверенность ≥
+                  {percent(q.filter_comparison.settings.confidence_floor)}; для
+                  отрицательного вывода ≥
+                  {percent(
+                    q.filter_comparison.settings.negative_confidence_floor,
+                  )}
+                  . Расстояние до берега — по прямой, не пешим маршрутом.
+                  Учитываются только расчёты по открытым данным, без
+                  демонстрационных ответов отеля и сценария «новый дом».
+                </p>
+                <details>
+                  <summary>
+                    Что модель знает внутри радиуса и где остаются пробелы
+                  </summary>
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Внутри радиуса</th>
+                          <th>Положительные</th>
+                          <th>Из них неполные</th>
+                          <th>Модельные отрицательные</th>
+                          <th>Неизвестно</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(["sea_view", "sunset_view"] as const).map((cid) => {
+                          const v =
+                            q.filter_comparison!.baseline.views_within_radius[
+                              cid
+                            ];
+                          return (
+                            <tr key={cid}>
+                              <th>{characteristicName(cid)}</th>
+                              <td>{number(v.positive)}</td>
+                              <td>{number(v.partial_positive)}</td>
+                              <td>{number(v.model_negative)}</td>
+                              <td>{number(v.unknown)}</td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {Object.entries(characteristics).map(
-                              ([id, metrics]) => {
-                                const m = record(metrics);
-                                return (
-                                  <tr key={id}>
-                                    <th>{names[id] || id}</th>
-                                    <td>{number(m.label_count)}</td>
-                                    <td>{number(m.evaluated)}</td>
-                                    <td>{percent(m.accuracy)}</td>
-                                    <td>{number(m.abstentions)}</td>
-                                  </tr>
-                                );
-                              },
-                            )}
-                          </tbody>
-                        </table>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="fine-print">
+                    Отрицательный результат требует известной этажности и
+                    уверенных отрицательных значений во всех смоделированных
+                    фасадах и этажах. Он не означает «нет ни одного реального
+                    окна».
+                  </p>
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>На всей выборке</th>
+                          <th>
+                            Положительные расчёты только с{" "}
+                            {number(q.filter_comparison.settings.k_floor)}-го
+                            этажа
+                          </th>
+                          <th>При уверенном отрицании ниже</th>
+                          <th>Положительные расчёты с одного фасада</th>
+                          <th>При уверенном отрицании остальных</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(["sea_view", "sunset_view"] as const).map((cid) => {
+                          const v = q.filter_comparison!.scoped[cid];
+                          return (
+                            <tr key={cid}>
+                              <th>{characteristicName(cid)}</th>
+                              <td>
+                                {number(v.observed_positive_only_at_or_above_k)}
+                              </td>
+                              <td>{number(v.model_only_at_or_above_k)}</td>
+                              <td>
+                                {number(v.observed_positive_only_one_facade)}
+                              </td>
+                              <td>{number(v.model_only_one_facade)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="fine-print">
+                    Левые числа описывают только найденные положительные
+                    расчёты; там, где расчёта нет, значение остаётся
+                    неизвестным. Строгие числа справа дополнительно требуют
+                    уверенного «нет» для остальных сторон и этажей. Фасады
+                    модели не заменяют планировку номеров.
+                  </p>
+                  {q.filter_comparison.limitations.map((limitation) => (
+                    <p className="fine-print" key={limitation}>
+                      {limitation}
+                    </p>
+                  ))}
+                  <p className="fine-print">
+                    Версия данных: {q.filter_comparison.seed_version}.
+                    Сформировано: {dateText(q.filter_comparison.generated_at)}.
+                  </p>
+                  <code>{q.filter_comparison.settings.reproduce}</code>
+                  <p>
+                    <a
+                      className="text-button"
+                      href="/data/eval/filter_baseline.json"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Полный отчёт и SHA256 входов <ExternalLink size={14} />
+                    </a>
+                  </p>
+                </details>
+              </section>
+            ) : (
+              <p className="fine-print">
+                Сравнение фильтров для текущей версии данных ещё не
+                опубликовано.
+              </p>
+            )}
+            {q.provenance && (
+              <section className="quality-group" data-testid="fact-provenance">
+                <span className="eyebrow">
+                  ПРОИСХОЖДЕНИЕ ЗНАЧЕНИЙ В ТЕКУЩЕМ СТЕНДЕ
+                </span>
+                <h2>
+                  {percent(q.provenance.synthetic_share)} известных значений
+                  опираются на синтетику
+                </h2>
+                <div className="metric-row">
+                  <div>
+                    <span>Без синтетических оснований</span>
+                    <strong>{number(q.provenance.non_synthetic)}</strong>
+                  </div>
+                  <div>
+                    <span>Синтетические · включая смешанные</span>
+                    <strong>{number(q.provenance.synthetic)}</strong>
+                  </div>
+                  <div>
+                    <span>Смешанные · уже входят в синтетические</span>
+                    <strong>{number(q.provenance.mixed)}</strong>
+                  </div>
+                  <div>
+                    <span>Неизвестные, пустые, устаревшие, спорные</span>
+                    <strong>
+                      {number(q.provenance.unknown_stale_disputed)}
+                    </strong>
+                  </div>
+                </div>
+                <p className="fine-print">
+                  Единица счёта — отдельное значение характеристики для стороны,
+                  этажа или месяца, а не отель. Знаменатель доли:{" "}
+                  {number(q.provenance.known)} известных актуальных значений.
+                  Смешанные значения считаются синтетическими и не выдаются за
+                  реальное подтверждение. Значения без синтетики тоже бывают
+                  модельными и требуют проверки.
+                </p>
+              </section>
+            )}
+            <div className="quality-stats">
+              <div>
+                <span className="eyebrow">ПРОФИЛИ</span>
+                <strong>{number(q.hotel_count)}</strong>
+                <span>отелей в каталоге</span>
+              </div>
+              <div>
+                <span className="eyebrow">ПОКРЫТИЕ ФАКТАМИ</span>
+                <strong>{percent(coverage.ratio)}</strong>
+                <span>
+                  {number(coverage.known_pairs)} из{" "}
+                  {number(coverage.total_pairs)} пар
+                </span>
+              </div>
+              <div>
+                <span className="eyebrow">РУЧНАЯ РАЗМЕТКА</span>
+                <strong>{number(q.manual_label_count)}</strong>
+                <span>независимых меток</span>
+              </div>
+              <div>
+                <span className="eyebrow">ВОПРОСЫ ОТЕЛЬЕРУ</span>
+                <strong>{percent(q.question_share)}</strong>
+                <span>по определению метрики API</span>
+              </div>
+            </div>
+            <section className="quality-evaluation">
+              <div className="section-heading">
+                <div>
+                  <span className="eyebrow">
+                    РАЗНЫЕ ОСНОВАНИЯ — РАЗНЫЕ ВЫВОДЫ
+                  </span>
+                  <h2>С чем сравнивали</h2>
+                </div>
+                <span className="badge">
+                  {q.status === "awaiting_independent_labels"
+                    ? "Ожидает независимой разметки"
+                    : q.status === "measured"
+                      ? "Есть размеченные примеры"
+                      : textValue(q.status)}
+                </span>
+              </div>
+              {Object.entries(groups).length ? (
+                Object.entries(groups).map(([name, data]) => {
+                  const g = record(data);
+                  const characteristics = record(g.characteristics);
+                  return (
+                    <article className="quality-group" key={name}>
+                      <div className="section-heading">
+                        <div>
+                          <span className="eyebrow">
+                            {name === "manual"
+                              ? "НЕЗАВИСИМАЯ ПРОВЕРКА"
+                              : name === "weak_website"
+                                ? "СЛАБАЯ РАЗМЕТКА"
+                                : "ПРОВЕРОЧНЫЙ НАБОР"}
+                          </span>
+                          <h3>
+                            {name === "manual"
+                              ? "Человек + проверяемый источник"
+                              : name === "weak_website"
+                                ? "Утверждения с сайтов отелей"
+                                : name}
+                          </h3>
+                        </div>
+                        <span>{number(g.label_count)} меток</span>
                       </div>
-                    )}
-                    {Array.isArray(g.risk_coverage) &&
-                      g.risk_coverage.length > 0 && (
-                        <details>
-                          <summary>Порог уверенности и покрытие</summary>
-                          <div className="table-scroll">
-                            <table className="data-table">
-                              <thead>
-                                <tr>
-                                  <th>Порог</th>
-                                  <th>Покрытие</th>
-                                  <th>Точность</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {g.risk_coverage.map((r, i) => {
-                                  const m = record(r);
+                      {name !== "manual" && (
+                        <p className="fine-print">
+                          {name === "weak_website"
+                            ? "Самоописание отеля — слабая метка. Эти результаты нельзя выдавать за независимую точность."
+                            : "Синтетический или внутренний набор показывает работу механизма и не измеряет точность на реальных отелях."}
+                        </p>
+                      )}
+                      <div className="metric-row">
+                        {[
+                          ["accuracy", "Accuracy"],
+                          ["precision", "Precision"],
+                          ["recall", "Recall"],
+                          ["brier", "Brier"],
+                          ["ece", "ECE"],
+                        ].map(([key, label]) => (
+                          <div key={key}>
+                            <span>{label}</span>
+                            <strong>
+                              {key === "brier" || key === "ece"
+                                ? number(g[key], 3)
+                                : percent(g[key])}
+                            </strong>
+                          </div>
+                        ))}
+                      </div>
+                      {Object.keys(characteristics).length > 0 && (
+                        <div className="table-scroll">
+                          <table className="data-table">
+                            <thead>
+                              <tr>
+                                <th>Характеристика</th>
+                                <th>Метки</th>
+                                <th>Оценено</th>
+                                <th>Точность</th>
+                                <th>Воздержания</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {Object.entries(characteristics).map(
+                                ([id, metrics]) => {
+                                  const m = record(metrics);
                                   return (
-                                    <tr key={i}>
-                                      <td>{number(m.threshold, 2)}</td>
-                                      <td>{percent(m.coverage)}</td>
+                                    <tr key={id}>
+                                      <th>{characteristicName(id)}</th>
+                                      <td>{number(m.label_count)}</td>
+                                      <td>{number(m.evaluated)}</td>
                                       <td>{percent(m.accuracy)}</td>
+                                      <td>{number(m.abstentions)}</td>
                                     </tr>
                                   );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
-                        </details>
+                                },
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
                       )}
-                  </article>
-                );
-              })
-            ) : (
-              <Empty title="Оценка ещё не опубликована">
-                Сначала нужна разметка. Метрики появятся после сопоставления с
-                независимыми наблюдениями.
-              </Empty>
-            )}
-          </section>
-          <WeakRankingMetrics value={q.ranking_weak} />
-          {q.parser_intent && <ParserIntentMetrics value={q.parser_intent} />}
-          {q.synthetic_parser && (
-            <section className="synthetic-parser quality-group">
-              <Synthetic>Синтетический набор · проверка парсера</Synthetic>
-              <h3>Разбор ответов на регрессионных примерах</h3>
-              <div className="metric-row">
-                <div>
-                  <span>Примеры</span>
-                  <strong>
-                    {number(record(q.synthetic_parser).evaluated)}
-                  </strong>
-                </div>
-                <div>
-                  <span>Совпадение ожидаемых полей</span>
-                  <strong>
-                    {percent(record(q.synthetic_parser).accuracy)}
-                  </strong>
-                </div>
-              </div>
-              <p className="fine-print">
-                {textValue(record(q.synthetic_parser).limitation)}
-              </p>
-              <p className="fine-print">
-                Этот результат не измеряет точность характеристик реальных
-                отелей и не объединяется с ручной разметкой.
-              </p>
+                      {Array.isArray(g.risk_coverage) &&
+                        g.risk_coverage.length > 0 && (
+                          <details>
+                            <summary>Порог уверенности и покрытие</summary>
+                            <div className="table-scroll">
+                              <table className="data-table">
+                                <thead>
+                                  <tr>
+                                    <th>Порог</th>
+                                    <th>Покрытие</th>
+                                    <th>Точность</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {g.risk_coverage.map((r, i) => {
+                                    const m = record(r);
+                                    return (
+                                      <tr key={i}>
+                                        <td>{number(m.threshold, 2)}</td>
+                                        <td>{percent(m.coverage)}</td>
+                                        <td>{percent(m.accuracy)}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </details>
+                        )}
+                    </article>
+                  );
+                })
+              ) : (
+                <Empty title="Оценка ещё не опубликована">
+                  Сначала нужна разметка. Метрики появятся после сопоставления с
+                  независимыми наблюдениями.
+                </Empty>
+              )}
             </section>
-          )}
-          <div className="quality-other">
-            <div>
-              <span>Точность разбора ответов отельера</span>
-              <strong>{percent(q.parser_accuracy)}</strong>
-            </div>
-            <div data-testid="independent-ndcg">
-              <span>Независимая оценка поиска · nDCG@5</span>
-              <strong>{number(q.ndcg_at_5, 3)}</strong>
-            </div>
-          </div>
-          <div className="limitations">
-            <h3>Как читать эти цифры</h3>
-            {typeof q.methodology_url === "string" && (
-              <a
-                className="text-button"
-                href={q.methodology_url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Методика и определения <ExternalLink size={14} />
-              </a>
+            <WeakRankingMetrics value={q.ranking_weak} />
+            {!!q.parser_intent && (
+              <ParserIntentMetrics value={q.parser_intent} />
             )}
-            {Array.isArray(q.limitations) ? (
-              q.limitations.map((l, i) => <p key={i}>{textValue(l)}</p>)
-            ) : (
+            {!!q.synthetic_parser && (
+              <section className="synthetic-parser quality-group">
+                <Synthetic>Синтетический набор · проверка парсера</Synthetic>
+                <h3>Разбор ответов на регрессионных примерах</h3>
+                <div className="metric-row">
+                  <div>
+                    <span>Примеры</span>
+                    <strong>
+                      {number(record(q.synthetic_parser).evaluated)}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Совпадение ожидаемых полей</span>
+                    <strong>
+                      {percent(record(q.synthetic_parser).accuracy)}
+                    </strong>
+                  </div>
+                </div>
+                <p className="fine-print">
+                  {textValue(record(q.synthetic_parser).limitation)}
+                </p>
+                <p className="fine-print">
+                  Этот результат не измеряет точность характеристик реальных
+                  отелей и не объединяется с ручной разметкой.
+                </p>
+              </section>
+            )}
+            <div className="quality-other">
+              <div>
+                <span>Точность разбора ответов отельера</span>
+                <strong>{percent(q.parser_accuracy)}</strong>
+              </div>
+              <div data-testid="independent-ndcg">
+                <span>Независимая оценка поиска · nDCG@5</span>
+                <strong>{number(q.ndcg_at_5, 3)}</strong>
+              </div>
+            </div>
+            <div className="limitations">
+              <h3>Как читать эти цифры</h3>
+              {typeof q.methodology_url === "string" && (
+                <a
+                  className="text-button"
+                  href={q.methodology_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Методика и определения <ExternalLink size={14} />
+                </a>
+              )}
+              {Array.isArray(q.limitations) ? (
+                q.limitations.map((l, i) => <p key={i}>{textValue(l)}</p>)
+              ) : (
+                <p>
+                  API не передал описание ограничений. Неизмеренные метрики не
+                  заменяются вымышленными значениями.
+                </p>
+              )}
               <p>
-                API не передал описание ограничений. Неизмеренные метрики не
-                заменяются вымышленными значениями.
+                Сгенерировано:{" "}
+                {typeof q.generated_at === "string"
+                  ? dateText(q.generated_at)
+                  : "дата не передана"}
               </p>
-            )}
-            <p>
-              Сгенерировано:{" "}
-              {typeof q.generated_at === "string"
-                ? dateText(q.generated_at)
-                : "дата не передана"}
-            </p>
-          </div>
+            </div>
+          </details>
         </>
       )}
     </div>
@@ -791,7 +854,9 @@ export function QualityPage() {
 }
 export function LabelPage() {
   const targets = useResource(api.labels),
-    { toast } = useApp();
+    { toast, specs } = useApp();
+  const characteristicName = (id: string) =>
+    specs.data?.find((spec) => spec.id === id)?.name_ru || "Характеристика";
   const [index, setIndex] = useState(0),
     [factId, setFactId] = useState(""),
     [value, setValue] = useState(""),
@@ -930,7 +995,7 @@ export function LabelPage() {
                 >
                   {target.facts.map((f) => (
                     <option key={f.id} value={f.id}>
-                      {names[f.characteristic_id] || f.characteristic_id} ·{" "}
+                      {characteristicName(f.characteristic_id)} ·{" "}
                       {scopeText(f.scope)}
                     </option>
                   ))}
@@ -943,16 +1008,19 @@ export function LabelPage() {
                     <FactValue fact={fact} />
                     <p>{scopeText(fact.scope)}</p>
                   </div>
-                  <label>
-                    Независимое значение · JSON
-                    <textarea
-                      rows={4}
-                      value={value}
-                      onChange={(e) => setValue(e.target.value)}
-                      placeholder={'{"available": true}'}
-                      data-testid="label-value"
-                    />
-                  </label>
+                  <details>
+                    <summary>Для разработчиков: составное значение</summary>
+                    <label>
+                      Независимое значение в JSON
+                      <textarea
+                        rows={4}
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        placeholder={'{"available": true}'}
+                        data-testid="label-value"
+                      />
+                    </label>
+                  </details>
                   <div className="button-row">
                     {["true", "false", "null"].map((v) => (
                       <button
@@ -968,8 +1036,21 @@ export function LabelPage() {
                       </button>
                     ))}
                   </div>
+                  {value && (
+                    <p role="status">
+                      {value === "true"
+                        ? "Выбрано: да"
+                        : value === "false"
+                          ? "Выбрано: нет"
+                          : value === "null"
+                            ? "Выбрано: неизвестно"
+                            : "Введено составное значение"}
+                    </p>
+                  )}
                   <p className="fine-print">
-                    Для составной характеристики используйте объект по её схеме.
+                    Отметьте только то, что видно в независимом источнике. Для
+                    сложных характеристик доступно составное значение в
+                    подробностях.
                   </p>
                   <label>
                     Ссылка на доказательство
@@ -1005,6 +1086,11 @@ export function LabelPage() {
                     <Check size={16} />
                     Сохранить метку
                   </button>
+                  <p className="fine-print">
+                    Сохранение добавит независимую метку и обновит отчёт
+                    качества для команды. Оно не меняет сведения в карточке
+                    отеля.
+                  </p>
                   <ErrorState error={error} />
                 </>
               )}
@@ -1018,16 +1104,28 @@ export function LabelPage() {
     </div>
   );
 }
-function FactSnapshot({ facts }: { facts: Fact[] }) {
+function FactSnapshot({
+  facts,
+  nameOf,
+}: {
+  facts: Fact[];
+  nameOf: (id: string) => string;
+}) {
   return (
     <div className="change-facts">
       {facts.map((f) => (
         <div key={f.id}>
-          <strong>{names[f.characteristic_id] || f.characteristic_id}</strong>
+          <strong>{nameOf(f.characteristic_id)}</strong>
           <span>{scopeText(f.scope)}</span>
           <FactValue fact={f} />
           <small>
-            {f.status} · {Math.round(f.confidence * 100)}%
+            {{
+              computed: "По расчёту",
+              confirmed: "Ответ отеля",
+              disputed: "Источники расходятся",
+              stale: "Нужно перепроверить",
+              unknown: "Нет данных",
+            }[f.status] || "Нужно уточнить"}
           </small>
         </div>
       ))}
@@ -1037,7 +1135,9 @@ function FactSnapshot({ facts }: { facts: Fact[] }) {
 const DEMO_CHANGE_HOTEL = "osm-way-53284165";
 export function ChangesPage() {
   const changes = useResource(api.changes),
-    { hotels, toast } = useApp();
+    { hotels, toast, specs } = useApp();
+  const characteristicName = (id: string) =>
+    specs.data?.find((spec) => spec.id === id)?.name_ru || "Характеристика";
   const [session, setSession] = useState(readHotelierSession),
     [hotelId, setHotelId] = useState(""),
     [busy, setBusy] = useState(""),
@@ -1101,6 +1201,21 @@ export function ChangesPage() {
   const hotel = hotels.data?.find(
     (h) => h.id === current?.affected_hotel_ids[0],
   );
+  const signature = (fact: Fact) =>
+    JSON.stringify(
+      canonical([fact.characteristic_id, fact.scope, fact.value, fact.status]),
+    );
+  const beforeKeys = new Set(current?.before.map(signature));
+  const afterKeys = new Set(current?.after.map(signature));
+  const changedBefore =
+    current?.before.filter((fact) => !afterKeys.has(signature(fact))) || [];
+  const changedAfter =
+    current?.after.filter((fact) => !beforeKeys.has(signature(fact))) || [];
+  const changedCharacteristics = [
+    ...new Set(
+      [...changedBefore, ...changedAfter].map((fact) => fact.characteristic_id),
+    ),
+  ];
   const snapshots = useResource(async () => {
     if (!current || !hotel) return null;
     const read = async (path: string): Promise<Geo | null> => {
@@ -1143,6 +1258,27 @@ export function ChangesPage() {
         Повторная проверка по сроку и событиям. Если факт меняется, затронутый
         паспорт получает уведомление.
       </PageIntro>
+      {current && (
+        <section className="limitations" data-testid="changes-summary">
+          {current.synthetic && (
+            <Synthetic>Демонстрационное изменение</Synthetic>
+          )}
+          <p>
+            {current.title} Затронуто отелей:{" "}
+            {current.affected_hotel_ids.length}.
+          </p>
+          <p>
+            {changedCharacteristics.length
+              ? `Изменились сведения: ${changedCharacteristics.map(characteristicName).join(", ")}.`
+              : "Изменений значений в переданных снимках не найдено."}
+          </p>
+          <p>
+            Создано локальных уведомлений: {number(notificationCount)}. Они
+            видны в затронутых паспортах; это число уведомлений, а не уникальных
+            гостей.
+          </p>
+        </section>
+      )}
       {!canAdminister && (
         <div className="limitations" data-testid="changes-auth-prompt">
           <p>
@@ -1193,6 +1329,11 @@ export function ChangesPage() {
             <FlaskConical size={16} />
             Добавить 16-этажный дом
           </button>
+          <p className="fine-print">
+            Демо-дом изменит расчёт видимости выбранного отеля в профилях
+            гостей. Затронутые паспорта получат локальную отметку об изменении;
+            внешние сообщения не отправляются.
+          </p>
         </div>
       </section>
       <div className="operations-toolbar">
@@ -1203,9 +1344,13 @@ export function ChangesPage() {
           onClick={refresh}
         >
           <RefreshCw size={14} />
-          Перепроверить истёкшие TTL
+          Перепроверить устаревшие сведения
         </button>
       </div>
+      <p className="fine-print">
+        Перепроверка обновит просроченные расчёты. Изменившиеся сведения
+        появятся у гостей; затронутые паспорта получат локальную отметку.
+      </p>
       <ErrorState error={error} />
       <ErrorState error={changes.error} retry={changes.reload} />
       {changes.loading && <Loading />}
@@ -1229,7 +1374,7 @@ export function ChangesPage() {
             <>
               <div className="section-heading">
                 <div>
-                  <span className="eyebrow">{current.kind}</span>
+                  <span className="eyebrow">ИЗМЕНЕНИЕ ДАННЫХ</span>
                   <h2>{current.title}</h2>
                 </div>
                 {current.synthetic && <Synthetic />}
@@ -1276,22 +1421,34 @@ export function ChangesPage() {
                   )}
                 </>
               )}
-              <div className="before-after">
-                <section>
-                  <span className="eyebrow">БЫЛО</span>
-                  <FactSnapshot facts={current.before} />
-                  {!current.before.length && (
-                    <p className="muted">Предыдущие факты не переданы</p>
-                  )}
-                </section>
-                <section>
-                  <span className="eyebrow">СТАЛО</span>
-                  <FactSnapshot facts={current.after} />
-                  {!current.after.length && (
-                    <p className="muted">Новые факты не переданы</p>
-                  )}
-                </section>
-              </div>
+              <details>
+                <summary>
+                  Изменившиеся наблюдения: было {changedBefore.length}, стало{" "}
+                  {changedAfter.length}
+                </summary>
+                <div className="before-after">
+                  <section>
+                    <span className="eyebrow">БЫЛО</span>
+                    <FactSnapshot
+                      facts={changedBefore}
+                      nameOf={characteristicName}
+                    />
+                    {!changedBefore.length && (
+                      <p className="muted">Предыдущие факты не переданы</p>
+                    )}
+                  </section>
+                  <section>
+                    <span className="eyebrow">СТАЛО</span>
+                    <FactSnapshot
+                      facts={changedAfter}
+                      nameOf={characteristicName}
+                    />
+                    {!changedAfter.length && (
+                      <p className="muted">Новые факты не переданы</p>
+                    )}
+                  </section>
+                </div>
+              </details>
               <div className="notifications">
                 <h3>Локальные уведомления: {number(notificationCount)}</h3>
                 {current.notifications.length ? (
@@ -1316,7 +1473,9 @@ export function ChangesPage() {
                 )}
               </div>
               <details>
-                <summary>Проверяемые входы события</summary>
+                <summary>
+                  Для разработчиков: код и проверяемые входы события
+                </summary>
                 <pre>{JSON.stringify(current.payload, null, 2)}</pre>
               </details>
             </>

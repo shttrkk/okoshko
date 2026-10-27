@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useResource } from "../api";
 import { roomProfiles, useRoomEvidence } from "../roomApi";
@@ -15,6 +15,7 @@ import { RoomAdviceList } from "./RoomAdvice";
 import { guestText } from "./panel-guest-presentation";
 import {
   roomEvidenceScope,
+  roomScopeText,
   roomLabParams,
   roomStatus,
   roomSymbol,
@@ -25,11 +26,13 @@ export function RoomDescription({
   profile,
   unknownFloors = false,
   showCopy = true,
+  requestedIds,
 }: {
   hotelId: string;
   profile: RoomProfile;
   unknownFloors?: boolean;
   showCopy?: boolean;
+  requestedIds?: string[];
 }) {
   const { evidence, busy, error, showEvidence, closeEvidence, retryEvidence } =
     useRoomEvidence(
@@ -41,6 +44,20 @@ export function RoomDescription({
         ]),
       ),
     );
+  const description = requestedIds
+    ? profile.clauses
+        .filter(
+          (clause) =>
+            clause.characteristic_id &&
+            requestedIds.includes(clause.characteristic_id),
+        )
+        .slice(0, 2)
+        .map((clause) => guestText(clause.text, clause.synthetic))
+        .join(" ") || "Данных по вашим пожеланиям пока мало."
+    : guestText(
+        profile.description,
+        profile.clauses.some((clause) => clause.synthetic),
+      );
   return (
     <div
       className="room-description"
@@ -56,17 +73,20 @@ export function RoomDescription({
       )}
       {showCopy && (
         <>
-          <p className="room-profile-copy">
+          <p className="room-profile-copy">{description}</p>
+          {profile.clauses.some((clause) => clause.synthetic) && <Synthetic />}
+        </>
+      )}
+      <details className="room-caveats-details room-computed">
+        <summary>Для дотошных</summary>
+        {requestedIds && (
+          <p>
             {guestText(
               profile.description,
               profile.clauses.some((clause) => clause.synthetic),
             )}
           </p>
-          {profile.clauses.some((clause) => clause.synthetic) && <Synthetic />}
-        </>
-      )}
-      <details className="room-caveats-details room-computed">
-        <summary>Как посчитано</summary>
+        )}
         <ul className="room-clauses">
           {profile.clauses.map((clause, i) => (
             <li key={i} data-status={clause.status}>
@@ -114,9 +134,7 @@ export function RoomDescription({
         </ul>
         {profile.caveats.length > 0 && (
           <details className="room-caveats-details">
-            <summary>
-              Подробности и ограничения · {profile.caveats.length}
-            </summary>
+            <summary>Для дотошных · {profile.caveats.length}</summary>
             <ul className="room-caveats">
               {profile.caveats.map((text, i) => (
                 <li key={i}>
@@ -150,12 +168,14 @@ const HIGHLIGHTS: Record<string, string> = {
   morning_sun: "Утреннее солнце",
 };
 /** Confirmed strengths of a position, in the order guests usually ask. */
-function highlights(profile: RoomProfile) {
+function highlights(profile: RoomProfile, requestedIds?: string[]) {
   return Object.keys(HIGHLIGHTS)
-    .filter((id) =>
-      profile.clauses.some(
-        (c) => c.characteristic_id === id && c.status === "yes",
-      ),
+    .filter(
+      (id) =>
+        (!requestedIds || requestedIds.includes(id)) &&
+        profile.clauses.some(
+          (c) => c.characteristic_id === id && c.status === "yes",
+        ),
     )
     .map((id) => HIGHLIGHTS[id]);
 }
@@ -170,10 +190,16 @@ function positionTitle(profile: RoomProfile) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export function RoomHighlights({ profile }: { profile: RoomProfile }) {
-  return highlights(profile).length ? (
+export function RoomHighlights({
+  profile,
+  requestedIds,
+}: {
+  profile: RoomProfile;
+  requestedIds?: string[];
+}) {
+  return highlights(profile, requestedIds).length ? (
     <p className="room-highlights">
-      {highlights(profile).map((label) => (
+      {highlights(profile, requestedIds).map((label) => (
         <span key={label}>{label}</span>
       ))}
     </p>
@@ -250,7 +276,7 @@ function ScopedRoomProfileList({
           className="text-button small"
           to={`/hotel/${encodeURIComponent(hotelId)}?${roomLabParams(profile.scope)}#room-lab`}
         >
-          Проверить окно <ArrowUpRight size={14} />
+          Проверить окно <ArrowRight size={14} />
         </Link>
       )}
     </details>
@@ -284,12 +310,16 @@ function ScopedRoomProfileList({
 export function RoomSuggestion({
   hotelId,
   recommendation,
+  reason,
+  requestedIds,
   profile,
   month,
   unknownFloors = false,
 }: {
   hotelId: string;
   recommendation: string;
+  reason: string;
+  requestedIds?: string[];
   profile?: RoomProfile | null;
   month: number;
   unknownFloors?: boolean;
@@ -309,10 +339,15 @@ export function RoomSuggestion({
         </span>
         <p>
           {profile
-            ? scopeText(roomEvidenceScope(profile.scope))
+            ? unknownFloors
+              ? roomScopeText(profile.scope, true)
+              : scopeText(roomEvidenceScope(profile.scope))
             : "Сочетание условий не подтверждено"}
         </p>
-        <span className="text-button small">Почему и как посчитано</span>
+        <span className="room-request-reason">
+          Потому что: {reason.toLocaleLowerCase("ru")}.
+        </span>
+        <span className="text-button small">Подробнее о номере</span>
       </summary>
       <p>{recommendation}</p>
       <p className="fine-print">
@@ -323,6 +358,7 @@ export function RoomSuggestion({
           <RoomDescription
             hotelId={hotelId}
             profile={profile}
+            requestedIds={requestedIds}
             unknownFloors={unknownFloors}
           />
         ) : (

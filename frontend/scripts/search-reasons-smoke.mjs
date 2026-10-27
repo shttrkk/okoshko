@@ -6,12 +6,25 @@ import { chromium } from "playwright";
 // Each reason retains the exact API text in its closed calculation, while
 // the first level shows a concise explanation without numerical scores.
 async function reasonTexts(scope) {
-  return scope.getByTestId("ranking-reason").evaluateAll((items) =>
-    items.map((item) =>
-      (item.querySelector(":scope > details p") || item.querySelector(":scope > p"))
-        ?.textContent.trim(),
-    ),
-  );
+  return scope
+    .getByTestId("ranking-reason")
+    .evaluateAll((items) =>
+      items.map((item) =>
+        (
+          item.querySelector(":scope > details p") ||
+          item.querySelector(":scope > p")
+        )?.textContent.trim(),
+      ),
+    );
+}
+
+async function revealReasonParents(page, hotelId) {
+  const card = page.getByTestId(`hotel-card-${hotelId}`);
+  for (const testId of ["card-details", "card-proof"]) {
+    const disclosure = card.getByTestId(testId);
+    if ((await disclosure.getAttribute("open")) === null)
+      await disclosure.locator(":scope > summary").click();
+  }
 }
 
 // API and hotel data are synthetic browser fixtures; no request reaches 8080.
@@ -183,6 +196,7 @@ try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
   });
+  await context.route(/yandex\.|ya\.ru|mapillary/i, (route) => route.abort());
   await context.route("**/data/**", async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith(".geojson"))
@@ -276,17 +290,17 @@ try {
   const firstAlternative = page.getByTestId(`search-reasons-${hotels[1].id}`);
   assert.equal(await firstAlternative.getAttribute("open"), null);
   assert.equal(await firstAlternative.locator("p").first().isVisible(), false);
+  await revealReasonParents(page, hotels[1].id);
   await firstAlternative.locator(":scope > summary").focus();
   await page.keyboard.press("Enter");
   assert.equal(await firstAlternative.getAttribute("open"), "");
-  assert.deepEqual(await reasonTexts(firstAlternative), [
-    countReason,
-  ]);
+  assert.deepEqual(await reasonTexts(firstAlternative), [countReason]);
   const thirdAlternative = page.getByTestId(`search-reasons-${hotels[3].id}`);
   assert.deepEqual(await reasonTexts(thirdAlternative), [
     scoreReason(names[2], 65, 60),
     countReason,
   ]);
+  await revealReasonParents(page, hotels[3].id);
   await thirdAlternative.locator(":scope > summary").click();
   assert.doesNotMatch(await thirdAlternative.innerText(), /65 против 60/);
   const calculation = thirdAlternative.getByTestId("ranking-calculation");
@@ -360,6 +374,7 @@ try {
 
   mode = "stress";
   await load();
+  await revealReasonParents(page, hotels[1].id);
   await page
     .getByTestId(`search-reasons-${hotels[1].id}`)
     .locator(":scope > summary")
@@ -380,13 +395,13 @@ try {
     0,
   );
   assert.match(
-    (await reasonTexts(page.getByTestId(`search-reasons-${hotels[3].id}`))).join(" "),
+    (
+      await reasonTexts(page.getByTestId(`search-reasons-${hotels[3].id}`))
+    ).join(" "),
     /<b>как текст<\/b>/,
   );
   assert.ok(
-    (
-      await reasonTexts(page)
-    ).every((reason) => !reason.includes("за лимитом")),
+    (await reasonTexts(page)).every((reason) => !reason.includes("за лимитом")),
   );
   checks.push(
     "duplicate bodies/ties and empty strings are removed, reasons cap at three, backend text is rendered as safe text",

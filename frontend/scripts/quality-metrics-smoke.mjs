@@ -111,6 +111,22 @@ try {
   });
   const load = async () => {
     await page.goto(`${base}/quality`);
+    await page.getByTestId("quality-summary").waitFor();
+    assert.match(
+      await page.getByTestId("quality-summary").innerText(),
+      /Вручную проверено: 0/,
+    );
+    assert.equal(
+      await page.getByTestId("ranking-weak").isVisible(),
+      false,
+      "Technical metrics start on the second level",
+    );
+    await page
+      .getByText(
+        "Подробности для команды и разработчиков: методика и метрики",
+        { exact: true },
+      )
+      .click();
     await page.getByTestId("ranking-weak").waitFor();
   };
   await load();

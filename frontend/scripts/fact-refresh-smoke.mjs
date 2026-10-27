@@ -349,7 +349,9 @@ try {
                 id: "related-fixture",
                 name: "Другой профиль",
               },
-              similarity_reasons: [`Совпадает: профиль fixture ${version}`],
+              similarity_reasons: [
+                `Совпадает «${query.must[0].label}»: профиль fixture ${version}`,
+              ],
               verdicts: [],
             },
           ],
@@ -360,6 +362,10 @@ try {
         },
       });
     }
+    if (path === "/api/hotelier")
+      return route.fulfill({
+        json: [{ hotel_id: hotel.id, pending_count: 1 }],
+      });
     if (path === `/api/hotelier/${hotel.id}`)
       return route.fulfill({
         json: {
@@ -500,10 +506,6 @@ try {
     /Вердикт fixture 5/,
   );
   assert.match(
-    await hotelPage.getByTestId("fact-card-quiet_night").innerText(),
-    /50/,
-  );
-  assert.match(
     await hotelPage.getByTestId("related-hotels").innerText(),
     /профиль fixture 5/,
   );
@@ -539,7 +541,14 @@ try {
     assert.deepEqual(body.no_data_must, query.no_data_must);
   }
   related.forEach((body) =>
-    assert.deepEqual(body, { similar_to: hotel.id, text: "", limit: 3 }),
+    assert.deepEqual(body, {
+      similar_to: hotel.id,
+      text: query.text,
+      check_in: query.check_in,
+      check_out: query.check_out,
+      parsed: { ...query, similar_to: hotel.id, similar_to_name: hotel.name },
+      limit: 3,
+    }),
   );
   checks.push(
     "late old-generation response cannot replace newer facts, verdicts or evidence; slice, dates and reference persist",
@@ -549,6 +558,15 @@ try {
     fullPage: true,
   });
   await hotelPage.getByRole("button", { name: "Закрыть" }).click();
+  const quietCard = hotelPage.getByTestId("fact-card-quiet_night");
+  await quietCard.locator("details.fact-details > summary").click();
+  assert.match(await quietCard.innerText(), /50/);
+  const otherGoals = hotelPage.getByTestId("other-room-goals");
+  if (
+    (await otherGoals.count()) &&
+    (await otherGoals.getAttribute("open")) === null
+  )
+    await otherGoals.locator(":scope > summary").click();
   const position = hotelPage.getByTestId("room-advice-card").first();
   await position
     .getByTestId("room-advice-computed")

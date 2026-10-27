@@ -21,6 +21,7 @@ from backend.contracts import (
     AskRequest,
     Claim,
     Evidence,
+    HotelierSummary,
     LoginRequest,
     LoginResponse,
     LogoutResponse,
@@ -75,6 +76,20 @@ def logout(response: Response):
     response.delete_cookie(SESSION_COOKIE, path="/api/runs", httponly=True, samesite="strict")
     response.headers["Cache-Control"] = "no-store"
     return {"logged_out": True, "synthetic": True}
+
+
+@router.get("/hotelier", response_model=list[HotelierSummary])
+def hotelier_summaries(response: Response, repo=_REPO, _user=_AUTH):
+    """Read existing queues only; selecting a default must not generate tasks."""
+    response.headers["Cache-Control"] = "no-store"
+    allowed = {hotel["id"] for hotel in repo.all("hotels") if _user.permits(hotel["id"])}
+    counts = dict.fromkeys(allowed, 0)
+    for question in repo.all("questions"):
+        hotel_id = question.get("hotel_id")
+        if hotel_id in counts and question.get("status") == "pending":
+            counts[hotel_id] += 1
+    return [HotelierSummary(hotel_id=hotel_id, pending_count=count)
+            for hotel_id, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))]
 
 
 @router.get("/hotelier/{hotel_id}")

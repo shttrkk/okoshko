@@ -1,4 +1,4 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useResource } from "../api";
@@ -161,7 +161,7 @@ function AdviceCompromise({
         disabled={busy || !option.fact_ids.length}
         onClick={() => showEvidence("compromise")}
       >
-        Источник <ArrowUpRight size={12} />
+        Источник <ArrowRight size={12} />
       </button>
       <ErrorState error={error} retry={retryEvidence} />
       {evidence && (
@@ -211,12 +211,12 @@ function AdviceCard({
           onClick={() => onSelect(primary.scope)}
         >
           <h3>{advice.title}</h3>
-          <ArrowUpRight size={17} />
+          <ArrowRight size={17} />
         </button>
       ) : primary ? (
         <Link className="room-advice-title" to={target(primary.scope)}>
           <h3>{advice.title}</h3>
-          <ArrowUpRight size={17} />
+          <ArrowRight size={17} />
         </Link>
       ) : (
         <h3>{advice.title}</h3>
@@ -241,12 +241,12 @@ function AdviceCard({
               {onSelect ? (
                 <button {...props} onClick={() => onSelect(option.scope)}>
                   {label}
-                  <ArrowUpRight size={13} />
+                  <ArrowRight size={13} />
                 </button>
               ) : (
                 <Link {...props} to={target(option.scope)}>
                   {label}
-                  <ArrowUpRight size={13} />
+                  <ArrowRight size={13} />
                 </Link>
               )}
               {option.status === "partial" && advice.status !== "partial" && (
@@ -338,6 +338,8 @@ export function RoomAdviceSection({
   hotelId,
   month,
   recommendation,
+  reason,
+  collapsed = false,
   profile,
   requestedCharacteristicIds = [],
   onSelect,
@@ -346,16 +348,15 @@ export function RoomAdviceSection({
   hotelId: string;
   month: number;
   recommendation?: string | null;
+  reason?: string;
+  collapsed?: boolean;
   profile?: RoomProfile | null;
   requestedCharacteristicIds?: string[];
   children?: ReactNode;
   onSelect: (scope: RoomScope) => void;
 }) {
-  return (
-    <section
-      className="section-block hotel-room-advice"
-      data-testid="hotel-room-profiles"
-    >
+  const content = (
+    <>
       <span className="eyebrow">У КАЖДОЙ СТОРОНЫ СВОЙ ХАРАКТЕР</span>
       <h2>Какой номер просить</h2>
       {recommendation && (
@@ -364,13 +365,18 @@ export function RoomAdviceSection({
           <p className="room-recommendation" data-testid="room-recommendation">
             {recommendation}
           </p>
+          {reason && (
+            <p className="room-request-reason">
+              Потому что: {reason.toLocaleLowerCase("ru")}.
+            </p>
+          )}
           {children}
           {profile?.scope.facade && (
             <button
               className="text-button small"
               onClick={() => onSelect(profile.scope)}
             >
-              Проверить эту сторону и этаж <ArrowUpRight size={14} />
+              Проверить эту сторону и этаж <ArrowRight size={14} />
             </button>
           )}
         </div>
@@ -380,17 +386,47 @@ export function RoomAdviceSection({
           ? "Если важнее что-то другое"
           : "Выберите, что важно для вашего отдыха"}
       </p>
-      <RoomAdviceList
-        hotelId={hotelId}
-        month={month}
-        onSelect={onSelect}
-        profile={recommendation ? profile : undefined}
-        requestedCharacteristicIds={requestedCharacteristicIds}
-      />
+      {recommendation && (
+        <details className="room-other-goals" data-testid="other-room-goals">
+          <summary>Другие варианты по сторонам и этажам</summary>
+          <RoomAdviceList
+            hotelId={hotelId}
+            month={month}
+            onSelect={onSelect}
+            profile={profile}
+            requestedCharacteristicIds={requestedCharacteristicIds}
+          />
+        </details>
+      )}
+      {!recommendation && (
+        <RoomAdviceList
+          hotelId={hotelId}
+          month={month}
+          onSelect={onSelect}
+          profile={recommendation ? profile : undefined}
+          requestedCharacteristicIds={requestedCharacteristicIds}
+        />
+      )}
       <p className="fine-print room-stock-note">
         Советы относятся к сторонам здания и этажам. Реальный номер,
         расположение окон и наличие мест подтвердит отель.
       </p>
+    </>
+  );
+  return collapsed ? (
+    <details
+      className="section-block hotel-room-advice"
+      data-testid="hotel-room-profiles"
+    >
+      <summary>Стороны и этажи · по желанию</summary>
+      {content}
+    </details>
+  ) : (
+    <section
+      className="section-block hotel-room-advice"
+      data-testid="hotel-room-profiles"
+    >
+      {content}
     </section>
   );
 }
