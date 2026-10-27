@@ -3060,6 +3060,20 @@
             "type": "array",
             "title": "Evidence Refs"
           },
+          "context_fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Context Fact Ids"
+          },
+          "context_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Context Evidence Refs"
+          },
           "caveat": {
             "anyOf": [
               {

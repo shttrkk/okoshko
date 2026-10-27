@@ -193,6 +193,8 @@ export interface Verdict {
   confidence: number;
   fact_ids: string[];
   evidence_refs: string[];
+  context_fact_ids?: string[];
+  context_evidence_refs?: string[];
   caveat?: string | null;
   synthetic?: boolean;
   hotelier_confirmed?: boolean;

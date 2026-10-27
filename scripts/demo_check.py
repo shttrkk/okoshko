@@ -147,6 +147,10 @@ def validate_hit_scope(hit: dict, detail: dict) -> dict:
     facts = {fact["id"]: fact for fact in detail.get("facts", [])}
     scopes = []
     for verdict in hit["verdicts"]:
+        for fid in verdict.get("context_fact_ids", []):
+            require(fid in facts, f"{hit['hotel']['id']}: risk context references missing fact {fid}")
+            require(set(verdict.get("context_evidence_refs", [])) & {e.get("id") for e in facts[fid].get("evidence", [])},
+                    f"{fid}: risk context evidence does not resolve")
         if not verdict.get("required"):
             continue
         for fid in verdict.get("fact_ids", []):

@@ -291,7 +291,7 @@ def hotelier_confirmation(facts: list[Fact], status: str, *, conflict: bool = Fa
 
 def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQuery, *, conflict: bool = False,
             alternatives: list[Fact] | None = None, spec: CharacteristicSpec | None = None) -> CriterionVerdict:
-    facts = list({f.id: f for f in [*match.facts, *match.risk_facts, *(alternatives or [] if conflict else [])]}.values())
+    facts = list({f.id: f for f in [*match.facts, *(alternatives or [] if conflict else [])]}.values())
     selected = match.facts[0] if match.facts else None
     detail = _details(selected, criterion) if selected else ""
     prefixes = {"yes": "Да, но учитывайте условия", "partial": "Предварительно", "no": "Нет", "unknown": "Не подтверждено"}
@@ -351,6 +351,8 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
                             required=required, status=match.status, symbol={"yes": "✓", "partial": "≈", "no": "✗", "unknown": "?"}[match.status],
                             text=text, confidence=match.confidence, fact_ids=[f.id for f in facts],
                             evidence_refs=list(dict.fromkeys(e.id for f in facts for e in f.evidence)),
+                            context_fact_ids=list(dict.fromkeys(f.id for f in match.risk_facts)),
+                            context_evidence_refs=list(dict.fromkeys(e.id for f in match.risk_facts for e in f.evidence)),
                             caveat="; ".join(dict.fromkeys(caveats)) or None,
                             hotelier_confirmed=hotelier_confirmation(match.facts, match.status, conflict=conflict),
                             basis=supporting_basis(match.facts),

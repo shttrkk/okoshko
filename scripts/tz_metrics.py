@@ -42,15 +42,18 @@ def measure(url):
         for text in queries:
             response = client.post("/api/search", json={"text": text, "limit": 40, "compact": True})
             response.raise_for_status()
-        latency, search_sizes = [], []
+        latency, search_sizes, returned_counts = [], [], []
         for index in range(40):
             started = time.perf_counter()
             response = client.post("/api/search", json={"text": queries[index % len(queries)], "limit": 40, "compact": True})
             response.raise_for_status()
             latency.append(1000 * (time.perf_counter() - started))
             search_sizes.append(len(response.content))
+            returned_counts.append(len(response.json()["results"]))
         report["warm_search_ms"] = distribution(latency)
         report["search_response_bytes"] = distribution(search_sizes)
+        report["requested_search_limit"] = 40
+        report["compact_page_returned_counts"] = sorted(set(returned_counts))
         report["catalogue_hotels"] = len(hotels)
     report["passed"] = not exceeded and max(search_sizes) < 400_000
     return report

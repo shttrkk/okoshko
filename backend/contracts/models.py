@@ -428,6 +428,8 @@ class CriterionVerdict(Model):
     confidence: float = Field(ge=0, le=1)
     fact_ids: list[str] = Field(default_factory=list)
     evidence_refs: list[str] = Field(default_factory=list)
+    context_fact_ids: list[str] = Field(default_factory=list)
+    context_evidence_refs: list[str] = Field(default_factory=list)
     caveat: str | None = None
     synthetic: bool = False
     disputed: bool = False

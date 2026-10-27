@@ -731,7 +731,10 @@ try {
     );
     const proof = page.getByTestId("landmark-map-proof");
     await proof.locator(":scope > summary").click();
-    assert.match(await proof.innerText(), /Высота модели по этажности/);
+    assert.match(
+      await proof.innerText(),
+      /Высота приблизительно по этажности.*рельефа/,
+    );
     assert(
       !/osm-way-123456/.test(await proof.innerText()),
       "Blocking IDs belong in proof only",

@@ -482,6 +482,49 @@ export function AskButton({
     </span>
   );
 }
+export function ContextEvidence({
+  hotelId,
+  factIds,
+}: {
+  hotelId: string;
+  factIds?: string[];
+}) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const proof = useResource(
+    () =>
+      selected
+        ? api
+            .factEvidence(hotelId, selected)
+            .then((value) => ({ id: selected, value }))
+        : Promise.resolve(null),
+    [hotelId, selected],
+  );
+  const evidence = proof.data?.id === selected ? proof.data.value : null;
+  return (
+    <>
+      {(factIds || []).map((factId, index) => (
+        <button
+          key={factId}
+          className="text-button small"
+          data-testid="context-evidence"
+          onClick={() => setSelected(factId)}
+          disabled={proof.loading && selected === factId}
+        >
+          Риск по карте{factIds && factIds.length > 1 ? ` ${index + 1}` : ""}
+        </button>
+      ))}
+      {selected && <ErrorState error={proof.error} retry={proof.reload} />}
+      {selected && evidence && (
+        <EvidenceModal
+          fact={evidence.fact}
+          claims={evidence.claims}
+          onClose={() => setSelected(null)}
+        />
+      )}
+    </>
+  );
+}
+
 export function VerdictList({
   verdicts,
   hotelId,
@@ -588,6 +631,9 @@ export function VerdictList({
                 characteristicId={v.characteristic_id}
                 scope={questionScope?.(v)}
               />
+            )}
+            {!!v.context_fact_ids?.length && (
+              <ContextEvidence hotelId={hotelId} factIds={v.context_fact_ids} />
             )}
           </div>
         </li>

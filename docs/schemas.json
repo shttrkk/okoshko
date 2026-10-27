@@ -5877,6 +5877,20 @@
         "title": "Evidence Refs",
         "type": "array"
       },
+      "context_fact_ids": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Context Fact Ids",
+        "type": "array"
+      },
+      "context_evidence_refs": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Context Evidence Refs",
+        "type": "array"
+      },
       "caveat": {
         "anyOf": [
           {
@@ -6566,6 +6580,20 @@
               "type": "string"
             },
             "title": "Evidence Refs",
+            "type": "array"
+          },
+          "context_fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Fact Ids",
+            "type": "array"
+          },
+          "context_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Evidence Refs",
             "type": "array"
           },
           "caveat": {
@@ -7710,6 +7738,20 @@
             "title": "Evidence Refs",
             "type": "array"
           },
+          "context_fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Fact Ids",
+            "type": "array"
+          },
+          "context_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Evidence Refs",
+            "type": "array"
+          },
           "caveat": {
             "anyOf": [
               {
@@ -8416,6 +8458,20 @@
               "type": "string"
             },
             "title": "Evidence Refs",
+            "type": "array"
+          },
+          "context_fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Fact Ids",
+            "type": "array"
+          },
+          "context_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Evidence Refs",
             "type": "array"
           },
           "caveat": {
@@ -9723,6 +9779,20 @@
               "type": "string"
             },
             "title": "Evidence Refs",
+            "type": "array"
+          },
+          "context_fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Fact Ids",
+            "type": "array"
+          },
+          "context_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Evidence Refs",
             "type": "array"
           },
           "caveat": {
@@ -11512,6 +11582,20 @@
               "type": "string"
             },
             "title": "Evidence Refs",
+            "type": "array"
+          },
+          "context_fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Fact Ids",
+            "type": "array"
+          },
+          "context_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Context Evidence Refs",
             "type": "array"
           },
           "caveat": {

@@ -550,6 +550,7 @@ try {
       check_out: query.check_out,
       parsed: { ...query, similar_to: hotel.id, similar_to_name: hotel.name },
       limit: 3,
+      compact: true,
     }),
   );
   checks.push(
