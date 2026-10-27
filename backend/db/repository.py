@@ -126,6 +126,15 @@ class Repository:
         with psycopg.connect(self.db_url) as conn:
             return [row[0] for row in conn.execute(query)]
 
+    def prior_poi_claims(self, characteristic_ids: list[str]) -> list[dict]:
+        """Only observations used for declared POI backfill/version checks."""
+        if not characteristic_ids:
+            return []
+        query = ("SELECT payload FROM claims WHERE payload->>'characteristic_id'=ANY(%s) "
+                 "AND starts_with(payload->>'method', %s) ORDER BY created_at,id")
+        with psycopg.connect(self.db_url) as conn:
+            return [row[0] for row in conn.execute(query, (sorted(set(characteristic_ids)), "local_poi_"))]
+
     def get(self, table: str, id: str) -> dict | None:
         query = sql.SQL("SELECT payload FROM {} WHERE id=%s").format(self.table(table))
         with psycopg.connect(self.db_url) as conn:

@@ -156,9 +156,18 @@ def bootstrap_poi(repo,data_dir):
     from backend.contracts import ToolCall, ToolContext
     from backend.tools.registry import Registry, poi_method
     from backend.tracing import Trace
-    known_claims = repo.all("claims")
     specs = [CharacteristicSpec.model_validate(row) for row in repo.all("characteristics")]
     plans = poi_plans(specs)
+    characteristic_ids = {spec.id for spec, _ in plans}
+    if not characteristic_ids:
+        return
+    if hasattr(repo, "prior_poi_claims"):
+        known_claims = repo.prior_poi_claims(sorted(characteristic_ids))
+    else:
+        # Lightweight test/in-memory repositories retain the existing surface.
+        known_claims = [claim for claim in repo.all("claims")
+                        if claim["characteristic_id"] in characteristic_ids
+                        and str(claim.get("method", "")).startswith("local_poi_")]
     current = {(claim["hotel_id"],claim["characteristic_id"],claim["method"]) for claim in known_claims if claim["method"].startswith("local_poi_")}
     hotels = repo.all("hotels")
     # A newer method version (changed value semantics) is recomputed and supersedes older claims.

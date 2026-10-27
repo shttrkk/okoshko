@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 04:52 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 05:04 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -181,3 +181,5 @@
 - 27.10.2026 04:40: feat(catalogue): hold reviewed identities outside hotel search; 1133 passed, 1 warning, 125 subtests passed in 72.93s (0:01:12); Ruff и frontend lint PASS.
 
 - 27.10.2026 04:52: fix(ui): distinguish source reports from geometry models; 1133 passed, 1 warning, 125 subtests passed in 59.07s; Ruff и frontend lint PASS.
+
+- 27.10.2026 05:04: POI использует versioned bounded cache расстояний и targeted reader; 1000 Claim payloads и полный materialized output 250 объектов совпали. QA SQL reader 55 343 → 1 004 rows, 8,795 → 0,117 с (не HTTP SLA). 1156 passed, 1 warning, 125 subtests passed in 58.75s; Ruff/lint, rebuild,13demo-check/browser PASS.
