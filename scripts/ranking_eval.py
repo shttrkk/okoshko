@@ -53,6 +53,26 @@ def digest(value):
     return hashlib.sha256(canonical(value).encode()).hexdigest()
 
 
+def compatible_input_files(expected: dict[str, str], current: dict[str, str]) -> bool:
+    """Permit only the added one-line display label; all other bytes stay frozen."""
+    if set(expected) != set(current):
+        return False
+    for path, expected_hash in expected.items():
+        if current[path] == expected_hash:
+            continue
+        if not path.startswith("data/characteristics/") or not path.endswith(".yaml"):
+            return False
+        raw = (ROOT / path).read_bytes()
+        labels = list(re.finditer(rb"(?m)^display_name:[^\r\n]*(?:\r?\n|$)", raw))
+        if len(labels) != 1:
+            return False
+        label = labels[0]
+        original = raw[:label.start()] + raw[label.end():]
+        if hashlib.sha256(original).hexdigest() != expected_hash:
+            return False
+    return True
+
+
 def criterion(cid, field="available", op="eq", value=True, **extra):
     return {"characteristic_id": cid, "label": cid, "field": field, "op": op, "value": value, **extra}
 
@@ -317,7 +337,7 @@ def evaluate_gold(path, split="all"):
     rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
     hotels, specs, facts, _, hashes, facts_hash = load_inputs()
     from backend.agents.ranker import rank_hotels
-    if any(row["input_files_sha256"] != hashes for row in rows):
+    if any(not compatible_input_files(row["input_files_sha256"], hashes) for row in rows):
         raise ValueError("Frozen input files changed; do not regenerate labels to fit new rankings. Review a new dataset version.")
 
     class Frozen(datetime):
@@ -348,6 +368,8 @@ def evaluate_gold(path, split="all"):
             "split": split, **aggregate_cases(cases),
             "by_split": {name: aggregate_cases([row for row in cases if row["split"] == name]) for name in sorted({row["split"] for row in cases})},
             "input_materialization_matches_frozen": all(row["input_facts_sha256"] == facts_hash for row in rows),
+            "display_name_only_changes": sorted(path for path, value in hashes.items()
+                                                if rows and rows[0]["input_files_sha256"].get(path) != value),
             "scorer_sha256": {path: hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
                               for path in ["backend/agents/ranker.py", "backend/agents/query_match.py",
                                            "backend/catalogue.py", "data/seed/catalogue_reviews.json"]},

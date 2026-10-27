@@ -1741,7 +1741,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/DryRunResult"
+                }
               }
             }
           },
@@ -2998,6 +3000,99 @@
           "confidence"
         ],
         "title": "CriterionVerdict"
+      },
+      "DryRunItem": {
+        "properties": {
+          "hotel_id": {
+            "type": "string",
+            "title": "Hotel Id"
+          },
+          "hotel_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hotel Name"
+          },
+          "claims": {
+            "items": {
+              "$ref": "#/components/schemas/Claim"
+            },
+            "type": "array",
+            "title": "Claims"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "matched": {
+            "type": "boolean",
+            "title": "Matched",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "hotel_id"
+        ],
+        "title": "DryRunItem"
+      },
+      "DryRunResult": {
+        "properties": {
+          "spec_id": {
+            "type": "string",
+            "title": "Spec Id"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/DryRunItem"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total",
+            "default": 0
+          },
+          "processed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Processed",
+            "default": 0
+          },
+          "matched_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Matched Count",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "spec_id",
+          "run_id",
+          "valid"
+        ],
+        "title": "DryRunResult"
       },
       "Evidence": {
         "properties": {

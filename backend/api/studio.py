@@ -8,10 +8,22 @@ import yaml
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 from backend.agents.planner import plan_characteristic
+from backend.agents.query_match import assess_hotel
 from backend.agents.resolver import resolve_claims
 from backend.agents.spec_compiler import compile_spec, validate_spec
 from backend.api.catalog import catalog
-from backend.contracts import CharacteristicSpec, Claim, CompileRequest, ToolContext, now
+from backend.catalogue import searchable
+from backend.contracts import (
+    CharacteristicSpec,
+    Claim,
+    CompileRequest,
+    Criterion,
+    DryRunResult,
+    Hotel,
+    ParsedQuery,
+    ToolContext,
+    now,
+)
 from backend.contracts.validation import validate_value as validate
 from backend.db.repository import get_repo
 from backend.tools.registry import Registry
@@ -61,23 +73,33 @@ def compile_characteristic(body: CompileRequest, repo=_REPO):
         raise HTTPException(422, "Не удалось составить спецификацию: " + str(error)[:400]) from error
 
 
-@router.post("/dry-run")
+@router.post("/dry-run", response_model=DryRunResult)
 def dry_run(body: CharacteristicSpec, repo=_REPO):
     checked(body, repo)
     trace = Trace(repo, "compile_spec", characteristic_id=body.id, trigger="studio_preview")
-    hotel_rows = repo.all("hotels")
+    hotel_rows = [row for row in repo.all("hotels") if searchable(row)]
     hotel_rows.sort(key=lambda hotel: (hotel["id"] != "osm-node-10058556917", hotel["id"]))
     results = []
     try:
         for hotel in hotel_rows[:3]:
             claims, warnings, mode = execute_preview(body, hotel, repo, trace)
-            results.append({"hotel_id": hotel["id"], "claims": claims, "warnings": warnings})
+            hotel_model = Hotel.model_validate(hotel)
+            facts, _ = resolve_claims(hotel["id"], claims, [body], repo.all("sources"), known_floors=hotel_model.floors)
+            criterion = Criterion(characteristic_id=body.id, label=body.display_name or body.name_ru,
+                                  field=body.search.field, op=body.search.default_op, value=body.search.default_value)
+            assessment = assess_hotel(facts, ParsedQuery(text="", must=[criterion]), [body], hotel=hotel_model)
+            matched = bool(assessment.matches and assessment.matches[0].status == "yes" and assessment.matches[0].supported
+                           and not assessment.scope_conflict and not assessment.domain_reason)
+            results.append({"hotel_id": hotel["id"], "hotel_name": hotel["name"], "claims": claims,
+                            "warnings": warnings, "matched": matched})
             trace.step("compiler", "tool_call", "Предпросмотр без записи claims", input={"hotel_id": hotel["id"]},
                        output={"claims": [claim.model_dump(mode="json") for claim in claims], "warnings": warnings}, mode=mode,
                        evidence_refs=[e.id for claim in claims for e in claim.evidence],
                        rationale="Результаты проверены по схеме; каталог, claims и materialized facts не изменяются")
         trace.finish()
-        return {"spec_id": body.id, "results": results, "run_id": trace.run.id, "valid": bool(results)}
+        return {"spec_id": body.id, "results": results, "run_id": trace.run.id, "valid": bool(results),
+                "total": len(hotel_rows), "processed": len(results),
+                "matched_count": sum(row["matched"] for row in results)}
     except Exception as error:
         trace.finish("failed", str(error)[:300])
         raise HTTPException(422, "Предпросмотр не прошёл проверку: " + str(error)[:400]) from error
