@@ -3,27 +3,13 @@ import pytest
 
 import backend.db.repository as module
 from backend.db.repository import Repository
-
-
-class Connection:
-    def __init__(self):
-        self.calls = []
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *_):
-        pass
-
-    def execute(self, query, params=None):
-        self.calls.append((query.as_string() if hasattr(query, "as_string") else query, params))
-        return []
+from backend.tests.dbapi_fakes import FakeDatabase
 
 
 @pytest.mark.parametrize("compact,expected", [(True, 4), (False, 6)])
 def test_detail_query_count_is_constant_and_ids_are_bound(monkeypatch, compact, expected):
-    connection = Connection()
-    monkeypatch.setattr(module.psycopg, "connect", lambda *_: connection)
+    connection = FakeDatabase()
+    monkeypatch.setattr(module.psycopg, "connect", connection.connect)
     ids = ["hotel-a", "hotel-b", "hotel-c", "x' OR true --"]
     Repository().catalog_details(ids, compact=compact)
     assert len(connection.calls) == expected
@@ -35,7 +21,7 @@ def test_detail_query_count_is_constant_and_ids_are_bound(monkeypatch, compact, 
 
 @pytest.mark.parametrize("table", ["facts", "hotels", "characteristics"])
 def test_writes_invalidate_rankings_and_reject_racing_computation(monkeypatch, table):
-    monkeypatch.setattr(module.psycopg, "connect", lambda *_: Connection())
+    monkeypatch.setattr(module.psycopg, "connect", FakeDatabase().connect)
     repo = Repository()
     generation, _ = repo.search_cache_get("query")
     repo.search_cache_put("query", generation, ["old"], None)

@@ -10,6 +10,7 @@ from shapely.geometry import Point
 import backend.db.repository as db
 from backend.contracts import CharacteristicSpec, ToolCall, ToolContext
 from backend.seed import bootstrap_poi
+from backend.tests.dbapi_fakes import FakeDatabase
 from backend.tests.test_api_integration import ApiRepo
 from backend.tools.registry import POI_NEARBY_CACHE_SIZE, Registry
 from geo.coordinates import TO_UTM
@@ -118,17 +119,11 @@ def test_nearby_cache_is_bounded_and_evicted_centers_are_recomputed(tmp_path):
 
 
 def test_narrow_reader_uses_bound_characteristics_literal_method_prefix_and_no_revision(monkeypatch):
-    calls = []
     row = {"id": "previous", "method": "local_poi_lookup@2", "characteristic_id": "car_access"}
-    class Connection:
-        def __enter__(self):
-            return self
-        def __exit__(self, *_):
-            pass
-        def execute(self, query, params):
-            calls.append((query, params))
-            return [(row,)]
-    monkeypatch.setattr(db.psycopg, "connect", lambda *_: Connection())
+    connection = FakeDatabase()
+    connection.query_handler = lambda *_: [(row,)]
+    calls = connection.calls
+    monkeypatch.setattr(db.psycopg, "connect", connection.connect)
     repo = db.Repository("unused")
     assert repo.prior_poi_claims([]) == [] and not calls
     assert repo.prior_poi_claims(["car_access", "car_access"]) == [row]

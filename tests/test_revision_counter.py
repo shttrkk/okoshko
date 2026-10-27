@@ -5,52 +5,14 @@ import pytest
 
 import backend.db.repository as module
 from backend.db.repository import Repository
+from backend.tests.dbapi_fakes import FakeDatabase
 from backend.tracing import Trace
-
-
-class Copy:
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *_):
-        pass
-
-    def write_row(self, row):
-        pass
-
-
-class Cursor:
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *_):
-        pass
-
-    def execute(self, *_):
-        return []
-
-    def executemany(self, *_):
-        pass
-
-    def copy(self, *_):
-        return Copy()
-
-
-class Connection(Cursor):
-    fail_commit = False
-
-    def __exit__(self, error, *_):
-        if error is None and self.fail_commit:
-            raise RuntimeError("Synthetic transaction failure")
-
-    def cursor(self):
-        return Cursor()
 
 
 @pytest.fixture
 def repo(monkeypatch):
-    connection = Connection()
-    monkeypatch.setattr(module.psycopg, "connect", lambda *_, **__: connection)
+    connection = FakeDatabase()
+    monkeypatch.setattr(module.psycopg, "connect", connection.connect)
     value = Repository()
     value._search_snapshot = {"old-fact": {"id": "old-fact", "hotel_id": "hotel-a", "characteristic_id": "sea_view"}}
     value.search_cache_put("search", value.search_generation(), ["cached result"], None)
@@ -101,14 +63,17 @@ def test_real_search_trace_lifecycle_does_not_change_the_polling_revision(repo):
 
 
 @pytest.mark.parametrize("method", ["insert", "upsert", "bulk-small", "bulk-copy"])
-def test_failed_transaction_does_not_publish_a_revision(repo, method):
+def test_commit_error_invalidates_caches_without_publishing_tentative_values(repo, method):
     value, connection = repo
     generation = value.search_generation()
     connection.fail_commit = True
     with pytest.raises(RuntimeError, match="transaction failure"):
         write(value, method, "questions")
-    assert value.search_generation() == generation
-    assert value.search_cache_get("search")[1] == ["cached result"]
+    assert value.search_generation() == generation + 1
+    assert value._search_snapshot is None
+    assert value.search_cache_get("search")[1] is None
+    value.search_cache_put("racing", generation, ["obsolete result"], None)
+    assert value.search_cache_get("racing")[1] is None
 
 
 def test_empty_bulk_is_not_a_mutation_but_removing_hotel_facts_is(repo):

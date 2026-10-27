@@ -2,16 +2,22 @@
 from __future__ import annotations
 
 import json
+import math
 import time
+import weakref
 from collections import OrderedDict
+from contextlib import contextmanager
 from datetime import date, datetime
-from functools import lru_cache, wraps
+from functools import lru_cache, partial, wraps
 from threading import RLock
 from typing import Any
 
 import psycopg
 from psycopg import sql
+from psycopg.pq import TransactionStatus
 from psycopg.types.json import Jsonb
+from sqlalchemy.dialects.postgresql.psycopg import PGDialect_psycopg
+from sqlalchemy.pool import QueuePool
 
 from backend.contracts import Claim
 from backend.settings import DB_URL
@@ -59,12 +65,101 @@ def serialized_write(function):
 
 
 class Repository:
-    def __init__(self, db_url: str = DB_URL):
+    def __init__(self, db_url: str = DB_URL, *, pool_size: int = 4, pool_timeout: float = 3,
+                 connection_factory=None):
+        if not isinstance(pool_size, int) or isinstance(pool_size, bool) or pool_size < 1:
+            raise ValueError("Repository pool_size must be a positive integer")
+        if not isinstance(pool_timeout, int | float) or not math.isfinite(pool_timeout) or pool_timeout < 0:
+            raise ValueError("Repository pool_timeout must be finite and nonnegative")
         self.db_url = db_url
         self._search_snapshot = None
         self._search_lock = RLock()
         self._search_generation = 0
         self._search_results = OrderedDict()
+        self._pool_lock = RLock()
+        self._closed = False
+        # Capture only the DSN/factory, not self: a finalizer must not keep its
+        # Repository alive through pool -> creator -> Repository references.
+        creator = connection_factory or partial(psycopg.connect, db_url, connect_timeout=3)
+        self._pool = QueuePool(creator, pool_size=pool_size, max_overflow=0, timeout=pool_timeout,
+                               use_lifo=True, pre_ping=True, reset_on_return="rollback",
+                               dialect=PGDialect_psycopg(dbapi=psycopg))
+        self._pool_cleanup = weakref.finalize(self, Repository._dispose_pool, weakref.ref(self), self._pool)
+
+    @staticmethod
+    def _dispose_pool(reference, pool):
+        repository = reference()
+        if repository is None:
+            pool.dispose()
+        else:
+            # At process exit the singleton can still be alive. Mark it closed
+            # too, so background work cannot reopen a disposed pool.
+            with repository._pool_lock:
+                repository._closed = True
+                pool.dispose()
+
+    @contextmanager
+    def _connection(self):
+        """One exclusive transaction per lease; never retry business SQL."""
+        with self._pool_lock:
+            if self._closed:
+                raise RuntimeError("Repository is closed")
+        # A waiting checkout must not prevent an active lease from returning.
+        lease = self._pool.connect()
+        connection = lease.dbapi_connection
+        discard, committing, failure = False, False, None
+        try:
+            with self._pool_lock:
+                if self._closed:
+                    raise RuntimeError("Repository is closed")
+            if (connection.closed or connection.broken or connection.autocommit
+                    or connection.info.transaction_status != TransactionStatus.IDLE):
+                discard = True
+                raise psycopg.InterfaceError("Repository requires an idle transactional connection")
+            yield connection
+            committing = True
+            connection.commit()
+            if connection.info.transaction_status != TransactionStatus.IDLE:
+                raise psycopg.InterfaceError("Repository transaction did not finish")
+        except BaseException as error:
+            failure = error
+            # A commit failure may be ambiguous; evict, never replay the write.
+            discard = discard or committing or connection.closed or connection.broken
+            try:
+                if not connection.closed:
+                    connection.rollback()
+                discard = discard or connection.info.transaction_status != TransactionStatus.IDLE
+            except BaseException:
+                discard = True
+            raise
+        finally:
+            # Serialize check-in with dispose: no live connection may enter the
+            # idle queue after close() has drained it.
+            try:
+                with self._pool_lock:
+                    try:
+                        if discard or self._closed or connection.closed or connection.broken:
+                            lease.invalidate(failure)
+                    finally:
+                        lease.close()
+            finally:
+                if committing and failure is not None:
+                    # The server may have committed despite a lost response.
+                    # Publish no tentative values, but force a new DB snapshot.
+                    # Return the lease BEFORE waiting for the search lock: a
+                    # serialized writer may own that lock while awaiting pool
+                    # capacity, so the opposite order would deadlock.
+                    with self._search_lock:
+                        self._search_snapshot = None
+                        self._search_generation += 1
+                        self._search_results.clear()
+
+    def close(self):
+        """Reject new leases, close idle connections, drain active ones on return."""
+        with self._pool_lock:
+            if not self._closed:
+                self._closed = True
+                self._pool_cleanup()
 
     def _update_search(self, values: list[dict], *, hotel_ids: list[str] | None = None):
         with self._search_lock:
@@ -123,7 +218,7 @@ class Repository:
 
     def all(self, table: str) -> list[dict]:
         query = sql.SQL("SELECT payload FROM {} ORDER BY created_at, id").format(self.table(table))
-        with psycopg.connect(self.db_url) as conn:
+        with self._connection() as conn:
             return [row[0] for row in conn.execute(query)]
 
     def prior_poi_claims(self, characteristic_ids: list[str]) -> list[dict]:
@@ -132,12 +227,12 @@ class Repository:
             return []
         query = ("SELECT payload FROM claims WHERE payload->>'characteristic_id'=ANY(%s) "
                  "AND starts_with(payload->>'method', %s) ORDER BY created_at,id")
-        with psycopg.connect(self.db_url) as conn:
+        with self._connection() as conn:
             return [row[0] for row in conn.execute(query, (sorted(set(characteristic_ids)), "local_poi_"))]
 
     def get(self, table: str, id: str) -> dict | None:
         query = sql.SQL("SELECT payload FROM {} WHERE id=%s").format(self.table(table))
-        with psycopg.connect(self.db_url) as conn:
+        with self._connection() as conn:
             row = conn.execute(query, (id,)).fetchone()
             return row[0] if row else None
 
@@ -153,12 +248,12 @@ class Repository:
                 params.extend([key, Jsonb(value, dumps=dump_json)])
         where = sql.SQL(" AND ").join(predicates) if predicates else sql.SQL("true")
         query = sql.SQL("SELECT payload FROM {} WHERE {} ORDER BY created_at, id").format(self.table(table), where)
-        with psycopg.connect(self.db_url) as conn:
+        with self._connection() as conn:
             return [row[0] for row in conn.execute(query, params)]
 
     def get_many(self, table: str, ids: list[str]) -> list[dict]:
         query = sql.SQL("SELECT payload FROM {} WHERE id=ANY(%s) ORDER BY created_at,id").format(self.table(table))
-        with psycopg.connect(self.db_url) as conn:
+        with self._connection() as conn:
             return [row[0] for row in conn.execute(query, (ids,))]
 
     def catalog_details(self, hotel_ids: list[str], *, compact: bool = False) -> dict[str, list[dict]]:
@@ -171,7 +266,7 @@ class Repository:
         if not compact:
             tables.extend(["claims", "change_events"])
         result = {"claims": [], "change_events": []}
-        with psycopg.connect(self.db_url) as conn:
+        with self._connection() as conn:
             for table in tables:
                 projection = sql.SQL(COMPACT_FACT if compact and table == "facts" else "payload")
                 predicate = sql.SQL("id=ANY(%s)" if table == "hotels" else "payload->>'hotel_id'=ANY(%s)")
@@ -188,7 +283,7 @@ class Repository:
         if table == "claims":
             value = Claim.model_validate(value).model_dump(mode="json")
         query = sql.SQL("INSERT INTO {} (id,payload) VALUES (%s,%s)").format(table_sql)
-        with psycopg.connect(self.db_url) as conn:
+        with self._connection() as conn:
             conn.execute(query, (value["id"], Jsonb(value, dumps=dump_json)))
         if table == "facts":
             self._update_search([value])
@@ -201,7 +296,7 @@ class Repository:
             raise ValueError("Claims are append-only; use add_claim")
         query = sql.SQL("""INSERT INTO {} (id,payload) VALUES (%s,%s)
             ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload, updated_at=now()""").format(self.table(table))
-        with psycopg.connect(self.db_url) as conn:
+        with self._connection() as conn:
             conn.execute(query, (value["id"], Jsonb(value, dumps=dump_json)))
         if table == "facts":
             self._update_search([value])
@@ -220,7 +315,7 @@ class Repository:
             raise ValueError("Claims are append-only")
         query = sql.SQL("""INSERT INTO {} (id,payload) VALUES (%s,%s)
             ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload, updated_at=now()""").format(self.table(table))
-        with psycopg.connect(self.db_url) as conn, conn.cursor() as cursor:
+        with self._connection() as conn, conn.cursor() as cursor:
             if len(values) < 50:
                 cursor.executemany(query, [(value["id"], Jsonb(value, dumps=dump_json)) for value in values])
             else:
@@ -237,7 +332,7 @@ class Repository:
 
     def insert_claims(self, values: list[Claim | dict]) -> list[dict]:
         validated = [Claim.model_validate(value).model_dump(mode="json") for value in values]
-        with psycopg.connect(self.db_url) as conn, conn.cursor() as cursor:
+        with self._connection() as conn, conn.cursor() as cursor:
             cursor.executemany("INSERT INTO claims(id,payload) VALUES(%s,%s)",
                                [(value["id"], Jsonb(value)) for value in validated])
         return validated
@@ -245,7 +340,7 @@ class Repository:
     @serialized_write
     def replace_facts(self, hotel_id: str, values: list[dict]) -> None:
         # Atomic materialized-view replacement removes obsolete floor-range keys.
-        with psycopg.connect(self.db_url) as conn, conn.cursor() as cursor:
+        with self._connection() as conn, conn.cursor() as cursor:
             cursor.execute("DELETE FROM facts WHERE payload->>'hotel_id'=%s",(hotel_id,))
             cursor.executemany("INSERT INTO facts(id,payload) VALUES(%s,%s)",
                                [(value["id"],Jsonb(value,dumps=dump_json)) for value in values])
@@ -253,7 +348,7 @@ class Repository:
 
     @serialized_write
     def replace_materialized_facts(self, hotel_ids: list[str], values: list[dict]) -> None:
-        with psycopg.connect(self.db_url) as conn, conn.cursor() as cursor:
+        with self._connection() as conn, conn.cursor() as cursor:
             cursor.execute("CREATE TEMP TABLE resolved_import(id text PRIMARY KEY,payload jsonb NOT NULL) ON COMMIT DROP")
             with cursor.copy("COPY resolved_import(id,payload) FROM STDIN") as copy:
                 for value in values:
@@ -263,15 +358,15 @@ class Repository:
         self._update_search(values, hotel_ids=hotel_ids)
 
     def count(self, table: str) -> int:
-        with psycopg.connect(self.db_url) as conn:
+        with self._connection() as conn:
             return conn.execute(sql.SQL("SELECT count(*) FROM {}").format(self.table(table))).fetchone()[0]
 
     def healthy(self) -> bool:
-        with psycopg.connect(self.db_url, connect_timeout=3) as conn:
+        with self._connection() as conn:
             return conn.execute("SELECT 1").fetchone()[0] == 1
 
     def expiry_token(self) -> str | None:
-        with psycopg.connect(self.db_url) as conn:
+        with self._connection() as conn:
             return conn.execute("SELECT md5(string_agg(id,',' ORDER BY id)) FROM claims WHERE (payload->>'valid_until')::timestamptz <= now()").fetchone()[0]
 
     def search_facts(self, characteristic_ids: list[str] | None = None, month: int | None = None) -> list[dict]:
@@ -279,7 +374,7 @@ class Repository:
         query = "SELECT " + COMPACT_FACT + " FROM facts"
         with self._search_lock:
             if self._search_snapshot is None:
-                with psycopg.connect(self.db_url) as conn:
+                with self._connection() as conn:
                     self._search_snapshot = {row[0]["id"]: row[0] for row in conn.execute(query)}
             snapshot = self._search_snapshot
         ids = set(characteristic_ids) if characteristic_ids is not None else None
