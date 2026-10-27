@@ -24,6 +24,7 @@ NUMERIC_FIELDS = {
     'nightlife': {'venues_500m', 'bars_500m', 'nearest_bar_m', 'promenade_distance_m'},
 }
 BOOLEAN_FIELDS = {
+    'connectivity': {'available', 'wifi_reported'},
     'soundproofing': {'available', 'blackout', 'air_conditioning'},
     'room_orientation': {'available', 'balcony'},
     'beach_walk': {'available', 'has_steps'},

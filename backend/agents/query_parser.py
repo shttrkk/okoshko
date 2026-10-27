@@ -386,6 +386,8 @@ def _nearby_intents(text: str) -> dict:
 
 def _criterion_label(criterion: Criterion, fallback: str, unit: str | None = None) -> str:
     cid = criterion.characteristic_id
+    if cid == 'connectivity' and criterion.field == 'wifi_reported':
+        fallback = 'Сообщено наличие Wi-Fi'
     if criterion.op == 'eq' and criterion.value is False:
         fallback = {
             ('sea_view', 'available'): 'Без вида на море',
@@ -410,6 +412,23 @@ def _criterion_label(criterion: Criterion, fallback: str, unit: str | None = Non
         fallback = f"{name} {sign} {threshold} {unit}"
     flags = [label for active, label in ((criterion.no_stairs, "без лестниц"), (criterion.no_crossings, "без переходов")) if active]
     return ", ".join([fallback, *flags])
+
+
+def _wifi_presence_only(text: str) -> list[re.Match]:
+    """Only an explicit presence request/waiver relaxes inferred Mbps, never a number."""
+    wifi = list(re.finditer(r'\bwi[ -]?fi\b', text))
+    if not wifi or re.search(r'\d+(?:[.,]\d+)?\s*(?:мбит(?:/с)?|мегабит\w*|mbps)\b', text):
+        return []
+    waiver = (r'\b(?:(?:измеренн\w*|гарантированн\w*|высок\w*)\s+)?скорост\w*\s+'
+              r'(?:wi[ -]?fi\s+)?(?:мне\s+)?не\s+(?:обязательн\w*|важн\w*|принципиальн\w*|нужн\w*)\b|'
+              r'\bбез\s+требован\w*\s+к\s+(?:измеренн\w*\s+)?скорост\w*\b')
+    presence = (r'\b(?:только|просто|достаточно)\s+(?:наличи\w*\s+)?wi[ -]?fi\b|'
+                r'\bналичи\w*\s+wi[ -]?fi\b|\bчтобы\s+был\s+wi[ -]?fi\b')
+    matches = [match for match in re.finditer(waiver, text) if any(
+        abs(match.start()-anchor.start()) <= 200 and not re.search(
+            r'(?<!\d)\.(?!\d)|[;!?\n]', text[min(match.end(), anchor.end()):max(match.start(), anchor.start())])
+        for anchor in wifi)]
+    return matches or list(re.finditer(presence, text))
 
 
 def _numeric_mentions(text: str, spec: CharacteristicSpec, matches: list,
@@ -518,6 +537,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
     consumed = []
     positions = {}
     nearby = _nearby_intents(text)
+    wifi_presence = _wifi_presence_only(text)
     for spec in catalog:
         if spec.status != "active":
             continue
@@ -625,6 +645,10 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
                 nearby_preference = (nearby_soft, Criterion(characteristic_id=spec.id, label=spec.name_ru,
                                                           field=nearby_field, op=nearby_op, value=nearby_value))
         op, value = _numeric(text, numeric_match.start(), numeric_match.end(), field, op, value)
+        if spec.id == 'connectivity' and wifi_presence and not negative and (
+                _numeric(text, numeric_match.start(), numeric_match.end(), 'download_mbps', 'gte', None)[1] is None):
+            field, op, value = 'wifi_reported', 'eq', True
+            consumed.extend((m.start(), m.end()) for m in wifi_presence)
         if negative and isinstance(value, bool):
             value = not value
         elif negative and spec.id in {'car_access', 'connectivity', 'night_pharmacy'}:
