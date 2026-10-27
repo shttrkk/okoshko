@@ -1,0 +1,35 @@
+region: sochi
+method: curated_exact_osm_contours_v1
+limitations:
+  - Цель — верх моделируемого контура, а не вид всего объекта.
+  - Высота из этажности использует явное допущение 3 м на этаж; шпиль не выводится из этажности.
+  - Copernicus GLO-30 — грубый DSM с деревьями и крышами; высота цели и LOS приблизительны.
+landmarks:
+  - id: sea_terminal
+    osm_id: osm-way-260407566
+    name: Морской вокзал Сочи (верх контура, без шпиля)
+    zone: A
+    height_source: osm_building_levels_3m
+    osm_building_levels: 4
+    height_m: 12
+    source_url: https://www.openstreetmap.org/way/260407566
+  - id: bolshoy
+    osm_id: osm-way-54521221
+    wikidata_id: Q2272937
+    name: Ледовый дворец «Большой»
+    zone: B
+    height_source: osm_height
+    height_m: 49
+    source_url: https://www.openstreetmap.org/way/54521221
+excluded_candidates:
+  - name: Зимний театр
+    reason: В исходном OSM way-слое точный контур не найден; Overture-контур не используется как OSM/Wikidata подтверждение.
+  - name: Фишт
+    reason: В исходном way-слое есть только Overture-контур без проверенной высоты; relation-контур пока не собран.
+  - name: Чаша олимпийского огня
+    osm_id: osm-node-2660040429
+    reason: Точка OSM без проверенной высоты и контура; дату открытия не превращаем в высоту.
+  - name: Сочинский маяк
+    reason: Нельзя выбирать гостиницу с названием «Маяк»; точный контур маяка и высота ещё не подтверждены.
+  - name: Башня на Ахуне
+    reason: Точный контур и высота не подтверждены в используемом слое; дальнюю цель не угадываем.

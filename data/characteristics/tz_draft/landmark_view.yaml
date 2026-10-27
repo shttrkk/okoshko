@@ -1,0 +1,37 @@
+id: landmark_view
+version: 1
+name_ru: Вид на достопримечательность
+display_name: Вид на достопримечательность
+description: Видимость верхней части курируемого объекта по контуру OSM и DSM; этажи и стороны условны до ответа отеля.
+category: Окружение
+synonyms: []
+scope: floor_range
+value_schema:
+  type: object
+  properties:
+    available:
+      type:
+      - boolean
+      - 'null'
+  required:
+  - available
+  additionalProperties: true
+methods:
+- tool: prepared_observation
+  params:
+    kind: landmark_view
+    sector_deg: 60
+    max_distance_m: 30000
+  rationale: Видимость верхней части курируемого объекта по контуру OSM и DSM; этажи и стороны условны до ответа отеля.
+ttl_days: 90
+change_triggers:
+- kind: source_snapshot_changed
+search:
+  kind: boolean
+  field: available
+  default_op: eq
+  default_value: true
+  explain_ok: Вид на достопримечательность — есть данные по карте
+  explain_bad: Вид на достопримечательность — за указанным порогом
+hotelier_answerable: false
+status: draft

@@ -53,3 +53,17 @@ contracts:
 snapshots:
 	node scripts/render_building_snapshots.mjs $(or $(BASE),http://localhost:8080)
 	python3 -m scripts.build_snapshot_index
+
+.PHONY: tz-osm-data tz-derived-data tz-climate-data tz-data
+# Incremental stage one only: never rebuilds or loads the original seed/facts.
+tz-osm-data:
+	$(PYTHON) -m pipeline.fetch_osm_extra
+tz-climate-data:
+	$(PYTHON) -m pipeline.fetch_tz_climate
+tz-derived-data:
+	$(PYTHON) -m pipeline.fetch_tz_osm_facts
+	$(PYTHON) -m pipeline.fetch_tz_routes
+	$(PYTHON) -m pipeline.fetch_tz_history
+	$(PYTHON) -m pipeline.fetch_tz_landmarks
+	$(PYTHON) -m pipeline.fetch_tz_manifest
+tz-data: tz-osm-data tz-climate-data tz-derived-data
