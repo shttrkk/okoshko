@@ -27,7 +27,7 @@ EV_CHARGING_NEAR_M = 1000
 POI_METHOD = "local_poi_lookup@2"
 # A kind's method version changes when its value semantics change; older claims
 # for the same hotel and characteristic are superseded, never edited.
-POI_METHODS = {"car": "local_poi_lookup@3", "nightlife": "local_poi_nightlife@1"}
+POI_METHODS = {"car": "local_poi_lookup@3", "family": "local_poi_family@1", "nightlife": "local_poi_nightlife@1"}
 POI_CATEGORY_METHOD = "local_poi_category@1"
 POI_NEARBY_CACHE_SIZE = 32
 POI_INDEX_VERSION = 1
@@ -335,7 +335,7 @@ class Registry:
             selected = playgrounds[:1]+hospitals[:1]
             value = {"available":True if playgrounds else None,"playground_distance_m":round(playgrounds[0][0]) if playgrounds else None,
                      "playground_osm_id":playgrounds[0][1]["id"] if playgrounds else None,
-                     "hospital_distance_m":round(hospitals[0][0]) if hospitals else None,"crossings":[]}
+                     "hospital_distance_m":round(hospitals[0][0]) if hospitals else None,"crossings":None}
         elif kind == "nightlife":
             venues = [(d,f) for d,f in candidates if d<=NIGHTLIFE_RADIUS_M and f["properties"].get("amenity") in NIGHTLIFE_VENUES]
             bars = [(d,f) for d,f in venues if f["properties"].get("amenity") in NIGHTLIFE_BARS]
@@ -364,6 +364,8 @@ class Registry:
         limitations = ["Расстояния по прямой, не время пешего маршрута", "Отсутствие объекта или opening_hours в OSM не доказывает отсутствие услуги", "Подъезд к фактическому входу, детский профиль больницы и доступность для коляски требуют отдельного подтверждения"]
         if kind == "nightlife":
             limitations.append(f"«В гуще событий» означает не меньше {NIGHTLIFE_MIN_VENUES} баров, пабов, клубов, кафе и ресторанов OSM в {NIGHTLIFE_RADIUS_M} м по прямой; часы работы и громкость заведений не проверяются")
+        if kind == "family":
+            limitations.append("Переходы и пересечения дорог не рассчитывались; прямые расстояния не подтверждают безопасный пеший маршрут")
         if category:
             limitations.append(f"«Рядом» означает объект категории OSM не дальше {near} м по прямой; закрытые или не отмеченные в OSM объекты не учитываются")
         if kind == "car":
