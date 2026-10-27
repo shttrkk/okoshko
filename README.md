@@ -14,7 +14,7 @@ docker compose up --build
 # Открыть http://localhost:8080
 ```
 
-`.env` необязателен: дефолты запускают offline-демо. Чистый клон `d7f5cef` без `.env`, с пустым build cache: до `/health` 154.6 с, перезапусков 0; `make check`, `demo-check` 13/13 и все 11 browser smoke — PASS ([отчёт](docs/checks/photos_clean_clone.json)). Для изменения настроек можно скопировать `.env.example` в `.env`.
+`.env` необязателен: дефолты запускают offline-демо. Чистый клон `a13b12f` без `.env`, с пустым build cache: до `/health` 253,1 с, от старта контейнера 98,2 с, перезапусков 0; `make check`, `demo-check` 13/13 и все 18 browser smoke — PASS ([отчёт](docs/checks/panel_clean_clone.json)). Для изменения настроек можно скопировать `.env.example` в `.env`.
 
 ## Проверка за 5 минут
 
@@ -105,7 +105,7 @@ curl -N "$BASE/api/runs/<run_id>/stream" -H "Authorization: Bearer $TOKEN"
 
 Нужны Docker Desktop/Engine и Docker Compose; проверено на Docker 29.4.0 / Compose 5.1.1. Настройки передаются интерполяцией `${VAR:-default}`, файл `.env` необязателен. Рекомендовано 4 CPU, 8 ГБ RAM и 10 ГБ диска с учётом сборки. Всё приложение работает в Docker: PostgreSQL 17 с PostGIS 3.6, Python 3.12/FastAPI и собранный интерфейс React/Vite/MapLibre. Версии базовых образов и зависимости закреплены; используются публичные реестры.
 
-Проверенный образ: 327,676,866 байт (≈312.5 MiB по `docker image inspect`), `linux/amd64`, UID `10001:10001`. Чистый клон `d7f5cef`: без `.env`, LLM-ключа, пустой build-кэш, новая БД/Compose-проект и Docker-only PATH дали `/health` через **154.65 с**. От старта контейнера до health — **80.94 с**, перезапусков 0. `make check`, demo-check 13/13 и все 11 browser smoke — PASS; полная проверка 516.6 с. Host QA-зависимости подключались после готовности продукта. [Отчёт](docs/checks/photos_clean_clone.json). Это запуск подготовленного seed; сбор региона и локальная LLM измеряются отдельно.
+Проверенный образ: 327 797 900 байт (≈312,6 МиБ по `docker image inspect`), `linux/amd64`, UID `10001:10001`. Чистый клон `a13b12f`: без `.env`, LLM-ключа, пустой build-кэш, новая БД/Compose-проект и Docker-only PATH дали `/health` через **253,08 с**. От старта контейнера до health — **98,23 с**, перезапусков 0. `make check`, demo-check 13/13 и все 18 browser smoke — PASS; полная проверка 853,4 с. Host QA-зависимости подключались после готовности продукта. [Отчёт](docs/checks/panel_clean_clone.json). Это запуск подготовленного seed; сбор региона и локальная LLM измеряются отдельно.
 
 | Переменная | Значение по умолчанию |
 |---|---|
