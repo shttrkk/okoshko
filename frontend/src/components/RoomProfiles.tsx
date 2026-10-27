@@ -16,9 +16,11 @@ import {
 export function RoomDescription({
   hotelId,
   profile,
+  unknownFloors = false,
 }: {
   hotelId: string;
   profile: RoomProfile;
+  unknownFloors?: boolean;
 }) {
   const [evidence, setEvidence] = useState<FactEvidence | null>(null);
   const [busy, setBusy] = useState(false);
@@ -42,7 +44,9 @@ export function RoomDescription({
     >
       {profile.conditional && (
         <span className="room-conditional">
-          Условное положение · этажность не подтверждена
+          {unknownFloors
+            ? "Условный уровень 1 · этажность не подтверждена"
+            : "Модельное положение · номер не подтверждён"}
         </span>
       )}
       <p className="room-profile-copy">{profile.description}</p>
@@ -118,11 +122,13 @@ export function RoomProfileList({
   scope,
   open = true,
   link = false,
+  unknownFloors = false,
 }: {
   hotelId: string;
   scope: RoomScope;
   open?: boolean;
   link?: boolean;
+  unknownFloors?: boolean;
 }) {
   const key = JSON.stringify([hotelId, scope]);
   const profiles = useResource(
@@ -153,7 +159,7 @@ export function RoomProfileList({
           <summary>
             <h3>{profile.title}</h3>
             <p className="small muted">
-              {roomScopeText(profile.scope, profile.conditional)}
+              {roomScopeText(profile.scope, unknownFloors)}
             </p>
             <p className="room-profile-preview">{profile.description}</p>
             {profile.clauses.some((clause) => clause.synthetic) && (
@@ -161,7 +167,11 @@ export function RoomProfileList({
             )}
             <span className="text-button small">Факты и основания</span>
           </summary>
-          <RoomDescription hotelId={hotelId} profile={profile} />
+          <RoomDescription
+            hotelId={hotelId}
+            profile={profile}
+            unknownFloors={unknownFloors}
+          />
           {link && (
             <Link
               className="text-button small"
@@ -181,11 +191,13 @@ export function RoomSuggestion({
   recommendation,
   profile,
   month,
+  unknownFloors = false,
 }: {
   hotelId: string;
   recommendation: string;
   profile?: RoomProfile | null;
   month: number;
+  unknownFloors?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -204,9 +216,17 @@ export function RoomSuggestion({
       </p>
       {open &&
         (profile ? (
-          <RoomDescription hotelId={hotelId} profile={profile} />
+          <RoomDescription
+            hotelId={hotelId}
+            profile={profile}
+            unknownFloors={unknownFloors}
+          />
         ) : (
-          <RoomProfileList hotelId={hotelId} scope={{ month }} />
+          <RoomProfileList
+            hotelId={hotelId}
+            scope={{ month }}
+            unknownFloors={unknownFloors}
+          />
         ))}
     </details>
   );

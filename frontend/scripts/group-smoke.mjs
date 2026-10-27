@@ -292,6 +292,15 @@ try {
   report.checks.push("Profile clauses reveal exact fact ID evidence");
   const hotelUrl = page.url(),
     hotelId = new URL(hotelUrl).pathname.split("/")[2];
+  const hotel = await (
+    await page.request.get(`${base}/api/hotels/${hotelId}?compact=true`)
+  ).json();
+  if (hotel.hotel.floors !== null)
+    assert.doesNotMatch(
+      await page.getByTestId("group-plan").first().innerText(),
+      /условный уровень 1/,
+      "Conditional model descriptions must not erase known hotel floors",
+    );
   await page.goto(`${base}/booking/${hotelId}`);
   await page.getByTestId("group-passport-preview").waitFor({ timeout: 45000 });
   assert.equal(
@@ -363,6 +372,31 @@ try {
       report.screenshots.push(screenName);
     }
   }
+  const beforeConflict = evaluations.length;
+  await page.evaluate(() => {
+    const query = JSON.parse(sessionStorage.getItem("okno-parsed"));
+    query.facade = "W";
+    query.min_floor = 5;
+    sessionStorage.setItem("okno-parsed", JSON.stringify(query));
+  });
+  await page.goto(hotelUrl);
+  await page.getByTestId("room-lab-scope-conflict").waitFor({ timeout: 45000 });
+  assert.match(
+    await page.getByTestId("room-lab-scope-conflict").innerText(),
+    /Сторона исходного запроса/,
+  );
+  assert.equal(
+    evaluations
+      .slice(beforeConflict)
+      .filter(
+        (query) => query.rooms?.length === 0 && query.text.startsWith("Игорь:"),
+      ).length,
+    0,
+    "Conflicting shared restrictions must stop personal evaluation",
+  );
+  report.checks.push(
+    "Shared side/floor constraints remain visible and stop incompatible personal evaluation",
+  );
   assert.equal(errors.length, 0, errors.join("\n"));
   assert.equal(failures.length, 0, failures.join("\n"));
   report.checks.push(
@@ -386,5 +420,6 @@ try {
   );
 } finally {
   if (page) await page.unrouteAll({ behavior: "ignoreErrors" });
+  if (page) await page.request.dispose();
   await browser.close();
 }

@@ -31,11 +31,13 @@ export function GroupPlan({
   requests,
   compact = false,
   onOpen,
+  unknownFloors = false,
 }: {
   hotelId: string;
   items: RoomPlanItem[];
   requests?: RoomRequest[];
   compact?: boolean;
+  unknownFloors?: boolean;
   onOpen?: (index: number, item: RoomPlanItem) => void;
 }) {
   if (!items.length) return null;
@@ -58,7 +60,7 @@ export function GroupPlan({
         {items.map((item, index) => (
           <PlanRow
             key={`${index}:${item.label}`}
-            {...{ hotelId, item, index, compact, onOpen }}
+            {...{ hotelId, item, index, compact, onOpen, unknownFloors }}
             requestedScope={
               requests?.[index]
                 ? {
@@ -85,12 +87,14 @@ function PlanRow({
   compact,
   onOpen,
   requestedScope,
+  unknownFloors,
 }: {
   hotelId: string;
   item: RoomPlanItem;
   index: number;
   compact: boolean;
   requestedScope?: RoomScope;
+  unknownFloors: boolean;
   onOpen?: (index: number, item: RoomPlanItem) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -122,7 +126,7 @@ function PlanRow({
           <h3>{item.label}</h3>
           <span className="small muted">
             {roomStatus[item.status]} ·{" "}
-            {roomScopeText(item.scope, item.profile?.conditional)}
+            {roomScopeText(item.scope, unknownFloors)}
           </span>
         </div>
         {onOpen ? (
@@ -176,9 +180,17 @@ function PlanRow({
               onEvidence={(verdict) => void showEvidence(verdict)}
             />
             {item.profile ? (
-              <RoomDescription hotelId={hotelId} profile={item.profile} />
+              <RoomDescription
+                hotelId={hotelId}
+                profile={item.profile}
+                unknownFloors={unknownFloors}
+              />
             ) : (
-              <RoomProfileList hotelId={hotelId} scope={item.scope} />
+              <RoomProfileList
+                hotelId={hotelId}
+                scope={item.scope}
+                unknownFloors={unknownFloors}
+              />
             )}
             <AskButton
               hotelId={hotelId}

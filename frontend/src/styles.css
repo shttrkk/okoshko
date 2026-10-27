@@ -6793,3 +6793,13 @@ h3 {
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.group-profile-preview,
+.room-profile-preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.group-plan.compact .group-profile-preview {
+  -webkit-line-clamp: 2;
+}

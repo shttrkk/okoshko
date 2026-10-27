@@ -581,6 +581,7 @@ export function RoomLab({
               )}
               <RoomProfileList
                 hotelId={detail.hotel.id}
+                unknownFloors={!boundary.known}
                 scope={{
                   facade: slice.facade,
                   floor_min: slice.floor,

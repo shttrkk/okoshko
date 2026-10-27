@@ -16,11 +16,11 @@ export const roomStatus = {
   unknown: "Нужно уточнить",
 };
 export const roomSymbol = { yes: "✓", partial: "≈", no: "×", unknown: "?" };
-export function roomScopeText(scope: RoomScope, conditional = false) {
+export function roomScopeText(scope: RoomScope, unknownFloors = false) {
   return (
     [
       scope.facade && SIDES[scope.facade],
-      conditional
+      unknownFloors
         ? "условный уровень 1"
         : scope.floor_min && scope.floor_max
           ? scope.floor_min === scope.floor_max
@@ -73,8 +73,11 @@ export function personalRoomQuery(
     ...parsed,
     rooms: [],
     text: `${room.label}: ${[...room.must, ...room.nice].map((c) => c.label).join(", ")}`,
-    facade: room.scope.facade || null,
-    min_floor: room.scope.floor_min || null,
+    // Keep shared restrictions visible: requestedScope in RoomLab detects an
+    // opposing personal side or a floor cap instead of silently replacing it.
+    facade: parsed.facade || room.scope.facade || null,
+    min_floor:
+      Math.max(parsed.min_floor || 0, room.scope.floor_min || 0) || null,
     month: room.scope.month || parsed.month,
     must: [...parsed.must, ...room.must.map(scoped)],
     nice: [...parsed.nice, ...room.nice.map(scoped)],

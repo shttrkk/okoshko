@@ -27,10 +27,12 @@ export function PassportView({
   passport,
   onUpdate,
   hotelier = false,
+  unknownFloors = false,
 }: {
   passport: Passport;
   onUpdate: (p: Passport) => void;
   hotelier?: boolean;
+  unknownFloors?: boolean;
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<Error | null>(null),
@@ -94,6 +96,7 @@ export function PassportView({
           hotelId={passport.hotel_id}
           items={passport.room_plan}
           requests={passport.room_requests}
+          unknownFloors={unknownFloors}
           compact
         />
       )}
@@ -353,7 +356,11 @@ export function BookingPage() {
             </div>
           )}
           {passport ? (
-            <PassportView passport={passport} onUpdate={setPassport} />
+            <PassportView
+              passport={passport}
+              onUpdate={setPassport}
+              unknownFloors={detail.data?.hotel.floors === null}
+            />
           ) : (
             <>
               {params.get("passport") && existing.loading && <Loading />}

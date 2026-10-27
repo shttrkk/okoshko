@@ -940,6 +940,7 @@ function SearchCard({
         {hit.room_plan?.length ? (
           <GroupPlan
             hotelId={hit.hotel.id}
+            unknownFloors={hit.hotel.floors === null}
             items={hit.room_plan}
             requests={roomRequests}
             compact
@@ -948,6 +949,7 @@ function SearchCard({
           hit.room_recommendation && (
             <RoomSuggestion
               hotelId={hit.hotel.id}
+              unknownFloors={hit.hotel.floors === null}
               recommendation={hit.room_recommendation}
               profile={hit.room_profile}
               month={hit.room_profile?.scope.month || month}

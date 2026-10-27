@@ -576,6 +576,7 @@ export function HotelPage() {
               {!!d.room_plan?.length && (
                 <GroupPlan
                   hotelId={id}
+                  unknownFloors={d.hotel.floors === null}
                   items={d.room_plan}
                   requests={parsed?.rooms}
                   onOpen={(index, item) => {
@@ -647,6 +648,7 @@ export function HotelPage() {
                 </p>
                 <RoomProfileList
                   hotelId={id}
+                  unknownFloors={d.hotel.floors === null}
                   scope={{ month: parsed?.month || 9 }}
                   link
                 />
