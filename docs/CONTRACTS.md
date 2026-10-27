@@ -266,3 +266,12 @@ Answer.disposition: parsed (есть проверяемые поля), unknown (
 
 
 У official_site/room в принятом индексе обязательны положительные bytes ≤ 2 000 000 и SHA-256; url использует HTTPS. HTTP → HTTPS допускается только при идентичности байтов. Размеры и подтверждения записываются при offline-подготовке; runtime не выполняет внешнюю проверку. Формат существующих HotelPhoto/HotelPhotoIndex не расширен.
+
+
+## Подсказки и краткие служебные результаты
+
+`QuerySuggestion {label, criterion, required=true, fragment?}` — предложение явного добавления условия. `ParsedQuery.suggestions` и `RoomRequest.suggestions` по умолчанию пусты, максимум два предложения. Наличие подсказки не добавляет criterion в must/nice, не меняет ranking и не означает наличие факта. Для группы подсказка остаётся у своего адресата. Существующий запрос без этих полей совместим.
+
+`HotelierSummary {hotel_id, pending_count}` — количество уже существующих pending-вопросов для доступного отеля. Не число уникальных гостей; получение сводки не создаёт вопросы.
+
+`DryRunResult` сохраняет прежние spec_id/results/run_id/valid и добавляет total/processed/matched_count; строки results могут содержать hotel_name/matched. total означает доступный каталог, processed — реально проверенную выборку, matched_count — подходящие в этой выборке. Три проверенных отеля нельзя показывать как полный прогон 247 объектов.

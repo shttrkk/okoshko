@@ -15,6 +15,7 @@ import type {
   HotelDetail,
   FactEvidence,
   HotelierData,
+  HotelierSummary,
   Json,
   LabelTarget,
   Passport,
@@ -298,6 +299,8 @@ export const api = {
       "/api/hotelier/logout",
       {},
     ),
+  hotelierSummaries: () =>
+    request<HotelierSummary[]>("/api/hotelier", undefined, undefined, true),
   hotelier: (hotelId: string) =>
     request<HotelierData>(
       `/api/hotelier/${id(hotelId)}`,

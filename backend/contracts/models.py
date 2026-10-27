@@ -314,6 +314,36 @@ class Criterion(Model):
     no_crossings: bool = False
 
 
+class QuerySuggestion(Model):
+    label: str = Field(min_length=1, max_length=160)
+    criterion: Criterion
+    required: bool = True
+    fragment: str | None = Field(default=None, max_length=300)
+
+
+class HotelierSummary(Model):
+    hotel_id: str = Field(min_length=1)
+    pending_count: int = Field(ge=0)
+
+
+class DryRunItem(Model):
+    hotel_id: str
+    hotel_name: str | None = None
+    claims: list[Claim] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    matched: bool = False
+
+
+class DryRunResult(Model):
+    spec_id: str
+    results: list[DryRunItem] = Field(default_factory=list)
+    run_id: str
+    valid: bool
+    total: int = Field(default=0, ge=0)
+    processed: int = Field(default=0, ge=0)
+    matched_count: int = Field(default=0, ge=0)
+
+
 class RoomScope(Model):
     """Requested/modelled position, never evidence that a sellable room exists."""
     facade: Side | None = None
@@ -338,6 +368,7 @@ class RoomRequest(Model):
     no_data_must: list[Criterion] = Field(default_factory=list)
     unmapped: list[str] = Field(default_factory=list)
     clarifications: list[str] = Field(default_factory=list, max_length=2)
+    suggestions: list[QuerySuggestion] = Field(default_factory=list, max_length=2)
 
 
 class ParsedQuery(Model):
@@ -354,6 +385,7 @@ class ParsedQuery(Model):
     facade: Side | None = None
     unmapped: list[str] = Field(default_factory=list)
     clarifications: list[str] = Field(default_factory=list, max_length=2)
+    suggestions: list[QuerySuggestion] = Field(default_factory=list, max_length=2)
     mode: Mode = "offline"
     similar_to: str | None = None
     similar_to_name: str | None = None

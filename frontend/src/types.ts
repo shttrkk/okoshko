@@ -108,6 +108,16 @@ export interface Criterion {
   weight: number;
   scope?: Scope | null;
 }
+export interface QuerySuggestion {
+  label: string;
+  criterion: Criterion;
+  required: boolean;
+  fragment?: string | null;
+}
+export interface HotelierSummary {
+  hotel_id: string;
+  pending_count: number;
+}
 export interface RoomScope {
   facade?: Side | null;
   floor_min?: number | null;
@@ -124,6 +134,7 @@ export interface RoomRequest {
   no_data_must?: Criterion[];
   unmapped?: string[];
   clarifications?: string[];
+  suggestions?: QuerySuggestion[];
 }
 export interface RoomClause {
   text: string;
@@ -164,6 +175,7 @@ export interface ParsedQuery {
   facade?: Side | null;
   unmapped: string[];
   clarifications: string[];
+  suggestions?: QuerySuggestion[];
   mode: Mode;
   similar_to?: string | null;
   similar_to_name?: string | null;
@@ -355,9 +367,18 @@ export interface CompileResult {
 }
 export interface DryResult {
   spec_id: string;
-  results: { hotel_id: string; claims: Claim[]; warnings: string[] }[];
+  results: {
+    hotel_id: string;
+    hotel_name?: string | null;
+    claims: Claim[];
+    warnings: string[];
+    matched?: boolean;
+  }[];
   run_id: string;
   valid: boolean;
+  total?: number;
+  processed?: number;
+  matched_count?: number;
 }
 export interface PublishResult {
   spec: Spec;
