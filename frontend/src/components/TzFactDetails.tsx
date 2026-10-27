@@ -1,6 +1,6 @@
 import type { Claim, Fact } from "../types";
 import { record } from "../api";
-import { SIDES } from "./facts";
+import { humanFact, SIDES } from "./facts";
 import { EvidenceButton, scopeText, Synthetic } from "./ui";
 import { factDemoLabel, reliability } from "./panel-guest-presentation";
 import {
@@ -27,18 +27,34 @@ export function TzFactDetails({
   onOpenWindow?: (fact: Fact) => void;
 }) {
   const own = facts.filter(
-    (fact) =>
-      isSupplementalFact(fact) &&
-      (!fact.scope.month || fact.scope.month === month),
+    (fact) => !fact.scope.month || fact.scope.month === month,
   );
   if (!own.length) return null;
+  const factText = (fact: Fact) =>
+    tzHumanFact(fact) ||
+    (fact.status === "unknown"
+      ? "Значение не подтверждено доступным источником."
+      : fact.status === "stale"
+        ? "Сведения устарели; нужна перепроверка источника."
+        : fact.status === "disputed"
+          ? "Источники расходятся; значение требует уточнения."
+          : humanFact(fact)) ||
+    (record(fact.value).available === false || fact.value === false
+      ? "Исходный источник явно сообщает «нет»."
+      : "Значение не подтверждено доступным источником.");
   const observation = (fact: Fact) => (
     <article key={fact.id} data-fact-id={fact.id} className="tz-observation">
-      <p>{tzHumanFact(fact)}</p>
+      <p>{factText(fact)}</p>
       <p className="muted small">
         {scopeText(fact.scope)} · {reliability(fact.confidence, fact.synthetic)}
       </p>
-      <p className="small">{tzDetail(fact)}</p>
+      <p className="small">
+        {isSupplementalFact(fact)
+          ? tzDetail(fact)
+          : ["family_nearby", "car_access"].includes(fact.characteristic_id)
+            ? "Исходные расстояния по прямой; пешие маршруты приведены в отдельном наблюдении."
+            : "Исходное наблюдение со своим источником и оценкой надёжности."}
+      </p>
       {fact.synthetic && <Synthetic>{factDemoLabel(fact)}</Synthetic>}
       <EvidenceButton fact={fact} claims={claims} />
       {fact.characteristic_id === "landmark_view" && fact.scope.facade && (
