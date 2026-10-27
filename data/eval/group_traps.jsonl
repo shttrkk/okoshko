@@ -1,0 +1,24 @@
+{"id":"group-trap-001","text":"Тихий номер с видом на закат недалеко от моря.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-002","text":"Едем семьёй из 5 человек, с собакой.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-003","text":"Двое взрослых и трое детей, нужен тихий номер.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-004","text":"Нас трое, хочется вид на море.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-005","text":"Мама сказала, что там тихо.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-006","text":"Мама сказала: «Мне тихо, детям хорошо».","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-007","text":"В отзыве написано: «Маме тихо, нам вид на море».","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-008","text":"Ищу как Cascade, но тише.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-009","text":"Один тихий номер на двоих.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-010","text":"Один из отелей был тихий, другой шумный.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-011","text":"Мне нужен тихий номер с видом на море.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-012","text":"Маме нужен номер не выше 3 этажа.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-013","text":"Для родителей ищу тихий номер.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-014","text":"Тихо для детей и родителей.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-015","text":"У мамы есть собака, но мы едем без неё.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-016","text":"У нас два ребёнка, нужен балкон.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-017","text":"На двоих нужен номер во двор.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-018","text":"Второй раз едем в Сочи, хотим вид на закат.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-019","text":"Сначала море, потом горы — такой отпуск.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-020","text":"Как в прошлом отеле: нам там было тихо.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-021","text":"В описании «один номер тихий, другой с видом на море». Нужен один номер.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-022","text":"Не нужны два номера, нужен один тихий.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-023","text":"Два номера телефона отеля, а мне нужен адрес.","expected":{"must":[],"nice":[],"rooms":[]}}
+{"id":"group-trap-024","text":"Номер один в рейтинге, второй этаж с балконом.","expected":{"must":[],"nice":[],"rooms":[]}}
