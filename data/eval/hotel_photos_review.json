@@ -1,9 +1,11 @@
 {
- "reviewed_at": "2026-10-26",
- "reviewer": "manual visual check of every candidate (contact sheets of the cached images) during collection",
+ "reviewed_at": "2026-10-27",
+ "reviewer": "Manual visual review; 2026-10-27 batch2 sheets007–012 independently reviewed by photos_backend. Exact sheet/number decisions in visual_batches.",
  "semantics": {
   "accept": "entry was opened and looked at: it shows the named property (building, territory, room or lobby) and, for building photos, the building matches the hotel name/sign and location",
-  "reject.ref": "Commons file title (building), image URL (official_site, the next candidate is then tried) or \"site\" (official_site: the whole website is not property-specific)"
+  "reject.ref": "Commons title, image URL (official_site or room), or site. A rejected room candidate may remain an independently approved official_site cover; cover and room URL lists never overlap.",
+  "accept.room": "Explicit URL list of visually inspected guestroom interiors; no inference about view/floor/facade.",
+  "image_pages": "Exact approved image URL → official source page, retained so offline assembly prioritizes every reviewed image without depending on a pre-existing index."
  },
  "accept": {
   "osm-node-10118233110": {
@@ -13,68 +15,131 @@
    "official_site": "https://goldentennisclub.ru/img/d3ea9ade9e07a608.webp"
   },
   "osm-node-11016638375": {
-   "official_site": "https://veryhotel.ru/img/dcb862d30f698a6f.webp"
+   "official_site": "https://veryhotel.ru/img/dcb862d30f698a6f.webp",
+   "room": [
+    "https://veryhotel.ru/img/43cbc6c75393fe81.webp",
+    "https://veryhotel.ru/img/5e4084618aa2cbef.webp",
+    "https://veryhotel.ru/img/45566760788f7790.webp"
+   ]
   },
   "osm-node-11331531334": {
-   "official_site": "https://adler.cosmosgroup.ru/files/hotels/43_1733489820.webp"
+   "official_site": "https://adler.cosmosgroup.ru/files/hotels/43_1733489820.webp",
+   "room": [
+    "https://adler.cosmosgroup.ru/files/hotel_gallery_items/1993_1732197287.webp",
+    "https://adler.cosmosgroup.ru/files/hotel_gallery_items/1995_1732197427.webp",
+    "https://adler.cosmosgroup.ru/files/hotel_gallery_items/1997_1732197527.webp",
+    "https://adler.cosmosgroup.ru/files/hotel_gallery_items/1998_1732197584.webp"
+   ]
   },
   "osm-node-11637552371": {
-   "official_site": "https://rodos-apart.ru/img/3687d72f693e889a.webp"
+   "official_site": "https://rodos-apart.ru/img/3687d72f693e889a.webp",
+   "room": [
+    "https://rodos-apart.ru/img/0a807024859fa79e.webp",
+    "https://rodos-apart.ru/img/d574e86a53c3442f.webp"
+   ]
   },
   "osm-node-11637558669": {
-   "official_site": "https://rodos-lite.ru/img/51c657b65f3cc07b.webp"
+   "official_site": "https://rodos-lite.ru/img/51c657b65f3cc07b.webp",
+   "room": [
+    "https://rodos-lite.ru/img/541e3547aeb0fad2.webp",
+    "https://rodos-lite.ru/img/4397ca35398f21c7.webp"
+   ]
   },
   "osm-node-11958163713": {
    "official_site": "https://markinn-sochi.ru/thumb/2/GuUtJT8ZZaZVpAiRCGxLGg/2000r2000/d/7.jpg"
   },
-  "osm-node-11958163737": {
-   "official_site": "https://static.tildacdn.com/tild6537-3239-4230-b365-363832313032/clipboard-2024050311.png"
-  },
+  "osm-node-11958163737": {},
   "osm-node-12183637632": {
-   "official_site": "https://atmosferahotel.ru/img/8715021640ad336f.webp"
+   "official_site": "https://atmosferahotel.ru/img/8715021640ad336f.webp",
+   "room": [
+    "https://atmosferahotel.ru/img/b540e32eeffee96a.webp",
+    "https://atmosferahotel.ru/img/5cedc143e17d2231.webp",
+    "https://atmosferahotel.ru/img/f12654dedf8604d9.webp"
+   ]
   },
   "osm-node-12749552601": {
-   "official_site": "https://www.marinayacht.ru/dl_images/udb_photos/udb3-rec13-field2.jpg"
+   "official_site": "https://www.marinayacht.ru/dl_images/udb_photos/udb3-rec13-field2.jpg",
+   "room": [
+    "https://www.marinayacht.ru/dl_images/udb_photos/udb3-rec4-field2.jpg"
+   ]
   },
   "osm-node-12800893166": {
-   "official_site": "https://grey-sochi.ru/img/851fe69b8794808e.webp"
+   "official_site": "https://grey-sochi.ru/img/851fe69b8794808e.webp",
+   "room": [
+    "https://grey-sochi.ru/img/f0dcd1d3421e10d3.webp"
+   ]
   },
-  "osm-node-12958832506": {
-   "official_site": "https://s3.timeweb.cloud/37651e87-s3-atlas/Volnoobraznyj_fasad_v_sredizemnomorskom_svete_edited_bdb85b1e4d.webp"
-  },
+  "osm-node-12958832506": {},
   "osm-node-13825400642": {
-   "official_site": "https://siriushotels.ru/upload/resize_cache/iblock/fde/1200_801_190728d62196cae6acd40d0988c857574/hosan208azh1j05ge727fmu38yeyqi8p.jpg"
+   "official_site": "https://siriushotels.ru/upload/resize_cache/iblock/fde/1200_801_190728d62196cae6acd40d0988c857574/hosan208azh1j05ge727fmu38yeyqi8p.jpg",
+   "room": [
+    "https://siriushotels.ru/upload/resize_cache/webp/iblock/7ed/wx86ll8ob5yeeg6xiihd0j450gcv1hbq.webp"
+   ]
   },
   "osm-node-8872412718": {
-   "official_site": "https://grace-gorizont.ru/assets/components/phpthumbof/cache/345.6c83982d67e57a71fb3544ab691e81e2.jpg"
+   "official_site": "https://grace-gorizont.ru/assets/components/phpthumbof/cache/345.6c83982d67e57a71fb3544ab691e81e2.jpg",
+   "room": [
+    "https://grace-gorizont.ru/assets/components/phpthumbof/cache/240225-grace-horizont-064.2c1cb2c11a86b7d6f6cc7b13fea766ab.jpg",
+    "https://grace-gorizont.ru/assets/components/phpthumbof/cache/photohotelgorizont2.88894b0c39a68995a648475b96063038.jpg"
+   ]
   },
   "osm-node-9908709817": {
-   "official_site": "https://sochigallerypark.ru/img/c27083be8eac3b6b.webp"
+   "official_site": "https://sochigallerypark.ru/img/c27083be8eac3b6b.webp",
+   "room": [
+    "https://sochigallerypark.ru/img/fdc51f835942e03f.webp",
+    "https://sochigallerypark.ru/img/93ad0a9c7411b76d.webp"
+   ]
   },
   "osm-way-113588514": {
-   "official_site": "https://seasons-hotel.com/upload/resize_cache/iblock/501/640_480_2/g7v7aei4rwbrcam62ufekq3j9il2s7fi.jpg"
+   "official_site": "https://seasons-hotel.com/upload/resize_cache/iblock/501/640_480_2/g7v7aei4rwbrcam62ufekq3j9il2s7fi.jpg",
+   "room": [
+    "https://seasons-hotel.com/upload/resize_cache/iblock/529/640_480_2/wb40anbmv7bvqwbly57y56077ib8er4k.jpg",
+    "https://seasons-hotel.com/upload/resize_cache/iblock/7da/640_480_2/75bnx9ybcs2zts2lftenu123e414afac.jpeg",
+    "https://seasons-hotel.com/upload/resize_cache/iblock/e55/640_480_2/9s85xavjuq5ug343zfy9j7k313kfjcyx.JPG"
+   ]
   },
-  "osm-way-150742817": {
-   "official_site": "https://static.tildacdn.com/tild6236-3664-4132-a534-373261323831/_-2.jpg"
-  },
+  "osm-way-150742817": {},
   "osm-way-190714781": {
-   "official_site": "https://sochi.cosmosgroup.ru/files/hotels/14_11770025432.webp"
+   "official_site": "https://sochi.cosmosgroup.ru/files/hotels/14_11770025432.webp",
+   "room": [
+    "https://sochi.cosmosgroup.ru/files/hotel_gallery_items/491_1631313240.webp"
+   ]
   },
   "osm-way-207579132": {
-   "official_site": "https://siriushotels.ru/upload/resize_cache/iblock/dce/1199_798_190728d62196cae6acd40d0988c857574/j4f7o2uaou0frcaq6yjox9n6w9jnhgs0.jpg"
+   "official_site": "https://siriushotels.ru/upload/resize_cache/iblock/dce/1199_798_190728d62196cae6acd40d0988c857574/j4f7o2uaou0frcaq6yjox9n6w9jnhgs0.jpg",
+   "room": [
+    "https://siriushotels.ru/upload/iblock/b1e/4lh8d2o5damieq30m9lr4f4oorlon8qk.jpg"
+   ]
   },
   "osm-way-207637871": {
    "official_site": "https://manteracongress.ru/_next/image?url=https%3A%2F%2Fdirectus.manteratravel.ru%2Fassets%2Fd96348a6-34ed-431a-8ae1-7b211049719c%3Ffit%3Dcover%26width%3D2400%26quality%3D80&w=3840&q=75",
-   "building": "File:Radisson Blu hotel in Sochi, Russia.jpg"
+   "building": "File:Radisson Blu hotel in Sochi, Russia.jpg",
+   "room": [
+    "https://manteracongress.ru/_next/image?url=https%3A%2F%2Fdirectus.manteratravel.ru%2Fassets%2F9cffd519-3507-4c5f-9e77-38c2a5330894%3Ffit%3Dcover%26width%3D1200%26quality%3D80&w=3840&q=75",
+    "https://manteracongress.ru/_next/image?url=https%3A%2F%2Fdirectus.manteratravel.ru%2Fassets%2F4fed86e5-99c7-4a9e-85a2-821fd73ca53b%3Ffit%3Dcover%26width%3D1200%26quality%3D80&w=3840&q=75"
+   ]
   },
   "osm-way-209182328": {
-   "official_site": "https://sofia-hotels.ru/img/e703f929b3cba3f2.webp"
+   "official_site": "https://sofia-hotels.ru/img/e703f929b3cba3f2.webp",
+   "room": [
+    "https://sofia-hotels.ru/img/43150c7a93dd0782.webp",
+    "https://sofia-hotels.ru/img/25d15e2b801fcaf5.webp",
+    "https://sofia-hotels.ru/img/2a6baac8591783d4.webp"
+   ]
   },
   "osm-way-250086722": {
-   "official_site": "https://adlanna-maria.ru/assets/img/hero4-2400.jpg"
+   "official_site": "https://adlanna-maria.ru/assets/img/hero4-2400.jpg",
+   "room": [
+    "https://adlanna-maria.ru/assets/img/foto/kompakt-01-1200.jpg",
+    "https://adlanna-maria.ru/assets/img/foto/standart-01-1200.jpg"
+   ]
   },
   "osm-way-412914458": {
-   "official_site": "https://hotel-marianna.ru/img/b63d339cb0318867.webp"
+   "official_site": "https://hotel-marianna.ru/img/b63d339cb0318867.webp",
+   "room": [
+    "https://hotel-marianna.ru/img/f33a6e67ffdcbbe9.webp",
+    "https://hotel-marianna.ru/img/afcd823964287a3d.webp"
+   ]
   },
   "osm-way-44573571": {
    "building": "File:RIAN archive 779065 Moskva hotel, Sochi.jpg"
@@ -83,7 +148,11 @@
    "official_site": "https://azimuthotels.com/resize/images/upload/residence_sochi_exterior.webp?w=1584&h=980"
   },
   "osm-way-51847429": {
-   "building": "File:Hotel «Zhemchuzhina» (Sochi) (15).JPG"
+   "building": "File:Hotel «Zhemchuzhina» (Sochi) (15).JPG",
+   "official_site": "https://www.zhem.ru/upload/iblock/6aa/6aa7430c6d9b147e14b676fcb8035c35.jpg",
+   "room": [
+    "https://www.zhem.ru/upload/resize_cache/iblock/90d/570_360_2/ajf74nl2ckonck8o86u2s2qhvzkqid6n.jpg"
+   ]
   },
   "osm-way-52283978": {
    "building": "File:Metallurg Sochi.jpg"
@@ -92,58 +161,145 @@
    "building": "File:Отель Чеботарёв, Сочи, на закате солнца (25.03.2023).jpg"
   },
   "osm-way-52526314": {
-   "official_site": "https://raduga-prestige.ru/img/273004d9a750ab04.webp"
+   "official_site": "https://raduga-prestige.ru/img/273004d9a750ab04.webp",
+   "room": [
+    "https://raduga-prestige.ru/img/90e4027a408d0443.webp",
+    "https://raduga-prestige.ru/img/adbab6b0df1c54c2.webp"
+   ]
   },
   "osm-way-53579883": {
    "building": "File:1-building-7-facade-normal-2.jpg"
   },
   "osm-way-700342790": {
-   "official_site": "https://talisman-sochi.ru/upload/iblock/61f/1rbvy6peimtlwnbidbn7qytmcxmb0y53.webp"
+   "official_site": "https://talisman-sochi.ru/upload/iblock/61f/1rbvy6peimtlwnbidbn7qytmcxmb0y53.webp",
+   "room": [
+    "https://talisman-sochi.ru/upload/iblock/baf/hkl7wkvzhwakp4jlbq7brasetdx7l1ug.webp",
+    "https://talisman-sochi.ru/upload/iblock/ab1/kgz2osrv6gklhfngoyp3untyq5lw243r.webp",
+    "https://talisman-sochi.ru/upload/iblock/324/b6kbx2uytslsb6gi8in4zmjoj0l8wrge.webp",
+    "https://talisman-sochi.ru/upload/iblock/236/jyr2sqhb3ts53b40oz6rcplpglqe9g5b.webp"
+   ]
   },
   "osm-way-80189262": {
-   "official_site": "https://anatolhotel.ru/wp-content/uploads/2024/05/2mest.jpg"
+   "official_site": "https://anatolhotel.ru/wp-content/uploads/2024/05/2mest.jpg",
+   "room": [
+    "https://anatolhotel.ru/wp-content/uploads/2024/05/658342.jpg",
+    "https://anatolhotel.ru/wp-content/uploads/2024/05/457568.jpg",
+    "https://anatolhotel.ru/wp-content/uploads/2024/05/leb8910.jpg",
+    "https://anatolhotel.ru/wp-content/uploads/2025/05/56874-1024x682.jpg",
+    "https://anatolhotel.ru/wp-content/uploads/2025/05/65756745-1024x682.jpg",
+    "https://anatolhotel.ru/wp-content/uploads/2025/05/111-3-1024x682.jpg"
+   ]
   },
-  "osm-way-80192701": {
-   "official_site": "https://static.tildacdn.com/tild3264-3338-4361-b731-343062323139/IMG_1450_2646.JPG"
-  },
+  "osm-way-80192701": {},
   "osm-way-98649266": {
-   "official_site": "https://parusa-hotel.ru/d/dsc_0228_00037_panorama_kopirovat.jpg"
+   "official_site": "https://parusa-hotel.ru/d/dsc_0228_00037_panorama_kopirovat.jpg",
+   "room": [
+    "https://parusa-hotel.ru/d/4.jpg",
+    "https://parusa-hotel.ru/d/dsc_0138_00047_panorama2_kopirovat.jpg",
+    "https://parusa-hotel.ru/d/dsc_0025_00001_panorama_kopirovat.jpg"
+   ]
   },
   "overture-037ee676-5776-46bd-a4ac-38c828f2a99d": {
    "building": "File:Гостиница «Приморская».JPG"
   },
   "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13": {
-   "official_site": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/slider1.jpg"
+   "official_site": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/slider1.jpg",
+   "room": [
+    "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6233.jpg",
+    "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6243.jpg",
+    "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6234.jpg"
+   ]
   },
   "overture-19a359ae-d6b8-4686-8643-36a55ee46219": {
-   "official_site": "https://metropol-apart.ru/wp-content/uploads/2025/02/mphoto-1.webp"
+   "official_site": "https://metropol-apart.ru/wp-content/uploads/2025/02/mphoto-1.webp",
+   "room": [
+    "https://metropol-apart.ru/wp-content/uploads/2025/02/mphoto-2.webp"
+   ]
   },
   "overture-1d571ae6-4794-4362-ae8a-d011f52d376c": {
-   "official_site": "https://hotelgraphite.ru/img/1d3939f3c66b3e0d.webp"
+   "official_site": "https://hotelgraphite.ru/img/1d3939f3c66b3e0d.webp",
+   "room": [
+    "https://hotelgraphite.ru/img/17f59c23c6ed3491.webp"
+   ]
   },
   "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7": {
-   "official_site": "http://sochi-sunrise.ru/img/324776304f426da7.webp"
+   "official_site": "http://sochi-sunrise.ru/img/324776304f426da7.webp",
+   "room": [
+    "http://sochi-sunrise.ru/img/a890e6691b925f70.webp",
+    "http://sochi-sunrise.ru/img/8f77bd341518cc7d.webp"
+   ]
   },
-  "overture-3b6e73bd-b423-453f-a384-a8d2329acae2": {
-   "official_site": "https://static.tildacdn.com/tild6161-6163-4237-b434-616337633539/01.webp"
-  },
+  "overture-3b6e73bd-b423-453f-a384-a8d2329acae2": {},
   "overture-5d220661-b1ca-4461-a03b-c89126a98e02": {
-   "official_site": "https://grandhotelrodina.ru/upload/resize_cache/iblock/cfa/580_400_2/lt78ss4y0hlismrmkxfe6ljrfad2kjgh.jpg"
+   "official_site": "https://grandhotelrodina.ru/upload/resize_cache/iblock/cfa/580_400_2/lt78ss4y0hlismrmkxfe6ljrfad2kjgh.jpg",
+   "room": [
+    "https://grandhotelrodina.ru/upload/dev2fun.imagecompress/webp/resize_cache/iblock/a8e/1920_1476_2/1mymyity4z32foiezq9jvk0j063iapvw.webp"
+   ]
   },
-  "overture-74ff2c5a-4204-42cb-bb2f-f825b7ca1c45": {
-   "official_site": "https://rzdz.ru/cache/images/upload/ok-osan-900-9.webp/1584_980.webp"
-  },
+  "overture-74ff2c5a-4204-42cb-bb2f-f825b7ca1c45": {},
   "overture-76383584-f4a0-4333-bb90-3fd6d19a354d": {
-   "official_site": "https://simplesochi.ru/img/cc7f6f51f2c8596e.webp"
+   "official_site": "https://simplesochi.ru/img/cc7f6f51f2c8596e.webp",
+   "room": [
+    "https://simplesochi.ru/img/dc19e862e40faf34.webp"
+   ]
   },
   "overture-83a07e61-b742-4ed6-9240-8516e32c482b": {
-   "official_site": "https://morisatoreza.ru/dl_images/udb_photos/udb4-rec5-field3.jpg"
+   "official_site": "https://morisatoreza.ru/dl_images/udb_photos/udb4-rec5-field3.jpg",
+   "room": [
+    "https://morisatoreza.ru/dl_images/udb_photos/udb4-rec7-field3.JPG",
+    "https://morisatoreza.ru/_cache/udb1-rec12-field4---555x370.jpg",
+    "https://morisatoreza.ru/_cache/udb1-rec6-field4---555x370.jpg"
+   ]
   },
   "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39": {
-   "official_site": "https://coocooroozasochi.com/img/a79e4eedf4712e70.webp"
+   "official_site": "https://coocooroozasochi.com/img/a79e4eedf4712e70.webp",
+   "room": [
+    "https://coocooroozasochi.com/img/adb9ebaa44880976.webp",
+    "https://coocooroozasochi.com/img/e8079eddfa024936.webp",
+    "https://coocooroozasochi.com/img/ced4c37e1843bd7c.webp"
+   ]
   },
-  "overture-8db95563-548a-436f-8920-31ba9b9a3795": {
-   "official_site": "https://static.tildacdn.com/tild3030-3830-4636-b933-626538393163/NV_3.jpg"
+  "overture-8db95563-548a-436f-8920-31ba9b9a3795": {},
+  "osm-node-5267688942": {
+   "official_site": "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_standart_03.jpg",
+   "room": [
+    "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_komfort_08.jpg",
+    "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_08.jpg",
+    "https://www.libertyfly.ru/wp-content/uploads/2021/12/luks_02.jpg",
+    "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_standart_02.jpg",
+    "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_standart_04.jpg",
+    "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_komfort_01.jpg",
+    "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_komfort_07.jpg"
+   ]
+  },
+  "osm-node-8975796817": {
+   "official_site": "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/2.jpg?ver=2",
+   "room": [
+    "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/10.jpg?ver=2",
+    "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/11.jpg?ver=2",
+    "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/12.jpg?ver=2",
+    "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/15.jpg?ver=2"
+   ]
+  },
+  "osm-way-53301256": {},
+  "overture-1c44d67c-1df5-470b-bfa4-c676137ff977": {},
+  "osm-way-207637828": {
+   "official_site": "https://www.bridgefamily.ru/img/nomera/semeiny/32.JPG",
+   "room": [
+    "https://www.bridgefamily.ru/img/nomera/semeiny/standart-1.jpg",
+    "https://www.bridgefamily.ru/img/nomera/semeiny/33.JPG"
+   ]
+  },
+  "overture-84c775c0-79bf-4f63-9f74-6e6382b6245d": {
+   "room": [
+    "https://chaykasochi.ru/wp-content/uploads/img_4063-hdr-krupnyy-razmer-1.jpeg",
+    "https://chaykasochi.ru/wp-content/uploads/img_4085-hdr-krupnyy-razmer.jpeg",
+    "https://chaykasochi.ru/wp-content/uploads/img_4182-hdr-krupnyy-razmer.jpeg",
+    "https://chaykasochi.ru/wp-content/uploads/img_4104-hdr-krupnyy-razmer.jpeg",
+    "https://chaykasochi.ru/wp-content/uploads/img_3925-hdr-krupnyy-razmer.jpeg",
+    "https://chaykasochi.ru/wp-content/uploads/img_4001-hdr-krupnyy-razmer.jpeg"
+   ],
+   "official_site": "https://chaykasochi.ru/wp-content/uploads/rooms-superior-sideview-image-1.jpg"
   }
  },
  "reject": [
@@ -356,6 +512,2108 @@
    "kind": "official_site",
    "ref": "https://static.tildacdn.com/tild6336-3831-4730-a562-373665303266/Frame_1.png",
    "reason": "logo card, not a photo"
+  },
+  {
+   "hotel_id": "osm-node-5267688942",
+   "kind": "room",
+   "ref": "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_standart_01.jpg",
+   "reason": "promotional/decorative close-up, not an informative guestroom"
+  },
+  {
+   "hotel_id": "osm-node-5267688942",
+   "kind": "room",
+   "ref": "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_standart_05.jpg",
+   "reason": "bathroom-only, excluded from guestroom interior set"
+  },
+  {
+   "hotel_id": "osm-node-5267688942",
+   "kind": "room",
+   "ref": "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_standart_06.jpg",
+   "reason": "bathroom-only, excluded from guestroom interior set"
+  },
+  {
+   "hotel_id": "osm-node-5267688942",
+   "kind": "room",
+   "ref": "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_standart_07.jpg",
+   "reason": "bathroom-only, excluded from guestroom interior set"
+  },
+  {
+   "hotel_id": "osm-node-8975796817",
+   "kind": "room",
+   "ref": "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/13.jpg?ver=2",
+   "reason": "balcony/corridor/nearby scenery, not guestroom interior"
+  },
+  {
+   "hotel_id": "osm-node-8975796817",
+   "kind": "room",
+   "ref": "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/14.jpg?ver=2",
+   "reason": "bathroom-only, excluded from guestroom interior set"
+  },
+  {
+   "hotel_id": "osm-node-8975796817",
+   "kind": "room",
+   "ref": "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/16.jpg?ver=2",
+   "reason": "balcony/corridor/nearby scenery, not guestroom interior"
+  },
+  {
+   "hotel_id": "osm-node-8975796817",
+   "kind": "room",
+   "ref": "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/17.jpg?ver=2",
+   "reason": "balcony/corridor/nearby scenery, not guestroom interior"
+  },
+  {
+   "hotel_id": "osm-node-8975796817",
+   "kind": "room",
+   "ref": "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/18.jpg?ver=2",
+   "reason": "bathroom-only, excluded from guestroom interior set"
+  },
+  {
+   "hotel_id": "osm-node-8975796817",
+   "kind": "room",
+   "ref": "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/19.jpg?ver=2",
+   "reason": "bathroom-only, excluded from guestroom interior set"
+  },
+  {
+   "hotel_id": "osm-way-51847429",
+   "kind": "official_site",
+   "ref": "https://www.zhem.ru/upload/iblock/3bb/3bb759e13a7227716c737984f341573d.jpg",
+   "reason": "promotional/decorative close-up, not an informative guestroom"
+  },
+  {
+   "hotel_id": "osm-way-51847429",
+   "kind": "official_site",
+   "ref": "https://www.zhem.ru/upload/iblock/9f7/9f70296102b9090c7943cbbf5dd51dc3.jpg",
+   "reason": "valid alternative cover, clearest cover already selected"
+  },
+  {
+   "hotel_id": "osm-way-51847429",
+   "kind": "official_site",
+   "ref": "https://www.zhem.ru/upload/iblock/fda/fda9cf8bd211b30146d222ee5f308836.jpg",
+   "reason": "valid alternative cover, clearest cover already selected"
+  },
+  {
+   "hotel_id": "osm-way-51847429",
+   "kind": "official_site",
+   "ref": "https://www.zhem.ru/upload/iblock/227/2275d313b14a67633b6683ef4a00bd52.jpg",
+   "reason": "promotional/decorative close-up, not an informative guestroom"
+  },
+  {
+   "hotel_id": "osm-way-51847429",
+   "kind": "official_site",
+   "ref": "https://www.zhem.ru/upload/resize_cache/iblock/45a/570_360_2/2ler89jz765pxg0m94uohgfg35p3q3au.jpg",
+   "reason": "promotional/decorative close-up, not an informative guestroom"
+  },
+  {
+   "hotel_id": "osm-way-51847429",
+   "kind": "official_site",
+   "ref": "https://www.zhem.ru/upload/resize_cache/iblock/372/570_360_2/doz7y0trtyabvke4pdly4drhxrleldl6.jpg",
+   "reason": "promotional/decorative close-up, not an informative guestroom"
+  },
+  {
+   "hotel_id": "osm-way-51847429",
+   "kind": "official_site",
+   "ref": "https://www.zhem.ru/upload/resize_cache/iblock/468/570_360_2/4681323a1fa4b0d9c6e76007ec33e77a.jpg",
+   "reason": "valid alternative cover, clearest cover already selected"
+  },
+  {
+   "hotel_id": "osm-way-51847429",
+   "kind": "official_site",
+   "ref": "https://www.zhem.ru/upload/resize_cache/iblock/15d/570_360_2/15d0227b33b37ed622d5271d805ab42c.jpg",
+   "reason": "promotional/decorative close-up, not an informative guestroom"
+  },
+  {
+   "hotel_id": "osm-way-51847429",
+   "kind": "official_site",
+   "ref": "https://www.zhem.ru/upload/resize_cache/iblock/91e/570_360_2/91efab209900f98df6ed3a926cb53bc8.jpg",
+   "reason": "promotional/decorative close-up, not an informative guestroom"
+  },
+  {
+   "hotel_id": "osm-way-51847429",
+   "kind": "official_site",
+   "ref": "https://www.zhem.ru/upload/resize_cache/iblock/e86/570_360_2/e86508f5982651c2a0cb2ada1ec56827.jpg",
+   "reason": "promotional/decorative close-up, not an informative guestroom"
+  },
+  {
+   "hotel_id": "osm-way-53301256",
+   "kind": "official_site",
+   "ref": "https://adler-flamingo.ru/img/relax4.jpg",
+   "reason": "balcony/corridor/nearby scenery, not guestroom interior"
+  },
+  {
+   "hotel_id": "osm-way-53301256",
+   "kind": "official_site",
+   "ref": "https://adler-flamingo.ru/img/relax3.jpg",
+   "reason": "balcony/corridor/nearby scenery, not guestroom interior"
+  },
+  {
+   "hotel_id": "overture-1c44d67c-1df5-470b-bfa4-c676137ff977",
+   "kind": "official_site",
+   "ref": "https://skk-sochi.ru/upload/iblock/a27/zedalcsud3n32asjm05xi73bt2tqsj7w.jpg",
+   "reason": "multi-property sanatorium root; cannot unambiguously assign this image to seed object"
+  },
+  {
+   "hotel_id": "overture-1c44d67c-1df5-470b-bfa4-c676137ff977",
+   "kind": "official_site",
+   "ref": "https://skk-sochi.ru/upload/iblock/977/xxvs1cxvtivbtett9mlfw0gp4h3jvqyu.jpg",
+   "reason": "multi-property sanatorium root; cannot unambiguously assign this image to seed object"
+  },
+  {
+   "hotel_id": "overture-1c44d67c-1df5-470b-bfa4-c676137ff977",
+   "kind": "official_site",
+   "ref": "https://skk-sochi.ru/upload/iblock/f9b/0ti81mwfoz3dz9qw0cak502duq9ah74o.jpg",
+   "reason": "multi-property sanatorium root; cannot unambiguously assign this image to seed object"
+  },
+  {
+   "hotel_id": "overture-1c44d67c-1df5-470b-bfa4-c676137ff977",
+   "kind": "official_site",
+   "ref": "https://skk-sochi.ru/upload/iblock/847/y7jbtk89u4fa5bqtpfci6cqqrhtpq9fq.jpg",
+   "reason": "multi-property sanatorium root; cannot unambiguously assign this image to seed object"
+  },
+  {
+   "hotel_id": "overture-1c44d67c-1df5-470b-bfa4-c676137ff977",
+   "kind": "official_site",
+   "ref": "https://skk-sochi.ru/upload/iblock/f75/2xoazomtiwhg4skqn9897s41z3fph97s.jpg",
+   "reason": "multi-property sanatorium root; cannot unambiguously assign this image to seed object"
+  },
+  {
+   "hotel_id": "overture-1c44d67c-1df5-470b-bfa4-c676137ff977",
+   "kind": "official_site",
+   "ref": "https://skk-sochi.ru/upload/iblock/a5f/qo5nhc11st5d31acudumze8uh35uf2po.jpg",
+   "reason": "multi-property sanatorium root; cannot unambiguously assign this image to seed object"
+  },
+  {
+   "hotel_id": "overture-1c44d67c-1df5-470b-bfa4-c676137ff977",
+   "kind": "official_site",
+   "ref": "https://skk-sochi.ru/upload/iblock/566/97vz7fc8uf7yckpcjjfqut13cmbldd1x.jpg",
+   "reason": "multi-property sanatorium root; cannot unambiguously assign this image to seed object"
+  },
+  {
+   "hotel_id": "overture-1c44d67c-1df5-470b-bfa4-c676137ff977",
+   "kind": "official_site",
+   "ref": "https://skk-sochi.ru/upload/iblock/4f3/q1u8ifvc44771s26hd6d55k00amvvh8j.jpg",
+   "reason": "multi-property sanatorium root; cannot unambiguously assign this image to seed object"
+  },
+  {
+   "hotel_id": "overture-1c44d67c-1df5-470b-bfa4-c676137ff977",
+   "kind": "official_site",
+   "ref": "https://skk-sochi.ru/upload/iblock/322/tu2lywknbwgp84a4xpc0ru02rpz2srwc.jpg",
+   "reason": "multi-property sanatorium root; cannot unambiguously assign this image to seed object"
+  },
+  {
+   "hotel_id": "overture-1c44d67c-1df5-470b-bfa4-c676137ff977",
+   "kind": "official_site",
+   "ref": "https://skk-sochi.ru/upload/iblock/bd2/0x4k19wrsredp3gsz1cyko3b9b5tvmud.jpeg",
+   "reason": "multi-property sanatorium root; cannot unambiguously assign this image to seed object"
+  },
+  {
+   "hotel_id": "overture-1c44d67c-1df5-470b-bfa4-c676137ff977",
+   "kind": "official_site",
+   "ref": "https://skk-sochi.ru/upload/iblock/5d5/r54rdssnhbtfbtktdoa7y0onuz85i7ba.jpg",
+   "reason": "promotional/decorative close-up, not an informative guestroom"
+  },
+  {
+   "hotel_id": "overture-1c44d67c-1df5-470b-bfa4-c676137ff977",
+   "kind": "official_site",
+   "ref": "https://skk-sochi.ru/upload/iblock/9a3/f04w3cge8nmhtzqtf8upom3trxplom3i.jpg",
+   "reason": "multi-property sanatorium root; cannot unambiguously assign this image to seed object"
+  },
+  {
+   "hotel_id": "overture-1c44d67c-1df5-470b-bfa4-c676137ff977",
+   "kind": "official_site",
+   "ref": "site",
+   "reason": "SKK Sochinsky root lists multiple distinct sanatoria; no single seed property identification"
+  },
+  {
+   "hotel_id": "osm-node-8975796817",
+   "kind": "official_site",
+   "ref": "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/1.jpg?ver=2",
+   "reason": "General station facade less specific than selected hotel entrance; exact property address verified for selected entrance"
+  },
+  {
+   "hotel_id": "osm-node-10759614195",
+   "kind": "room",
+   "ref": "https://goldentennisclub.ru/img/d3ea9ade9e07a608.webp",
+   "reason": "Current cover image; not duplicated into lazy room gallery"
+  },
+  {
+   "hotel_id": "osm-node-10759614195",
+   "kind": "room",
+   "ref": "https://goldentennisclub.ru/img/74f89fa3a331ea2f.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-10759614195",
+   "kind": "room",
+   "ref": "https://goldentennisclub.ru/img/88cecb397be08f01.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-10759614195",
+   "kind": "room",
+   "ref": "https://goldentennisclub.ru/img/c0a311dbecbabacd.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-10759614195",
+   "kind": "room",
+   "ref": "https://goldentennisclub.ru/img/7eb8bd176d4dd7d7.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-10759614195",
+   "kind": "room",
+   "ref": "https://goldentennisclub.ru/img/c5b30f351fb317dd.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-10759614195",
+   "kind": "room",
+   "ref": "https://goldentennisclub.ru/img/0bf577b6574cae54.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-10759614195",
+   "kind": "room",
+   "ref": "https://goldentennisclub.ru/img/eb49d87fc379c433.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-10759614195",
+   "kind": "room",
+   "ref": "https://goldentennisclub.ru/img/aaf7322f78bc38ac.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-10759614195",
+   "kind": "room",
+   "ref": "https://goldentennisclub.ru/img/5f0140e8350cd420.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-10759614195",
+   "kind": "room",
+   "ref": "https://goldentennisclub.ru/img/b9bec45bb62b32c2.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-10759614195",
+   "kind": "room",
+   "ref": "https://goldentennisclub.ru/img/c1b3400c51efce75.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11016638375",
+   "kind": "room",
+   "ref": "https://veryhotel.ru/img/dcb862d30f698a6f.webp",
+   "reason": "Current cover image; not duplicated into lazy room gallery"
+  },
+  {
+   "hotel_id": "osm-node-11016638375",
+   "kind": "room",
+   "ref": "https://veryhotel.ru/img/89342d40c81949f9.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11016638375",
+   "kind": "room",
+   "ref": "https://veryhotel.ru/img/0a245e903d32d708.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11016638375",
+   "kind": "room",
+   "ref": "https://veryhotel.ru/img/478f2443c8c6096b.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11016638375",
+   "kind": "room",
+   "ref": "https://veryhotel.ru/img/ead4bd3149be7170.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11016638375",
+   "kind": "room",
+   "ref": "https://veryhotel.ru/img/d145e9a7dee2a71b.webp",
+   "reason": "Duplicate or near-identical resize/angle of an accepted image"
+  },
+  {
+   "hotel_id": "osm-node-11016638375",
+   "kind": "room",
+   "ref": "https://veryhotel.ru/img/26cf436d2404571c.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11016638375",
+   "kind": "room",
+   "ref": "https://veryhotel.ru/img/aa9660ffb9d97b88.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11016638375",
+   "kind": "room",
+   "ref": "https://veryhotel.ru/img/6201117f37fa533a.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11331531334",
+   "kind": "room",
+   "ref": "https://adler.cosmosgroup.ru/files/hotels/43_1733489820.webp",
+   "reason": "Current cover image; not duplicated into lazy room gallery"
+  },
+  {
+   "hotel_id": "osm-node-11331531334",
+   "kind": "room",
+   "ref": "https://adler.cosmosgroup.ru/files/hotel_offers/10035_1777036965.webp",
+   "reason": "Campaign/stock/promotional image; property identity not established"
+  },
+  {
+   "hotel_id": "osm-node-11331531334",
+   "kind": "room",
+   "ref": "https://adler.cosmosgroup.ru/files/hotel_offers/615_1786004084.webp",
+   "reason": "Campaign/stock/promotional image; property identity not established"
+  },
+  {
+   "hotel_id": "osm-node-11331531334",
+   "kind": "room",
+   "ref": "https://adler.cosmosgroup.ru/files/hotel_offers/10379_1788858514.webp",
+   "reason": "Campaign/stock/promotional image; property identity not established"
+  },
+  {
+   "hotel_id": "osm-node-11331531334",
+   "kind": "room",
+   "ref": "https://adler.cosmosgroup.ru/files/hotel_gallery_items/1214_1714986929.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11331531334",
+   "kind": "room",
+   "ref": "https://adler.cosmosgroup.ru/files/hotel_gallery_items/1205_1714985027.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11331531334",
+   "kind": "room",
+   "ref": "https://adler.cosmosgroup.ru/files/hotel_gallery_items/1994_1732197381.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11331531334",
+   "kind": "room",
+   "ref": "https://adler.cosmosgroup.ru/files/hotel_gallery_items/1197_1714660822.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11637552371",
+   "kind": "room",
+   "ref": "https://rodos-apart.ru/img/3687d72f693e889a.webp",
+   "reason": "Current cover image; not duplicated into lazy room gallery"
+  },
+  {
+   "hotel_id": "osm-node-11637552371",
+   "kind": "room",
+   "ref": "https://rodos-apart.ru/img/47059830c730ff42.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11637552371",
+   "kind": "room",
+   "ref": "https://rodos-apart.ru/img/2b92ebdd71352727.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11637558669",
+   "kind": "room",
+   "ref": "https://rodos-lite.ru/img/51c657b65f3cc07b.webp",
+   "reason": "Current cover image; not duplicated into lazy room gallery"
+  },
+  {
+   "hotel_id": "osm-node-11637558669",
+   "kind": "room",
+   "ref": "https://rodos-lite.ru/img/f97981294288c69c.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11637558669",
+   "kind": "room",
+   "ref": "https://rodos-lite.ru/img/bb7fd99a0b6c2212.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11637558669",
+   "kind": "room",
+   "ref": "https://rodos-lite.ru/img/5e651473245aea26.webp",
+   "reason": "Duplicate or near-identical resize/angle of an accepted image"
+  },
+  {
+   "hotel_id": "osm-node-11637558669",
+   "kind": "room",
+   "ref": "https://rodos-lite.ru/img/fd54b2633022ccfc.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11637558669",
+   "kind": "room",
+   "ref": "https://rodos-lite.ru/img/05d06e674a46ca91.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11637558669",
+   "kind": "room",
+   "ref": "https://rodos-lite.ru/img/c879cd738ba71889.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11637558669",
+   "kind": "room",
+   "ref": "https://rodos-lite.ru/img/7882194a94ecb70c.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11637558669",
+   "kind": "room",
+   "ref": "https://rodos-lite.ru/img/a1c5be5e75c4776a.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11637558669",
+   "kind": "room",
+   "ref": "https://rodos-lite.ru/img/c3bc64298e77b67b.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11958163713",
+   "kind": "room",
+   "ref": "https://markinn-sochi.ru/thumb/2/GuUtJT8ZZaZVpAiRCGxLGg/2000r2000/d/7.jpg",
+   "reason": "Current cover image; not duplicated into lazy room gallery"
+  },
+  {
+   "hotel_id": "osm-node-11958163713",
+   "kind": "room",
+   "ref": "https://markinn-sochi.ru/thumb/2/XZmzD4JKUvtLEcwcwCzO9g/2000r2000/d/dvor_1.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11958163713",
+   "kind": "room",
+   "ref": "https://markinn-sochi.ru/thumb/2/f11aSoqJVIO-cTyORZoJwA/2000r2000/d/20220609_123206-01.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-11958163713",
+   "kind": "room",
+   "ref": "https://markinn-sochi.ru/thumb/2/80U1Zh3FqHl780NBphxe1Q/2000r2000/d/39_1.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12183637632",
+   "kind": "room",
+   "ref": "https://atmosferahotel.ru/img/8715021640ad336f.webp",
+   "reason": "Current cover image; not duplicated into lazy room gallery"
+  },
+  {
+   "hotel_id": "osm-node-12183637632",
+   "kind": "room",
+   "ref": "https://atmosferahotel.ru/img/dd5c03ae330f93a6.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12183637632",
+   "kind": "room",
+   "ref": "https://atmosferahotel.ru/img/33747d82e48cd799.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12183637632",
+   "kind": "room",
+   "ref": "https://atmosferahotel.ru/img/3d8e563845e10689.webp",
+   "reason": "Duplicate or near-identical resize/angle of an accepted image"
+  },
+  {
+   "hotel_id": "osm-node-12183637632",
+   "kind": "room",
+   "ref": "https://atmosferahotel.ru/img/905671eef1c43b22.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12183637632",
+   "kind": "room",
+   "ref": "https://atmosferahotel.ru/img/66daaa3059fab048.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12183637632",
+   "kind": "room",
+   "ref": "https://atmosferahotel.ru/img/126d50addb38af12.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12183637632",
+   "kind": "room",
+   "ref": "https://atmosferahotel.ru/img/460af51e85f982ed.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12183637632",
+   "kind": "room",
+   "ref": "https://atmosferahotel.ru/img/d4a35eba3026515d.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12749552601",
+   "kind": "room",
+   "ref": "https://www.marinayacht.ru/dl_images/udb_photos/udb3-rec13-field2.jpg",
+   "reason": "Current cover image; not duplicated into lazy room gallery"
+  },
+  {
+   "hotel_id": "osm-node-12749552601",
+   "kind": "room",
+   "ref": "https://www.marinayacht.ru/dl_images/udb_photos/udb3-rec1-field2.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12749552601",
+   "kind": "room",
+   "ref": "https://www.marinayacht.ru/dl_images/udb_photos/udb3-rec5-field2.JPG",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12800893166",
+   "kind": "room",
+   "ref": "https://grey-sochi.ru/img/851fe69b8794808e.webp",
+   "reason": "Current cover image; not duplicated into lazy room gallery"
+  },
+  {
+   "hotel_id": "osm-node-12800893166",
+   "kind": "room",
+   "ref": "https://grey-sochi.ru/img/425f03f5fe98389e.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12800893166",
+   "kind": "room",
+   "ref": "https://grey-sochi.ru/img/3a1113f2ea6ce97a.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12800893166",
+   "kind": "room",
+   "ref": "https://grey-sochi.ru/img/2bd71fb94b0f35f5.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12800893166",
+   "kind": "room",
+   "ref": "https://grey-sochi.ru/img/848277d34c852fe7.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12800893166",
+   "kind": "room",
+   "ref": "https://grey-sochi.ru/img/e5dd58a320cb98d8.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12800893166",
+   "kind": "room",
+   "ref": "https://grey-sochi.ru/img/1bce86027e5b1590.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12800893166",
+   "kind": "room",
+   "ref": "https://grey-sochi.ru/img/fca6af4bc0ec18ea.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12800893166",
+   "kind": "room",
+   "ref": "https://grey-sochi.ru/img/3ed860b99f140b09.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12800893166",
+   "kind": "room",
+   "ref": "https://grey-sochi.ru/img/bd049f20a5f3a5cc.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-12800893166",
+   "kind": "room",
+   "ref": "https://grey-sochi.ru/img/7f84beee7f0c5ed5.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-13825400642",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/upload/resize_cache/iblock/fde/1200_801_190728d62196cae6acd40d0988c857574/hosan208azh1j05ge727fmu38yeyqi8p.jpg",
+   "reason": "Current cover image; not duplicated into lazy room gallery"
+  },
+  {
+   "hotel_id": "osm-node-13825400642",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/images/all_map1.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-13825400642",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/upload/resize_cache/iblock/3c7/950_532_1/9v08e4qh5zh263spjy6jg9wssw1t2dek.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-13825400642",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/upload/resize_cache/iblock/b9c/1280_852_190728d62196cae6acd40d0988c857574/p1l19v1is4rlin2xm6cx09z3n5vwh4ro.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-13825400642",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/local/templates/main/layout/img/about_servises-img1.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-13825400642",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/local/templates/main/layout/img/about_servises-img2.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-13825400642",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/local/templates/main/layout/img/about_servises-img3.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-13825400642",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/upload/iblock/67e/id3epxz4irrvsgwhag6ds8kv0u0su71j.webp",
+   "reason": "Different property or shared chain content, not unambiguously this hotel"
+  },
+  {
+   "hotel_id": "osm-node-13825400642",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/upload/iblock/02c/xzucg63xw25vg2dm1m66fz0p6s1tk9bl.jpg",
+   "reason": "Different property or shared chain content, not unambiguously this hotel"
+  },
+  {
+   "hotel_id": "osm-node-13825400642",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/upload/iblock/10d/jiellylaohlynlnqh9phb7dwql6jej0y.jpg",
+   "reason": "Different property or shared chain content, not unambiguously this hotel"
+  },
+  {
+   "hotel_id": "osm-node-13825400642",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/upload/iblock/4d9/2jjsqm9a9o03zzgxk912j3h0j5gxi2iv.jpg",
+   "reason": "Different property or shared chain content, not unambiguously this hotel"
+  },
+  {
+   "hotel_id": "osm-node-8872412718",
+   "kind": "room",
+   "ref": "https://grace-gorizont.ru/assets/components/phpthumbof/cache/345.6c83982d67e57a71fb3544ab691e81e2.jpg",
+   "reason": "Current cover image; not duplicated into lazy room gallery"
+  },
+  {
+   "hotel_id": "osm-node-8872412718",
+   "kind": "room",
+   "ref": "https://grace-gorizont.ru/assets/components/phpthumbof/cache/341.6c83982d67e57a71fb3544ab691e81e2.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-8872412718",
+   "kind": "room",
+   "ref": "https://grace-gorizont.ru/assets/components/phpthumbof/cache/339.6c83982d67e57a71fb3544ab691e81e2.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-8872412718",
+   "kind": "room",
+   "ref": "https://grace-gorizont.ru/assets/components/phpthumbof/cache/347.6c83982d67e57a71fb3544ab691e81e2.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-8872412718",
+   "kind": "room",
+   "ref": "https://grace-gorizont.ru/assets/components/phpthumbof/cache/standardsuper19.eba17b483e62b29b4fd3d54c3df29fce.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-8872412718",
+   "kind": "room",
+   "ref": "https://grace-gorizont.ru/assets/components/phpthumbof/cache/rezident-mono.8bffb9325ad5ca3dd8cf0338c1dd78b1.png",
+   "reason": "Campaign/stock/promotional image; property identity not established"
+  },
+  {
+   "hotel_id": "osm-node-8872412718",
+   "kind": "room",
+   "ref": "https://grace-gorizont.ru/assets/components/phpthumbof/cache/programma-loyalnosti-mono.8bffb9325ad5ca3dd8cf0338c1dd78b1.png",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-node-8872412718",
+   "kind": "room",
+   "ref": "https://grace-gorizont.ru/assets/components/phpthumbof/cache/spa-svidanie-mono.8bffb9325ad5ca3dd8cf0338c1dd78b1.png",
+   "reason": "Different property or shared chain content, not unambiguously this hotel"
+  },
+  {
+   "hotel_id": "osm-node-8872412718",
+   "kind": "room",
+   "ref": "https://grace-gorizont.ru/assets/components/phpthumbof/cache/sutki-2.8bffb9325ad5ca3dd8cf0338c1dd78b1.png",
+   "reason": "Campaign/stock/promotional image; property identity not established"
+  },
+  {
+   "hotel_id": "osm-node-8872412718",
+   "kind": "room",
+   "ref": "https://grace-gorizont.ru/assets/components/phpthumbof/cache/dop-mesto-mono.8bffb9325ad5ca3dd8cf0338c1dd78b1.png",
+   "reason": "Campaign/stock/promotional image; property identity not established"
+  },
+  {
+   "hotel_id": "osm-way-113588514",
+   "kind": "room",
+   "ref": "https://seasons-hotel.com/upload/resize_cache/iblock/501/640_480_2/g7v7aei4rwbrcam62ufekq3j9il2s7fi.jpg",
+   "reason": "Current cover image; not duplicated into lazy room gallery"
+  },
+  {
+   "hotel_id": "osm-way-113588514",
+   "kind": "room",
+   "ref": "https://seasons-hotel.com/upload/resize_cache/iblock/664/640_400_2/ewc8hpf9z9eb8lbf4g2bs9ol7dj907y1.jpeg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-113588514",
+   "kind": "room",
+   "ref": "https://seasons-hotel.com/upload/resize_cache/iblock/e8c/640_400_2/74gndfp12glyb82oq9cpohxehlqz6wkc.JPG",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-113588514",
+   "kind": "room",
+   "ref": "https://seasons-hotel.com/upload/resize_cache/iblock/52f/640_400_2/fn4usgc9yzdrdnd0onyy74wgg9050md7.JPG",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-113588514",
+   "kind": "room",
+   "ref": "https://seasons-hotel.com/upload/resize_cache/iblock/e55/640_400_2/9s85xavjuq5ug343zfy9j7k313kfjcyx.JPG",
+   "reason": "Duplicate or near-identical resize/angle of an accepted image"
+  },
+  {
+   "hotel_id": "osm-way-113588514",
+   "kind": "room",
+   "ref": "https://seasons-hotel.com/upload/iblock/52f/fn4usgc9yzdrdnd0onyy74wgg9050md7.JPG",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-113588514",
+   "kind": "room",
+   "ref": "https://seasons-hotel.com/upload/iblock/091/j88heehpu2xir0ihadksg7xykzs65n92.JPG",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-113588514",
+   "kind": "room",
+   "ref": "https://seasons-hotel.com/upload/iblock/2a0/3qp5o9b0s8pru0l26jhtlt522o0wqv6p.JPG",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-190714781",
+   "kind": "room",
+   "ref": "https://sochi.cosmosgroup.ru/files/hotels/14_11770025432.webp",
+   "reason": "Current cover image; not duplicated into lazy room gallery"
+  },
+  {
+   "hotel_id": "osm-way-190714781",
+   "kind": "room",
+   "ref": "https://sochi.cosmosgroup.ru/files/hotel_offers/10350_1788341715.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-190714781",
+   "kind": "room",
+   "ref": "https://sochi.cosmosgroup.ru/files/hotel_offers/349_1785829045.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-190714781",
+   "kind": "room",
+   "ref": "https://sochi.cosmosgroup.ru/files/hotel_offers/10034_1777036530.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-190714781",
+   "kind": "room",
+   "ref": "https://sochi.cosmosgroup.ru/files/hotel_gallery_items/263_1625674579.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-190714781",
+   "kind": "room",
+   "ref": "https://sochi.cosmosgroup.ru/files/hotel_gallery_items/344_1628595133.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-190714781",
+   "kind": "room",
+   "ref": "https://sochi.cosmosgroup.ru/files/hotel_gallery_items/348_1628595180.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-190714781",
+   "kind": "room",
+   "ref": "https://sochi.cosmosgroup.ru/files/hotel_gallery_items/492_1631313251.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-190714781",
+   "kind": "room",
+   "ref": "https://sochi.cosmosgroup.ru/files/hotel_gallery_items/264_1625674592.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-190714781",
+   "kind": "room",
+   "ref": "https://sochi.cosmosgroup.ru/files/hotel_gallery_items/347_1628595168.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-190714781",
+   "kind": "room",
+   "ref": "https://sochi.cosmosgroup.ru/files/hotel_gallery_items/493_1631313693.webp",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-207579132",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/upload/resize_cache/iblock/dce/1199_798_190728d62196cae6acd40d0988c857574/j4f7o2uaou0frcaq6yjox9n6w9jnhgs0.jpg",
+   "reason": "Current cover image; not duplicated into lazy room gallery"
+  },
+  {
+   "hotel_id": "osm-way-207579132",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/images/all_map1.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-207579132",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/upload/resize_cache/iblock/211/950_532_1/8bqybsfnnieaj14us52eiofem5d3p4fo.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-207579132",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/upload/resize_cache/iblock/b9c/1280_852_190728d62196cae6acd40d0988c857574/p1l19v1is4rlin2xm6cx09z3n5vwh4ro.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-207579132",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/local/templates/main/layout/img/about_servises-img1.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-207579132",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/local/templates/main/layout/img/about_servises-img2.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-207579132",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/local/templates/main/layout/img/about_servises-img3.jpg",
+   "reason": "No clear guest bedroom: exterior, grounds, lobby, pool, sauna, restaurant, corridor, kitchen, lounge or decorative detail"
+  },
+  {
+   "hotel_id": "osm-way-207579132",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/upload/iblock/67e/id3epxz4irrvsgwhag6ds8kv0u0su71j.webp",
+   "reason": "Different property or shared chain content, not unambiguously this hotel"
+  },
+  {
+   "hotel_id": "osm-way-207579132",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/upload/iblock/02c/xzucg63xw25vg2dm1m66fz0p6s1tk9bl.jpg",
+   "reason": "Different property or shared chain content, not unambiguously this hotel"
+  },
+  {
+   "hotel_id": "osm-way-207579132",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/upload/iblock/10d/jiellylaohlynlnqh9phb7dwql6jej0y.jpg",
+   "reason": "Different property or shared chain content, not unambiguously this hotel"
+  },
+  {
+   "hotel_id": "osm-way-207579132",
+   "kind": "room",
+   "ref": "https://siriushotels.ru/upload/iblock/4d9/2jjsqm9a9o03zzgxk912j3h0j5gxi2iv.jpg",
+   "reason": "Different property or shared chain content, not unambiguously this hotel"
+  },
+  {
+   "hotel_id": "osm-node-12958832506",
+   "kind": "official_site",
+   "ref": "https://benefit-evopart.ru/_ipx/_/images/mobile-catalog.webp",
+   "reason": "Rendered catalogue interior, not a real property photograph"
+  },
+  {
+   "hotel_id": "osm-node-11958163737",
+   "kind": "official_site",
+   "ref": "https://static.tildacdn.com/tild6537-3239-4230-b365-363832313032/clipboard-2024050311.png",
+   "reason": "Previous approval withdrawn: image/page domain differs from seed.website under strict same-domain requirement; no admissible real-photo replacement found"
+  },
+  {
+   "hotel_id": "osm-node-12958832506",
+   "kind": "official_site",
+   "ref": "https://s3.timeweb.cloud/37651e87-s3-atlas/Volnoobraznyj_fasad_v_sredizemnomorskom_svete_edited_bdb85b1e4d.webp",
+   "reason": "Previous approval withdrawn: image/page domain differs from seed.website under strict same-domain requirement; no admissible real-photo replacement found"
+  },
+  {
+   "hotel_id": "osm-way-150742817",
+   "kind": "official_site",
+   "ref": "https://static.tildacdn.com/tild6236-3664-4132-a534-373261323831/_-2.jpg",
+   "reason": "Previous approval withdrawn: image/page domain differs from seed.website under strict same-domain requirement; no admissible real-photo replacement found"
+  },
+  {
+   "hotel_id": "osm-way-80192701",
+   "kind": "official_site",
+   "ref": "https://static.tildacdn.com/tild3264-3338-4361-b731-343062323139/IMG_1450_2646.JPG",
+   "reason": "Previous approval withdrawn: image/page domain differs from seed.website under strict same-domain requirement; no admissible real-photo replacement found"
+  },
+  {
+   "hotel_id": "overture-3b6e73bd-b423-453f-a384-a8d2329acae2",
+   "kind": "official_site",
+   "ref": "https://static.tildacdn.com/tild6161-6163-4237-b434-616337633539/01.webp",
+   "reason": "Previous approval withdrawn: image/page domain differs from seed.website under strict same-domain requirement; no admissible real-photo replacement found"
+  },
+  {
+   "hotel_id": "overture-74ff2c5a-4204-42cb-bb2f-f825b7ca1c45",
+   "kind": "official_site",
+   "ref": "https://rzdz.ru/cache/images/upload/ok-osan-900-9.webp/1584_980.webp",
+   "reason": "Previous approval withdrawn: image/page domain differs from seed.website under strict same-domain requirement; no admissible real-photo replacement found"
+  },
+  {
+   "hotel_id": "overture-8db95563-548a-436f-8920-31ba9b9a3795",
+   "kind": "official_site",
+   "ref": "https://static.tildacdn.com/tild3030-3830-4636-b933-626538393163/NV_3.jpg",
+   "reason": "Previous approval withdrawn: image/page domain differs from seed.website under strict same-domain requirement; no admissible real-photo replacement found"
+  },
+  {
+   "hotel_id": "osm-node-9908709817",
+   "kind": "room",
+   "ref": "https://sochigallerypark.ru/img/135cbd4231c4baf9.webp",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-node-9908709817",
+   "kind": "room",
+   "ref": "https://sochigallerypark.ru/img/aea7303cf45be15e.webp",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-node-9908709817",
+   "kind": "room",
+   "ref": "https://sochigallerypark.ru/img/af9c5c62860197d8.webp",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-207637871",
+   "kind": "room",
+   "ref": "https://manteracongress.ru/_next/image?url=https%3A%2F%2Fdirectus.manteratravel.ru%2Fassets%2Fc1875f6c-5d64-42b0-8f5a-3a71b3d4357a%3Ffit%3Dcover%26width%3D2400%26quality%3D80&w=3840&q=75",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-207637871",
+   "kind": "room",
+   "ref": "https://manteracongress.ru/_next/image?url=https%3A%2F%2Fdirectus.manteratravel.ru%2Fassets%2F36300015-beff-49c8-afe5-dc4f3a7c3730%3Ffit%3Dinside%26width%3D2500%26height%3D800%26quality%3D80&w=3840&q=75",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-207637871",
+   "kind": "room",
+   "ref": "https://manteracongress.ru/_next/image?url=https%3A%2F%2Fdirectus.manteratravel.ru%2Fassets%2Fff584393-f441-4084-b222-a27b1e6f3a0f%3Ffit%3Dinside%26width%3D2500%26height%3D800%26quality%3D80&w=3840&q=75",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-207637871",
+   "kind": "room",
+   "ref": "https://manteracongress.ru/_next/image?url=https%3A%2F%2Fdirectus.manteratravel.ru%2Fassets%2Fa4d42da4-d47a-47f0-ad0f-f55197734083%3Ffit%3Dcover%26width%3D1200%26quality%3D80&w=3840&q=75",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-207637871",
+   "kind": "room",
+   "ref": "https://manteracongress.ru/_next/image?url=https%3A%2F%2Fdirectus.manteratravel.ru%2Fassets%2Fc5785e89-41ca-4188-8a3a-7be7118eb0d6%3Ffit%3Dcover%26width%3D1200%26quality%3D80&w=3840&q=75",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-209182328",
+   "kind": "room",
+   "ref": "https://sofia-hotels.ru/img/1209dacbe5f25770.webp",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-250086722",
+   "kind": "room",
+   "ref": "https://adlanna-maria.ru/assets/img/foto/lobby-01-1200.jpg",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-250086722",
+   "kind": "room",
+   "ref": "https://adlanna-maria.ru/assets/img/foto/sea-view-01-1200.jpg",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-250086722",
+   "kind": "room",
+   "ref": "https://adlanna-maria.ru/assets/img/foto/two-room-01-1200.jpg",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-412914458",
+   "kind": "room",
+   "ref": "https://hotel-marianna.ru/img/da260978de21d2c4.webp",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-412914458",
+   "kind": "room",
+   "ref": "https://hotel-marianna.ru/img/c8b9ba7b520493ad.webp",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-412914458",
+   "kind": "room",
+   "ref": "https://hotel-marianna.ru/img/43205b64a33fd31e.webp",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-51764141",
+   "kind": "room",
+   "ref": "https://azimuthotels.com/cache/images/upload/residence_sochi_exterior.webp/_.webp",
+   "reason": "Shared brand/different property or logo; not this guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-51764141",
+   "kind": "room",
+   "ref": "https://azimuthotels.com/cache/uploads/admin/54ebeb8f9541ec66c9bc82530e972967d7f6971e.webp/_.webp",
+   "reason": "Shared brand/different property or logo; not this guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-51764141",
+   "kind": "room",
+   "ref": "https://azimuthotels.com/cache/uploads/admin/54ebeb8f9541ec66c9bc82530e972967d7f6971e.webp/1584_980.webp",
+   "reason": "Shared brand/different property or logo; not this guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-51764141",
+   "kind": "room",
+   "ref": "https://azimuthotels.com/content/about/1-common.jpg",
+   "reason": "Shared brand/different property or logo; not this guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-51764141",
+   "kind": "room",
+   "ref": "https://azimuthotels.com/content/about/1-azimut-hotels.png",
+   "reason": "Shared brand/different property or logo; not this guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-51764141",
+   "kind": "room",
+   "ref": "https://azimuthotels.com/content/about/1-azimut-city-hotel.png",
+   "reason": "Shared brand/different property or logo; not this guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-51764141",
+   "kind": "room",
+   "ref": "https://azimuthotels.com/content/about/1-azimut-hotel.png",
+   "reason": "Shared brand/different property or logo; not this guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-52526314",
+   "kind": "room",
+   "ref": "https://raduga-prestige.ru/img/ff6cb2c23d84fcc8.webp",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-52526314",
+   "kind": "room",
+   "ref": "https://raduga-prestige.ru/img/fd190366db23ece6.webp",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-52526314",
+   "kind": "room",
+   "ref": "https://raduga-prestige.ru/img/6a0e2b42628acb30.webp",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-700342790",
+   "kind": "room",
+   "ref": "https://talisman-sochi.ru/upload/iblock/80a/qs2jpn82dg4cbra1dsp0c2077avvgmmp.webp",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-700342790",
+   "kind": "room",
+   "ref": "https://talisman-sochi.ru/upload/iblock/4d0/y5zbcqdrvdn3d3s4ik170lkj2kcxzcob.webp",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-700342790",
+   "kind": "room",
+   "ref": "https://talisman-sochi.ru/upload/iblock/9fc/5oaj4mrjn5lu4cbwai1uh3rrs79y0yt4.webp",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "osm-way-80189262",
+   "kind": "room",
+   "ref": "https://anatolhotel.ru/wp-content/uploads/2025/05/7645332-1024x682.jpg",
+   "reason": "Near-identical image to accepted47; conservative duplicate exclusion"
+  },
+  {
+   "hotel_id": "osm-way-98649266",
+   "kind": "room",
+   "ref": "https://parusa-hotel.ru/thumb/2/zuzBxYj-hjzuygcAavQNAA/580r450/d/dsc06511.jpg",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13",
+   "kind": "room",
+   "ref": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/slider2.jpg",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13",
+   "kind": "room",
+   "ref": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/slider4.jpg",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13",
+   "kind": "room",
+   "ref": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/slider3.jpg",
+   "reason": "Promotional/map/landmark/entrance/corridor/bathroom/lounge/restaurant/close-up rather than clear guest bedroom"
+  },
+  {
+   "hotel_id": "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13",
+   "kind": "room",
+   "ref": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6237.jpg",
+   "reason": "Преимущественно стена/зеркало; спальня видна только в отражении. Консервативно исключить фрагмент вместо обзора номера."
+  },
+  {
+   "hotel_id": "overture-19a359ae-d6b8-4686-8643-36a55ee46219",
+   "kind": "room",
+   "ref": "https://metropol-apart.ru/wp-content/uploads/2025/02/mphoto-6.webp",
+   "reason": "Бассейн/шезлонги/территория, не гостевой номер."
+  },
+  {
+   "hotel_id": "overture-19a359ae-d6b8-4686-8643-36a55ee46219",
+   "kind": "room",
+   "ref": "https://metropol-apart.ru/wp-content/uploads/2025/02/mphoto-3.webp",
+   "reason": "Панорама города/морвокзала, гостевая спальня отсутствует; не доказывает вид из конкретного номера."
+  },
+  {
+   "hotel_id": "overture-19a359ae-d6b8-4686-8643-36a55ee46219",
+   "kind": "room",
+   "ref": "https://metropol-apart.ru/wp-content/uploads/2024/09/1-12.jpg",
+   "reason": "Экстерьер/вход/территория, не гостевая спальня. Для room gallery не подходит; принадлежность зданию независимо по архитектуре не устанавливалась."
+  },
+  {
+   "hotel_id": "overture-19a359ae-d6b8-4686-8643-36a55ee46219",
+   "kind": "room",
+   "ref": "https://metropol-apart.ru/wp-content/uploads/2026/05/1-1-1.jpeg",
+   "reason": "Экстерьер/вход/территория, не гостевая спальня. Для room gallery не подходит; принадлежность зданию независимо по архитектуре не устанавливалась."
+  },
+  {
+   "hotel_id": "overture-19a359ae-d6b8-4686-8643-36a55ee46219",
+   "kind": "room",
+   "ref": "https://metropol-apart.ru/wp-content/uploads/2026/05/1-1-1-1280x853.jpeg",
+   "reason": "Тот же исходный экстерьер, что68, другой resize URL; также не гостевой номер."
+  },
+  {
+   "hotel_id": "overture-19a359ae-d6b8-4686-8643-36a55ee46219",
+   "kind": "room",
+   "ref": "https://metropol-apart.ru/wp-content/uploads/2026/05/1-1-1.jpg",
+   "reason": "Экстерьер/вход/территория, не гостевая спальня. Для room gallery не подходит; принадлежность зданию независимо по архитектуре не устанавливалась."
+  },
+  {
+   "hotel_id": "overture-1d571ae6-4794-4362-ae8a-d011f52d376c",
+   "kind": "room",
+   "ref": "https://hotelgraphite.ru/img/43bc519783a0b380.webp",
+   "reason": "Фасад/сад/растительность, гостевой номер отсутствует."
+  },
+  {
+   "hotel_id": "overture-1d571ae6-4794-4362-ae8a-d011f52d376c",
+   "kind": "room",
+   "ref": "https://hotelgraphite.ru/img/17d0f89a5a56d10a.webp",
+   "reason": "Фасад/сад/растительность, гостевой номер отсутствует."
+  },
+  {
+   "hotel_id": "overture-1d571ae6-4794-4362-ae8a-d011f52d376c",
+   "kind": "room",
+   "ref": "https://hotelgraphite.ru/img/e2fe8d84266f5c76.webp",
+   "reason": "Фасад/сад/растительность, гостевой номер отсутствует."
+  },
+  {
+   "hotel_id": "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7",
+   "kind": "room",
+   "ref": "http://sochi-sunrise.ru/img/66c9c757e235452f.webp",
+   "reason": "Экстерьер/вход/территория, не гостевая спальня. Для room gallery не подходит; принадлежность зданию независимо по архитектуре не устанавливалась."
+  },
+  {
+   "hotel_id": "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7",
+   "kind": "room",
+   "ref": "http://sochi-sunrise.ru/img/1ae6a11f8d16bbe7.webp",
+   "reason": "Крупная табличка Sunrise с приветствием, а не фотография номера."
+  },
+  {
+   "hotel_id": "overture-55cadc36-2aeb-4bad-8db4-65df144e8217",
+   "kind": "room",
+   "ref": "http://city-hostel-sochi.ru/d/dscn3315.jpg",
+   "reason": "После отдельного увеличения: сюжет с человеком в костюме и зонтом на диване. Основной предмет — рекламный персонаж, не обзор свойства/спальни. Собственный cityhostel знак не является чужим watermark; источник не объявляется неверным."
+  },
+  {
+   "hotel_id": "overture-55cadc36-2aeb-4bad-8db4-65df144e8217",
+   "kind": "room",
+   "ref": "http://city-hostel-sochi.ru/d/3upvcchfdie.jpg",
+   "reason": "После отдельного увеличения: тесный портрет человека на кровати; кроме постели/штор номер почти не виден. Не выбирается как cover или room обзор по композиции. Собственный cityhostel знак не является чужим watermark; stock/неверная identity не утверждаются."
+  },
+  {
+   "hotel_id": "overture-55cadc36-2aeb-4bad-8db4-65df144e8217",
+   "kind": "room",
+   "ref": "http://city-hostel-sochi.ru/d/dsc08503.jpg",
+   "reason": "После отдельного увеличения: портреты людей в общей зоне, не фотография гостевого номера/экстерьера. Собственный cityhostel знак, а не чужой watermark. Новая cover не одобрена по предмету кадра."
+  },
+  {
+   "hotel_id": "overture-55cadc36-2aeb-4bad-8db4-65df144e8217",
+   "kind": "room",
+   "ref": "http://city-hostel-sochi.ru/d/cqqnjgdekzc.jpg",
+   "reason": "После отдельного увеличения: портреты людей в общей зоне, не фотография гостевого номера/экстерьера. Собственный cityhostel знак, а не чужой watermark. Новая cover не одобрена по предмету кадра."
+  },
+  {
+   "hotel_id": "overture-5d220661-b1ca-4461-a03b-c89126a98e02",
+   "kind": "room",
+   "ref": "https://grandhotelrodina.ru/upload/resize_cache/iblock/474/580_400_2/6wwliehaio6dqleeq86u7uza59v0jca0.jpg",
+   "reason": "Постановочная сервировка стола в море; декоративный рекламный сюжет, не гостевой номер."
+  },
+  {
+   "hotel_id": "overture-5d220661-b1ca-4461-a03b-c89126a98e02",
+   "kind": "room",
+   "ref": "https://grandhotelrodina.ru/upload/resize_cache/iblock/0d1/580_400_2/lty70u3n5h8uy0d0wu0y86pcr5j9o4m3.jpg",
+   "reason": "Постановочный кадр пары у колоннады, не гостевой номер."
+  },
+  {
+   "hotel_id": "overture-5d220661-b1ca-4461-a03b-c89126a98e02",
+   "kind": "room",
+   "ref": "https://grandhotelrodina.ru/upload/resize_cache/uf/440/680_600_2/wbgjpadfmhh9k79kyzsxi9xqmpenpwfo.jpg",
+   "reason": "Экстерьер/вход/территория, не гостевая спальня. Для room gallery не подходит; принадлежность зданию независимо по архитектуре не устанавливалась."
+  },
+  {
+   "hotel_id": "overture-5d220661-b1ca-4461-a03b-c89126a98e02",
+   "kind": "room",
+   "ref": "https://grandhotelrodina.ru/upload/dev2fun.imagecompress/webp/resize_cache/uf/440/580_400_2/wbgjpadfmhh9k79kyzsxi9xqmpenpwfo.webp",
+   "reason": "Экстерьер/вход/территория, не гостевая спальня. Для room gallery не подходит; принадлежность зданию независимо по архитектуре не устанавливалась."
+  },
+  {
+   "hotel_id": "overture-5d220661-b1ca-4461-a03b-c89126a98e02",
+   "kind": "room",
+   "ref": "https://grandhotelrodina.ru/upload/dev2fun.imagecompress/webp/resize_cache/iblock/a8e/600_450_2/1mymyity4z32foiezq9jvk0j063iapvw.webp",
+   "reason": "Тот же исходный интерьер, что88, другой resize; оставить88 в большем разрешении1920×1476, этот контентный дубль исключить."
+  },
+  {
+   "hotel_id": "overture-5d220661-b1ca-4461-a03b-c89126a98e02",
+   "kind": "room",
+   "ref": "https://grandhotelrodina.ru/upload/dev2fun.imagecompress/webp/resize_cache/iblock/c34/600_450_2/2o12jm5niimo496qztdd61sjvj0c506y.webp",
+   "reason": "Увеличен отдельно: фотография спальни закрыта центральной рекламной плашкой с текстом/перечнем услуг. В room gallery чистый кадр не включать."
+  },
+  {
+   "hotel_id": "overture-76383584-f4a0-4333-bb90-3fd6d19a354d",
+   "kind": "room",
+   "ref": "https://simplesochi.ru/img/72657d29c80d05ee.webp",
+   "reason": "Коридор, а не гостевая спальня."
+  },
+  {
+   "hotel_id": "overture-76383584-f4a0-4333-bb90-3fd6d19a354d",
+   "kind": "room",
+   "ref": "https://simplesochi.ru/img/0d75ccf29a036a75.webp",
+   "reason": "Стойка reception/общая зона, а не гостевой номер."
+  },
+  {
+   "hotel_id": "overture-76383584-f4a0-4333-bb90-3fd6d19a354d",
+   "kind": "room",
+   "ref": "https://simplesochi.ru/img/42af08d23efabbc5.webp",
+   "reason": "Общий длинный стол/рабочая зона, спальня отсутствует."
+  },
+  {
+   "hotel_id": "overture-76383584-f4a0-4333-bb90-3fd6d19a354d",
+   "kind": "room",
+   "ref": "https://simplesochi.ru/img/d1b82a383241e1d6.webp",
+   "reason": "Логотип на однотонном фоне, не фото свойства/номера."
+  },
+  {
+   "hotel_id": "overture-83a07e61-b742-4ed6-9240-8516e32c482b",
+   "kind": "room",
+   "ref": "https://morisatoreza.ru/dl_images/udb_photos/udb4-rec6-field3.jpg",
+   "reason": "Панорама города/морвокзала, гостевая спальня отсутствует; не доказывает вид из конкретного номера."
+  },
+  {
+   "hotel_id": "overture-83a07e61-b742-4ed6-9240-8516e32c482b",
+   "kind": "room",
+   "ref": "https://morisatoreza.ru/dl_images/udb_photos/udb4-rec8-field3.JPG",
+   "reason": "Территория/деревья/море; нет обзора гостевой спальни."
+  },
+  {
+   "hotel_id": "overture-83a07e61-b742-4ed6-9240-8516e32c482b",
+   "kind": "room",
+   "ref": "https://morisatoreza.ru/_cache/udb1-rec11-field4---555x370.jpg",
+   "reason": "Близкий дополнительный ракурс той же кровати, что98; при консервативном выборе оставить более информативный общий98, не раздувать галерею почти тем же кадром."
+  },
+  {
+   "hotel_id": "overture-83a07e61-b742-4ed6-9240-8516e32c482b",
+   "kind": "room",
+   "ref": "https://morisatoreza.ru/_cache/udb1-rec5-field4---555x370.jpg",
+   "reason": "Тот же исходный кадр спальни, что96, в другом размере/URL. Оставить96 с исходным разрешением1920×1280."
+  },
+  {
+   "hotel_id": "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+   "kind": "room",
+   "ref": "https://coocooroozasochi.com/img/bca0de83317add97.webp",
+   "reason": "Бассейн/шезлонги/территория, не гостевой номер."
+  },
+  {
+   "hotel_id": "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39",
+   "kind": "room",
+   "ref": "https://coocooroozasochi.com/img/4f4a9a9417c9971a.webp",
+   "reason": "Вид с балкона/терраса, спальня отсутствует. Не использовать как доказательство стороны, этажа или вида конкретного номера."
+  },
+  {
+   "hotel_id": "overture-84c775c0-79bf-4f63-9f74-6e6382b6245d",
+   "kind": "room",
+   "ref": "https://chaykasochi.ru/wp-content/uploads/img_3940-hdr-krupnyy-razmer-2.jpeg",
+   "reason": "Гостиная/диван без ясно видимой спальни; для консервативного подбора room-фото исключить."
   }
+ ],
+ "visual_batches": [
+  {
+   "id": "20261027-batch1",
+   "artifact": "docs/reviews/photos_data/batch1/",
+   "inspected_numbers": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50
+   ],
+   "accepted_cover_numbers": [
+    1,
+    24,
+    28
+   ],
+   "accepted_room_numbers": [
+    2,
+    3,
+    4,
+    6,
+    7,
+    11,
+    12,
+    14,
+    15,
+    16,
+    19,
+    35
+   ],
+   "note": "Each sheet 001–005 opened with view_image; exact numbers map to manifest.json. QA artifacts are gitignored.",
+   "identity_artifact": "docs/reviews/photos_data/terminal_identity.json"
+  },
+  {
+   "id": "20261027-batch2",
+   "artifact": "docs/reviews/photos_data/batch2/",
+   "inspected_numbers": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130,
+    131,
+    132,
+    133,
+    134,
+    135,
+    136,
+    137,
+    138,
+    139,
+    140,
+    141,
+    142,
+    143,
+    144
+   ],
+   "accepted_cover_numbers": [],
+   "accepted_room_numbers": [
+    15,
+    16,
+    23,
+    29,
+    33,
+    35,
+    36,
+    39,
+    40,
+    43,
+    46,
+    59,
+    67,
+    69,
+    72,
+    77,
+    89,
+    102,
+    103,
+    111,
+    112,
+    113,
+    125,
+    136
+   ],
+   "reviewers": {
+    "photos_data": {
+     "sheets": "001–006",
+     "accepted_room_numbers": [
+      15,
+      16,
+      23,
+      29,
+      33,
+      35,
+      36,
+      39,
+      40,
+      43,
+      46,
+      59,
+      67,
+      69,
+      72
+     ]
+    },
+    "photos_backend": {
+     "sheets": "007–012",
+     "accepted_room_numbers": [
+      77,
+      89,
+      102,
+      103,
+      111,
+      112,
+      113,
+      125,
+      136
+     ]
+    }
+   },
+   "note": "Each assigned sheet opened using view_image; exact number→URL/page_url in manifest. Shared-chain and campaign imagery excluded."
+  },
+  {
+   "id": "20261027-batch3",
+   "artifact": "docs/reviews/photos_data/batch3/",
+   "inspected_numbers": [
+    1
+   ],
+   "accepted_cover_numbers": [],
+   "accepted_room_numbers": [],
+   "note": "Opened sheet001 using view_image; render rejected. Remaining seven domains supplied no admissible replacement for legacy foreign-domain photos."
+  },
+  {
+   "id": "20261027-batch4",
+   "artifact": "docs/reviews/photos_data/batch4/",
+   "inspected_numbers": [
+    1,
+    2,
+    3
+   ],
+   "accepted_cover_numbers": [
+    1
+   ],
+   "accepted_room_numbers": [
+    2,
+    3
+   ],
+   "note": "All three bedroom images opened on sheet001 using view_image; cover URL excluded from room URLs."
+  },
+  {
+   "id": "20261027-batch5",
+   "artifact": "docs/reviews/photos_data/batch5/",
+   "inspected_numbers": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114
+   ],
+   "accepted_cover_numbers": [
+    112
+   ],
+   "accepted_room_numbers": [
+    3,
+    4,
+    10,
+    12,
+    14,
+    15,
+    16,
+    18,
+    19,
+    22,
+    25,
+    35,
+    37,
+    39,
+    40,
+    41,
+    42,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    53,
+    54,
+    55,
+    60,
+    62,
+    63,
+    65,
+    74,
+    76,
+    78,
+    88,
+    93,
+    96,
+    98,
+    100,
+    103,
+    104,
+    105,
+    108,
+    109,
+    110,
+    111,
+    113,
+    114
+   ],
+   "reviewers": {
+    "photos_data": {
+     "sheets": "001–005",
+     "accepted_room_numbers": [
+      3,
+      4,
+      10,
+      12,
+      14,
+      15,
+      16,
+      18,
+      19,
+      22,
+      25,
+      35,
+      37,
+      39,
+      40,
+      41,
+      42,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      53,
+      54,
+      55,
+      60
+     ]
+    },
+    "photos_backend": {
+     "sheets": "006–010",
+     "accepted_room_numbers": [
+      62,
+      63,
+      65,
+      74,
+      76,
+      78,
+      88,
+      93,
+      96,
+      98,
+      100,
+      103,
+      104,
+      105,
+      108,
+      109,
+      110,
+      111,
+      113,
+      114
+     ],
+     "accepted_cover_numbers": [
+      112
+     ]
+    }
+   },
+   "note": "All ten sheets opened; exact number→URL/page_url in manifest. Own and independent review decisions preserve room/cover URL separation. Cover112 is a clear bedroom fallback and makes no view/floor claim.",
+   "independent_artifact": "docs/reviews/photos_visual_qa/batch5_sheets006_010_review.json"
+  }
+ ],
+ "image_pages": {
+  "osm-node-5267688942": {
+   "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_standart_03.jpg": "https://www.libertyfly.ru/",
+   "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_komfort_08.jpg": "https://www.libertyfly.ru/",
+   "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_08.jpg": "https://www.libertyfly.ru/",
+   "https://www.libertyfly.ru/wp-content/uploads/2021/12/luks_02.jpg": "https://www.libertyfly.ru/",
+   "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_standart_02.jpg": "https://www.libertyfly.ru/fotogalereya/",
+   "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_standart_04.jpg": "https://www.libertyfly.ru/fotogalereya/",
+   "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_komfort_01.jpg": "https://www.libertyfly.ru/fotogalereya/",
+   "https://www.libertyfly.ru/wp-content/uploads/2021/12/junior_suite_komfort_07.jpg": "https://www.libertyfly.ru/fotogalereya/"
+  },
+  "osm-node-8975796817": {
+   "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/10.jpg?ver=2": "https://terminal-hotel.ru/gallery",
+   "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/11.jpg?ver=2": "https://terminal-hotel.ru/gallery",
+   "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/12.jpg?ver=2": "https://terminal-hotel.ru/gallery",
+   "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/15.jpg?ver=2": "https://terminal-hotel.ru/gallery",
+   "https://terminal-hotel.ru/img/slides/terminal-hotel-adler/2.jpg?ver=2": "https://terminal-hotel.ru/gallery"
+  },
+  "osm-way-51847429": {
+   "https://www.zhem.ru/upload/iblock/6aa/6aa7430c6d9b147e14b676fcb8035c35.jpg": "https://www.zhem.ru/",
+   "https://www.zhem.ru/upload/resize_cache/iblock/90d/570_360_2/ajf74nl2ckonck8o86u2s2qhvzkqid6n.jpg": "https://www.zhem.ru/gallery/"
+  },
+  "osm-node-11016638375": {
+   "https://veryhotel.ru/img/43cbc6c75393fe81.webp": "https://veryhotel.ru/ru-ru/",
+   "https://veryhotel.ru/img/5e4084618aa2cbef.webp": "https://veryhotel.ru/ru-ru/",
+   "https://veryhotel.ru/img/45566760788f7790.webp": "https://veryhotel.ru/ru-ru/photos/"
+  },
+  "osm-node-11331531334": {
+   "https://adler.cosmosgroup.ru/files/hotel_gallery_items/1993_1732197287.webp": "https://adler.cosmosgroup.ru/galleries",
+   "https://adler.cosmosgroup.ru/files/hotel_gallery_items/1995_1732197427.webp": "https://adler.cosmosgroup.ru/galleries",
+   "https://adler.cosmosgroup.ru/files/hotel_gallery_items/1997_1732197527.webp": "https://adler.cosmosgroup.ru/galleries",
+   "https://adler.cosmosgroup.ru/files/hotel_gallery_items/1998_1732197584.webp": "https://adler.cosmosgroup.ru/galleries"
+  },
+  "osm-node-11637552371": {
+   "https://rodos-apart.ru/img/0a807024859fa79e.webp": "https://rodos-apart.ru/",
+   "https://rodos-apart.ru/img/d574e86a53c3442f.webp": "https://rodos-apart.ru/"
+  },
+  "osm-node-11637558669": {
+   "https://rodos-lite.ru/img/541e3547aeb0fad2.webp": "https://rodos-lite.ru/",
+   "https://rodos-lite.ru/img/4397ca35398f21c7.webp": "https://rodos-lite.ru/photos/"
+  },
+  "osm-node-12183637632": {
+   "https://atmosferahotel.ru/img/b540e32eeffee96a.webp": "https://atmosferahotel.ru/",
+   "https://atmosferahotel.ru/img/5cedc143e17d2231.webp": "https://atmosferahotel.ru/photos/",
+   "https://atmosferahotel.ru/img/f12654dedf8604d9.webp": "https://atmosferahotel.ru/photos/"
+  },
+  "osm-node-12749552601": {
+   "https://www.marinayacht.ru/dl_images/udb_photos/udb3-rec4-field2.jpg": "https://www.marinayacht.ru/"
+  },
+  "osm-node-12800893166": {
+   "https://grey-sochi.ru/img/f0dcd1d3421e10d3.webp": "https://grey-sochi.ru/"
+  },
+  "osm-node-13825400642": {
+   "https://siriushotels.ru/upload/resize_cache/webp/iblock/7ed/wx86ll8ob5yeeg6xiihd0j450gcv1hbq.webp": "https://siriushotels.ru/gamma/"
+  },
+  "osm-node-8872412718": {
+   "https://grace-gorizont.ru/assets/components/phpthumbof/cache/240225-grace-horizont-064.2c1cb2c11a86b7d6f6cc7b13fea766ab.jpg": "https://grace-gorizont.ru/rooms/",
+   "https://grace-gorizont.ru/assets/components/phpthumbof/cache/photohotelgorizont2.88894b0c39a68995a648475b96063038.jpg": "https://grace-gorizont.ru/rooms/"
+  },
+  "osm-way-113588514": {
+   "https://seasons-hotel.com/upload/resize_cache/iblock/529/640_480_2/wb40anbmv7bvqwbly57y56077ib8er4k.jpg": "https://seasons-hotel.com/",
+   "https://seasons-hotel.com/upload/resize_cache/iblock/7da/640_480_2/75bnx9ybcs2zts2lftenu123e414afac.jpeg": "https://seasons-hotel.com/",
+   "https://seasons-hotel.com/upload/resize_cache/iblock/e55/640_480_2/9s85xavjuq5ug343zfy9j7k313kfjcyx.JPG": "https://seasons-hotel.com/"
+  },
+  "osm-way-190714781": {
+   "https://sochi.cosmosgroup.ru/files/hotel_gallery_items/491_1631313240.webp": "https://sochi.cosmosgroup.ru/galleries"
+  },
+  "osm-way-207579132": {
+   "https://siriushotels.ru/upload/iblock/b1e/4lh8d2o5damieq30m9lr4f4oorlon8qk.jpg": "https://siriushotels.ru/omega/"
+  },
+  "osm-way-207637828": {
+   "https://www.bridgefamily.ru/img/nomera/semeiny/32.JPG": "https://www.bridgefamily.ru/nomera",
+   "https://www.bridgefamily.ru/img/nomera/semeiny/standart-1.jpg": "https://www.bridgefamily.ru/nomera",
+   "https://www.bridgefamily.ru/img/nomera/semeiny/33.JPG": "https://www.bridgefamily.ru/nomera"
+  },
+  "osm-node-9908709817": {
+   "https://sochigallerypark.ru/img/fdc51f835942e03f.webp": "https://sochigallerypark.ru/",
+   "https://sochigallerypark.ru/img/93ad0a9c7411b76d.webp": "https://sochigallerypark.ru/rooms/"
+  },
+  "osm-way-207637871": {
+   "https://manteracongress.ru/_next/image?url=https%3A%2F%2Fdirectus.manteratravel.ru%2Fassets%2F9cffd519-3507-4c5f-9e77-38c2a5330894%3Ffit%3Dcover%26width%3D1200%26quality%3D80&w=3840&q=75": "https://manteracongress.ru/rooms",
+   "https://manteracongress.ru/_next/image?url=https%3A%2F%2Fdirectus.manteratravel.ru%2Fassets%2F4fed86e5-99c7-4a9e-85a2-821fd73ca53b%3Ffit%3Dcover%26width%3D1200%26quality%3D80&w=3840&q=75": "https://manteracongress.ru/rooms"
+  },
+  "osm-way-209182328": {
+   "https://sofia-hotels.ru/img/43150c7a93dd0782.webp": "https://sofia-hotels.ru/",
+   "https://sofia-hotels.ru/img/25d15e2b801fcaf5.webp": "https://sofia-hotels.ru/",
+   "https://sofia-hotels.ru/img/2a6baac8591783d4.webp": "https://sofia-hotels.ru/rooms/"
+  },
+  "osm-way-250086722": {
+   "https://adlanna-maria.ru/assets/img/foto/kompakt-01-1200.jpg": "https://adlanna-maria.ru/",
+   "https://adlanna-maria.ru/assets/img/foto/standart-01-1200.jpg": "https://adlanna-maria.ru/"
+  },
+  "osm-way-412914458": {
+   "https://hotel-marianna.ru/img/f33a6e67ffdcbbe9.webp": "https://hotel-marianna.ru/",
+   "https://hotel-marianna.ru/img/afcd823964287a3d.webp": "https://hotel-marianna.ru/rooms/"
+  },
+  "osm-way-52526314": {
+   "https://raduga-prestige.ru/img/90e4027a408d0443.webp": "https://raduga-prestige.ru/",
+   "https://raduga-prestige.ru/img/adbab6b0df1c54c2.webp": "https://raduga-prestige.ru/rooms/"
+  },
+  "osm-way-700342790": {
+   "https://talisman-sochi.ru/upload/iblock/baf/hkl7wkvzhwakp4jlbq7brasetdx7l1ug.webp": "https://talisman-sochi.ru/",
+   "https://talisman-sochi.ru/upload/iblock/ab1/kgz2osrv6gklhfngoyp3untyq5lw243r.webp": "https://talisman-sochi.ru/",
+   "https://talisman-sochi.ru/upload/iblock/324/b6kbx2uytslsb6gi8in4zmjoj0l8wrge.webp": "https://talisman-sochi.ru/",
+   "https://talisman-sochi.ru/upload/iblock/236/jyr2sqhb3ts53b40oz6rcplpglqe9g5b.webp": "https://talisman-sochi.ru/nomera/"
+  },
+  "osm-way-80189262": {
+   "https://anatolhotel.ru/wp-content/uploads/2024/05/658342.jpg": "https://anatolhotel.ru/",
+   "https://anatolhotel.ru/wp-content/uploads/2024/05/457568.jpg": "https://anatolhotel.ru/",
+   "https://anatolhotel.ru/wp-content/uploads/2024/05/leb8910.jpg": "https://anatolhotel.ru/",
+   "https://anatolhotel.ru/wp-content/uploads/2025/05/56874-1024x682.jpg": "https://anatolhotel.ru/kontakty-2/odnomestnyj-nomer/",
+   "https://anatolhotel.ru/wp-content/uploads/2025/05/65756745-1024x682.jpg": "https://anatolhotel.ru/kontakty-2/odnomestnyj-nomer/",
+   "https://anatolhotel.ru/wp-content/uploads/2025/05/111-3-1024x682.jpg": "https://anatolhotel.ru/kontakty-2/odnomestnyj-nomer/"
+  },
+  "osm-way-98649266": {
+   "https://parusa-hotel.ru/d/4.jpg": "https://parusa-hotel.ru/",
+   "https://parusa-hotel.ru/d/dsc_0138_00047_panorama2_kopirovat.jpg": "https://parusa-hotel.ru/",
+   "https://parusa-hotel.ru/d/dsc_0025_00001_panorama_kopirovat.jpg": "https://parusa-hotel.ru/"
+  },
+  "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13": {
+   "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6233.jpg": "http://hotel-sochi-riviera.ru/?page_id=73",
+   "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6243.jpg": "http://hotel-sochi-riviera.ru/?page_id=73",
+   "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6234.jpg": "http://hotel-sochi-riviera.ru/?page_id=73"
+  },
+  "overture-19a359ae-d6b8-4686-8643-36a55ee46219": {
+   "https://metropol-apart.ru/wp-content/uploads/2025/02/mphoto-2.webp": "https://metropol-apart.ru/"
+  },
+  "overture-1d571ae6-4794-4362-ae8a-d011f52d376c": {
+   "https://hotelgraphite.ru/img/17f59c23c6ed3491.webp": "https://hotelgraphite.ru/rooms/"
+  },
+  "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7": {
+   "http://sochi-sunrise.ru/img/a890e6691b925f70.webp": "http://sochi-sunrise.ru/",
+   "http://sochi-sunrise.ru/img/8f77bd341518cc7d.webp": "http://sochi-sunrise.ru/rooms/"
+  },
+  "overture-5d220661-b1ca-4461-a03b-c89126a98e02": {
+   "https://grandhotelrodina.ru/upload/dev2fun.imagecompress/webp/resize_cache/iblock/a8e/1920_1476_2/1mymyity4z32foiezq9jvk0j063iapvw.webp": "https://grandhotelrodina.ru/nomera/"
+  },
+  "overture-76383584-f4a0-4333-bb90-3fd6d19a354d": {
+   "https://simplesochi.ru/img/dc19e862e40faf34.webp": "https://simplesochi.ru/rooms/"
+  },
+  "overture-83a07e61-b742-4ed6-9240-8516e32c482b": {
+   "https://morisatoreza.ru/dl_images/udb_photos/udb4-rec7-field3.JPG": "https://morisatoreza.ru/",
+   "https://morisatoreza.ru/_cache/udb1-rec12-field4---555x370.jpg": "https://morisatoreza.ru/rooms",
+   "https://morisatoreza.ru/_cache/udb1-rec6-field4---555x370.jpg": "https://morisatoreza.ru/rooms"
+  },
+  "overture-83c162a6-ea7a-41ef-88ac-f2d2e7d41b39": {
+   "https://coocooroozasochi.com/img/adb9ebaa44880976.webp": "https://coocooroozasochi.com/",
+   "https://coocooroozasochi.com/img/e8079eddfa024936.webp": "https://coocooroozasochi.com/",
+   "https://coocooroozasochi.com/img/ced4c37e1843bd7c.webp": "https://coocooroozasochi.com/rooms/"
+  },
+  "overture-84c775c0-79bf-4f63-9f74-6e6382b6245d": {
+   "https://chaykasochi.ru/wp-content/uploads/img_4063-hdr-krupnyy-razmer-1.jpeg": "https://chaykasochi.ru/rooms/",
+   "https://chaykasochi.ru/wp-content/uploads/img_4085-hdr-krupnyy-razmer.jpeg": "https://chaykasochi.ru/rooms/",
+   "https://chaykasochi.ru/wp-content/uploads/img_4182-hdr-krupnyy-razmer.jpeg": "https://chaykasochi.ru/rooms/",
+   "https://chaykasochi.ru/wp-content/uploads/img_4104-hdr-krupnyy-razmer.jpeg": "https://chaykasochi.ru/rooms/",
+   "https://chaykasochi.ru/wp-content/uploads/rooms-superior-sideview-image-1.jpg": "https://chaykasochi.ru/rooms/",
+   "https://chaykasochi.ru/wp-content/uploads/img_3925-hdr-krupnyy-razmer.jpeg": "https://chaykasochi.ru/rooms/",
+   "https://chaykasochi.ru/wp-content/uploads/img_4001-hdr-krupnyy-razmer.jpeg": "https://chaykasochi.ru/rooms/"
+  }
+ },
+ "independent_review_artifacts": [
+  "docs/reviews/photos_visual_qa/batch1_review.json",
+  "docs/reviews/photos_visual_qa/batch2_sheets007_012_review.json",
+  "docs/reviews/photos_visual_qa/batch4_review.json",
+  "docs/reviews/photos_visual_qa/batch5_sheets006_010_review.json"
  ]
 }

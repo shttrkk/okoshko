@@ -1,27 +1,20 @@
-"""One-time hotel photo index: free building photos (Commons) and official-site image links.
+"""Reproducible hotel photo index: licensed Commons buildings and official-site links.
 
-Writes ``data/seed/hotel_photos.json`` and ``data/seed/photos/hotels/<hotel_id>.webp``. The runtime
-stays offline: the UI only reads these files. Tiers, best first:
+Official images are linked from the seed website domain only. ``--expand-official`` follows a
+bounded set of explicitly linked gallery/rooms/about pages and produces candidates for exact-URL
+manual eye review. ``room`` is only assigned by the review file, at most eight per hotel; cover and
+room URLs cannot overlap. Counts use the best non-room image and separate room counters.
 
-1. ``building``: a freely licensed Wikimedia Commons photo of the hotel building, found through the
-   explicit OSM Wikidata link (P18), OSM ``image``/``wikimedia_commons`` tags, or Commons geosearch
-   (files and categories within 150 m) whose title, description or category names the hotel. Only
-   CC0/PD/CC BY/CC BY-SA files; an 800 px webp thumbnail (<=150 KB) is stored with author, licence
-   and the Commons file page.
-2. ``official_site``: og:image/twitter:image (else the first large hero ``<img>``) of the hotel's own
-   website. Only the absolute URL is recorded; the image is never copied into the repository.
+No new official original is stored. Ignored QA previews/contact sheets support manual review;
+dimensions, original bytes and SHA-256 support offline rebuilds. ``--read-cache-dir`` reads an older
+cache without modifying it. ``--skip-commons`` preserves approved buildings; ``--only`` preserves
+unselected hotels. Robots, denylist and at most one request per second per host apply before each
+request/redirect. Commons uses the public APIs and only approved free licences.
 
-Etiquette: identifying User-Agent, robots.txt checked for every website, image and thumbnail origin
-(``fetch``/robots helpers and the OTA denylist reused from ``scripts.collect_weak_labels``), an extended
-aggregator/social denylist enforced on every request, at most one request per second per host, timeouts.
-Wikimedia, Wikidata and Overpass are used only through their public APIs (serial requests, maxlag).
-Responses are cached in gitignored ``data/raw/hotel_photos``; ``--offline`` rebuilds the index from that
-cache plus the manual eye review in ``data/eval/hotel_photos_review.json``.
+Examples (Pillow required for probing/QA; install requirements-dev.lock)::
 
-Pillow is required for image probing and webp conversion, e.g. with the system interpreter::
-
-    python3 -m scripts.collect_hotel_photos             # collect (network, cached) and write the index
-    python3 -m scripts.collect_hotel_photos --offline   # rebuild from cache + review, no network
+    .venv/bin/python -m scripts.collect_hotel_photos --expand-official --skip-commons --require-review
+    .venv/bin/python -m scripts.collect_hotel_photos --offline --expand-official --require-review
 """
 from __future__ import annotations
 
@@ -36,6 +29,7 @@ import re
 import time
 import unicodedata
 from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
@@ -85,9 +79,6 @@ EXCLUDED_SITES = {
     "tortugabayhotel.com": "property outside Sochi (wrong Overture website)",
     "anapasochi.ru": "sanatorium aggregator, not a single hotel",
 }
-# Website builders / CDNs that serve a site's own uploaded images.
-SITE_CDNS = {"tildacdn.com", "tildacdn.one", "tildacdn.pro", "wixstatic.com", "squarespace-cdn.com", "cloudfront.net",
-             "selcdn.ru", "yandexcloud.net", "akamaized.net", "timeweb.cloud"}
 PARKED = re.compile(r"срок регистрации домена ист|домен прода[её]тся|domain (?:is )?for sale|this domain (?:has )?expired|купить (?:этот )?домен",
                     re.I)
 BAD_IMAGE_URL = re.compile(r"logo|icon|favicon|sprite|placeholder|blank|pixel|spinner|loader|preload|watermark|banner-?ad|"
@@ -181,7 +172,8 @@ def distance_m(lat1, lon1, lat2, lon2):
 
 
 def site_of(host):
-    labels = (host or "").lower().removeprefix("www.").split(".")
+    normalized = (host or "").lower().removeprefix("www.").encode("idna").decode("ascii")
+    labels = normalized.split(".")
     return ".".join(labels[-2:])
 
 
@@ -201,9 +193,13 @@ def key_of(*parts):
 class Net:
     """Cached, paced HTTP access. Every outgoing request passes the denylist and a 1 req/s/host pacer."""
 
-    def __init__(self, cache: Path, offline: bool, refresh: bool):
+    def __init__(self, cache: Path, offline: bool, refresh: bool, read_cache: Path | None = None, preview_only: bool = False):
         self.cache, self.offline, self.refresh = cache, offline, refresh
+        self.read_cache = read_cache
+        self.preview_only = preview_only
+        self.site_domain = None
         self.last, self.robots, self.wiki_robots = {}, {}, {}
+        self.cooldown = {}
         self.requests = 0
         # Websites: httpx client shared with collect_weak_labels.fetch (robots before every page/redirect).
         self.client = None if offline else httpx.Client(
@@ -218,7 +214,10 @@ class Net:
         if denied(url):
             raise ValueError("Denylisted host: " + (urlsplit(url).hostname or ""))
         host = urlsplit(url).hostname
-        wait = self.last.get(host, 0.0) + HOST_INTERVAL_S.get(host, 1.0) - time.monotonic()
+        if self.site_domain and site_of(host) != self.site_domain:
+            raise ValueError("Redirect outside seed website domain")
+        wait = max(self.last.get(host, 0.0) + HOST_INTERVAL_S.get(host, 1.0),
+                   self.cooldown.get(host, 0.0)) - time.monotonic()
         if wait > 0:
             time.sleep(wait)
         self.last[host] = time.monotonic()
@@ -228,6 +227,12 @@ class Net:
         path = self.cache / kind / (key + ".json")
         if path.exists() and not self.refresh:
             return path, json.loads(path.read_text())
+        if self.read_cache and not self.refresh:
+            fallback = self.read_cache / kind / (key + ".json")
+            if fallback.exists():
+                value = json.loads(fallback.read_text())
+                value["_read_cache"] = str(self.read_cache)
+                return path, value
         return path, None
 
     @staticmethod
@@ -294,12 +299,42 @@ class Net:
             response = fetch(self.client, url, self.robots)
         except (httpx.HTTPError, ValueError, KeyError) as error:
             return self._store(path, {"url": url, "error": type(error).__name__ + ": " + str(error)[:160]})
+        if response.status_code == 429:
+            retry_after = response.headers.get("retry-after", "")
+            try:
+                delay = max(0, int(retry_after))
+            except ValueError:
+                try:
+                    until = parsedate_to_datetime(retry_after)
+                    delay = max(0, (until - datetime.now(UTC)).total_seconds())
+                except (ValueError, TypeError, OverflowError):
+                    delay = 0
+            self.cooldown[urlsplit(str(response.url)).hostname] = time.monotonic() + delay
+        metadata = {"url": url, "final_url": str(response.url), "status": response.status_code,
+                    "content_type": response.headers.get("content-type", ""), "bytes": len(response.content),
+                    "retrieved_at": datetime.now(UTC).isoformat()}
+        if self.preview_only and kind == "site_images":
+            # QA only: retain dimensions/hash and a small review preview, never the official original.
+            from PIL import Image, ImageOps
+
+            try:
+                image = Image.open(io.BytesIO(response.content))
+                metadata["probe"] = {"width": image.width, "height": image.height,
+                                     "sha256": hashlib.sha256(response.content).hexdigest(),
+                                     "bytes": len(response.content), "final_url": str(response.url)}
+                frame = ImageOps.exif_transpose(image).convert("RGB")
+                frame.thumbnail((420, 300))
+                preview = path.with_suffix(".qa.jpg")
+                preview.parent.mkdir(parents=True, exist_ok=True)
+                frame.save(preview, "JPEG", quality=76)
+                metadata["preview"] = preview.name
+            except Exception as error:  # noqa: BLE001 - reject undecodable remote input
+                metadata["error"] = "undecodable " + type(error).__name__
+            return self._store(path, metadata)
         body = path.with_suffix(".bin")
         body.parent.mkdir(parents=True, exist_ok=True)
         body.write_bytes(response.content)
-        return self._store(path, {"url": url, "final_url": str(response.url), "status": response.status_code,
-                                  "content_type": response.headers.get("content-type", ""), "bytes": len(response.content),
-                                  "body": body.name, "retrieved_at": datetime.now(UTC).isoformat()})
+        return self._store(path, {**metadata, "body": body.name})
 
     def wiki_file(self, url):
         """Commons thumbnail download (requests transport) after an upload host robots.txt check."""
@@ -333,7 +368,7 @@ class Net:
                                   "body": body.name, "retrieved_at": datetime.now(UTC).isoformat()})
 
     def body(self, record, kind):
-        return (self.cache / kind / record["body"]).read_bytes() if record and record.get("body") else b""
+        return (Path(record.get("_read_cache", self.cache)) / kind / record["body"]).read_bytes() if record and record.get("body") else b""
 
 
 # ---------------------------------------------------------------- Commons / Wikidata / OSM: building photos
@@ -583,6 +618,7 @@ class PageImages(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.meta, self.images, self.text, self.title = {}, [], [], []
+        self.links, self.anchor = [], None
         self.skip = self.chrome = 0
         self.in_title = False
 
@@ -601,6 +637,11 @@ class PageImages(HTMLParser):
         if tag == "link" and a.get("rel", "").lower() == "image_src" and a.get("href"):
             self.meta.setdefault("image_src", a["href"])
         context = " ".join(a.get(k, "") for k in ("class", "id", "alt"))
+        if tag == "a" and a.get("href"):
+            self.anchor = {"href": a["href"], "text": a.get("title", "")}
+            self.links.append(self.anchor)
+            if re.search(r"\.(?:jpe?g|png|webp)(?:$|[?])", a["href"], re.I):
+                self._image(a["href"], None, None, context)
         if tag == "img":
             src = a.get("data-original") or a.get("data-src") or a.get("data-lazy-src") or a.get("data-lazy") or ""
             srcset = a.get("data-srcset") or a.get("srcset") or ""
@@ -629,10 +670,14 @@ class PageImages(HTMLParser):
             self.skip = max(0, self.skip - 1)
         if tag in self.CHROME:
             self.chrome = max(0, self.chrome - 1)
+        if tag == "a":
+            self.anchor = None
         if tag == "title":
             self.in_title = False
 
     def handle_data(self, data):
+        if self.anchor is not None:
+            self.anchor["text"] += " " + data
         if self.in_title:
             self.title.append(data)
         elif not self.skip:
@@ -709,20 +754,27 @@ def probe_image(net, url):
     from PIL import Image
 
     try:
-        width, height = Image.open(io.BytesIO(net.body(record, "site_images"))).size
+        if record.get("probe"):
+            width, height = record["probe"]["width"], record["probe"]["height"]
+        else:
+            width, height = Image.open(io.BytesIO(net.body(record, "site_images"))).size
     except Exception as error:  # noqa: BLE001 - any undecodable payload is simply rejected
         return None, "undecodable " + type(error).__name__
     if width < MIN_SITE_WIDTH:
         return None, f"too small {width}x{height}"
     if not ASPECT[0] <= width / height <= ASPECT[1]:
         return None, f"aspect {width}x{height}"
-    return {"width": width, "height": height, "final_url": record.get("final_url", url)}, "ok"
+    if record.get("probe"):
+        return record["probe"], "ok"
+    payload = net.body(record, "site_images")
+    return {"width": width, "height": height, "final_url": record.get("final_url", url),
+            "bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}, "ok"
 
 
 def image_host_ok(image_url, page_url):
     host = (urlsplit(image_url).hostname or "").lower()
     page_site = site_of(urlsplit(page_url).hostname)
-    return site_of(host) == page_site or any(host == c or host.endswith("." + c) for c in SITE_CDNS)
+    return site_of(host) == page_site
 
 
 def official_candidates(hotels, net, rejected=frozenset()):
@@ -739,14 +791,15 @@ def official_candidates(hotels, net, rejected=frozenset()):
         if (hotel_id, "official_site", "site") in rejected:
             log.append({"hotel_id": hotel_id, "url": url, "status": "skipped", "reason": "site rejected on manual review"})
             continue
+        net.site_domain = site_of(urlsplit(url).hostname)
         page = net.get(url, "pages")
         if not page or page.get("error") or page.get("status") != 200 or "html" not in page.get("content_type", ""):
             log.append({"hotel_id": hotel_id, "url": url, "status": "page_unavailable",
                         "reason": (page or {}).get("error") or f"http {(page or {}).get('status')} {(page or {}).get('content_type')}"})
             continue
         final_url = page["final_url"]
-        if denied(final_url):
-            log.append({"hotel_id": hotel_id, "url": url, "status": "skipped", "reason": "redirected to denylisted host"})
+        if denied(final_url) or not image_host_ok(final_url, url):
+            log.append({"hotel_id": hotel_id, "url": url, "status": "skipped", "reason": "redirected outside permitted seed website domain"})
             continue
         raw = net.body(page, "pages")
         charset = re.search(r"charset=([\w-]+)", page["content_type"]) or re.search(rb"charset=[\"']?([\w-]+)", raw[:4000])
@@ -786,7 +839,7 @@ def official_candidates(hotels, net, rejected=frozenset()):
             if (hotel_id, "official_site", absolute) in rejected:
                 notes.append(f"{match}: rejected on manual review")
                 continue
-            if denied(absolute) or not image_host_ok(absolute, final_url):
+            if denied(absolute) or not image_host_ok(absolute, url):
                 notes.append(f"{match}: foreign image host {urlsplit(absolute).hostname}")
                 continue
             if match == "hero_img":
@@ -795,7 +848,7 @@ def official_candidates(hotels, net, rejected=frozenset()):
                 hero_probes += 1
             size, note = probe_image(net, absolute)
             served = size["final_url"] if size else absolute
-            if size and (denied(served) or not image_host_ok(served, final_url)):
+            if size and (denied(served) or not image_host_ok(served, url)):
                 size, note = None, "redirected to foreign image host " + (urlsplit(served).hostname or "")
             if size and (hotel_id, "official_site", served) in rejected:
                 size, note = None, "rejected on manual review"
@@ -803,7 +856,7 @@ def official_candidates(hotels, net, rejected=frozenset()):
             if size:
                 chosen = {"kind": "official_site", "url": served, "local": False, "page_url": final_url, "title": title,
                           "author": None, "license": None, "license_url": None, "match": match, "distance_m": None,
-                          "width": size["width"], "height": size["height"]}
+                          "width": size["width"], "height": size["height"], "bytes": size["bytes"], "sha256": size["sha256"]}
                 break
         log.append({"hotel_id": hotel_id, "url": final_url, "status": "image" if chosen else "no_valid_image", "notes": notes})
         if chosen:
@@ -822,12 +875,12 @@ METHOD = (
     "в названии, описании или категории которых нормализованное имя отеля (с транслитерацией ru↔en, без общих слов "
     "«отель», «гостиница», «hotel», «апартаменты», «гостевой дом») совпадает с названием; берутся только CC0, PD, CC BY "
     "и CC BY-SA, автор, лицензия и страница файла сохраняются, миниатюра 800 px хранится локально в webp. Уровень "
-    "«official_site» — og:image/twitter:image или первое крупное изображение первого экрана с собственного сайта отеля "
+    "«official_site» — крупное фото с собственного сайта отеля, его страниц галереи/номеров/об отеле на том же домене, что seed.website "
     "(не OTA, не агрегаторы, не соцсети; robots.txt соблюдается); сайт должен называть отель и Сочи/Адлер, общие сайты сетей "
     "без страницы конкретного объекта пропускаются; такие изображения не копируются в репозиторий — хранится только ссылка "
     "на файл и страницу, права остаются у отеля. Картинки проверены на размер (ширина от 480 px, пропорции 1,0–2,4) и "
     "отсутствие признаков логотипа; verified_by_eye=true означает ручной просмотр. Фото не доказывают вид из окна, этаж или "
-    "состояние номера; отели без фото остаются без записи, интерфейс показывает схему. Счётчики counts — по лучшему уровню."
+    "состояние номера; отели без фото остаются без записи, интерфейс показывает схему. Фото «room» — вручную проверенные интерьеры гостевых номеров с того же домена, максимум восемь на отель; это не доказательство этажа или стороны. Счётчики counts — по лучшему уровню без room, отдельные room_hotel_count/room_photo_count считают номера."
 )
 
 
@@ -841,14 +894,26 @@ def load_review(path):
 
 
 def build(args):
-    hotels = json.loads(args.hotels.read_text())
+    all_hotels = json.loads(args.hotels.read_text())
+    hotels = all_hotels
     if args.only:
         hotels = [h for h in hotels if h["id"] in set(args.only)]
-    net = Net(args.cache_dir, args.offline, args.refresh)
+    net = Net(args.cache_dir, args.offline, args.refresh, args.read_cache_dir, preview_only=True)
     review = load_review(args.review)
     rejected = {(r["hotel_id"], r["kind"], r["ref"]) for r in review["reject"]}
     accepted = review["accept"]
-    photos, report = {}, {"building_candidates": {}, "official_log": []}
+    previous = json.loads(args.output.read_text()).get("photos", {}) if args.output.exists() else {}
+    selected_ids = {h["id"] for h in hotels}
+    photos = {h: rows for h, rows in previous.items() if h not in selected_ids}
+    for hotel_id in selected_ids:
+        # A scoped website expansion must never delete approved Commons files or legacy linked photos.
+        kept = [r for r in previous.get(hotel_id, []) if (args.skip_commons and r["kind"] == "building")
+                or r["kind"] in {"room", "street"}
+                or (args.skip_official and r["kind"] == "official_site")
+                or (args.expand_official and r["kind"] in {"official_site", "room", "street"})]
+        if kept:
+            photos[hotel_id] = kept
+    report = {"building_candidates": {}, "official_log": []}
 
     building = building_candidates(hotels, net) if not args.skip_commons else {}
     args.photo_dir.mkdir(parents=True, exist_ok=True)
@@ -876,7 +941,23 @@ def build(args):
             photos.setdefault(hotel_id, []).append(entry)
             break
 
-    if not args.skip_official:
+    if not args.skip_official and args.expand_official:
+        from scripts.photo_collection import collect, contact_sheets, reviewed_rows
+
+        candidates, log = collect(hotels, net, review, max_pages=args.max_pages, max_images=args.max_images)
+        report["official_log"] = log
+        args.cache_dir.mkdir(parents=True, exist_ok=True)
+        (args.cache_dir / "official_candidates.json").write_text(json.dumps(candidates, ensure_ascii=False, indent=1) + "\n")
+        if args.qa_dir:
+            unreviewed = {h: [r for r in rows if r["url"] != accepted.get(h, {}).get("official_site")
+                             and r["url"] not in accepted.get(h, {}).get("room", [])] for h, rows in candidates.items()}
+            contact_sheets(unreviewed, hotels, net, args.qa_dir)
+        for hotel_id, rows in candidates.items():
+            additions = reviewed_rows(hotel_id, rows, review) if args.require_review else rows
+            current = photos.setdefault(hotel_id, [])
+            existing = {(r["kind"], r["url"]) for r in current}
+            current.extend(r for r in additions if (r["kind"], r["url"]) not in existing)
+    elif not args.skip_official:
         official, log = official_candidates(hotels, net, rejected)
         report["official_log"] = log
         for hotel_id, entry in official.items():
@@ -886,19 +967,48 @@ def build(args):
             photos.setdefault(hotel_id, []).append(entry)
 
     if args.require_review:
-        photos = {h: [e for e in rows if e["verified_by_eye"]] for h, rows in photos.items()}
-    photos = {h: rows[:3] for h, rows in photos.items() if rows}
+        photos = {h: [e for e in rows if e["verified_by_eye"] and (
+            e["kind"] not in {"official_site", "room"}
+            or e["kind"] == "official_site" and accepted.get(h, {}).get("official_site") == e["url"]
+            or e["kind"] == "room" and e["url"] in accepted.get(h, {}).get("room", []))] for h, rows in photos.items()}
+    websites = {h["id"]: normalize_site(h.get("website")) for h in all_hotels}
+    for hotel_id, rows in photos.items():
+        valid = []
+        for entry in rows:
+            if entry["kind"] in {"official_site", "room"} and (
+                not websites.get(hotel_id) or any(denied(url) or not image_host_ok(url, websites[hotel_id])
+                                                for url in (entry["url"], entry["page_url"]))):
+                report["official_log"].append({"hotel_id": hotel_id, "url": entry["url"], "status": "removed",
+                                               "reason": "outside seed website domain"})
+            else:
+                valid.append(entry)
+        photos[hotel_id] = valid
+    rank = {"building": 0, "official_site": 1, "street": 2, "room": 3}
+    photos = {h: sorted(rows, key=lambda r: rank[r["kind"]]) for h, rows in photos.items() if rows}
+    for hotel_id, rows in photos.items():
+        if len({r["url"] for r in rows}) != len(rows):
+            raise ValueError(f"Duplicate cover/room image URL for {hotel_id}")
+        rooms = [r for r in rows if r["kind"] == "room"]
+        if len(rooms) > 8:
+            raise ValueError(f"More than eight reviewed rooms for {hotel_id}")
     referenced = {h + ".webp" for h, rows in photos.items() if any(e["local"] for e in rows)}
-    for stale in args.photo_dir.glob("*.webp"):
-        if stale.name not in referenced:
-            stale.unlink()
-    best = [rows[0]["kind"] for rows in photos.values()]
-    counts = {"building": best.count("building"), "official_site": best.count("official_site"),
-              "none": len(hotels) - len(photos)}
+    if not args.skip_commons and not args.only:
+        for stale in args.photo_dir.glob("*.webp"):
+            if stale.name not in referenced:
+                stale.unlink()
+    best = [next((r["kind"] for r in rows if r["kind"] != "room"), "none") for rows in photos.values()]
+    counts = {kind: best.count(kind) for kind in ("building", "official_site", "street")}
+    counts["none"] = len(all_hotels) - sum(counts.values())
     output = {"generated_at": datetime.now(UTC).isoformat(timespec="seconds"), "method": METHOD, "counts": counts,
+              "room_hotel_count": sum(any(r["kind"] == "room" for r in rows) for rows in photos.values()),
+              "room_photo_count": sum(r["kind"] == "room" for rows in photos.values() for r in rows),
               "photos": dict(sorted(photos.items()))}
     args.output.write_text(json.dumps(output, ensure_ascii=False, indent=1) + "\n")
     args.cache_dir.mkdir(parents=True, exist_ok=True)
+    if args.prune_qa_previews:
+        from scripts.photo_collection import prune_reviewed_previews
+
+        report["pruned_qa_previews"] = prune_reviewed_previews(net, review)
     (args.cache_dir / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))
     local_bytes = sum(p.stat().st_size for p in args.photo_dir.glob("*.webp"))
     print(json.dumps({**counts, "local_files": len(referenced), "local_bytes": local_bytes, "requests": net.requests}))
@@ -910,6 +1020,12 @@ def main():
     parser.add_argument("--output", type=Path, default=SEED / "hotel_photos.json")
     parser.add_argument("--photo-dir", type=Path, default=SEED / "photos/hotels")
     parser.add_argument("--cache-dir", type=Path, default=ROOT / "data/raw/hotel_photos")
+    parser.add_argument("--read-cache-dir", type=Path, help="Optional read-only fallback response cache")
+    parser.add_argument("--expand-official", action="store_true", help="Inspect bounded same-domain gallery/room/about links")
+    parser.add_argument("--max-pages", type=int, default=3)
+    parser.add_argument("--max-images", type=int, default=16)
+    parser.add_argument("--prune-qa-previews", action="store_true", help="Remove redundant previews only for explicitly reviewed URLs; keep contact sheets and metadata")
+    parser.add_argument("--qa-dir", type=Path, help="Ignored directory for contact sheets; does not approve images")
     parser.add_argument("--review", type=Path, default=ROOT / "data/eval/hotel_photos_review.json")
     parser.add_argument("--offline", action="store_true", help="Use only cached responses; no network")
     parser.add_argument("--refresh", action="store_true", help="Ignore cached responses and re-request")
