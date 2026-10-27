@@ -920,6 +920,53 @@ export function requiredStatusLabel(hit: SearchHit) {
     .filter(Boolean)
     .join(", ")}`;
 }
+function RequiredStatusSummary({ hit }: { hit: SearchHit }) {
+  const counts = requiredStatusCounts(hit);
+  const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+  const labels = {
+    yes:
+      counts.yes === total
+        ? total === 1
+          ? "Условие подтверждено"
+          : `Все ${total} подтверждены`
+        : `${counts.yes} подтверждено`,
+    partial: `${counts.partial} — пока неточно`,
+    no: `${counts.no} не подходит`,
+    unknown: `по ${counts.unknown} нет данных`,
+  };
+  return (
+    <div
+      className="required-summary"
+      role="group"
+      aria-label={requiredStatusLabel(hit)}
+      data-testid="required-summary"
+    >
+      <span className="required-summary-label">
+        {total ? "Обязательные" : "Обязательных условий нет"}
+      </span>
+      {total > 0 && (
+        <ul
+          className="required-status-list"
+          aria-label="Статусы обязательных условий"
+        >
+          {(["yes", "partial", "no", "unknown"] as const)
+            .filter((status) => counts[status] > 0)
+            .map((status) => (
+              <li
+                key={status}
+                className={`required-status ${status}`}
+                data-testid="required-status"
+                data-status={status}
+                data-count={counts[status]}
+              >
+                {labels[status]}
+              </li>
+            ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 function SearchCard({
   hit,
   month,
@@ -976,12 +1023,12 @@ function SearchCard({
           <h3>{hit.hotel.name}</h3>
           <ArrowUpRight size={20} />
         </Link>
-        <p className="result-summary">
-          <span>{requiredStatusLabel(hit)}</span>
+        <div className="result-summary">
+          <RequiredStatusSummary hit={hit} />
           {hit.room_profile?.scope.facade && !hit.room_recommendation && (
             <span>{scopeText(roomEvidenceScope(hit.room_profile.scope))}</span>
           )}
-        </p>
+        </div>
         <VerdictList
           compact
           verdicts={hit.verdicts}

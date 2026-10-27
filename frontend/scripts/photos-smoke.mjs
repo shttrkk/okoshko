@@ -71,6 +71,67 @@ const expectedSummary = (hit) => {
   );
   return counts;
 };
+async function checkStatusSummary(card, hit, state) {
+  const summary = card.getByTestId("required-summary");
+  const expected = expectedSummary(hit);
+  const items = await summary
+    .getByTestId("required-status")
+    .evaluateAll((elements) =>
+      elements.map((element) => ({
+        status: element.dataset.status,
+        count: Number(element.dataset.count),
+        text: element.innerText,
+        tag: element.tagName,
+      })),
+    );
+  const actualCounts = Object.fromEntries(
+    items.map((item) => [item.status, item.count]),
+  );
+  check(
+    Object.entries(expected).every(
+      ([status, count]) => count === (actualCounts[status] || 0),
+    ),
+    "separate-required-status-counts",
+    { state, expected, items },
+  );
+  check(
+    (await summary.getAttribute("role")) === "group" &&
+      (await summary.getAttribute("aria-label"))?.length > 0,
+    "required-summary-accessible-name",
+    state,
+  );
+  const lines = (await summary.innerText())
+    .split(/\n+/u)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  check(
+    items.every((item) => item.tag === "LI" && lines.includes(item.text)),
+    "required-statuses-have-structural-line-breaks",
+    { state, lines, items },
+  );
+  for (const item of items) {
+    const visibleCount =
+      item.text === "Условие подтверждено"
+        ? 1
+        : Number(item.text.match(/^(?:(?:Все|по)\s+)?(\d+)/u)?.[1]);
+    check(
+      visibleCount === expected[item.status],
+      "required-status-visible-count",
+      { state, item, expected: expected[item.status] },
+    );
+    const humanLabel = {
+      yes: /подтвержден/u,
+      partial: /пока неточно/u,
+      no: /не подходит/u,
+      unknown: /нет данных/u,
+    }[item.status];
+    check(humanLabel?.test(item.text), "required-status-human-label", {
+      state,
+      item,
+    });
+  }
+  return items;
+}
 async function capture(page, name, language = true) {
   const text = await page.locator("body").innerText();
   const findings = languageFindings(text);
@@ -86,12 +147,10 @@ async function capture(page, name, language = true) {
       name,
       phrases: findings.forbiddenPhrases,
     });
-    // Result lists repeat their parallel card text; inspect each card individually.
-    if (!name.includes("search"))
-      check(findings.repeatedPhrases.length === 0, "repeated-language", {
-        name,
-        phrases: findings.repeatedPhrases,
-      });
+    check(findings.repeatedPhrases.length === 0, "repeated-language", {
+      name,
+      phrases: findings.repeatedPhrases,
+    });
   }
   await page.screenshot({
     path: resolve(artifacts, `${name}.png`),
@@ -149,32 +208,7 @@ try {
           ),
       );
     check(photoOrLink, "first-20-photo-or-link", hit.hotel.id);
-    const summary = await card.locator(".result-summary").innerText();
-    const counts = expectedSummary(hit);
-    if (counts.partial)
-      check(
-        summary.includes(`${counts.partial} — пока неточно`),
-        "partial-count",
-        { id: hit.hotel.id, summary, counts },
-      );
-    if (counts.yes && counts.yes !== hit.must_total)
-      check(summary.includes(`${counts.yes} подтверждено`), "confirmed-count", {
-        id: hit.hotel.id,
-        summary,
-        counts,
-      });
-    if (counts.no)
-      check(summary.includes(`${counts.no} не подходит`), "no-count", {
-        id: hit.hotel.id,
-        summary,
-        counts,
-      });
-    if (counts.unknown)
-      check(
-        summary.includes(`по ${counts.unknown} нет данных`),
-        "unknown-count",
-        { id: hit.hotel.id, summary, counts },
-      );
+    await checkStatusSummary(card, hit, hit.hotel.id);
     const findings = languageFindings(await card.innerText());
     check(
       !findings.forbiddenPhrases.length && !findings.repeatedPhrases.length,
@@ -573,26 +607,19 @@ try {
   await fpage.goto(`${base}/search?q=fixture`);
   const fcard = fpage.getByTestId(`hotel-card-${fixtureHotelId}`);
   await fcard.getByTestId("hotel-map-photos-link").waitFor();
-  check(
-    (await fcard.locator(".result-summary").innerText()).includes(
-      "1 подтверждено, 2 — пока неточно",
-    ),
+  await checkStatusSummary(
+    fcard,
+    fixtures.search.results[0],
     "fixture-honest-count",
   );
   check(
     (await fpage.getByTestId("partial-legend").count()) === 1,
     "fixture-one-legend",
   );
-  const second = await fpage
-    .getByTestId(`hotel-card-${noPhotoHotelId}`)
-    .locator(".result-summary")
-    .innerText();
-  check(
-    second.includes("1 — пока неточно") &&
-      second.includes("1 не подходит") &&
-      second.includes("по 3 нет данных"),
+  await checkStatusSummary(
+    fpage.getByTestId(`hotel-card-${noPhotoHotelId}`),
+    fixtures.search.results[1],
     "room-and-no-data-counts",
-    second,
   );
   check(
     !(await fpage.locator(".result-group-title").first().innerText()).includes(
@@ -709,6 +736,56 @@ try {
     ).includes(legacyReason),
     "legacy-original-reason-retained",
   );
+  // Repeated combinations must remain distinct visual statuses, never one long line.
+  const repeatedHit = fixtures.search.results[0];
+  fixtures.search.results = Array.from({ length: 20 }, (_, index) => ({
+    ...repeatedHit,
+    hotel: {
+      ...fixtures.emptyHotel,
+      id: `photos-fixture-status-${index}`,
+      name: `Проверочный отель ${index + 1}`,
+      address: "Браузерная проверка",
+    },
+    must_total: 3,
+    verdicts: repeatedHit.verdicts.map((verdict, index) => ({
+      ...verdict,
+      status: ["yes", "partial", "unknown"][index],
+      symbol: ["✓", "≈", "?"][index],
+    })),
+    room_plan: [],
+    room_profile: null,
+    room_recommendation: null,
+    group: "almost",
+    why_not_higher: [],
+  }));
+  fixtures.search.total = 20;
+  for (const width of [1440, 390]) {
+    await fpage.setViewportSize({ width, height: 1000 });
+    await fpage.goto(`${base}/search?q=required-status-fixture`);
+    await fpage.getByTestId("hotel-card-photos-fixture-status-19").waitFor();
+    for (const hit of fixtures.search.results)
+      await checkStatusSummary(
+        fpage.getByTestId(`hotel-card-${hit.hotel.id}`),
+        hit,
+        `repeated-status-${width}-${hit.hotel.id}`,
+      );
+    const fullText = await fpage.locator("body").innerText();
+    const findings = languageFindings(fullText);
+    check(
+      findings.repeatedPhrases.length === 0 &&
+        findings.forbiddenPhrases.length === 0,
+      "twenty-card-whole-body-language",
+      { width, findings },
+    );
+    check(
+      !fullText.includes(
+        "Обязательные: 1 подтверждено, 1 — пока неточно, по 1 нет данных",
+      ),
+      "no-joined-required-sentence",
+      width,
+    );
+    await capture(fpage, `search-required-status-fixture-${width}`);
+  }
   checks.push({
     name: "isolated-fixtures",
     cases: [

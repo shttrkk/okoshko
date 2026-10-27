@@ -7034,3 +7034,41 @@ h3 {
     gap: 8px;
   }
 }
+
+/* Each required status is a separate list item, including in rendered text. */
+.required-summary-label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 700;
+  color: var(--heading);
+}
+.required-status-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.required-status {
+  display: block;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.required-status.yes {
+  background: var(--sea-soft);
+  color: var(--sea-deep);
+}
+.required-status.partial {
+  background: var(--sun-soft);
+  color: var(--heading);
+}
+.required-status.no {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
