@@ -8,7 +8,6 @@ import { AskButton, ErrorState, EvidenceModal, Synthetic } from "./ui";
 import {
   roomEvidenceScope,
   roomLabParams,
-  roomScopeText,
   roomStatus,
   roomSymbol,
 } from "./group";
@@ -17,10 +16,12 @@ export function RoomDescription({
   hotelId,
   profile,
   unknownFloors = false,
+  showCopy = true,
 }: {
   hotelId: string;
   profile: RoomProfile;
   unknownFloors?: boolean;
+  showCopy?: boolean;
 }) {
   const { evidence, busy, error, showEvidence, closeEvidence, retryEvidence } =
     useRoomEvidence(
@@ -45,9 +46,13 @@ export function RoomDescription({
             : "Модельное положение · номер не подтверждён"}
         </span>
       )}
-      <p className="room-profile-copy">{profile.description}</p>
-      {profile.clauses.some((clause) => clause.synthetic) && (
-        <Synthetic>Есть синтетические данные</Synthetic>
+      {showCopy && (
+        <>
+          <p className="room-profile-copy">{profile.description}</p>
+          {profile.clauses.some((clause) => clause.synthetic) && (
+            <Synthetic>Есть синтетические данные</Synthetic>
+          )}
+        </>
       )}
       <ul className="room-clauses">
         {profile.clauses.map((clause, i) => (
@@ -60,12 +65,6 @@ export function RoomDescription({
             </span>
             <div>
               <span>{clause.text}</span> {clause.synthetic && <Synthetic />}
-              {clause.status === "unknown" && (
-                <span className="muted small">
-                  {" "}
-                  · Нет подтверждённых данных
-                </span>
-              )}
               <div className="room-clause-actions">
                 {clause.fact_ids.map((factId, index) => (
                   <button
@@ -97,11 +96,14 @@ export function RoomDescription({
         ))}
       </ul>
       {profile.caveats.length > 0 && (
-        <ul className="room-caveats">
-          {profile.caveats.map((text, i) => (
-            <li key={i}>{text}</li>
-          ))}
-        </ul>
+        <details className="room-caveats-details">
+          <summary>Ограничения расчёта · {profile.caveats.length}</summary>
+          <ul className="room-caveats">
+            {profile.caveats.map((text, i) => (
+              <li key={i}>{text}</li>
+            ))}
+          </ul>
+        </details>
       )}
       <ErrorState error={error} retry={retryEvidence} />
       {evidence && (
@@ -113,6 +115,34 @@ export function RoomDescription({
       )}
     </div>
   );
+}
+
+const HIGHLIGHTS: Record<string, string> = {
+  sea_view: "Вид на море",
+  mountain_view: "Горы",
+  quiet_night: "Тихо ночью",
+  sunset_view: "Закат",
+  morning_sun: "Утреннее солнце",
+};
+/** Confirmed strengths of a position, in the order guests usually ask. */
+function highlights(profile: RoomProfile) {
+  return Object.keys(HIGHLIGHTS)
+    .filter((id) =>
+      profile.clauses.some(
+        (c) => c.characteristic_id === id && c.status === "yes",
+      ),
+    )
+    .map((id) => HIGHLIGHTS[id]);
+}
+function sortByHighlights(profiles: RoomProfile[]) {
+  const weight = (p: RoomProfile) =>
+    highlights(p).length +
+    (highlights(p).includes(HIGHLIGHTS.sea_view) ? 2 : 0);
+  return [...profiles].sort((a, b) => weight(b) - weight(a));
+}
+function positionTitle(profile: RoomProfile) {
+  const text = profile.title.replace(/^Модельное положение:\s*/, "");
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 export function RoomProfileList({
@@ -152,13 +182,17 @@ export function RoomProfileList({
           уточнит отель.
         </p>
       )}
-      {current.map((profile) => (
+      {sortByHighlights(current).map((profile) => (
         <details className="room-profile-card" key={profile.id}>
           <summary>
-            <h3>{profile.title}</h3>
-            <p className="small muted">
-              {roomScopeText(profile.scope, unknownFloors)}
-            </p>
+            <h3>{positionTitle(profile)}</h3>
+            {highlights(profile).length > 0 && (
+              <p className="room-highlights">
+                {highlights(profile).map((label) => (
+                  <span key={label}>{label}</span>
+                ))}
+              </p>
+            )}
             <p className="room-profile-preview">{profile.description}</p>
             {profile.clauses.some((clause) => clause.synthetic) && (
               <Synthetic>Есть синтетические данные</Synthetic>
@@ -169,6 +203,7 @@ export function RoomProfileList({
             hotelId={hotelId}
             profile={profile}
             unknownFloors={unknownFloors}
+            showCopy={false}
           />
           {link && (
             <Link

@@ -6694,6 +6694,31 @@ h3 {
   color: var(--text);
   margin-top: 9px;
 }
+.room-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 4px;
+}
+.room-highlights > span {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--sea-soft);
+  color: var(--sea-deep);
+  font-size: 12px;
+  font-weight: 600;
+}
+.room-profile-card > summary > .badge.synthetic {
+  margin-right: 12px;
+}
+.room-caveats-details {
+  margin-top: 10px;
+  font-size: 12px;
+}
+.room-caveats-details > summary {
+  cursor: pointer;
+  color: var(--muted);
+}
 .room-profile-card > summary > .text-button {
   display: inline-flex;
   margin-top: 10px;

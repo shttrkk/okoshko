@@ -171,6 +171,10 @@
   font-size: 11px;
   pointer-events: none;
 }
+/* The focus card sits above the nearby-places key instead of under it. */
+:has(> .map-nearby-legend) > .map-selected {
+  bottom: 112px;
+}
 .map-nearby-legend > span {
   display: inline-flex;
   align-items: center;
@@ -345,6 +349,9 @@
     left: 12px;
     max-width: calc(100% - 65px);
     gap: 4px 8px;
+  }
+  :has(> .map-nearby-legend) > .map-selected {
+    bottom: 132px;
   }
   .room-lab-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));

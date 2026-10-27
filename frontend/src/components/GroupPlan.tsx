@@ -14,10 +14,30 @@ import { RoomDescription, RoomProfileList } from "./RoomProfiles";
 import {
   roomEvidenceScope,
   roomLabParams,
-  roomScopeText,
   roomStatus,
   roomSymbol,
 } from "./group";
+import { SIDES } from "./facts";
+
+/** What this person asked for; the matched position is in the recommendation. */
+function requestedText(scope?: RoomScope) {
+  if (!scope) return "";
+  const { facade, floor_min: low, floor_max: high } = scope;
+  return [
+    facade && SIDES[facade],
+    low && high
+      ? low === high
+        ? `${low}-й этаж`
+        : `этажи ${low}–${high}`
+      : low
+        ? `с ${low}-го этажа`
+        : high
+          ? `не выше ${high}-го этажа`
+          : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 export function GroupPlan({
   hotelId,
@@ -67,9 +87,9 @@ export function GroupPlan({
         ))}
       </div>
       <p className="fine-print group-availability">
-        Количество и наличие номеров уточнит отель. Одинаковая сторона и этаж
-        для двух пожеланий не означают два свободных номера. Соседство не
-        подтверждено.
+        Это модельные положения в здании: сколько таких номеров свободно, их
+        вместимость и соседство уточнит отель. Одна сторона и этаж у двоих — не
+        два свободных номера.
       </p>
     </section>
   );
@@ -129,8 +149,9 @@ function PlanRow({
         <div>
           <h3>{item.label}</h3>
           <span className="small muted">
-            {roomStatus[item.status]} ·{" "}
-            {roomScopeText(item.scope, unknownFloors)}
+            {[roomStatus[item.status], requestedText(requestedScope)]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
         </div>
         {onOpen ? (
@@ -153,10 +174,15 @@ function PlanRow({
       </div>
       <p className="group-recommendation">{item.recommendation}</p>
       {item.profile && (
-        <p className="group-profile-preview">{item.profile.description}</p>
-      )}
-      {item.profile?.clauses.some((clause) => clause.synthetic) && (
-        <Synthetic>Есть синтетические данные</Synthetic>
+        <p className="group-profile-preview">
+          {item.profile.description}
+          {item.profile.clauses.some((clause) => clause.synthetic) && (
+            <>
+              {" "}
+              <Synthetic>синтетические данные</Synthetic>
+            </>
+          )}
+        </p>
       )}
       {item.caveats.length > 0 && (
         <ul className="room-caveats">
@@ -169,9 +195,7 @@ function PlanRow({
         className="group-plan-details"
         onToggle={(event) => setOpen(event.currentTarget.open)}
       >
-        <summary>
-          {compact ? "Описание и условия" : "Описание положения и основания"}
-        </summary>
+        <summary>Почему так и откуда данные</summary>
         {open && (
           <>
             <VerdictList

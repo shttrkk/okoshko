@@ -956,7 +956,7 @@ function SearchCard({
             />
           )
         )}
-        {hit.disappointments.length > 0 && (
+        {hit.disappointments.length > 0 && !hit.room_plan?.length && (
           <p className="disappointment">Учтите: {hit.disappointments[0]}</p>
         )}
         {reasons.length > 0 && (

@@ -345,7 +345,7 @@ try {
     .locator(".room-profile-card");
   await profiles.first().waitFor({ timeout: 45000 });
   for (let i = 0; i < (await profiles.count()); i++)
-    await profiles.nth(i).locator("summary").click();
+    await profiles.nth(i).locator(":scope > summary").click();
   const evidence = page
     .getByTestId("hotel-room-profiles")
     .getByTestId("room-clause-evidence")
