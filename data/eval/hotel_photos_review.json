@@ -203,12 +203,7 @@
    "building": "File:Гостиница «Приморская».JPG"
   },
   "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13": {
-   "official_site": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/slider1.jpg",
-   "room": [
-    "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6233.jpg",
-    "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6243.jpg",
-    "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6234.jpg"
-   ]
+   "room": []
   },
   "overture-19a359ae-d6b8-4686-8643-36a55ee46219": {
    "official_site": "https://metropol-apart.ru/wp-content/uploads/2025/02/mphoto-1.webp",
@@ -223,10 +218,10 @@
    ]
   },
   "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7": {
-   "official_site": "http://sochi-sunrise.ru/img/324776304f426da7.webp",
+   "official_site": "https://sochi-sunrise.ru/img/324776304f426da7.webp",
    "room": [
-    "http://sochi-sunrise.ru/img/a890e6691b925f70.webp",
-    "http://sochi-sunrise.ru/img/8f77bd341518cc7d.webp"
+    "https://sochi-sunrise.ru/img/a890e6691b925f70.webp",
+    "https://sochi-sunrise.ru/img/8f77bd341518cc7d.webp"
    ]
   },
   "overture-3b6e73bd-b423-453f-a384-a8d2329acae2": {},
@@ -284,10 +279,8 @@
   "osm-way-53301256": {},
   "overture-1c44d67c-1df5-470b-bfa4-c676137ff977": {},
   "osm-way-207637828": {
-   "official_site": "https://www.bridgefamily.ru/img/nomera/semeiny/32.JPG",
    "room": [
-    "https://www.bridgefamily.ru/img/nomera/semeiny/standart-1.jpg",
-    "https://www.bridgefamily.ru/img/nomera/semeiny/33.JPG"
+    "https://www.bridgefamily.ru/img/nomera/semeiny/standart-1.jpg"
    ]
   },
   "overture-84c775c0-79bf-4f63-9f74-6e6382b6245d": {
@@ -1892,6 +1885,54 @@
    "kind": "room",
    "ref": "https://chaykasochi.ru/wp-content/uploads/img_3940-hdr-krupnyy-razmer-2.jpeg",
    "reason": "Гостиная/диван без ясно видимой спальни; для консервативного подбора room-фото исключить."
+  },
+  {
+   "hotel_id": "osm-way-207637828",
+   "kind": "official_site",
+   "ref": "https://www.bridgefamily.ru/img/nomera/semeiny/32.JPG",
+   "reason": "external image exceeds 2,000,000 bytes",
+   "bytes": 11662622,
+   "sha256": "cb8b3657167e05ff6d6e4ab41c986781e411ff52bbe4a7cfe530e5a547652eff"
+  },
+  {
+   "hotel_id": "osm-way-207637828",
+   "kind": "room",
+   "ref": "https://www.bridgefamily.ru/img/nomera/semeiny/33.JPG",
+   "reason": "external image exceeds 2,000,000 bytes",
+   "bytes": 10370037,
+   "sha256": "0feee3e919d620e833fac6230db55beeae3b943daaf8e294f1e677a9fd448b0b"
+  },
+  {
+   "hotel_id": "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13",
+   "kind": "official_site",
+   "ref": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/slider1.jpg",
+   "reason": "ValueError: HTTPS identity has not been verified",
+   "bytes": 195966,
+   "sha256": "9a4d769bfeb57e12bceabde179804e4026283678d23164a002cfd60a9feff538"
+  },
+  {
+   "hotel_id": "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13",
+   "kind": "room",
+   "ref": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6233.jpg",
+   "reason": "ValueError: HTTPS identity has not been verified",
+   "bytes": 1417004,
+   "sha256": "dfa655c7aa22b2132375f12de6d51439dcdec84c0f2a93acd9fa49d3417e7f2b"
+  },
+  {
+   "hotel_id": "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13",
+   "kind": "room",
+   "ref": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6243.jpg",
+   "reason": "ValueError: HTTPS identity has not been verified",
+   "bytes": 1262019,
+   "sha256": "415b754a8ba1c7d07a657561f4b361f0aeee836e01d00583512ae16d0b6fa6d4"
+  },
+  {
+   "hotel_id": "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13",
+   "kind": "room",
+   "ref": "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6234.jpg",
+   "reason": "ValueError: HTTPS identity has not been verified",
+   "bytes": 1440492,
+   "sha256": "ded55c05e48631d9dd0d3ab60227d3fd9006bfc136d02d4205f182dac8b33d0d"
   }
  ],
  "visual_batches": [
@@ -2521,9 +2562,7 @@
    "https://siriushotels.ru/upload/iblock/b1e/4lh8d2o5damieq30m9lr4f4oorlon8qk.jpg": "https://siriushotels.ru/omega/"
   },
   "osm-way-207637828": {
-   "https://www.bridgefamily.ru/img/nomera/semeiny/32.JPG": "https://www.bridgefamily.ru/nomera",
-   "https://www.bridgefamily.ru/img/nomera/semeiny/standart-1.jpg": "https://www.bridgefamily.ru/nomera",
-   "https://www.bridgefamily.ru/img/nomera/semeiny/33.JPG": "https://www.bridgefamily.ru/nomera"
+   "https://www.bridgefamily.ru/img/nomera/semeiny/standart-1.jpg": "https://www.bridgefamily.ru/nomera"
   },
   "osm-node-9908709817": {
    "https://sochigallerypark.ru/img/fdc51f835942e03f.webp": "https://sochigallerypark.ru/",
@@ -2569,11 +2608,7 @@
    "https://parusa-hotel.ru/d/dsc_0138_00047_panorama2_kopirovat.jpg": "https://parusa-hotel.ru/",
    "https://parusa-hotel.ru/d/dsc_0025_00001_panorama_kopirovat.jpg": "https://parusa-hotel.ru/"
   },
-  "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13": {
-   "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6233.jpg": "http://hotel-sochi-riviera.ru/?page_id=73",
-   "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6243.jpg": "http://hotel-sochi-riviera.ru/?page_id=73",
-   "http://hotel-sochi-riviera.ru/wp-content/uploads/2014/06/IMG_6234.jpg": "http://hotel-sochi-riviera.ru/?page_id=73"
-  },
+  "overture-0be9fd16-4c7c-4cdd-abbd-e4b864c16e13": {},
   "overture-19a359ae-d6b8-4686-8643-36a55ee46219": {
    "https://metropol-apart.ru/wp-content/uploads/2025/02/mphoto-2.webp": "https://metropol-apart.ru/"
   },
@@ -2581,8 +2616,9 @@
    "https://hotelgraphite.ru/img/17f59c23c6ed3491.webp": "https://hotelgraphite.ru/rooms/"
   },
   "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7": {
-   "http://sochi-sunrise.ru/img/a890e6691b925f70.webp": "http://sochi-sunrise.ru/",
-   "http://sochi-sunrise.ru/img/8f77bd341518cc7d.webp": "http://sochi-sunrise.ru/rooms/"
+   "https://sochi-sunrise.ru/img/324776304f426da7.webp": "https://sochi-sunrise.ru/",
+   "https://sochi-sunrise.ru/img/a890e6691b925f70.webp": "https://sochi-sunrise.ru/",
+   "https://sochi-sunrise.ru/img/8f77bd341518cc7d.webp": "https://sochi-sunrise.ru/"
   },
   "overture-5d220661-b1ca-4461-a03b-c89126a98e02": {
    "https://grandhotelrodina.ru/upload/dev2fun.imagecompress/webp/resize_cache/iblock/a8e/1920_1476_2/1mymyity4z32foiezq9jvk0j063iapvw.webp": "https://grandhotelrodina.ru/nomera/"
@@ -2608,12 +2644,47 @@
    "https://chaykasochi.ru/wp-content/uploads/rooms-superior-sideview-image-1.jpg": "https://chaykasochi.ru/rooms/",
    "https://chaykasochi.ru/wp-content/uploads/img_3925-hdr-krupnyy-razmer.jpeg": "https://chaykasochi.ru/rooms/",
    "https://chaykasochi.ru/wp-content/uploads/img_4001-hdr-krupnyy-razmer.jpeg": "https://chaykasochi.ru/rooms/"
-  }
+  },
+  "osm-node-10759614195": {},
+  "osm-node-11958163713": {},
+  "osm-way-51764141": {}
  },
  "independent_review_artifacts": [
   "docs/reviews/photos_visual_qa/batch1_review.json",
   "docs/reviews/photos_visual_qa/batch2_sheets007_012_review.json",
   "docs/reviews/photos_visual_qa/batch4_review.json",
   "docs/reviews/photos_visual_qa/batch5_sheets006_010_review.json"
+ ],
+ "https_upgrades": [
+  {
+   "hotel_id": "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7",
+   "kind": "official_site",
+   "original_url": "http://sochi-sunrise.ru/img/324776304f426da7.webp",
+   "url": "https://sochi-sunrise.ru/img/324776304f426da7.webp",
+   "page_url": "https://sochi-sunrise.ru/",
+   "bytes": 94816,
+   "sha256": "abdd3e36e9c64e0f78064bd500fc810c4ebf09cdf0e714a947df05ddadb7cd65",
+   "verified_at": "2026-10-27T17:28:47.395004+00:00"
+  },
+  {
+   "hotel_id": "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7",
+   "kind": "room",
+   "original_url": "http://sochi-sunrise.ru/img/a890e6691b925f70.webp",
+   "url": "https://sochi-sunrise.ru/img/a890e6691b925f70.webp",
+   "page_url": "https://sochi-sunrise.ru/",
+   "bytes": 109952,
+   "sha256": "bbc374d0f6d44767caae173092b0f96f672fd2d8f75a7cde35e9a4717fc177a7",
+   "verified_at": "2026-10-27T17:28:48.385602+00:00"
+  },
+  {
+   "hotel_id": "overture-3b5b3178-ff7b-4d93-817b-09a2ddca93f7",
+   "kind": "room",
+   "original_url": "http://sochi-sunrise.ru/img/8f77bd341518cc7d.webp",
+   "url": "https://sochi-sunrise.ru/img/8f77bd341518cc7d.webp",
+   "page_url": "https://sochi-sunrise.ru/",
+   "bytes": 45970,
+   "sha256": "44b587eed021ed1ab947f51d7b94b372badc5fc9ecc41c6ed9e0cbb6ad2e9167",
+   "verified_at": "2026-10-27T17:28:49.376393+00:00"
+  }
  ]
 }

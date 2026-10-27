@@ -10,6 +10,7 @@ from scripts.collect_hotel_photos import (
     ASPECT,
     DENYLIST,
     FREE_LICENSE,
+    MAX_EXTERNAL_BYTES,
     MAX_WEBP_BYTES,
     MIN_SITE_WIDTH,
     image_host_ok,
@@ -75,12 +76,14 @@ def test_hotel_photo_index_is_honest_and_self_consistent():
                 assert image_host_ok(row["url"], websites[hotel_id])
                 assert image_host_ok(row["page_url"], websites[hotel_id])
                 # Copyrighted hotel images are linked, never stored or relicensed.
-                assert row["local"] is False and row["url"].startswith(("https://", "http://"))
+                assert row["local"] is False and row["url"].startswith("https://")
+                assert row["page_url"].startswith("https://")
+                assert type(row["bytes"]) is int and 0 < row["bytes"] <= MAX_EXTERNAL_BYTES
+                assert re.fullmatch(r"[0-9a-f]{64}", row["sha256"])
                 assert row["license"] is None and row["license_url"] is None and row["author"] is None
                 assert row["match"] in {"og_image", "hero_img"} and row["distance_m"] is None
                 if row["kind"] == "room":
                     assert row["url"] in review["accept"][hotel_id]["room"]
-                    assert row["bytes"] > 0 and re.fullmatch(r"[0-9a-f]{64}", row["sha256"])
                 assert row["width"] >= MIN_SITE_WIDTH and ASPECT[0] <= row["width"] / row["height"] <= ASPECT[1]
                 for url in (row["url"], row["page_url"]):
                     host = (urlsplit(url).hostname or "").removeprefix("www.")
