@@ -288,10 +288,6 @@ const allFacts = hotels.map((hotel, i) => [
           explicit_building_date: null,
         },
   ),
-  fact(hotel, "climate", { air_c: 25, water_c: 23 }, "baseline", {
-    type: "hotel",
-    month: 9,
-  }),
   fact(
     hotel,
     "climate",
@@ -304,6 +300,10 @@ const allFacts = hotels.map((hotel, i) => [
     "days",
     { type: "hotel", month: 9 },
   ),
+  fact(hotel, "climate", { air_c: 25, water_c: 23 }, "baseline", {
+    type: "hotel",
+    month: 9,
+  }),
 ]);
 const geo = {
   center: [39.72, 43.58],
@@ -645,7 +645,14 @@ try {
       .click();
     assert.match(await card("family_nearby").innerText(), /6 мин пешком/);
     await card("family_nearby").locator(".fact-details > summary").click();
-    const familyObservation = card("family_nearby").locator(".tz-observation");
+    assert.equal(
+      await card("family_nearby").locator(".tz-observation").count(),
+      2,
+      "Baseline and walking observations retain separate evidence",
+    );
+    const familyObservation = card("family_nearby").locator(
+      '.tz-observation[data-fact-id$=":routes"]',
+    );
     assert.match(
       await familyObservation.getAttribute("data-fact-id"),
       /:routes$/,
@@ -667,6 +674,31 @@ try {
       /2010.*дата постройки не подтверждена/,
     );
     assert.match(await card("climate").innerText(), /солнечных дней.*20/i);
+    assert.match(await card("climate").innerText(), /Воздух 25°.*вода 23°/);
+    await card("climate").locator(".fact-details > summary").click();
+    assert.equal(
+      await card("climate").locator(".tz-observation").count(),
+      2,
+      "Climate observations must retain independent evidence",
+    );
+    await card("climate").getByText("Для дотошных", { exact: true }).click();
+    assert.equal(
+      await card("climate")
+        .locator(".climate-table tbody tr")
+        .nth(0)
+        .locator("td.current")
+        .innerText(),
+      "25",
+    );
+    assert.equal(
+      await card("climate")
+        .locator(".climate-table tbody tr")
+        .nth(1)
+        .locator("td.current")
+        .innerText(),
+      "23",
+    );
+    await card("climate").locator(".fact-details > summary").click();
     const visible = await page.locator("body").innerText();
     assert(
       !/\d+%|\bдБ\b|osm-(?:way|node|relation)-/.test(visible),

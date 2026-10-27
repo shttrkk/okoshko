@@ -505,7 +505,18 @@ export function headline(
   facadeAzimuths?: FacadeAzimuths,
 ): ReactNode {
   const supplementary = tzSummary(id, facts, month);
-  if (supplementary) return supplementary;
+  if (supplementary) {
+    const base =
+      id === "climate"
+        ? facts.find(
+            (fact) =>
+              reliable(fact) &&
+              !isSupplementalFact(fact) &&
+              (fact.scope.month === month || v(fact).month === month),
+          )
+        : null;
+    return [base && humanFact(base), supplementary].filter(Boolean).join(". ");
+  }
   const shown = facts.filter(reliable);
   if (!shown.length) {
     if (facts.some((f) => f.status === "disputed"))
@@ -684,7 +695,7 @@ function FactCard({
         </p>
         {supplemental.length > 0 && (
           <TzFactDetails
-            facts={supplemental}
+            facts={facts}
             claims={claims}
             month={month}
             onShowOnMap={onShowOnMap}
@@ -761,7 +772,12 @@ function FactCard({
               ))}
             </div>
           )}
-          {id === "climate" && <ClimateTable facts={shown} month={month} />}
+          {id === "climate" && (
+            <ClimateTable
+              facts={shown.filter((fact) => !isSupplementalFact(fact))}
+              month={month}
+            />
+          )}
           {id === "nearby_photos" && <NearbyPhotos value={rep.value} />}
           {multi &&
             !sided &&
