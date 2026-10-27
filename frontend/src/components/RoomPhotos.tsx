@@ -9,7 +9,27 @@ import { Modal } from "./ui";
 export function HotelPhotoActions({ hotel }: { hotel: Hotel }) {
   const index = useResource(hotelPhotos);
   const [open, setOpen] = useState(false);
-  const rooms = (index.data?.[hotel.id] || []).filter(
+  const photos = index.data?.[hotel.id] || [];
+  const hasCover = !!(
+    (hotel.image?.startsWith("/data/") && safePhotoUrl(hotel.image, true)) ||
+    photos.some(
+      (photo) =>
+        photo.kind !== "room" &&
+        (photo.kind !== "street" || photo.local) &&
+        safePhotoUrl(photo.url, photo.local),
+    )
+  );
+  const address = hotel.address?.trim();
+  const hasStreet =
+    hotel.tags?.address_precision !== "area" &&
+    address &&
+    /(?:улиц|(?:^|\s)ул\.|просп|переул|(?:^|\s)пер\.|шоссе|набереж|(?:^|\s)наб\.|бульвар|проезд|тупик|площадь)/iu.test(
+      address,
+    );
+  const mapHint = hasStreet
+    ? `На Картах отель может называться иначе — сверьте адрес: ${address}`
+    : "На Картах отель может называться иначе — сверьте место на карте";
+  const rooms = photos.filter(
     (photo) =>
       photo.kind === "room" &&
       safePhotoUrl(photo.url, photo.local) &&
@@ -17,6 +37,9 @@ export function HotelPhotoActions({ hotel }: { hotel: Hotel }) {
   );
   return (
     <div className="hotel-photo-actions">
+      {!hasCover && (
+        <HotelMapPhotosLink hotel={hotel} prominent hint={mapHint} />
+      )}
       {rooms.length > 0 && (
         <button
           className="button secondary small"
@@ -26,7 +49,7 @@ export function HotelPhotoActions({ hotel }: { hotel: Hotel }) {
           <Images size={16} /> Фото номеров ({rooms.length})
         </button>
       )}
-      <HotelMapPhotosLink hotel={hotel} />
+      {hasCover && <HotelMapPhotosLink hotel={hotel} />}
       {open && (
         <RoomPhotoGallery
           hotel={hotel}
