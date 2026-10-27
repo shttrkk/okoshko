@@ -37,7 +37,7 @@ try {
   });
   const page = await context.newPage();
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.route(/https?:\/\/([^/]*\.)?yandex\.[^/]+\//i, (route) => {
+  await page.route(/yandex\.|ya\.ru|mapillary/i, (route) => {
     blocked.push(route.request().url());
     return route.abort();
   });

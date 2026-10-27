@@ -18,9 +18,7 @@ export async function openTechnicalFact(card) {
   }
 }
 export async function blockYandex(page) {
-  await page.route(/https?:\/\/([^/]*\.)?yandex\.[^/]+\//i, (route) =>
-    route.abort(),
-  );
+  await page.route(/yandex\.|ya\.ru|mapillary/i, (route) => route.abort());
 }
 // System Chrome on macOS can retain a closed driver pipe. Bound CLI teardown;
 // assertions and report writing still run before a standalone script exits.

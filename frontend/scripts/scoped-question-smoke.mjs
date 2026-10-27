@@ -219,7 +219,7 @@ try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
   });
-  await context.route("https://yandex.ru/**", (route) =>
+  await context.route(/yandex\.|ya\.ru|mapillary/i, (route) =>
     route.fulfill({
       contentType: "text/html",
       body: "<p>Panorama browser fixture</p>",

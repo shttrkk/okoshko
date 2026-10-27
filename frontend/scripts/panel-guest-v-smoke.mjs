@@ -44,7 +44,7 @@ async function surface(viewport, colorScheme = "light", fixture = false) {
   const context = await browser.newContext({ viewport, colorScheme });
   const page = await context.newPage();
   page.on("pageerror", (error) => report.errors.push(error.message));
-  await page.route(/https?:\/\/([^/]*\.)?yandex\.[^/]+\//i, (route) => {
+  await page.route(/yandex\.|ya\.ru|mapillary/i, (route) => {
     report.blocked.push(route.request().url());
     return route.abort();
   });
