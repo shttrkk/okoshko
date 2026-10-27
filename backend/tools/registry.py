@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import OrderedDict
 from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
@@ -28,6 +29,8 @@ POI_METHOD = "local_poi_lookup@2"
 # for the same hotel and characteristic are superseded, never edited.
 POI_METHODS = {"car": "local_poi_lookup@3", "nightlife": "local_poi_nightlife@1"}
 POI_CATEGORY_METHOD = "local_poi_category@1"
+POI_NEARBY_CACHE_SIZE = 32
+POI_INDEX_VERSION = 1
 # "В гуще событий": bars, pubs, clubs, cafes and restaurants within 500 m.
 NIGHTLIFE_RADIUS_M = 500
 NIGHTLIFE_MIN_VENUES = 30
@@ -72,8 +75,28 @@ def poi_method(kind_or_params) -> str:
     return POI_METHODS.get(kind_or_params, POI_METHOD)
 
 
-@lru_cache(maxsize=8)
+def dataset_identity(data_dir: str | Path, name: str) -> tuple:
+    """Plain files take precedence, exactly as geo.io.read_json does.
+
+    ctime also detects an in-place rewrite with restored size/mtime. File and
+    loader identities keep both index and nearby caches on the same snapshot.
+    """
+    logical = Path(data_dir).resolve()/"seed"/(name+".geojson")
+    physical = logical if logical.is_file() else Path(str(logical)+".gz")
+    try:
+        stat = physical.stat()
+    except FileNotFoundError:
+        return POI_INDEX_VERSION, str(logical), None
+    return (POI_INDEX_VERSION, str(physical), stat.st_dev, stat.st_ino,
+            stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+
+
 def feature_index(data_dir: str, name: str):
+    return _feature_index(data_dir, name, dataset_identity(data_dir, name))
+
+
+@lru_cache(maxsize=8)
+def _feature_index(data_dir: str, name: str, identity: tuple):
     path = Path(data_dir)/"seed"/(name+".geojson")
     if not exists(path):
         return [], [], None
@@ -95,6 +118,7 @@ class Registry:
         self.repo, self.data_dir = repo, Path(data_dir)
         self._hotels = {}
         self._known_claims = None
+        self._nearby_cache = OrderedDict()
         self.specs = {}
         self.handlers = {}
         schema = {"type":"object", "properties":{"target":{"type":"string","enum":["sea","mountains","landmark","beach"]},
@@ -370,12 +394,24 @@ class Registry:
         features, geometries, tree = feature_index(str(self.data_dir.resolve()), dataset)
         if tree is None:
             return None
-        found = []
-        for index in tree.query(metric_center.buffer(radius)):
-            index = int(index)
-            distance = geometries[index].distance(metric_center)
-            if distance <= radius and (predicate is None or predicate(features[index]["properties"])):
-                found.append((distance, features[index]))
+        key = (dataset_identity(self.data_dir, dataset), id(tree), metric_center.x, metric_center.y, radius)
+        if key in self._nearby_cache:
+            raw = self._nearby_cache.pop(key)
+        else:
+            raw = []
+            for index in tree.query(metric_center.buffer(radius)):
+                index = int(index)
+                distance = geometries[index].distance(metric_center)
+                if distance <= radius:
+                    raw.append((distance, features[index]))
+            # Preserve query order: predicates and stable distance ties retain
+            # the same behavior as the uncached calculation.
+            raw = tuple(raw)
+        self._nearby_cache[key] = raw
+        if len(self._nearby_cache) > POI_NEARBY_CACHE_SIZE:
+            self._nearby_cache.popitem(last=False)
+        found = [(distance, feature) for distance, feature in raw
+                 if predicate is None or predicate(feature["properties"])]
         found.sort(key=lambda item: item[0])
         return found
 

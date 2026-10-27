@@ -9,15 +9,18 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
 from shapely.geometry import Point, shape
+from shapely.strtree import STRtree
 
 from geo.coordinates import TO_UTM, hotel_center, metric
 from geo.facades import extract_facades
+from geo.io import read_json
 from geo.noise import noise_facade, source_samples
-from geo.region import get_region
+from geo.region import get_region, load_features
 from geo.runtime_cache import input_digest
 from geo.sun import facade_exposure, monthly_exposure_paths
 
@@ -311,7 +314,68 @@ def _route_edges(graph, node_ids):
     return edges
 
 
+@lru_cache(maxsize=4)
+def _preflight_rail_index(path, digest):
+    document = read_json(path)
+    if document.get("type") != "FeatureCollection" or not isinstance(document.get("features"), list):
+        raise ValueError("Unsupported railway input")
+    features = load_features(path)
+    if len(features) != len(document["features"]):
+        raise ValueError("Incomplete railway geometry")
+    return features, STRtree([feature["shape"] for feature in features])
+
+
+@lru_cache(maxsize=4)
+def _preflight_buildings(path, digest):
+    document = read_json(path)
+    if document.get("type") != "FeatureCollection" or not isinstance(document.get("features"), list):
+        raise ValueError("Unsupported building input")
+    by_id = {}
+    for feature in document["features"]:
+        identity = str(feature.get("id") or feature.get("properties", {}).get("osm_id"))
+        by_id.setdefault(identity, []).append(feature)
+    return by_id
+
+
+def _railway_no_sources(hotel, data_dir):
+    """Prove the existing no-source branch without loading an entire Region.
+
+    An explicit, present building association preserves the original building-
+    first diagnostic. Ambiguous/missing/broken inputs use the unchanged engine.
+    Nothing here asserts quiet, a negative noise value, or a new observation.
+    """
+    requested = hotel.get("building_id") or hotel.get("tags", {}).get("building_id")
+    if not isinstance(requested, str) or not requested:
+        return False
+    seed = data_dir/"seed" if (data_dir/"seed").exists() else data_dir
+    rail_path, building_path = seed/"railways.geojson", seed/"buildings.geojson"
+    try:
+        rail_digest = input_digest(rail_path)
+        if rail_digest is None:
+            return False
+        features, tree = _preflight_rail_index(rail_path, rail_digest)
+        point = Point(TO_UTM.transform(*hotel_center(hotel)))
+        nearby = [features[int(index)] for index in tree.query(point.buffer(650), predicate="intersects")]
+        if source_samples(nearby, kind="rail"):
+            return False
+        building_digest = input_digest(building_path)
+        if building_digest is None:
+            return False
+        matching = _preflight_buildings(building_path, building_digest).get(requested, [])
+        if len(matching) != 1:
+            return False
+        geometry = metric(shape(matching[0]["geometry"]))
+        if not geometry.is_valid:
+            geometry = geometry.buffer(0)
+        return (geometry.geom_type in {"Polygon", "MultiPolygon"} and not geometry.is_empty
+                and geometry.intersects(point.buffer(1600)))
+    except (OSError, ValueError, TypeError, KeyError, AttributeError):
+        return False
+
+
 def _regional(hotel, data_dir, characteristic):
+    if characteristic == "railway_noise" and _railway_no_sources(hotel, data_dir):
+        return [], ["Нет картированного железнодорожного источника в зоне модели; шум неизвестен"]
     region = get_region(data_dir)
     xy = TO_UTM.transform(*hotel_center(hotel))
     point = Point(xy)
