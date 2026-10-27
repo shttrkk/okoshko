@@ -2858,6 +2858,21 @@
       },
       "ExpectationPassport": {
         "properties": {
+          "room_requests": {
+            "items": {
+              "$ref": "#/components/schemas/RoomRequest-Output"
+            },
+            "type": "array",
+            "maxItems": 12,
+            "title": "Room Requests"
+          },
+          "room_plan": {
+            "items": {
+              "$ref": "#/components/schemas/RoomPlanItem"
+            },
+            "type": "array",
+            "title": "Room Plan"
+          },
           "id": {
             "type": "string",
             "title": "Id"
@@ -3298,6 +3313,23 @@
       },
       "HotelDetail": {
         "properties": {
+          "room_plan": {
+            "items": {
+              "$ref": "#/components/schemas/RoomPlanItem"
+            },
+            "type": "array",
+            "title": "Room Plan"
+          },
+          "room_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoomProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "hotel": {
             "$ref": "#/components/schemas/Hotel"
           },
@@ -3493,6 +3525,14 @@
       },
       "ParsedQuery-Input": {
         "properties": {
+          "rooms": {
+            "items": {
+              "$ref": "#/components/schemas/RoomRequest-Input"
+            },
+            "type": "array",
+            "maxItems": 12,
+            "title": "Rooms"
+          },
           "text": {
             "type": "string",
             "title": "Text"
@@ -3671,6 +3711,14 @@
       },
       "ParsedQuery-Output": {
         "properties": {
+          "rooms": {
+            "items": {
+              "$ref": "#/components/schemas/RoomRequest-Output"
+            },
+            "type": "array",
+            "maxItems": 12,
+            "title": "Rooms"
+          },
           "text": {
             "type": "string",
             "title": "Text"
@@ -3955,6 +4003,30 @@
       },
       "PassportItem": {
         "properties": {
+          "room_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room Label"
+          },
+          "room_index": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 11.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room Index"
+          },
           "id": {
             "type": "string",
             "title": "Id"
@@ -4121,6 +4193,372 @@
         ],
         "title": "Question"
       },
+      "RoomClause": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "characteristic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Characteristic Id"
+          },
+          "fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Fact Ids"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence Refs"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "title": "Status",
+            "default": "unknown"
+          },
+          "synthetic": {
+            "type": "boolean",
+            "title": "Synthetic",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "RoomClause"
+      },
+      "RoomPlanItem": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/RoomScope"
+          },
+          "recommendation": {
+            "type": "string",
+            "title": "Recommendation",
+            "default": "Положение номера требует уточнения"
+          },
+          "verdicts": {
+            "items": {
+              "$ref": "#/components/schemas/CriterionVerdict"
+            },
+            "type": "array",
+            "title": "Verdicts"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "title": "Status",
+            "default": "unknown"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoomProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Caveats"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "title": "RoomPlanItem"
+      },
+      "RoomProfile": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/RoomScope"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "clauses": {
+            "items": {
+              "$ref": "#/components/schemas/RoomClause"
+            },
+            "type": "array",
+            "title": "Clauses"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Caveats"
+          },
+          "conditional": {
+            "type": "boolean",
+            "title": "Conditional",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "scope",
+          "title",
+          "description"
+        ],
+        "title": "RoomProfile"
+      },
+      "RoomRequest-Input": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Label"
+          },
+          "must": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Must"
+          },
+          "nice": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Nice"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/RoomScope"
+          },
+          "no_data": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array",
+            "title": "No Data"
+          },
+          "no_data_must": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array",
+            "title": "No Data Must"
+          },
+          "unmapped": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unmapped"
+          },
+          "clarifications": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 2,
+            "title": "Clarifications"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "title": "RoomRequest"
+      },
+      "RoomRequest-Output": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Label"
+          },
+          "must": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Must"
+          },
+          "nice": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Nice"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/RoomScope"
+          },
+          "no_data": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array",
+            "title": "No Data"
+          },
+          "no_data_must": {
+            "items": {
+              "$ref": "#/components/schemas/Criterion"
+            },
+            "type": "array",
+            "title": "No Data Must"
+          },
+          "unmapped": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unmapped"
+          },
+          "clarifications": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 2,
+            "title": "Clarifications"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "title": "RoomRequest"
+      },
+      "RoomScope": {
+        "properties": {
+          "facade": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 12.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Month"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RoomScope",
+        "description": "Requested/modelled position, never evidence that a sellable room exists."
+      },
       "RunRequest": {
         "properties": {
           "hotel_id": {
@@ -4233,6 +4671,23 @@
       },
       "SearchHit": {
         "properties": {
+          "room_plan": {
+            "items": {
+              "$ref": "#/components/schemas/RoomPlanItem"
+            },
+            "type": "array",
+            "title": "Room Plan"
+          },
+          "room_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoomProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "hotel": {
             "$ref": "#/components/schemas/Hotel"
           },

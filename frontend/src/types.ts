@@ -87,7 +87,51 @@ export interface Criterion {
   weight: number;
   scope?: Scope | null;
 }
+export interface RoomScope {
+  facade?: Side | null;
+  floor_min?: number | null;
+  floor_max?: number | null;
+  room_type?: string | null;
+  month?: number | null;
+}
+export interface RoomRequest {
+  label: string;
+  must: Criterion[];
+  nice: Criterion[];
+  scope: RoomScope;
+  no_data?: Criterion[];
+  no_data_must?: Criterion[];
+  unmapped?: string[];
+  clarifications?: string[];
+}
+export interface RoomClause {
+  text: string;
+  characteristic_id?: string | null;
+  fact_ids: string[];
+  evidence_refs: string[];
+  status: "yes" | "partial" | "no" | "unknown";
+  synthetic: boolean;
+}
+export interface RoomProfile {
+  id: string;
+  scope: RoomScope;
+  title: string;
+  description: string;
+  clauses: RoomClause[];
+  caveats: string[];
+  conditional: boolean;
+}
+export interface RoomPlanItem {
+  label: string;
+  scope: RoomScope;
+  recommendation: string;
+  verdicts: Verdict[];
+  status: "yes" | "partial" | "no" | "unknown";
+  profile?: RoomProfile | null;
+  caveats: string[];
+}
 export interface ParsedQuery {
+  rooms?: RoomRequest[];
   text: string;
   must: Criterion[];
   nice: Criterion[];
@@ -121,6 +165,8 @@ export interface Verdict {
   disputed?: boolean;
 }
 export interface SearchHit {
+  room_plan?: RoomPlanItem[];
+  room_profile?: RoomProfile | null;
   hotel: Hotel;
   score: number;
   group: "all" | "almost" | "unknown" | "browse";
@@ -173,6 +219,8 @@ export interface Conflict {
   synthetic: boolean;
 }
 export interface HotelDetail {
+  room_plan?: RoomPlanItem[];
+  room_profile?: RoomProfile | null;
   hotel: Hotel;
   facts: Fact[];
   claims: Claim[];
@@ -209,6 +257,8 @@ export interface Answer {
   created_claim_ids: string[];
 }
 export interface PassportItem {
+  room_label?: string | null;
+  room_index?: number | null;
   id: string;
   characteristic_id: string;
   text: string;
@@ -219,6 +269,8 @@ export interface PassportItem {
   response: string | null;
 }
 export interface Passport {
+  room_requests?: RoomRequest[];
+  room_plan?: RoomPlanItem[];
   id: string;
   hotel_id: string;
   guest_name: string;

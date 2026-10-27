@@ -209,3 +209,7 @@
 - 27.10.2026 06:55: первый холодный клон5ade2be без .env и ключа, новая БД/пустой builder cache: health168,675с, контейнер→health74,188с, restart_count0, amd64/UID10001. make check (1317+125, lint, 4 Python/3 npm audits, smoke/demo13) PASS. Полный UI-check выявил устаревший TTL text assertion; проверка исправлена и теперь ждёт реальные evidence/date/method/source вместо loading placeholders. Root repeat:1317+125/Ruff/frontend lint/demo TypeScript/Chrome smoke и все11 реальных preview-сцен за45,673с PASS; JS/HTTP/external failures0. Сам MP4 не создавался и не изменялся. Новый cold-clone source gate выполняется повторно.
 
 - 27.10.2026 07:14: финальная холодная приёмка и сброс основного demo PASS. Полные факты/ограничения, source SHA, сроки и отсутствие push описаны в checks/release_acceptance_night_20261027.json. Остались только внешняя сдача владельцем и независимая валидация данных; незакрытые качественные цели перечислены выше.
+
+## Групповой поиск и описания положений — в работе
+
+27.10 12:11: additive RoomScope/RoomRequest/RoomProfile/RoomClause/RoomPlanItem и optional поля ответов/паспорта, OpenAPI/JSON Schema, TS типы. Старый rooms=[] путь сохранён. 1328 tests +125 subtests, Ruff/frontend lint PASS. fact-semantics-smoke читает CSS из реально обслуживаемого index.html, а не локального dist; все source/normal/floor проверки и mobile390 PASS на523ef70. Сам новый групповой поиск ещё не подключён.

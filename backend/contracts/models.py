@@ -252,7 +252,34 @@ class Criterion(Model):
     no_crossings: bool = False
 
 
+class RoomScope(Model):
+    """Requested/modelled position, never evidence that a sellable room exists."""
+    facade: Side | None = None
+    floor_min: int | None = Field(default=None, ge=1, le=100)
+    floor_max: int | None = Field(default=None, ge=1, le=100)
+    room_type: str | None = None
+    month: int | None = Field(default=None, ge=1, le=12)
+
+    @model_validator(mode="after")
+    def bounds(self) -> RoomScope:
+        if self.floor_min and self.floor_max and self.floor_min > self.floor_max:
+            raise ValueError("floor_min must not exceed floor_max")
+        return self
+
+
+class RoomRequest(Model):
+    label: str = Field(min_length=1, max_length=80)
+    must: list[Criterion] = Field(default_factory=list, max_length=30)
+    nice: list[Criterion] = Field(default_factory=list, max_length=30)
+    scope: RoomScope = Field(default_factory=RoomScope)
+    no_data: list[Criterion] = Field(default_factory=list)
+    no_data_must: list[Criterion] = Field(default_factory=list)
+    unmapped: list[str] = Field(default_factory=list)
+    clarifications: list[str] = Field(default_factory=list, max_length=2)
+
+
 class ParsedQuery(Model):
+    rooms: list[RoomRequest] = Field(default_factory=list, max_length=12)
     text: str
     must: list[Criterion] = Field(default_factory=list)
     nice: list[Criterion] = Field(default_factory=list)
@@ -303,6 +330,41 @@ class CriterionVerdict(Model):
     disputed: bool = False
 
 
+class RoomClause(Model):
+    text: str
+    characteristic_id: str | None = None
+    fact_ids: list[str] = Field(default_factory=list)
+    evidence_refs: list[str] = Field(default_factory=list)
+    status: Literal["yes", "partial", "no", "unknown"] = "unknown"
+    synthetic: bool = False
+
+    @model_validator(mode="after")
+    def grounded(self) -> RoomClause:
+        if self.status != "unknown" and not self.fact_ids:
+            raise ValueError("Known room clauses require fact references")
+        return self
+
+
+class RoomProfile(Model):
+    id: str
+    scope: RoomScope
+    title: str
+    description: str
+    clauses: list[RoomClause] = Field(default_factory=list)
+    caveats: list[str] = Field(default_factory=list)
+    conditional: bool = True
+
+
+class RoomPlanItem(Model):
+    label: str
+    scope: RoomScope = Field(default_factory=RoomScope)
+    recommendation: str = "Положение номера требует уточнения"
+    verdicts: list[CriterionVerdict] = Field(default_factory=list)
+    status: Literal["yes", "partial", "no", "unknown"] = "unknown"
+    profile: RoomProfile | None = None
+    caveats: list[str] = Field(default_factory=list)
+
+
 class ComparisonRequest(Model):
     ids: list[str] = Field(min_length=2, max_length=4)
     parsed: ParsedQuery | None = None
@@ -336,6 +398,8 @@ class Hotel(Model):
 
 
 class SearchHit(Model):
+    room_plan: list[RoomPlanItem] = Field(default_factory=list)
+    room_profile: RoomProfile | None = None
     hotel: Hotel
     score: float
     group: Literal["all", "almost", "unknown", "browse"]
@@ -359,6 +423,8 @@ class SearchResult(Model):
 
 
 class HotelDetail(Model):
+    room_plan: list[RoomPlanItem] = Field(default_factory=list)
+    room_profile: RoomProfile | None = None
     hotel: Hotel
     facts: list[Fact] = Field(default_factory=list)
     claims: list[Claim] = Field(default_factory=list)
@@ -378,6 +444,8 @@ class FactEvidence(Model):
 
 
 class PassportItem(Model):
+    room_label: str | None = None
+    room_index: int | None = Field(default=None, ge=0, le=11)
     id: str = Field(default_factory=uid)
     characteristic_id: str
     text: str
@@ -389,6 +457,8 @@ class PassportItem(Model):
 
 
 class ExpectationPassport(Model):
+    room_requests: list[RoomRequest] = Field(default_factory=list, max_length=12)
+    room_plan: list[RoomPlanItem] = Field(default_factory=list)
     id: str = Field(default_factory=uid)
     hotel_id: str
     guest_name: str = "Маша"

@@ -503,13 +503,15 @@ try {
     "GeoModal respects known model bounds in handler/state and clamps an open selection to conditional level 1 when hotel height becomes unknown despite Geo count16",
   );
 
-  // Hotel wiring is intentionally owned by ROOT. Render the real FactsPanel
-  // with its optional exact-normal prop to test the integration boundary.
-  const html = await readFile(
-    new URL("../dist/index.html", import.meta.url),
-    "utf8",
-  );
-  const css = html.match(/href="([^"]+\.css)"/)[1];
+  // Use the stylesheet of the served build, which can differ from local dist.
+  const indexResponse = await context.request.get(base);
+  assert(indexResponse.ok(), "The served application index must load");
+  const html = await indexResponse.text();
+  const stylesheet = html.match(/href="([^"]+\.css)"/);
+  assert(stylesheet, "The served index must reference a stylesheet");
+  const css = new URL(stylesheet[1], base).href;
+  const cssResponse = await context.request.get(css);
+  assert(cssResponse.ok(), "The served stylesheet must load");
   const seed = {
     facts: [sunsetSeptember, sunsetMay],
     specs,

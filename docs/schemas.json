@@ -2464,7 +2464,91 @@
     "title": "Criterion",
     "type": "object"
   },
-  "ParsedQuery": {
+  "RoomScope": {
+    "additionalProperties": false,
+    "description": "Requested/modelled position, never evidence that a sellable room exists.",
+    "properties": {
+      "facade": {
+        "anyOf": [
+          {
+            "enum": [
+              "N",
+              "NE",
+              "E",
+              "SE",
+              "S",
+              "SW",
+              "W",
+              "NW"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Facade"
+      },
+      "floor_min": {
+        "anyOf": [
+          {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Floor Min"
+      },
+      "floor_max": {
+        "anyOf": [
+          {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Floor Max"
+      },
+      "room_type": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Room Type"
+      },
+      "month": {
+        "anyOf": [
+          {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Month"
+      }
+    },
+    "title": "RoomScope",
+    "type": "object"
+  },
+  "RoomRequest": {
     "$defs": {
       "Criterion": {
         "additionalProperties": false,
@@ -2538,6 +2622,90 @@
           "label"
         ],
         "title": "Criterion",
+        "type": "object"
+      },
+      "RoomScope": {
+        "additionalProperties": false,
+        "description": "Requested/modelled position, never evidence that a sellable room exists.",
+        "properties": {
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "RoomScope",
         "type": "object"
       },
       "Scope": {
@@ -2637,6 +2805,396 @@
     },
     "additionalProperties": false,
     "properties": {
+      "label": {
+        "maxLength": 80,
+        "minLength": 1,
+        "title": "Label",
+        "type": "string"
+      },
+      "must": {
+        "items": {
+          "$ref": "#/$defs/Criterion"
+        },
+        "maxItems": 30,
+        "title": "Must",
+        "type": "array"
+      },
+      "nice": {
+        "items": {
+          "$ref": "#/$defs/Criterion"
+        },
+        "maxItems": 30,
+        "title": "Nice",
+        "type": "array"
+      },
+      "scope": {
+        "$ref": "#/$defs/RoomScope"
+      },
+      "no_data": {
+        "items": {
+          "$ref": "#/$defs/Criterion"
+        },
+        "title": "No Data",
+        "type": "array"
+      },
+      "no_data_must": {
+        "items": {
+          "$ref": "#/$defs/Criterion"
+        },
+        "title": "No Data Must",
+        "type": "array"
+      },
+      "unmapped": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Unmapped",
+        "type": "array"
+      },
+      "clarifications": {
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 2,
+        "title": "Clarifications",
+        "type": "array"
+      }
+    },
+    "required": [
+      "label"
+    ],
+    "title": "RoomRequest",
+    "type": "object"
+  },
+  "ParsedQuery": {
+    "$defs": {
+      "Criterion": {
+        "additionalProperties": false,
+        "properties": {
+          "characteristic_id": {
+            "title": "Characteristic Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "op": {
+            "default": "eq",
+            "enum": [
+              "eq",
+              "lte",
+              "gte",
+              "contains"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "value": {
+            "default": true,
+            "title": "Value"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Field"
+          },
+          "weight": {
+            "default": 1,
+            "exclusiveMinimum": 0,
+            "maximum": 10,
+            "title": "Weight",
+            "type": "number"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Scope"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "no_stairs": {
+            "default": false,
+            "title": "No Stairs",
+            "type": "boolean"
+          },
+          "no_crossings": {
+            "default": false,
+            "title": "No Crossings",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "characteristic_id",
+          "label"
+        ],
+        "title": "Criterion",
+        "type": "object"
+      },
+      "RoomRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "maxItems": 30,
+            "title": "Must",
+            "type": "array"
+          },
+          "nice": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "maxItems": 30,
+            "title": "Nice",
+            "type": "array"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "no_data": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data",
+            "type": "array"
+          },
+          "no_data_must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data Must",
+            "type": "array"
+          },
+          "unmapped": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmapped",
+            "type": "array"
+          },
+          "clarifications": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2,
+            "title": "Clarifications",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RoomRequest",
+        "type": "object"
+      },
+      "RoomScope": {
+        "additionalProperties": false,
+        "description": "Requested/modelled position, never evidence that a sellable room exists.",
+        "properties": {
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "RoomScope",
+        "type": "object"
+      },
+      "Scope": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "default": "hotel",
+            "enum": [
+              "hotel",
+              "facade",
+              "floor_range",
+              "room_type"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "Scope",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "rooms": {
+        "items": {
+          "$ref": "#/$defs/RoomRequest"
+        },
+        "maxItems": 12,
+        "title": "Rooms",
+        "type": "array"
+      },
       "text": {
         "title": "Text",
         "type": "string"
@@ -2899,6 +3457,14 @@
       "ParsedQuery": {
         "additionalProperties": false,
         "properties": {
+          "rooms": {
+            "items": {
+              "$ref": "#/$defs/RoomRequest"
+            },
+            "maxItems": 12,
+            "title": "Rooms",
+            "type": "array"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -3080,6 +3646,154 @@
           "text"
         ],
         "title": "ParsedQuery",
+        "type": "object"
+      },
+      "RoomRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "maxItems": 30,
+            "title": "Must",
+            "type": "array"
+          },
+          "nice": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "maxItems": 30,
+            "title": "Nice",
+            "type": "array"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "no_data": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data",
+            "type": "array"
+          },
+          "no_data_must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data Must",
+            "type": "array"
+          },
+          "unmapped": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmapped",
+            "type": "array"
+          },
+          "clarifications": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2,
+            "title": "Clarifications",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RoomRequest",
+        "type": "object"
+      },
+      "RoomScope": {
+        "additionalProperties": false,
+        "description": "Requested/modelled position, never evidence that a sellable room exists.",
+        "properties": {
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "RoomScope",
         "type": "object"
       },
       "Scope": {
@@ -3339,6 +4053,592 @@
     "title": "CriterionVerdict",
     "type": "object"
   },
+  "RoomClause": {
+    "additionalProperties": false,
+    "properties": {
+      "text": {
+        "title": "Text",
+        "type": "string"
+      },
+      "characteristic_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Characteristic Id"
+      },
+      "fact_ids": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Fact Ids",
+        "type": "array"
+      },
+      "evidence_refs": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Evidence Refs",
+        "type": "array"
+      },
+      "status": {
+        "default": "unknown",
+        "enum": [
+          "yes",
+          "partial",
+          "no",
+          "unknown"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "title": "RoomClause",
+    "type": "object"
+  },
+  "RoomProfile": {
+    "$defs": {
+      "RoomClause": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "characteristic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Characteristic Id"
+          },
+          "fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Fact Ids",
+            "type": "array"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "status": {
+            "default": "unknown",
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "RoomClause",
+        "type": "object"
+      },
+      "RoomScope": {
+        "additionalProperties": false,
+        "description": "Requested/modelled position, never evidence that a sellable room exists.",
+        "properties": {
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "RoomScope",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "scope": {
+        "$ref": "#/$defs/RoomScope"
+      },
+      "title": {
+        "title": "Title",
+        "type": "string"
+      },
+      "description": {
+        "title": "Description",
+        "type": "string"
+      },
+      "clauses": {
+        "items": {
+          "$ref": "#/$defs/RoomClause"
+        },
+        "title": "Clauses",
+        "type": "array"
+      },
+      "caveats": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Caveats",
+        "type": "array"
+      },
+      "conditional": {
+        "default": true,
+        "title": "Conditional",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "id",
+      "scope",
+      "title",
+      "description"
+    ],
+    "title": "RoomProfile",
+    "type": "object"
+  },
+  "RoomPlanItem": {
+    "$defs": {
+      "CriterionVerdict": {
+        "additionalProperties": false,
+        "properties": {
+          "characteristic_id": {
+            "title": "Characteristic Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "required": {
+            "default": false,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "symbol": {
+            "enum": [
+              "✓",
+              "≈",
+              "✗",
+              "?"
+            ],
+            "title": "Symbol",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "confidence": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Fact Ids",
+            "type": "array"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "caveat": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Caveat"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          },
+          "disputed": {
+            "default": false,
+            "title": "Disputed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "characteristic_id",
+          "label",
+          "status",
+          "symbol",
+          "text",
+          "confidence"
+        ],
+        "title": "CriterionVerdict",
+        "type": "object"
+      },
+      "RoomClause": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "characteristic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Characteristic Id"
+          },
+          "fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Fact Ids",
+            "type": "array"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "status": {
+            "default": "unknown",
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "RoomClause",
+        "type": "object"
+      },
+      "RoomProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "clauses": {
+            "items": {
+              "$ref": "#/$defs/RoomClause"
+            },
+            "title": "Clauses",
+            "type": "array"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "conditional": {
+            "default": true,
+            "title": "Conditional",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "title",
+          "description"
+        ],
+        "title": "RoomProfile",
+        "type": "object"
+      },
+      "RoomScope": {
+        "additionalProperties": false,
+        "description": "Requested/modelled position, never evidence that a sellable room exists.",
+        "properties": {
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "RoomScope",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "label": {
+        "title": "Label",
+        "type": "string"
+      },
+      "scope": {
+        "$ref": "#/$defs/RoomScope"
+      },
+      "recommendation": {
+        "default": "Положение номера требует уточнения",
+        "title": "Recommendation",
+        "type": "string"
+      },
+      "verdicts": {
+        "items": {
+          "$ref": "#/$defs/CriterionVerdict"
+        },
+        "title": "Verdicts",
+        "type": "array"
+      },
+      "status": {
+        "default": "unknown",
+        "enum": [
+          "yes",
+          "partial",
+          "no",
+          "unknown"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "profile": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/RoomProfile"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "caveats": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Caveats",
+        "type": "array"
+      }
+    },
+    "required": [
+      "label"
+    ],
+    "title": "RoomPlanItem",
+    "type": "object"
+  },
   "ComparisonRequest": {
     "$defs": {
       "Criterion": {
@@ -3418,6 +4718,14 @@
       "ParsedQuery": {
         "additionalProperties": false,
         "properties": {
+          "rooms": {
+            "items": {
+              "$ref": "#/$defs/RoomRequest"
+            },
+            "maxItems": 12,
+            "title": "Rooms",
+            "type": "array"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -3599,6 +4907,154 @@
           "text"
         ],
         "title": "ParsedQuery",
+        "type": "object"
+      },
+      "RoomRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "maxItems": 30,
+            "title": "Must",
+            "type": "array"
+          },
+          "nice": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "maxItems": 30,
+            "title": "Nice",
+            "type": "array"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "no_data": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data",
+            "type": "array"
+          },
+          "no_data_must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data Must",
+            "type": "array"
+          },
+          "unmapped": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmapped",
+            "type": "array"
+          },
+          "clarifications": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2,
+            "title": "Clarifications",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RoomRequest",
+        "type": "object"
+      },
+      "RoomScope": {
+        "additionalProperties": false,
+        "description": "Requested/modelled position, never evidence that a sellable room exists.",
+        "properties": {
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "RoomScope",
         "type": "object"
       },
       "Scope": {
@@ -4168,10 +5624,273 @@
         ],
         "title": "Hotel",
         "type": "object"
+      },
+      "RoomClause": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "characteristic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Characteristic Id"
+          },
+          "fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Fact Ids",
+            "type": "array"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "status": {
+            "default": "unknown",
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "RoomClause",
+        "type": "object"
+      },
+      "RoomPlanItem": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "recommendation": {
+            "default": "Положение номера требует уточнения",
+            "title": "Recommendation",
+            "type": "string"
+          },
+          "verdicts": {
+            "items": {
+              "$ref": "#/$defs/CriterionVerdict"
+            },
+            "title": "Verdicts",
+            "type": "array"
+          },
+          "status": {
+            "default": "unknown",
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RoomProfile"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RoomPlanItem",
+        "type": "object"
+      },
+      "RoomProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "clauses": {
+            "items": {
+              "$ref": "#/$defs/RoomClause"
+            },
+            "title": "Clauses",
+            "type": "array"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "conditional": {
+            "default": true,
+            "title": "Conditional",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "title",
+          "description"
+        ],
+        "title": "RoomProfile",
+        "type": "object"
+      },
+      "RoomScope": {
+        "additionalProperties": false,
+        "description": "Requested/modelled position, never evidence that a sellable room exists.",
+        "properties": {
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "RoomScope",
+        "type": "object"
       }
     },
     "additionalProperties": false,
     "properties": {
+      "room_plan": {
+        "items": {
+          "$ref": "#/$defs/RoomPlanItem"
+        },
+        "title": "Room Plan",
+        "type": "array"
+      },
+      "room_profile": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/RoomProfile"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
       "hotel": {
         "$ref": "#/$defs/Hotel"
       },
@@ -4600,6 +6319,14 @@
       "ParsedQuery": {
         "additionalProperties": false,
         "properties": {
+          "rooms": {
+            "items": {
+              "$ref": "#/$defs/RoomRequest"
+            },
+            "maxItems": 12,
+            "title": "Rooms",
+            "type": "array"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -4783,6 +6510,315 @@
         "title": "ParsedQuery",
         "type": "object"
       },
+      "RoomClause": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "characteristic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Characteristic Id"
+          },
+          "fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Fact Ids",
+            "type": "array"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "status": {
+            "default": "unknown",
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "RoomClause",
+        "type": "object"
+      },
+      "RoomPlanItem": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "recommendation": {
+            "default": "Положение номера требует уточнения",
+            "title": "Recommendation",
+            "type": "string"
+          },
+          "verdicts": {
+            "items": {
+              "$ref": "#/$defs/CriterionVerdict"
+            },
+            "title": "Verdicts",
+            "type": "array"
+          },
+          "status": {
+            "default": "unknown",
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RoomProfile"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RoomPlanItem",
+        "type": "object"
+      },
+      "RoomProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "clauses": {
+            "items": {
+              "$ref": "#/$defs/RoomClause"
+            },
+            "title": "Clauses",
+            "type": "array"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "conditional": {
+            "default": true,
+            "title": "Conditional",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "title",
+          "description"
+        ],
+        "title": "RoomProfile",
+        "type": "object"
+      },
+      "RoomRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "maxItems": 30,
+            "title": "Must",
+            "type": "array"
+          },
+          "nice": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "maxItems": 30,
+            "title": "Nice",
+            "type": "array"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "no_data": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data",
+            "type": "array"
+          },
+          "no_data_must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data Must",
+            "type": "array"
+          },
+          "unmapped": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmapped",
+            "type": "array"
+          },
+          "clarifications": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2,
+            "title": "Clarifications",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RoomRequest",
+        "type": "object"
+      },
+      "RoomScope": {
+        "additionalProperties": false,
+        "description": "Requested/modelled position, never evidence that a sellable room exists.",
+        "properties": {
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "RoomScope",
+        "type": "object"
+      },
       "Scope": {
         "additionalProperties": false,
         "properties": {
@@ -4880,6 +6916,24 @@
       "SearchHit": {
         "additionalProperties": false,
         "properties": {
+          "room_plan": {
+            "items": {
+              "$ref": "#/$defs/RoomPlanItem"
+            },
+            "title": "Room Plan",
+            "type": "array"
+          },
+          "room_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RoomProfile"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
           "hotel": {
             "$ref": "#/$defs/Hotel"
           },
@@ -5803,6 +7857,251 @@
         "title": "Question",
         "type": "object"
       },
+      "RoomClause": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "characteristic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Characteristic Id"
+          },
+          "fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Fact Ids",
+            "type": "array"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "status": {
+            "default": "unknown",
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "RoomClause",
+        "type": "object"
+      },
+      "RoomPlanItem": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "recommendation": {
+            "default": "Положение номера требует уточнения",
+            "title": "Recommendation",
+            "type": "string"
+          },
+          "verdicts": {
+            "items": {
+              "$ref": "#/$defs/CriterionVerdict"
+            },
+            "title": "Verdicts",
+            "type": "array"
+          },
+          "status": {
+            "default": "unknown",
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RoomProfile"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RoomPlanItem",
+        "type": "object"
+      },
+      "RoomProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "clauses": {
+            "items": {
+              "$ref": "#/$defs/RoomClause"
+            },
+            "title": "Clauses",
+            "type": "array"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "conditional": {
+            "default": true,
+            "title": "Conditional",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "title",
+          "description"
+        ],
+        "title": "RoomProfile",
+        "type": "object"
+      },
+      "RoomScope": {
+        "additionalProperties": false,
+        "description": "Requested/modelled position, never evidence that a sellable room exists.",
+        "properties": {
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "RoomScope",
+        "type": "object"
+      },
       "Scope": {
         "additionalProperties": false,
         "properties": {
@@ -5900,6 +8199,24 @@
     },
     "additionalProperties": false,
     "properties": {
+      "room_plan": {
+        "items": {
+          "$ref": "#/$defs/RoomPlanItem"
+        },
+        "title": "Room Plan",
+        "type": "array"
+      },
+      "room_profile": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/RoomProfile"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
       "hotel": {
         "$ref": "#/$defs/Hotel"
       },
@@ -6522,6 +8839,32 @@
     },
     "additionalProperties": false,
     "properties": {
+      "room_label": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Room Label"
+      },
+      "room_index": {
+        "anyOf": [
+          {
+            "maximum": 11,
+            "minimum": 0,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Room Index"
+      },
       "id": {
         "title": "Id",
         "type": "string"
@@ -6583,9 +8926,203 @@
   },
   "ExpectationPassport": {
     "$defs": {
+      "Criterion": {
+        "additionalProperties": false,
+        "properties": {
+          "characteristic_id": {
+            "title": "Characteristic Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "op": {
+            "default": "eq",
+            "enum": [
+              "eq",
+              "lte",
+              "gte",
+              "contains"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "value": {
+            "default": true,
+            "title": "Value"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Field"
+          },
+          "weight": {
+            "default": 1,
+            "exclusiveMinimum": 0,
+            "maximum": 10,
+            "title": "Weight",
+            "type": "number"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Scope"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "no_stairs": {
+            "default": false,
+            "title": "No Stairs",
+            "type": "boolean"
+          },
+          "no_crossings": {
+            "default": false,
+            "title": "No Crossings",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "characteristic_id",
+          "label"
+        ],
+        "title": "Criterion",
+        "type": "object"
+      },
+      "CriterionVerdict": {
+        "additionalProperties": false,
+        "properties": {
+          "characteristic_id": {
+            "title": "Characteristic Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "required": {
+            "default": false,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "symbol": {
+            "enum": [
+              "✓",
+              "≈",
+              "✗",
+              "?"
+            ],
+            "title": "Symbol",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "confidence": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Fact Ids",
+            "type": "array"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "caveat": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Caveat"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          },
+          "disputed": {
+            "default": false,
+            "title": "Disputed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "characteristic_id",
+          "label",
+          "status",
+          "symbol",
+          "text",
+          "confidence"
+        ],
+        "title": "CriterionVerdict",
+        "type": "object"
+      },
       "PassportItem": {
         "additionalProperties": false,
         "properties": {
+          "room_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Label"
+          },
+          "room_index": {
+            "anyOf": [
+              {
+                "maximum": 11,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Index"
+          },
           "id": {
             "title": "Id",
             "type": "string"
@@ -6643,6 +9180,315 @@
           "text"
         ],
         "title": "PassportItem",
+        "type": "object"
+      },
+      "RoomClause": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "characteristic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Characteristic Id"
+          },
+          "fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Fact Ids",
+            "type": "array"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "status": {
+            "default": "unknown",
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "RoomClause",
+        "type": "object"
+      },
+      "RoomPlanItem": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "recommendation": {
+            "default": "Положение номера требует уточнения",
+            "title": "Recommendation",
+            "type": "string"
+          },
+          "verdicts": {
+            "items": {
+              "$ref": "#/$defs/CriterionVerdict"
+            },
+            "title": "Verdicts",
+            "type": "array"
+          },
+          "status": {
+            "default": "unknown",
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RoomProfile"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RoomPlanItem",
+        "type": "object"
+      },
+      "RoomProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "clauses": {
+            "items": {
+              "$ref": "#/$defs/RoomClause"
+            },
+            "title": "Clauses",
+            "type": "array"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "conditional": {
+            "default": true,
+            "title": "Conditional",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "title",
+          "description"
+        ],
+        "title": "RoomProfile",
+        "type": "object"
+      },
+      "RoomRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "maxItems": 30,
+            "title": "Must",
+            "type": "array"
+          },
+          "nice": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "maxItems": 30,
+            "title": "Nice",
+            "type": "array"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "no_data": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data",
+            "type": "array"
+          },
+          "no_data_must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data Must",
+            "type": "array"
+          },
+          "unmapped": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmapped",
+            "type": "array"
+          },
+          "clarifications": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2,
+            "title": "Clarifications",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RoomRequest",
+        "type": "object"
+      },
+      "RoomScope": {
+        "additionalProperties": false,
+        "description": "Requested/modelled position, never evidence that a sellable room exists.",
+        "properties": {
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "RoomScope",
         "type": "object"
       },
       "Scope": {
@@ -6742,6 +9588,21 @@
     },
     "additionalProperties": false,
     "properties": {
+      "room_requests": {
+        "items": {
+          "$ref": "#/$defs/RoomRequest"
+        },
+        "maxItems": 12,
+        "title": "Room Requests",
+        "type": "array"
+      },
+      "room_plan": {
+        "items": {
+          "$ref": "#/$defs/RoomPlanItem"
+        },
+        "title": "Room Plan",
+        "type": "array"
+      },
       "id": {
         "title": "Id",
         "type": "string"
@@ -7721,6 +10582,14 @@
       "ParsedQuery": {
         "additionalProperties": false,
         "properties": {
+          "rooms": {
+            "items": {
+              "$ref": "#/$defs/RoomRequest"
+            },
+            "maxItems": 12,
+            "title": "Rooms",
+            "type": "array"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -7907,6 +10776,32 @@
       "PassportItem": {
         "additionalProperties": false,
         "properties": {
+          "room_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Label"
+          },
+          "room_index": {
+            "anyOf": [
+              {
+                "maximum": 11,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Index"
+          },
           "id": {
             "title": "Id",
             "type": "string"
@@ -7964,6 +10859,154 @@
           "text"
         ],
         "title": "PassportItem",
+        "type": "object"
+      },
+      "RoomRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "maxItems": 30,
+            "title": "Must",
+            "type": "array"
+          },
+          "nice": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "maxItems": 30,
+            "title": "Nice",
+            "type": "array"
+          },
+          "scope": {
+            "$ref": "#/$defs/RoomScope"
+          },
+          "no_data": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data",
+            "type": "array"
+          },
+          "no_data_must": {
+            "items": {
+              "$ref": "#/$defs/Criterion"
+            },
+            "title": "No Data Must",
+            "type": "array"
+          },
+          "unmapped": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmapped",
+            "type": "array"
+          },
+          "clarifications": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2,
+            "title": "Clarifications",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "RoomRequest",
+        "type": "object"
+      },
+      "RoomScope": {
+        "additionalProperties": false,
+        "description": "Requested/modelled position, never evidence that a sellable room exists.",
+        "properties": {
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          }
+        },
+        "title": "RoomScope",
         "type": "object"
       },
       "Scope": {
