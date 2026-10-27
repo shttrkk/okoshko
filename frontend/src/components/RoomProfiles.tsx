@@ -302,7 +302,11 @@ export function RoomSuggestion({
       data-testid="room-suggestion"
     >
       <summary>
-        <span className="eyebrow">Просите номер</span>
+        <span className="eyebrow">
+          {recommendation.startsWith("Просите номер:")
+            ? "Просите номер"
+            : "Лучший вариант"}
+        </span>
         <p>
           {profile
             ? scopeText(roomEvidenceScope(profile.scope))

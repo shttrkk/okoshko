@@ -1490,7 +1490,7 @@ export function SearchPage() {
                     </div>
                     <span className="result-count">{hits.length}</span>
                   </div>
-                  {hasPartial && (
+                  {hasPartial && group !== legendGroup && (
                     <p className="result-group-note">
                       {
                         {
