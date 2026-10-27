@@ -10,15 +10,58 @@ from datetime import UTC, datetime
 from backend.agents.dependencies import retirement_sources, unknown_dependencies
 from backend.contracts import CharacteristicSpec, Claim, Conflict, Fact, Scope
 
-INTERNAL = {"soundproofing", "room_orientation", "pets"}
-VIEWS = {"sea_view", "sunset_view", "mountain_view"}
-CATEGORIES = ("facade", "month", "room_type")
+INTERNAL = {"soundproofing", "room_orientation", "pets", 'hotel_parking'}
+VIEWS = {"sea_view", "sunset_view", "mountain_view", 'landmark_view'}
+CATEGORIES = ("facade", "month", "room_type", 'landmark_id')
 # A hotel-wide "yes" contradicts the model only within a known complete floor
 # domain, with enough explicitly modeled facades and this confidence.
 CONTRADICTION_CONFIDENCE = .6
 CONTRADICTION_MIN_FACADES = 3
 CONTRADICTION_PREFIX = "contradiction-"
-VIEW_LABELS = {"sea_view": ("вид на море", "море"), "sunset_view": ("закат из окна", "закат"), "mountain_view": ("вид на горы", "горы")}
+VIEW_LABELS = {"sea_view": ("вид на море", "море"), "sunset_view": ("закат из окна", "закат"), "mountain_view": ("вид на горы", "горы"),
+               'landmark_view': ('вид на достопримечательность', 'достопримечательность')}
+SUPPLEMENTAL_FIELDS = {
+    'family_nearby': {'walk_playground', 'walk_hospital', 'walk_children_hospital', 'walk_promenade'},
+    'car_access': {'walk_parking', 'walk_ev', 'mapped_road_access'},
+    'building_history': {'history_information', 'historic_designation', 'explicit_building_date', 'architecture'},
+    'climate': {'sunny_days', 'rainy_days', 'wet_month_proxy', 'complete_sun_years', 'complete_rain_years'},
+}
+
+
+def supplemental_observation(claim: Claim) -> bool:
+    return (isinstance(claim.value, dict) and claim.value.get('available') is None
+            and claim.method == f'tz_supplement:{claim.characteristic_id}@1'
+            and any(e.inputs.get('supplementary_observation') is True for e in claim.evidence)
+            and bool(SUPPLEMENTAL_FIELDS.get(claim.characteristic_id, set()) & claim.value.keys()))
+
+
+def stale_prepared_landmarks(facts: list[Fact], events: list[dict]) -> list[Fact]:
+    """Reject static LOS under a different active geometry; preserve the ledger.
+
+    Runtime hooks pass the hotel's persisted change events. A matching artifact
+    is the only evidence that a LOS observation used that geometry. Retrieval or
+    materialisation time does not establish a recalculation.
+    """
+    overlays = [event for event in events if event.get('kind') == 'osm_building_new'
+                and (event.get('payload') or {}).get('geo_artifact')]
+    if not overlays:
+        return facts
+    result = []
+    for fact in facts:
+        related = [event for event in overlays if fact.hotel_id in event.get('affected_hotel_ids', [])]
+        if not related:
+            result.append(fact)
+            continue
+        latest = max(related, key=lambda event: (event.get('detected_at', ''), event.get('id', '')))
+        artifact = latest['payload']['geo_artifact']
+        landmark = fact.scope.landmark_id is not None or fact.characteristic_id == 'landmark_view'
+        calculated = any(e.kind in {'calculation', 'simulation'} for e in fact.evidence)
+        same = any(e.artifact == artifact or e.inputs.get('geo_artifact') == artifact for e in fact.evidence)
+        if landmark and calculated and not same:
+            result.append(fact.model_copy(update={'status': 'stale', 'confidence': 0}))
+        else:
+            result.append(fact)
+    return result
 
 
 def stable_id(*parts) -> str:
@@ -209,7 +252,7 @@ def view_contradictions(hotel_id: str, latest: list[Claim], at: datetime, *,
     if type(known_floors) is not int or not 1 <= known_floors <= 100:
         return []
     found = []
-    for characteristic_id in sorted(VIEWS):
+    for characteristic_id in sorted(VIEWS - {'landmark_view'}):
         related = [claim for claim in latest if claim.characteristic_id == characteristic_id and claim.valid_until > at]
         general = [claim for claim in related if existential_view(claim)
                    and (claim.source == "hotel_website" or claim.source.startswith("hotelier"))]
@@ -314,7 +357,8 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
         key = (claim.characteristic_id, scope_key(claim.scope), claim.source, claim.method)
         if key not in latest or (claim.observed_at, claim.id) > (latest[key].observed_at, latest[key].id):
             latest[key] = claim
-    grouped = partition_claims(list(latest.values()), at=at)
+    supplemental = [claim for claim in latest.values() if supplemental_observation(claim)]
+    grouped = partition_claims([claim for claim in latest.values() if not supplemental_observation(claim)], at=at)
     facts, conflicts = [], []
     for (characteristic_id, scope_json), group in grouped.items():
         valid = [claim for claim in group if claim.valid_until > at]
@@ -342,6 +386,11 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
                 and math.isfinite(partial.value[key])
                 for key in observed_fields)
             has_observation = has_observation or spec is not None and known_search_value(partial.value, spec)
+            additional = {'hotel_parking': {'private_parking', 'fee_rub_per_day', 'reservation_required', 'ev_charging'},
+                          'mobile_masts': {'mapped_count'}, 'building_history': {'history_information', 'historic_designation', 'explicit_building_date'},
+                          'family_nearby': {'walk_playground', 'walk_hospital', 'walk_children_hospital', 'walk_promenade'},
+                          'night_open': {'shop', 'food'}, 'dog_walk': {'dog_park', 'ordinary_park_fallback'}}.get(characteristic_id, set())
+            has_observation = has_observation or isinstance(partial.value, dict) and any(partial.value.get(key) is not None for key in additional)
             facts.append(Fact(id=id, hotel_id=hotel_id, characteristic_id=characteristic_id, scope=scope,
                               value=partial.value, supporting_claim_ids=[partial.id], evidence=partial.evidence,
                               valid_until=partial.valid_until, synthetic=partial.synthetic,
@@ -395,6 +444,18 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
             confidence=confidence, status=status, resolution=resolution, supporting_claim_ids=[c.id for c in winner],
             conflicting_claim_ids=[c.id for c in opposing], evidence=list(evidence.values()),
             valid_until=min(c.valid_until for c in winner), synthetic=any(c.synthetic for c in winner)))
+    # Each supplementary observation keeps its own evidence and confidence.
+    # Combining its fields with an unrelated high-confidence baseline available
+    # would manufacture confidence and false value conflicts.
+    for claim in supplemental:
+        facts.append(Fact(id=stable_id('fact-observation', hotel_id, claim.characteristic_id,
+                                      scope_key(claim.scope), claim.source, claim.method),
+                          hotel_id=hotel_id, characteristic_id=claim.characteristic_id,
+                          scope=claim.scope, value=claim.value,
+                          status='computed' if claim.valid_until > at else 'stale',
+                          confidence=claim.confidence if claim.valid_until > at else 0,
+                          supporting_claim_ids=[claim.id], evidence=claim.evidence,
+                          valid_until=claim.valid_until, synthetic=claim.synthetic))
     represented = {fact.characteristic_id for fact in facts}
     for spec in specs:
         if spec.id not in represented:
@@ -470,6 +531,8 @@ def resolve_hotel(hotel_id: str, repo) -> list[Fact]:
     specs = [CharacteristicSpec.model_validate(value) for value in repo.all("characteristics")]
     hotel = repo.get("hotels", hotel_id) or {}
     facts, conflicts = resolve_claims(hotel_id, claims, specs, repo.all("sources"), known_floors=hotel.get("floors"))
+    events = [event for event in repo.all('change_events') if hotel_id in event.get('affected_hotel_ids', [])]
+    facts = stale_prepared_landmarks(facts, events)
     if hasattr(repo,"replace_facts"):
         repo.replace_facts(hotel_id,[fact.model_dump(mode="json") for fact in facts])
     else:
@@ -493,8 +556,10 @@ def resolve_all(repo):
     sources = repo.all("sources")
     facts, conflicts = [], []
     hotels = repo.all("hotels")
+    events = repo.all('change_events')
     for hotel in hotels:
         new_facts, new_conflicts = resolve_claims(hotel["id"], claims_by_hotel[hotel["id"]], specs, sources, known_floors=hotel.get("floors"))
+        new_facts = stale_prepared_landmarks(new_facts, [event for event in events if hotel['id'] in event.get('affected_hotel_ids', [])])
         facts.extend(fact.model_dump(mode="json") for fact in new_facts)
         conflicts.extend(conflict.model_dump(mode="json") for conflict in new_conflicts)
     if hasattr(repo, "replace_materialized_facts"):
