@@ -1,0 +1,19 @@
+{
+  "checked_at": "2026-10-27T11:04:13.387472+00:00",
+  "passed": true,
+  "project": "okno-clean-e4319455307d",
+  "synthetic": true,
+  "hotel_id": "osm-node-11866202895",
+  "passport_id": "16cd2552-d9f3-4846-8408-769766cab675",
+  "item_count": 3,
+  "room_requests": 2,
+  "status_after_one_confirmation": "confirmed",
+  "checks": [
+    "raw group search",
+    "SQL persistence and reread",
+    "labelled personal and shared items",
+    "one authenticated confirmation without fabricated room numbers",
+    "inventory caveat retained"
+  ],
+  "note": "Only disposable QA database was changed; its project and volumes are removed by the clean-clone check."
+}

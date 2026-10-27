@@ -1,0 +1,27 @@
+{
+  "checked_at": "2026-10-27T11:08:08.437203+00:00",
+  "methodology": "Serial localhost HTTP after restored main stand is healthy;20warm search calls,5GETcalls each;uncompressed JSON bytes. Not a load test.",
+  "query": "Едем компанией: Маше — тихий номер, Игорю — вид на море. Для всех — до пляжа не больше 10 минут",
+  "hotel_id": "osm-node-11866202895",
+  "rooms": {
+    "json_bytes": 100204,
+    "samples": 5,
+    "p50_ms": 43.91,
+    "max_ms": 48.55
+  },
+  "all_in_first20": 3,
+  "search": {
+    "first_call_ms": 1119.18,
+    "warm_samples": 20,
+    "p50_ms": 132.23,
+    "p95_nearest_rank_ms": 141.62,
+    "json_bytes": 512836
+  },
+  "compact_hotel": {
+    "json_bytes": 179309,
+    "samples": 5,
+    "p50_ms": 37.73,
+    "max_ms": 39.92
+  },
+  "room_request_count": 2
+}

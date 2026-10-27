@@ -225,6 +225,13 @@
 
 Legacy authored parser239:215 exact, negative0/120, без регрессии в текущей волне; одно отличие от исходного 216 — фраза про детей/нас теперь корректно представлена разными запросами. Все четыре примера компании и пример с главной защищены browser group smoke. Производительность синтетического сопоставления 100 отелей ×104 факта ×12 одинаковых запросов:7,797→1,327 с (одна машина, не HTTP SLA); расчёт переиспользуется без общей изменяемой копии плана.
 
-Приёмка текущей версии и чистого клона выполняется перед фиксацией итогового состояния; исходные защищённые тома okno/okno-demo сохраняются.
+Приёмка текущей версии и чистого клона завершена; исходные защищённые тома okno/okno-demo сохранены.
 
-27.10 13:55: итоговая интеграционная приёмка PASS:1542 tests +125 subtests, coverage90,51% (8406/9287), Ruff, frontend ESLint/TS, make audit, пересборка okno-demo, demo-check13/13 и все9browser smoke системнымChrome. Полный отчёт: docs/checks/company_integration.json. Проверка чистого клона без.env — следующий этап.
+27.10 13:55: итоговая интеграционная приёмка PASS:1542 tests +125 subtests, coverage90,51% (8406/9287), Ruff, frontend ESLint/TS, make audit, пересборка okno-demo, demo-check13/13 и все 9browser smoke системнымChrome. Полный отчёт: docs/checks/company_integration.json. Чистый клон проверен, результат ниже.
+
+
+27.10 14:18: чистый клон 00ae269 без.env, новый проектokno-clean-e4319455307d и пустой build cache — PASS. Команда docker compose up --build → /health за 136,539 с; контейнер → health73,127 с, restart_count0. Linux/amd64, non-root10001:10001, образ 327638470 Б. В launch PATH нет host Python/Node; QA dependencies подключены после readiness. Make check (1542+125), demo-check13/13, все 9browser smoke PASS. Полная проверка 391,81 с. Отчёты: docs/checks/company_clean_clone.json/.log и company_clean_clone_demo.json.
+
+На настоящей PostgreSQL временного проекта: два RoomRequest, один общий+два персональных пункта, SQL reread, одно авторизованное подтверждение без room_number → confirmed; synthetic_booking и оговорка инвентаря сохранены (company_group_passport.json). Данные проверки удалены вместе с QA-проектом; в основной БД паспортов с тестовым guest_name0. Тома okno/okno-demo не удалялись. Временные контейнеры/тома/образ/клон и все 5 рабочих worktree удалены, ветки и история сохранены; свободно 34GiB.
+
+Стенд okno-demo:8080 восстановлен, /health ok, повторный demo-check13/13 PASS. Последовательный HTTP: групповой helpercold1119 мс, warm20 p50=132,23/p95nearest-rank=141,62 мс,3all в первых 20. GET rooms5samples p50=43,91 мс/100204 Б; compact hotelp50=37,73 мс/179309 Б. Не нагрузочный SLA (company_http.json). После упаковки: повторные 1542tests+125subtests, Ruff/frontend lint PASS.

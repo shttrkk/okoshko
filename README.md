@@ -14,7 +14,7 @@ docker compose up --build
 # Открыть http://localhost:8080
 ```
 
-`.env` необязателен: дефолты запускают offline-демо. Для изменения настроек можно скопировать `.env.example` в `.env`.
+`.env` необязателен: дефолты запускают offline-демо. Чистый клон `00ae269` с пустым build cache: до `/health` 136,5 с, перезапусков 0; `make check`, `demo-check` и все 9 browser smoke — PASS ([отчёт](docs/checks/company_clean_clone.json)). Для изменения настроек можно скопировать `.env.example` в `.env`.
 
 ## Проверка за 5 минут
 
