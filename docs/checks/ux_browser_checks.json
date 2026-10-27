@@ -38,5 +38,14 @@
     "exit_code": 0,
     "seconds": 4.83,
     "log": "/tmp/okno-ux-release-security-smoke.mjs.log"
+  },
+  "fact-semantics-smoke.mjs": {
+    "exit_code": 0,
+    "log": "/tmp/okno-ux-final-fact-semantics-8080.log"
+  },
+  "guest-language-smoke.mjs": {
+    "exit_code": 0,
+    "states": 16,
+    "report": "docs/reviews/ux_after_final/smoke-result.json"
   }
 }
