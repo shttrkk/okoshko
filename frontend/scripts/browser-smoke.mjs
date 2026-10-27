@@ -72,10 +72,15 @@ try {
     "Hotel must evaluate the active parsed query",
   );
   await page.locator(".evidence-button").first().click();
-  await page.getByRole("dialog").waitFor();
-  assert.match(
-    await page.getByRole("dialog").innerText(),
-    /Данные получены[\s\S]*Актуально до/,
+  const proofDialog = page.getByRole("dialog");
+  await proofDialog.waitFor();
+  await proofDialog.locator(".evidence-card").first().waitFor({ timeout: 30000 });
+  const proofText = await proofDialog.innerText();
+  assert.match(proofText, /Данные получены[\s\S]*Актуально до/);
+  assert.doesNotMatch(
+    proofText,
+    /Дата наблюдения не передана|Метод не передан API|Нет подтверждающего источника/,
+    "Lazy evidence must include actual observation dates, methods and sources",
   );
   await page.keyboard.press("Escape");
   await page.getByRole("dialog").waitFor({ state: "hidden" });

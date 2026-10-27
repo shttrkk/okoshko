@@ -397,10 +397,14 @@ async function main() {
           .locator(".hotel-fit .verdict-text")
           .filter({ hasText: "Закат из окна" })
           .click();
-        await app.getByRole("dialog").waitFor();
-        assert.match(
-          await app.getByRole("dialog").innerText(),
-          /Следующая проверка \/ TTL/,
+        const proofDialog = app.getByRole("dialog");
+        await proofDialog.waitFor();
+        await proofDialog.locator(".evidence-card").first().waitFor({ timeout: 30000 });
+        const proofText = await proofDialog.innerText();
+        assert.match(proofText, /Данные получены[\s\S]*Актуально до/);
+        assert.doesNotMatch(
+          proofText,
+          /Дата наблюдения не передана|Метод не передан API|Нет подтверждающего источника/,
         );
         if (!fast) await sleep(3500);
         await app.getByRole("button", { name: "Закрыть", exact: true }).click();

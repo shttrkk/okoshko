@@ -1,0 +1,970 @@
+ID						RECLAIMABLE	SIZE		LAST ACCESSED
+youou11tsuslwysecljfcs0wv               	true 		5.534MB   	35 minutes ago
+c29ky9map4w28hxg99qr7wohp               	true 	5.534MB   	3 minutes ago
+8155kh001cx2pg90dtndr48iv               	true 	34.3MB    	3 minutes ago
+juxy4k42z365ub98o70gsgown               	true 	5.534MB   	55 minutes ago
+u4aj9lj7o9cf5lp2l0hc02n38*              	true 	8.192kB   	3 minutes ago
+u67zffzdv1e7p6ibu5shoyfrd*              	true 	6.943MB   	3 minutes ago
+mv6ogoaghgr8dtoo1lvzjketg*              	true 	8.192kB   	3 minutes ago
+f3phzyk0peemy3dj1g0qc79vp*              	true 	399.9MB   	3 minutes ago
+1uij1ys4e9n3212dlfu2gyau9*              	true 	356.6MB   	58 minutes ago
+i476s9tvs4ir49o3jcky8ekd0               	true 	5.534MB   	58 minutes ago
+6kh1i30fnbt7u2tzkqgdxkrdr               	true 	2.179MB   	58 minutes ago
+ruihcnrr7nc93v95hlrcf18om               	true 	12.54kB   	35 minutes ago
+s61dfcxdfnyhkircr5jm98xok               	true 	12.54kB   	58 minutes ago
+lfv4om086vs0228g868wn45g6               	true 	12.54kB   	55 minutes ago
+qxj4jy00jyjzhwh9hptuiqtg7               	true 	81.92kB   	58 minutes ago
+noc45gm8pba73oh10m7ekc8hk               	true 	12.54kB   	3 minutes ago
+sa0zvnsktwv9if2e65cmpekru               	true 	566.1MB   	55 minutes ago
+trsxbffbl9rud8u1idf0qx49i               	true 	275.4MB   	58 minutes ago
+3d6srqpd65iyfzttn8a9otkaa               	true 	566.1MB   	58 minutes ago
+le3fb9xys117fqfb3f0jz1qf5               	true 	566.1MB   	3 minutes ago
+np1luepqoz0gl7xqu6npqkhma               	true 	566.1MB   	35 minutes ago
+m09qir9mp9lom1t5ro1g3r60f               	true 	18.3MB    	58 minutes ago
+6ua95w41wkwf9vjd72amzi06b               	true 	163.8kB   	58 minutes ago
+e5rd1w3n3siumyk95mujscind               	true 	59.44kB   	58 minutes ago
+t9vtk03xwe2jg7sjltkl2b4sy               	true 	59.44kB   	55 minutes ago
+16bp0svjzskieh1ofc035gws6               	true 	59.44kB   	3 minutes ago
+45nba5yoxigdz6ricwlpvm4lb               	true 	59.44kB   	35 minutes ago
+3l7rsn90ntz0xelc7hd10zt2q               	true 	8.192kB   	58 minutes ago
+e4jzz6001ars9j3i0rnva0q56               	true 	293.5kB   	55 minutes ago
+c89g0cyipk6mnd5kpqomgxmex               	true 	293.5kB   	3 minutes ago
+6kgtb3o8hrnw6vw8bqm8mmy7r               	true 	293.5kB   	35 minutes ago
+nvccq1p3pb4gig3qyjapj6fzq               	true 	293.5kB   	58 minutes ago
+t0f8qzbvbug0yrtn1xpqyimr6               	true 	1.217MB   	55 minutes ago
+xwxndu6d4kqpiblff130ro84m               	true 	1.208MB   	58 minutes ago
+81sde6nemw7sefibriuehdjdl               	true 	20.92kB   	58 minutes ago
+rc2y960n5fuzvg99netzf9o9r               	true 	1.237MB   	3 minutes ago
+iir6anfx1q9b6zh3nhylccunk               	true 	1.232MB   	35 minutes ago
+n15xxgljh21b8racwr0lv82r1               	true 	6.752MB   	59 minutes ago
+x3q4oi6y028w40sovecj8s30q               	true 	480.3MB   	3 minutes ago
+m9eznd2k5ab08ervqw7nrfb0y               	true 	214MB     	59 minutes ago
+pwfflez0tvs78hiy762vhupvq               	true 	4.128kB   	58 minutes ago
+kqyqy3cstem9tpl1p0aubod8v               	true 	93.47kB   	58 minutes ago
+eg6qgignxk9k2racozuleg425               	true 	13.5MB    	59 minutes ago
+oujogtgz3yybzjb0lb0x4phbq               	true 	249B      	58 minutes ago
+awetza0ckrurlpwk0sl25gatk               	true 	13.68MB   	59 minutes ago
+o2qpewv2hpk3ff364krfte09k               	true 	3.341MB   	59 minutes ago
+db2nqlelrmwfr3rrwtcazu3p4               	true 	28.25MB   	59 minutes ago
+Total:	4.147GB
+ Image okno-clean-17acd4786ee9-app Building
+#1 [internal] load local bake definitions
+#1 reading from stdin 632B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.32kB done
+#2 DONE 0.0s
+
+#3 resolve image config for docker-image://docker.io/docker/dockerfile:1.7
+#3 DONE 2.0s
+
+#4 docker-image://docker.io/docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e
+#4 resolve docker.io/docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e 0.0s done
+#4 sha256:6e230fe0035dc5b9d8d5e65513d1f11ae3b25d14362031fb540a4c23bf862933 0B / 11.24MB 0.2s
+#4 sha256:6e230fe0035dc5b9d8d5e65513d1f11ae3b25d14362031fb540a4c23bf862933 4.19MB / 11.24MB 0.6s
+#4 sha256:6e230fe0035dc5b9d8d5e65513d1f11ae3b25d14362031fb540a4c23bf862933 6.29MB / 11.24MB 0.8s
+#4 sha256:6e230fe0035dc5b9d8d5e65513d1f11ae3b25d14362031fb540a4c23bf862933 7.34MB / 11.24MB 0.9s
+#4 sha256:6e230fe0035dc5b9d8d5e65513d1f11ae3b25d14362031fb540a4c23bf862933 8.39MB / 11.24MB 1.7s
+#4 sha256:6e230fe0035dc5b9d8d5e65513d1f11ae3b25d14362031fb540a4c23bf862933 9.44MB / 11.24MB 2.7s
+#4 sha256:6e230fe0035dc5b9d8d5e65513d1f11ae3b25d14362031fb540a4c23bf862933 10.49MB / 11.24MB 2.9s
+#4 sha256:6e230fe0035dc5b9d8d5e65513d1f11ae3b25d14362031fb540a4c23bf862933 11.24MB / 11.24MB 2.9s done
+#4 extracting sha256:6e230fe0035dc5b9d8d5e65513d1f11ae3b25d14362031fb540a4c23bf862933 0.1s done
+#4 DONE 2.9s
+
+#5 [internal] load metadata for docker.io/library/python:3.12.15-slim-bookworm
+#5 DONE 0.6s
+
+#6 [internal] load metadata for docker.io/library/node:22.23.4-alpine3.24
+#6 DONE 1.5s
+
+#7 [internal] load .dockerignore
+#7 transferring context: 307B done
+#7 DONE 0.0s
+
+#8 [python-build 1/4] FROM docker.io/library/python:3.12.15-slim-bookworm@sha256:6a0e06f5ba0b373d051aabd3fffb9b873f27f9a2a3a14bcbe37dee6f0e3bbc70
+#8 resolve docker.io/library/python:3.12.15-slim-bookworm@sha256:6a0e06f5ba0b373d051aabd3fffb9b873f27f9a2a3a14bcbe37dee6f0e3bbc70 done
+#8 DONE 0.1s
+
+#9 [web 1/6] FROM docker.io/library/node:22.23.4-alpine3.24@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914
+#9 resolve docker.io/library/node:22.23.4-alpine3.24@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 done
+#9 sha256:f04c63730cb349b2c5fcd49010e45ce74ed3caa240639ea8b248f42827a75249 0B / 444B 0.2s
+#9 sha256:f04c63730cb349b2c5fcd49010e45ce74ed3caa240639ea8b248f42827a75249 444B / 444B 0.2s done
+#9 sha256:e51951d495a7da196c9ad4a10e58817f7e8ae25e5ca4564911ab879377fba153 0B / 1.26MB 0.2s
+#9 sha256:d3531b7a4f217bdc3426c57bcff84c170f086f456a39689d4a615c6d026c4be0 0B / 4.19MB 0.2s
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 0B / 55.69MB 0.2s
+#9 ...
+
+#10 [runtime  2/10] RUN useradd --system --uid 10001 --create-home app && mkdir -p /app/runtime/geo && chown -R 10001:10001 /app/runtime
+#10 0.338 useradd warning: app's uid 10001 is greater than SYS_UID_MAX 999
+#10 DONE 0.6s
+
+#11 [runtime  3/10] WORKDIR /app
+#11 DONE 0.0s
+
+#9 [web 1/6] FROM docker.io/library/node:22.23.4-alpine3.24@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914
+#9 sha256:e51951d495a7da196c9ad4a10e58817f7e8ae25e5ca4564911ab879377fba153 1.26MB / 1.26MB 0.6s done
+#9 sha256:d3531b7a4f217bdc3426c57bcff84c170f086f456a39689d4a615c6d026c4be0 1.05MB / 4.19MB 0.8s
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 5.24MB / 55.69MB 1.2s
+#9 sha256:d3531b7a4f217bdc3426c57bcff84c170f086f456a39689d4a615c6d026c4be0 2.10MB / 4.19MB 1.5s
+#9 sha256:d3531b7a4f217bdc3426c57bcff84c170f086f456a39689d4a615c6d026c4be0 3.15MB / 4.19MB 1.7s
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 9.44MB / 55.69MB 1.7s
+#9 sha256:d3531b7a4f217bdc3426c57bcff84c170f086f456a39689d4a615c6d026c4be0 4.19MB / 4.19MB 1.8s done
+#9 extracting sha256:d3531b7a4f217bdc3426c57bcff84c170f086f456a39689d4a615c6d026c4be0
+#9 extracting sha256:d3531b7a4f217bdc3426c57bcff84c170f086f456a39689d4a615c6d026c4be0 0.2s done
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 12.58MB / 55.69MB 2.1s
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 16.78MB / 55.69MB 2.6s
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 19.92MB / 55.69MB 2.9s
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 23.07MB / 55.69MB 3.0s
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 26.21MB / 55.69MB 3.2s
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 30.41MB / 55.69MB 3.3s
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 33.55MB / 55.69MB 3.5s
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 38.80MB / 55.69MB 5.0s
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 41.94MB / 55.69MB 5.3s
+#9 ...
+
+#12 [internal] load build context
+#12 transferring context: 397.51MB 6.0s done
+#12 DONE 6.0s
+
+#9 [web 1/6] FROM docker.io/library/node:22.23.4-alpine3.24@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914
+#9 ...
+
+#13 [python-build 2/4] RUN python -m venv /venv
+#13 ...
+
+#9 [web 1/6] FROM docker.io/library/node:22.23.4-alpine3.24@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 45.09MB / 55.69MB 6.5s
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 48.23MB / 55.69MB 7.1s
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 51.38MB / 55.69MB 8.4s
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 54.53MB / 55.69MB 8.7s
+#9 ...
+
+#13 [python-build 2/4] RUN python -m venv /venv
+#13 DONE 8.9s
+
+#14 [python-build 3/4] COPY backend/requirements.lock /tmp/requirements.lock
+#14 DONE 0.0s
+
+#9 [web 1/6] FROM docker.io/library/node:22.23.4-alpine3.24@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914
+#9 sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 55.69MB / 55.69MB 8.9s done
+#9 extracting sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce
+#9 extracting sha256:5c8e282ceef79775f7764a7ebcc588c0ae1d03bd53fefafb20015a2902cafcce 0.8s done
+#9 DONE 9.7s
+
+#15 [python-build 4/4] RUN /venv/bin/pip install --only-binary=:all: --require-hashes -r /tmp/requirements.lock
+#15 ...
+
+#9 [web 1/6] FROM docker.io/library/node:22.23.4-alpine3.24@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914
+#9 extracting sha256:e51951d495a7da196c9ad4a10e58817f7e8ae25e5ca4564911ab879377fba153 0.0s done
+#9 extracting sha256:f04c63730cb349b2c5fcd49010e45ce74ed3caa240639ea8b248f42827a75249 done
+#9 DONE 9.8s
+
+#16 [web 2/6] WORKDIR /web
+#16 DONE 0.1s
+
+#17 [web 3/6] COPY frontend/package*.json ./
+#17 DONE 0.0s
+
+#18 [web 4/6] RUN npm ci --no-audit --no-fund
+#18 3.766 npm warn deprecated eslint@9.39.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+#18 ...
+
+#15 [python-build 4/4] RUN /venv/bin/pip install --only-binary=:all: --require-hashes -r /tmp/requirements.lock
+#15 1.595 Collecting alembic==1.15.2 (from -r /tmp/requirements.lock (line 7))
+#15 2.053   Downloading alembic-1.15.2-py3-none-any.whl (231 kB)
+#15 2.297 Collecting annotated-doc==0.0.5 (from -r /tmp/requirements.lock (line 11))
+#15 2.349   Downloading annotated_doc-0.0.5-py3-none-any.whl (5.3 kB)
+#15 2.453 Collecting annotated-types==0.8.0 (from -r /tmp/requirements.lock (line 15))
+#15 2.516   Downloading annotated_types-0.8.0-py3-none-any.whl (13 kB)
+#15 2.823 Collecting anyio==4.15.1 (from -r /tmp/requirements.lock (line 19))
+#15 2.990   Downloading anyio-4.15.1-py3-none-any.whl (132 kB)
+#15 3.131 Collecting astral==3.2 (from -r /tmp/requirements.lock (line 25))
+#15 3.196   Downloading astral-3.2-py3-none-any.whl (38 kB)
+#15 3.377 Collecting attrs==26.1.0 (from -r /tmp/requirements.lock (line 29))
+#15 3.435   Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+#15 3.534 Collecting certifi==2026.10.23 (from -r /tmp/requirements.lock (line 35))
+#15 3.588   Downloading certifi-2026.10.23-py3-none-any.whl (135 kB)
+#15 3.692 Collecting click==8.5.0 (from -r /tmp/requirements.lock (line 42))
+#15 3.741   Downloading click-8.5.0-py3-none-any.whl (125 kB)
+#15 4.512 Collecting fastapi==0.162.0 (from -r /tmp/requirements.lock (line 46))
+#15 4.561   Downloading fastapi-0.162.0-py3-none-any.whl (148 kB)
+#15 5.379 Collecting greenlet==3.2.1 (from -r /tmp/requirements.lock (line 50))
+#15 5.437   Downloading greenlet-3.2.1-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (603 kB)
+#15 5.996      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 603.8/603.8 kB 1.3 MB/s eta 0:00:00
+#15 6.053 Collecting h11==0.16.0 (from -r /tmp/requirements.lock (line 107))
+#15 6.100   Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+#15 6.183 Collecting httpcore==1.0.9 (from -r /tmp/requirements.lock (line 113))
+#15 6.230   Downloading httpcore-1.0.9-py3-none-any.whl (78 kB)
+#15 6.350 Collecting httpx==0.28.1 (from -r /tmp/requirements.lock (line 117))
+#15 6.398   Downloading httpx-0.28.1-py3-none-any.whl (73 kB)
+#15 6.608 Collecting idna==3.20 (from -r /tmp/requirements.lock (line 121))
+#15 6.660   Downloading idna-3.20-py3-none-any.whl (69 kB)
+#15 6.784 Collecting jsonschema==4.23.0 (from -r /tmp/requirements.lock (line 127))
+#15 6.835   Downloading jsonschema-4.23.0-py3-none-any.whl (88 kB)
+#15 6.946 Collecting jsonschema-specifications==2025.9.1 (from -r /tmp/requirements.lock (line 131))
+#15 7.018   Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+#15 7.176 Collecting llvmlite==0.44.0 (from -r /tmp/requirements.lock (line 135))
+#15 7.236   Downloading llvmlite-0.44.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (42.4 MB)
+#15 ...
+
+#18 [web 4/6] RUN npm ci --no-audit --no-fund
+#18 7.814
+#18 7.814 added 225 packages in 8s
+#18 7.814 npm notice
+#18 7.814 npm notice New major version of npm available! 10.9.9 -> 12.2.1
+#18 7.814 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+#18 7.814 npm notice To update run: npm install -g npm@12.2.1
+#18 7.814 npm notice
+#18 DONE 8.0s
+
+#15 [python-build 4/4] RUN /venv/bin/pip install --only-binary=:all: --require-hashes -r /tmp/requirements.lock
+#15 ...
+
+#19 [web 5/6] COPY frontend/ ./
+#19 DONE 0.1s
+
+#20 [web 6/6] RUN npm run build
+#20 0.158
+#20 0.158 > okno-web@0.1.0 build
+#20 0.158 > tsc --noEmit && vite build
+#20 0.158
+#20 5.178 vite v6.4.5 building for production...
+#20 5.247 transforming...
+#20 9.167 ✓ 1614 modules transformed.
+#20 9.489 rendering chunks...
+#20 9.538 computing gzip size...
+#20 9.569 dist/index.html                                                0.94 kB │ gzip:   0.58 kB
+#20 9.569 dist/assets/manrope-vietnamese-wght-normal-usUDDRr7.woff2      8.52 kB
+#20 9.569 dist/assets/manrope-greek-wght-normal-DL7QRZyv.woff2           9.44 kB
+#20 9.569 dist/assets/manrope-cyrillic-wght-normal-Dvxsihut.woff2       14.50 kB
+#20 9.569 dist/assets/manrope-latin-ext-wght-normal-Ch3YOpNY.woff2      15.12 kB
+#20 9.569 dist/assets/manrope-latin-wght-normal-DHIcAJRg.woff2          24.84 kB
+#20 9.569 dist/assets/maplibre-gl-worker-CMkqA50c.mjs                  519.37 kB
+#20 9.569 dist/assets/index-G5QXS8x-.css                               178.20 kB │ gzip:  34.09 kB
+#20 9.569 dist/assets/index-CyCqy7v_.js                                480.01 kB │ gzip: 146.40 kB
+#20 9.569 dist/assets/map-BzilbqU6.js                                1,103.78 kB │ gzip: 304.62 kB
+#20 9.570
+#20 9.570 (!) Some chunks are larger than 500 kB after minification. Consider:
+#20 9.570 - Using dynamic import() to code-split the application
+#20 9.570 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+#20 9.570 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+#20 9.570 ✓ built in 4.36s
+#20 DONE 9.6s
+
+#15 [python-build 4/4] RUN /venv/bin/pip install --only-binary=:all: --require-hashes -r /tmp/requirements.lock
+#15 22.40      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 42.4/42.4 MB 2.8 MB/s eta 0:00:00
+#15 22.62 Collecting mako==1.4.3 (from -r /tmp/requirements.lock (line 158))
+#15 22.67   Downloading mako-1.4.3-py3-none-any.whl (80 kB)
+#15 22.86 Collecting markupsafe==3.0.4 (from -r /tmp/requirements.lock (line 162))
+#15 22.91   Downloading markupsafe-3.0.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+#15 23.19 Collecting numba==0.61.2 (from -r /tmp/requirements.lock (line 315))
+#15 23.25   Downloading numba-0.61.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (3.9 MB)
+#15 24.28      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.9/3.9 MB 3.7 MB/s eta 0:00:00
+#15 24.78 Collecting numpy==2.2.5 (from -r /tmp/requirements.lock (line 338))
+#15 24.83   Downloading numpy-2.2.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (16.1 MB)
+#15 28.84      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.1/16.1 MB 4.1 MB/s eta 0:00:00
+#15 28.95 Collecting opentelemetry-api==1.45.1 (from -r /tmp/requirements.lock (line 398))
+#15 29.00   Downloading opentelemetry_api-1.45.1-py3-none-any.whl (60 kB)
+#15 29.14 Collecting psycopg==3.2.9 (from -r /tmp/requirements.lock (line 402))
+#15 29.19   Downloading psycopg-3.2.9-py3-none-any.whl (202 kB)
+#15 29.66 Collecting psycopg-binary==3.2.9 (from -r /tmp/requirements.lock (line 406))
+#15 29.71   Downloading psycopg_binary-3.2.9-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (4.4 MB)
+#15 31.09      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.4/4.4 MB 3.1 MB/s eta 0:00:00
+#15 31.38 Collecting pydantic==2.11.4 (from -r /tmp/requirements.lock (line 473))
+#15 31.43   Downloading pydantic-2.11.4-py3-none-any.whl (443 kB)
+#15 32.91 Collecting pydantic-core==2.33.2 (from -r /tmp/requirements.lock (line 479))
+#15 32.96   Downloading pydantic_core-2.33.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.0 MB)
+#15 33.52      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 3.7 MB/s eta 0:00:00
+#15 33.69 Collecting pyproj==3.7.1 (from -r /tmp/requirements.lock (line 580))
+#15 33.74   Downloading pyproj-3.7.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (9.6 MB)
+#15 36.29      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 9.6/9.6 MB 3.8 MB/s eta 0:00:00
+#15 36.46 Collecting pyyaml==6.0.2 (from -r /tmp/requirements.lock (line 615))
+#15 36.51   Downloading PyYAML-6.0.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (767 kB)
+#15 36.76      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 767.5/767.5 kB 4.3 MB/s eta 0:00:00
+#15 36.84 Collecting referencing==0.37.0 (from -r /tmp/requirements.lock (line 670))
+#15 36.90   Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+#15 37.47 Collecting rpds-py==2026.9.1 (from -r /tmp/requirements.lock (line 676))
+#15 37.52   Downloading rpds_py-2026.9.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (371 kB)
+#15 37.84 Collecting shapely==2.1.0 (from -r /tmp/requirements.lock (line 808))
+#15 37.89   Downloading shapely-2.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.1 MB)
+#15 39.55      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.1/3.1 MB 1.7 MB/s eta 0:00:00
+#15 40.15 Collecting sqlalchemy==2.0.40 (from -r /tmp/requirements.lock (line 851))
+#15 40.20   Downloading sqlalchemy-2.0.40-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.3 MB)
+#15 41.34      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.3/3.3 MB 2.9 MB/s eta 0:00:00
+#15 41.48 Collecting starlette==1.10.0 (from -r /tmp/requirements.lock (line 912))
+#15 41.53   Downloading starlette-1.10.0-py3-none-any.whl (80 kB)
+#15 41.62 Collecting typing-extensions==4.16.0 (from -r /tmp/requirements.lock (line 918))
+#15 41.67   Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+#15 41.76 Collecting typing-inspection==0.4.4 (from -r /tmp/requirements.lock (line 933))
+#15 41.81   Downloading typing_inspection-0.4.4-py3-none-any.whl (14 kB)
+#15 41.95 Collecting uvicorn==0.34.2 (from -r /tmp/requirements.lock (line 939))
+#15 42.00   Downloading uvicorn-0.34.2-py3-none-any.whl (62 kB)
+#15 42.16 Installing collected packages: typing-extensions, rpds-py, pyyaml, psycopg-binary, numpy, markupsafe, llvmlite, idna, h11, greenlet, click, certifi, attrs, astral, annotated-types, annotated-doc, uvicorn, typing-inspection, sqlalchemy, shapely, referencing, pyproj, pydantic-core, psycopg, opentelemetry-api, numba, mako, httpcore, anyio, starlette, pydantic, jsonschema-specifications, httpx, alembic, jsonschema, fastapi
+#15 50.35 Successfully installed alembic-1.15.2 annotated-doc-0.0.5 annotated-types-0.8.0 anyio-4.15.1 astral-3.2 attrs-26.1.0 certifi-2026.10.23 click-8.5.0 fastapi-0.162.0 greenlet-3.2.1 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 idna-3.20 jsonschema-4.23.0 jsonschema-specifications-2025.9.1 llvmlite-0.44.0 mako-1.4.3 markupsafe-3.0.4 numba-0.61.2 numpy-2.2.5 opentelemetry-api-1.45.1 psycopg-3.2.9 psycopg-binary-3.2.9 pydantic-2.11.4 pydantic-core-2.33.2 pyproj-3.7.1 pyyaml-6.0.2 referencing-0.37.0 rpds-py-2026.9.1 shapely-2.1.0 sqlalchemy-2.0.40 starlette-1.10.0 typing-extensions-4.16.0 typing-inspection-0.4.4 uvicorn-0.34.2
+#15 DONE 50.6s
+
+#21 [runtime  4/10] COPY --from=python-build /venv /venv
+#21 DONE 0.6s
+
+#22 [runtime  5/10] COPY backend/ backend/
+#22 DONE 0.0s
+
+#23 [runtime  6/10] COPY geo/ geo/
+#23 DONE 0.0s
+
+#24 [runtime  7/10] COPY scripts/parser_eval.py scripts/ranking_eval.py scripts/
+#24 DONE 0.0s
+
+#25 [runtime  8/10] COPY --chown=10001:10001 data/ data/
+#25 DONE 0.7s
+
+#26 [runtime  9/10] COPY alembic.ini ./
+#26 DONE 0.0s
+
+#27 [runtime 10/10] COPY --from=web /web/dist static/
+#27 DONE 0.0s
+
+#28 exporting to image
+#28 exporting layers
+#28 exporting layers 11.4s done
+#28 exporting manifest sha256:3e3a3c8bd6dc5ad8702fd7e4132ff288c0865bfa94d397e27f229ced1a9c8dff 0.0s done
+#28 exporting config sha256:db92fe48824371e296cb27ee7b37625169b74249536ff017535944dbe86af686 done
+#28 exporting attestation manifest sha256:bbee4120ce92d2dc877402388b212064ebf2787565b1a90c79fd19385ba9306b done
+#28 exporting manifest list sha256:1d392cf96eaf0407b00e100a6f2c7d00b91fddf0923abd30f7b577315a8e7b9c done
+#28 naming to docker.io/library/okno-clean-17acd4786ee9-app:latest done
+#28 DONE 11.4s
+
+#29 resolving provenance for metadata file
+#29 DONE 0.0s
+ Image okno-clean-17acd4786ee9-app Built
+ Network okno-clean-17acd4786ee9_default Creating
+ Network okno-clean-17acd4786ee9_default Created
+ Volume okno-clean-17acd4786ee9_pgdata Creating
+ Volume okno-clean-17acd4786ee9_pgdata Created
+ Volume okno-clean-17acd4786ee9_runtime Creating
+ Volume okno-clean-17acd4786ee9_runtime Created
+ Container okno-clean-17acd4786ee9-db-1 Creating
+ Container okno-clean-17acd4786ee9-db-1 Created
+ Container okno-clean-17acd4786ee9-app-1 Creating
+ Container okno-clean-17acd4786ee9-app-1 Created
+Attaching to app-1, db-1
+ Container okno-clean-17acd4786ee9-db-1 Starting
+ Container okno-clean-17acd4786ee9-db-1 Started
+ Container okno-clean-17acd4786ee9-db-1 Waiting
+db-1  | The files belonging to this database system will be owned by user "postgres".
+db-1  | This user must also own the server process.
+db-1  |
+db-1  | The database cluster will be initialized with locale "en_US.utf8".
+db-1  | The default database encoding has accordingly been set to "UTF8".
+db-1  | The default text search configuration will be set to "english".
+db-1  |
+db-1  | Data page checksums are disabled.
+db-1  |
+db-1  | fixing permissions on existing directory /var/lib/postgresql/data ... ok
+db-1  | creating subdirectories ... ok
+db-1  | selecting dynamic shared memory implementation ... posix
+db-1  | selecting default "max_connections" ... 100
+db-1  | selecting default "shared_buffers" ... 128MB
+db-1  | selecting default time zone ... Etc/UTC
+db-1  | creating configuration files ... ok
+db-1  | running bootstrap script ... ok
+db-1  | performing post-bootstrap initialization ... ok
+db-1  | syncing data to disk ... ok
+db-1  |
+db-1  | initdb: warning: enabling "trust" authentication for local connections
+db-1  | initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+db-1  |
+db-1  | Success. You can now start the database server using:
+db-1  |
+db-1  |     pg_ctl -D /var/lib/postgresql/data -l logfile start
+db-1  |
+db-1  | waiting for server to start....2026-10-27 03:45:48.225 UTC [48] LOG:  starting PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+db-1  | 2026-10-27 03:45:48.226 UTC [48] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+db-1  | 2026-10-27 03:45:48.233 UTC [51] LOG:  database system was shut down at 2026-10-27 03:45:47 UTC
+db-1  | 2026-10-27 03:45:48.244 UTC [48] LOG:  database system is ready to accept connections
+db-1  |  done
+db-1  | server started
+db-1  | CREATE DATABASE
+db-1  |
+db-1  |
+db-1  | /usr/local/bin/docker-entrypoint.sh: sourcing /docker-entrypoint-initdb.d/10_postgis.sh
+db-1  | CREATE DATABASE
+db-1  | Loading PostGIS extensions into template_postgis
+db-1  | CREATE EXTENSION
+db-1  | CREATE EXTENSION
+db-1  | You are now connected to database "template_postgis" as user "okno".
+db-1  | DO
+db-1  | Loading PostGIS extensions into okno
+db-1  | CREATE EXTENSION
+db-1  | CREATE EXTENSION
+db-1  | You are now connected to database "okno" as user "okno".
+db-1  | DO
+db-1  |
+db-1  | 2026-10-27 03:45:50.935 UTC [48] LOG:  received fast shutdown request
+db-1  | 2026-10-27 03:45:50.936 UTC [48] LOG:  aborting any active transactions
+db-1  | waiting for server to shut down....2026-10-27 03:45:50.943 UTC [48] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
+db-1  | 2026-10-27 03:45:50.945 UTC [49] LOG:  shutting down
+db-1  | 2026-10-27 03:45:50.946 UTC [49] LOG:  checkpoint starting: shutdown immediate
+db-1  | 2026-10-27 03:45:51.183 UTC [49] LOG:  checkpoint complete: wrote 4453 buffers (27.2%); 0 WAL file(s) added, 0 removed, 2 recycled; write=0.030 s, sync=0.198 s, total=0.236 s; sync files=961, longest=0.033 s, average=0.001 s; distance=34736 kB, estimate=34736 kB; lsn=0/36DB880, redo lsn=0/36DB880
+db-1  | 2026-10-27 03:45:51.192 UTC [48] LOG:  database system is shut down
+db-1  |  done
+db-1  | server stopped
+db-1  |
+db-1  | PostgreSQL init process complete; ready for start up.
+db-1  |
+db-1  | 2026-10-27 03:45:51.341 UTC [1] LOG:  starting PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+db-1  | 2026-10-27 03:45:51.344 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+db-1  | 2026-10-27 03:45:51.344 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+db-1  | 2026-10-27 03:45:51.346 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+db-1  | 2026-10-27 03:45:51.355 UTC [79] LOG:  database system was shut down at 2026-10-27 03:45:51 UTC
+db-1  | 2026-10-27 03:45:51.367 UTC [1] LOG:  database system is ready to accept connections
+ Container okno-clean-17acd4786ee9-db-1 Healthy
+ Container okno-clean-17acd4786ee9-app-1 Starting
+ Container okno-clean-17acd4786ee9-app-1 Started
+app-1  | 2026-10-27 03:45:58,076 INFO Context impl PostgresqlImpl.
+app-1  | 2026-10-27 03:45:58,077 INFO Will assume transactional DDL.
+app-1  | 2026-10-27 03:45:58,116 INFO Running upgrade  -> 0001, Validated JSON envelopes, PostGIS lookup, immutable provenance ledger.
+app-1  | 2026-10-27 03:45:58,215 INFO Running upgrade 0001 -> 0002, Index immutable evidence lookups used by cards and incremental refresh.
+app-1  | 2026-10-27 03:45:58,223 INFO Database migrations complete
+app-1  | 2026-10-27 03:45:58,284 INFO Recovered interrupted jobs/runs: 0
+app-1  | 2026-10-27 03:45:58,384 INFO Seed sources: validated 13 rows
+app-1  | 2026-10-27 03:45:58,458 INFO Seed hotels: validated 250 rows
+app-1  | 2026-10-27 03:45:59,085 INFO Seed evidence ledger open_claims.jsonl.gz: 3364 claims
+app-1  | 2026-10-27 03:46:06,364 INFO Seed evidence ledger geo_claims.jsonl.gz: 20340 claims
+app-1  | 2026-10-27 03:46:17,226 INFO Seed evidence ledger geo_trait_claims.jsonl.gz: 30460 claims
+app-1  | 2026-10-27 03:46:17,235 INFO Seed evidence ledger connectivity_claims.jsonl.gz: 24 claims
+app-1  | 2026-10-27 03:46:17,242 INFO Seed evidence ledger website_claims.jsonl: 40 claims
+app-1  | 2026-10-27 03:46:17,245 INFO Seed evidence ledger demo_hotelier_claims.jsonl: 3 claims
+app-1  | 2026-10-27 03:46:17,261 INFO Synthetic demo dialogue seed: 7 completed answers, 7 claims; real hotel confirmations are not implied
+app-1  | 2026-10-27 03:46:17,289 INFO Seed ready: 250 hotels
+db-1   | 2026-10-27 03:46:57.586 UTC [77] LOG:  checkpoint starting: wal
+app-1  | 2026-10-27 03:46:59,796 INFO Resolver materialized {'facts': 56888, 'conflicts': 105, 'contradictions': 4}
+app-1  | 2026-10-27 03:47:02,945 INFO Seed collection trace b24299ea-26ae-4dd1-929d-dddc78e59521: 48 steps for osm-node-13825400642
+app-1  | 2026-10-27 03:47:03,339 INFO Synthetic new-building scenario applied to osm-way-53284165: 1 notifications
+app-1  | 2026-10-27 03:47:08,785 INFO О!кно ready; local search snapshot primed, LLM_MODE=offline
+app-1  | INFO:     Started server process [6]
+app-1  | INFO:     Waiting for application startup.
+app-1  | INFO:     Application startup complete.
+app-1  | INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+app-1  | INFO:     151.101.0.223:36624 - "GET /health HTTP/1.1" 200 OK
+.venv/bin/ruff check backend geo pipeline scripts tests
+All checks passed!
+cd frontend && npm run lint
+
+> okno-web@0.1.0 lint
+> eslint . && tsc --noEmit
+
+app-1  | INFO:     127.0.0.1:47914 - "GET /health HTTP/1.1" 200 OK
+.venv/bin/python -m pytest -q
+........................................................................ [  5%]
+........................................................................ [ 10%]
+................................................................app-1  | INFO:     127.0.0.1:58564 - "GET /health HTTP/1.1" 200 OK
+........ [ 16%]
+........................................................................ [ 21%]
+........................................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 38%]
+........................................................................ [ 43%]
+........................................................................ [ 49%]
+.....................................................app-1  | INFO:     127.0.0.1:43674 - "GET /health HTTP/1.1" 200 OK
+app-1  | INFO:     127.0.0.1:59018 - "GET /health HTTP/1.1" 200 OK
+................... [ 54%]
+............................................................app-1  | INFO:     127.0.0.1:39170 - "GET /health HTTP/1.1" 200 OK
+............ [ 60%]
+........................................................................ [ 65%]
+........................................ [ 68%]
+................................................... [ 72%]
+........................................................................ [ 77%]
+..........................................................app-1  | INFO:     127.0.0.1:54504 - "GET /health HTTP/1.1" 200 OK
+.............. [ 83%]
+........................................................................ [ 88%]
+........................................................................ [ 94%]
+........................................................................ [ 99%]
+..                                                                       [100%]
+=============================== warnings summary ===============================
+../okno/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /Users/shttrkk/ostrovok-hack/okno/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1317 passed, 1 warning, 125 subtests passed in 57.36s
+app-1  | INFO:     127.0.0.1:51458 - "GET /health HTTP/1.1" 200 OK
+.venv/bin/python -m scripts.audit
+{
+  "generated_at": "2026-10-27T03:48:26.031729+00:00",
+  "python_vulnerable_packages": 0,
+  "python_locks": {
+    "python": {
+      "path": "backend/requirements.lock",
+      "sha256": "64dd8a2cb48ec4f9728fcbf6af3eea304f3539a95740084e98f1b7173d2e974b",
+      "vulnerable_packages": 0
+    },
+    "python-dev": {
+      "path": "requirements-dev.lock",
+      "sha256": "eadec5e396abb2cf9de02027f2cea665b1373d475d604bc495b19b1aad82ab96",
+      "vulnerable_packages": 0
+    },
+    "python-pipeline": {
+      "path": "pipeline/requirements.lock",
+      "sha256": "cc1ff8a2fe70e094a6042cf014a118b95c23b3c300b20301e55ce67091c1061a",
+      "vulnerable_packages": 0
+    },
+    "python-rebuild": {
+      "path": "pipeline/rebuild.lock",
+      "sha256": "fa6dd7af2e63bd07c1975e6932e35b4a1a4adc51a74d765eda4331ddf50fc22f",
+      "vulnerable_packages": 0
+    }
+  },
+  "npm_production": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "npm_full": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "npm_demo": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "npm_lock_sha256": "e67e5be7aeb6eade25ca6d8b7725f9e56981df560e05faf5a1a8409d9807e199",
+  "scanner_errors": false,
+  "errors": {},
+  "exit_codes": {
+    "python": 0,
+    "python-dev": 0,
+    "python-pipeline": 0,
+    "python-rebuild": 0,
+    "npm": 0,
+    "npm-full": 0,
+    "npm-demo": 0
+  },
+  "passed": true,
+  "policy": "Python runtime/dev/pipeline: resolve every reported vulnerability; npm full/production: no High/Critical. Scanner failure or skipped dependency blocks.",
+  "commands": [
+    "/Users/shttrkk/ostrovok-hack/okno/.venv/bin/python -m pip_audit --require-hashes --disable-pip --strict -r backend/requirements.lock --format json --progress-spinner off",
+    "/Users/shttrkk/ostrovok-hack/okno/.venv/bin/python -m pip_audit --require-hashes --disable-pip --strict -r requirements-dev.lock --format json --progress-spinner off",
+    "/Users/shttrkk/ostrovok-hack/okno/.venv/bin/python -m pip_audit --require-hashes --disable-pip --strict -r pipeline/requirements.lock --format json --progress-spinner off",
+    "/Users/shttrkk/ostrovok-hack/okno/.venv/bin/python -m pip_audit --require-hashes --disable-pip --strict -r pipeline/rebuild.lock --format json --progress-spinner off",
+    "npm audit --omit=dev --json",
+    "npm audit --json",
+    "npm audit --json"
+  ]
+}
+.venv/bin/python scripts/smoke.py
+app-1  | INFO:     151.101.0.223:48186 - "GET /health HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:41905 - "GET /api/status HTTP/1.1" 200 OK
+app-1  | INFO:     127.0.0.1:40390 - "GET /health HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:16843 - "POST /api/search HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:22831 - "POST /api/hotels/overture-037ee676-5776-46bd-a4ac-38c828f2a99d/evaluate HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:55064 - "POST /api/passports HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:39115 - "POST /api/hotelier/login HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:62610 - "GET /api/hotelier/overture-037ee676-5776-46bd-a4ac-38c828f2a99d HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:50843 - "GET /api/passports/27882435-de68-4593-a193-e4a3a8379a41 HTTP/1.1" 200 OK
+PASS health + API status; phase: integrated
+PASS offline search → hotel → persistent passport → authenticated cabinet (synthetic guest)
+/Library/Developer/CommandLineTools/usr/bin/make demo-check
+.venv/bin/python scripts/demo_check.py
+О!кно acceptance mode: synthetic-demo (fixtures are invented; real noise confidence stays 0.38)
+app-1  | INFO:     151.101.0.223:60734 - "GET /health HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:60734 - "GET /api/status HTTP/1.1" 200 OK
+PASS health
+app-1  | INFO:     151.101.0.223:60734 - "POST /api/search HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:60734 - "GET /api/hotels/overture-037ee676-5776-46bd-a4ac-38c828f2a99d HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:60734 - "GET /api/hotels/osm-way-201474330 HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:60734 - "GET /api/hotels/osm-node-11866202895 HTTP/1.1" 200 OK
+PASS masha
+app-1  | INFO:     151.101.0.223:60734 - "GET /data/seed/demo_hotelier_claims.jsonl HTTP/1.1" 200 OK
+PASS synthetic_provenance:osm-node-11866202895
+PASS synthetic_provenance:overture-037ee676-5776-46bd-a4ac-38c828f2a99d
+PASS synthetic_provenance:osm-way-201474330
+app-1  | INFO:     151.101.0.223:60734 - "GET /api/hotels/osm-node-10058556917?text=%D0%B2%D0%B8%D0%B4%20%D0%BD%D0%B0%20%D0%BC%D0%BE%D1%80%D0%B5%2C%20%D0%B7%D0%B0%D0%BA%D0%B0%D1%82%20%D0%B8%D0%B7%20%D0%BE%D0%BA%D0%BD%D0%B0%2C%20%D1%82%D0%B8%D1%85%D0%B8%D0%B9%20%D0%BD%D0%BE%D0%BC%D0%B5%D1%80%2C%20%D0%B4%D0%BE%20%D0%BF%D0%BB%D1%8F%D0%B6%D0%B0%20%D0%BD%D0%B5%20%D0%B1%D0%BE%D0%BB%D1%8C%D1%88%D0%B5%2010%20%D0%BC%D0%B8%D0%BD%D1%83%D1%82 HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:60734 - "GET /data/geo/osm-node-10058556917.json HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:60734 - "GET /api/hotels/osm-node-10058556917/geo HTTP/1.1" 200 OK
+PASS hero_geo_evidence
+app-1  | INFO:     151.101.0.223:60734 - "POST /api/search HTTP/1.1" 200 OK
+PASS persona:sleep
+app-1  | INFO:     151.101.0.223:60734 - "POST /api/search HTTP/1.1" 200 OK
+PASS persona:family_stroller
+app-1  | INFO:     151.101.0.223:60734 - "POST /api/search HTTP/1.1" 200 OK
+PASS persona:work
+app-1  | INFO:     151.101.0.223:60734 - "POST /api/search HTTP/1.1" 200 OK
+PASS persona:car_dog
+app-1  | INFO:     151.101.0.223:60734 - "POST /api/search HTTP/1.1" 200 OK
+PASS persona:party
+app-1  | INFO:     151.101.0.223:60734 - "POST /api/search HTTP/1.1" 200 OK
+PASS family_route_known_negative
+PASS synthetic-demo; report: /Users/shttrkk/ostrovok-hack/okno/docs/checks/clean_clone_night_20261027_demo.json
+
+> okno-demo-recording@1.0.0 preview
+> tsx ../scripts/demo_video.ts --check
+
+app-1  | INFO:     151.101.0.223:56525 - "GET /health HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:28423 - "GET /api/status HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:56525 - "POST /api/search HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:28423 - "POST /api/hotels/overture-037ee676-5776-46bd-a4ac-38c828f2a99d/evaluate HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:56525 - "GET /api/changes HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:56112 - "GET / HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:56112 - "GET /assets/index-CyCqy7v_.js HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:56112 - "GET /assets/map-BzilbqU6.js HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:20396 - "GET /assets/index-G5QXS8x-.css HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:56112 - "GET /assets/manrope-latin-wght-normal-DHIcAJRg.woff2 HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:20396 - "GET /assets/manrope-cyrillic-wght-normal-Dvxsihut.woff2 HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:20396 - "GET /assets/maplibre-gl-worker-CMkqA50c.mjs HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:56112 - "GET /api/revision HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:52992 - "GET /api/characteristics HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:52992 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:52992 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:52992 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:20396 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:52992 - "GET /data/tiles/fonts/Noto%20Sans%20Medium/1024-1279.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:20396 - "GET /data/tiles/fonts/Noto%20Sans%20Medium/0-255.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:56112 - "GET /data/tiles/fonts/Noto%20Sans%20Medium/8192-8447.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:64139 - "GET /data/tiles/fonts/Noto%20Sans%20Regular/1024-1279.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:20396 - "GET /data/tiles/fonts/Noto%20Sans%20Regular/0-255.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:58806 - "GET /api/hotels HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:37164 - "GET /api/status HTTP/1.1" 200 OK
+app-1  | INFO:     127.0.0.1:53590 - "GET /health HTTP/1.1" 200 OK
+1. Три пожелания вместо четырнадцати вкладок: 1.4s
+app-1  | INFO:     151.101.0.223:19768 - "GET /assets/maplibre-gl-worker-CMkqA50c.mjs HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:24364 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:19768 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:24364 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:30195 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:60912 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:39792 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:30195 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:60912 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:19768 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:39792 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:24364 - "GET /data/tiles/fonts/Noto%20Sans%20Medium/1024-1279.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:60912 - "GET /data/tiles/fonts/Noto%20Sans%20Regular/1024-1279.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:30195 - "GET /data/tiles/fonts/Noto%20Sans%20Regular/8192-8447.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:19768 - "GET /data/tiles/fonts/Noto%20Sans%20Regular/8448-8703.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:39792 - "GET /data/tiles/fonts/Noto%20Sans%20Regular/0-255.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:24364 - "GET /data/tiles/fonts/Noto%20Sans%20Medium/0-255.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:21269 - "POST /api/search HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:24364 - "GET /data/seed/building_snapshots.json HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:21269 - "GET /data/seed/hotel_photos.json HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:21269 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:60912 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:54026 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:30195 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:39792 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:19768 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:60912 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:54026 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:30195 - "GET /data/seed/photos/models/osm-way-201474330.webp HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:19768 - "GET /data/seed/photos/hotels/overture-037ee676-5776-46bd-a4ac-38c828f2a99d.webp HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:39792 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:54026 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:39792 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:30195 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:60912 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:19768 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:40921 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:60912 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:19768 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:39792 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:30195 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:35022 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:24364 - "GET /api/hotels/overture-037ee676-5776-46bd-a4ac-38c828f2a99d/geo HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:24364 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:30195 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:36930 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:19768 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:39792 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:35022 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:39792 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:35022 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:19768 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:35022 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:19768 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:36930 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:24364 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:33970 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:28885 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:28885 - "GET /api/revision HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:33970 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:24364 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:36930 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:19768 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:35022 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:28885 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:33970 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:33970 - "GET /data/seed/photos/models/osm-node-11866202895.webp HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:33970 - "GET /data/seed/photos/models/osm-way-80192670.webp HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:33970 - "GET /data/seed/photos/models/osm-way-53301267.webp HTTP/1.1" 200 OK
+2. Важное стало проверяемыми условиями: 2.6s
+app-1  | INFO:     151.101.0.223:19768 - "GET /api/hotels/overture-037ee676-5776-46bd-a4ac-38c828f2a99d/geo HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:33970 - "POST /api/hotels/overture-037ee676-5776-46bd-a4ac-38c828f2a99d/evaluate?compact=true HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:33970 - "GET /assets/manrope-latin-ext-wght-normal-Ch3YOpNY.woff2 HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:33970 - "GET /assets/maplibre-gl-worker-CMkqA50c.mjs HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:19768 - "GET /data/seed/nearby_photos.json HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:33970 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:28885 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:19768 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:24364 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:36930 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:36930 - "GET /data/tiles/fonts/Noto%20Sans%20Medium/0-255.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:28885 - "GET /data/tiles/city.pmtiles HTTP/1.1" 206 Partial Content
+app-1  | INFO:     151.101.0.223:24364 - "GET /data/tiles/fonts/Noto%20Sans%20Medium/1024-1279.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:19768 - "GET /data/tiles/fonts/Noto%20Sans%20Regular/1024-1279.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:33970 - "GET /api/hotels/overture-037ee676-5776-46bd-a4ac-38c828f2a99d/facts/f8d43a5b52b640e700323b82792d44e8/evidence HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:36930 - "GET /data/tiles/fonts/Noto%20Sans%20Regular/8192-8447.pbf HTTP/1.1" 200 OK
+app-1  | INFO:     151.101.0.223:28885 - "GET /data/tiles/fonts/Noto%20Sans%20Regular/0-255.pbf HTTP/1.1" 200 OK
+{
+  "started_at": "2026-10-27T03:48:35.827Z",
+  "base": "http://localhost:8080",
+  "check_only": true,
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "browser_version": "156.0.8078.48",
+  "hero": {
+    "id": "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+    "name": "Приморская",
+    "facade": "W",
+    "floor": 5,
+    "synthetic_quiet": true
+  },
+  "initial_status": {
+    "name": "О!кно",
+    "mode": "offline",
+    "version": "1.0.0",
+    "hotel_count": 247,
+    "source_object_count": 250,
+    "held_object_count": 3,
+    "characteristic_count": 23,
+    "region_coverage": {
+      "accessible_route": {
+        "known_hotels": 0,
+        "hotels": 247,
+        "status": "awaiting_hotels",
+        "note": null
+      },
+      "air_quality": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "beach_surface": {
+        "known_hotels": 150,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "beach_walk": {
+        "known_hotels": 231,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "building_history": {
+        "known_hotels": 0,
+        "hotels": 247,
+        "status": "no_data",
+        "note": "нет данных в регионе"
+      },
+      "car_access": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "climate": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "connectivity": {
+        "known_hotels": 0,
+        "hotels": 247,
+        "status": "no_data",
+        "note": "нет данных в регионе"
+      },
+      "evening_heat": {
+        "known_hotels": 197,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "family_nearby": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "green_nearby": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "morning_sun": {
+        "known_hotels": 197,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "mountain_view": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "nearby_photos": {
+        "known_hotels": 111,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "nightlife": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "night_pharmacy": {
+        "known_hotels": 180,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "pets": {
+        "known_hotels": 12,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "quiet_night": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "railway_noise": {
+        "known_hotels": 71,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "room_orientation": {
+        "known_hotels": 2,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "sea_view": {
+        "known_hotels": 241,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "soundproofing": {
+        "known_hotels": 1,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "sunset_view": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      }
+    },
+    "no_data_characteristics": [
+      "building_history",
+      "connectivity"
+    ],
+    "seed_version": "sochi-2026-10-26-ab-v2",
+    "region_name": "Сочи: центр + Адлер–Имеретинка"
+  },
+  "initial_search_ms": 265.7109589999891,
+  "stages": [
+    {
+      "scene": 1,
+      "title": "Три пожелания вместо четырнадцати вкладок",
+      "started_seconds": 0.037,
+      "duration_seconds": 1.379
+    },
+    {
+      "scene": 2,
+      "title": "Важное стало проверяемыми условиями",
+      "started_seconds": 1.479,
+      "duration_seconds": 2.633
+    }
+  ],
+  "status": "failed",
+  "error": "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Следующая проверка \\/ TTL/. Input:\n\n'Закат из окна\\n' +\n  'Виден в сентябре · с 5-го этажа · видимость солнца последние ≈ 28 мин · вероятность 100% · Возможен боковой сектор; точный угол к нормали фасада неизвестен\\n' +\n  'запад · 5-й этаж · сентябрь\\n' +\n  '\\n' +\n  'Загружаем полное доказательство и даты источников…\\n' +\n  '\\n' +\n  'Уверенность\\n' +\n  '90%\\n' +\n  'Уверенность модели, не гарантия результата\\n' +\n  'Данные получены\\n' +\n  'Дата наблюдения не передана\\n' +\n  'Когда источник наблюдал или рассчитал значение\\n' +\n  'Актуально до\\n' +\n  '24 янв. 2027 г.\\n' +\n  'Метод\\n' +\n  'Метод не передан API\\n' +\n  'Источник\\n' +\n  'Нет подтверждающего источника'\n",
+  "elapsed_seconds": 5.114,
+  "browser_errors": [],
+  "failed_requests": [],
+  "blocked_external": [],
+  "external_images": 0
+}
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Следующая проверка \/ TTL/. Input:
+
+'Закат из окна\n' +
+  'Виден в сентябре · с 5-го этажа · видимость солнца последние ≈ 28 мин · вероятность 100% · Возможен боковой сектор; точный угол к нормали фасада неизвестен\n' +
+  'запад · 5-й этаж · сентябрь\n' +
+  '\n' +
+  'Загружаем полное доказательство и даты источников…\n' +
+  '\n' +
+  'Уверенность\n' +
+  '90%\n' +
+  'Уверенность модели, не гарантия результата\n' +
+  'Данные получены\n' +
+  'Дата наблюдения не передана\n' +
+  'Когда источник наблюдал или рассчитал значение\n' +
+  'Актуально до\n' +
+  '24 янв. 2027 г.\n' +
+  'Метод\n' +
+  'Метод не передан API\n' +
+  'Источник\n' +
+  'Нет подтверждающего источника'
+
+    at <anonymous> (/Users/shttrkk/ostrovok-hack/okno-clean-night-20261027/scripts/demo_video.ts:401:16)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processImmediate (node:internal/timers:472:9)
+    at async stage (/Users/shttrkk/ostrovok-hack/okno-clean-night-20261027/scripts/demo_video.ts:330:5)
+    at async main (/Users/shttrkk/ostrovok-hack/okno-clean-night-20261027/scripts/demo_video.ts:384:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 'Закат из окна\n' +
+    'Виден в сентябре · с 5-го этажа · видимость солнца последние ≈ 28 мин · вероятность 100% · Возможен боковой сектор; точный угол к нормали фасада неизвестен\n' +
+    'запад · 5-й этаж · сентябрь\n' +
+    '\n' +
+    'Загружаем полное доказательство и даты источников…\n' +
+    '\n' +
+    'Уверенность\n' +
+    '90%\n' +
+    'Уверенность модели, не гарантия результата\n' +
+    'Данные получены\n' +
+    '...',
+  expected: /Следующая проверка \/ TTL/,
+  operator: 'match',
+  diff: 'simple'
+}
+ Compose Stopping Gracefully Stopping... press Ctrl+C again to force
+ Container okno-clean-17acd4786ee9-app-1 Stopping
+ Container okno-clean-17acd4786ee9-app-1 Stopped
+ Container okno-clean-17acd4786ee9-db-1 Stopping
+ Container okno-clean-17acd4786ee9-db-1 Stopped

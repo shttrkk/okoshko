@@ -1,0 +1,431 @@
+{
+  "started_at": "2026-10-27T03:53:26.631Z",
+  "base": "http://localhost:8080",
+  "check_only": true,
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "browser_version": "156.0.8078.48",
+  "hero": {
+    "id": "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+    "name": "Приморская",
+    "facade": "W",
+    "floor": 5,
+    "synthetic_quiet": true
+  },
+  "initial_status": {
+    "name": "О!кно",
+    "mode": "offline",
+    "version": "1.0.0",
+    "hotel_count": 247,
+    "source_object_count": 250,
+    "held_object_count": 3,
+    "characteristic_count": 23,
+    "region_coverage": {
+      "air_quality": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "beach_walk": {
+        "known_hotels": 231,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "building_history": {
+        "known_hotels": 0,
+        "hotels": 247,
+        "status": "no_data",
+        "note": "нет данных в регионе"
+      },
+      "car_access": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "climate": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "connectivity": {
+        "known_hotels": 0,
+        "hotels": 247,
+        "status": "no_data",
+        "note": "нет данных в регионе"
+      },
+      "family_nearby": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "mountain_view": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "nearby_photos": {
+        "known_hotels": 111,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "night_pharmacy": {
+        "known_hotels": 180,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "pets": {
+        "known_hotels": 12,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "quiet_night": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "room_orientation": {
+        "known_hotels": 2,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "sea_view": {
+        "known_hotels": 241,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "soundproofing": {
+        "known_hotels": 1,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "sunset_view": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "nightlife": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "accessible_route": {
+        "known_hotels": 0,
+        "hotels": 247,
+        "status": "awaiting_hotels",
+        "note": null
+      },
+      "beach_surface": {
+        "known_hotels": 150,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "evening_heat": {
+        "known_hotels": 197,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "green_nearby": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "morning_sun": {
+        "known_hotels": 197,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "railway_noise": {
+        "known_hotels": 71,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      }
+    },
+    "no_data_characteristics": [
+      "building_history",
+      "connectivity"
+    ],
+    "seed_version": "sochi-2026-10-26-ab-v2",
+    "region_name": "Сочи: центр + Адлер–Имеретинка"
+  },
+  "initial_search_ms": 679.7490010003457,
+  "stages": [
+    {
+      "scene": 1,
+      "title": "Три пожелания вместо четырнадцати вкладок",
+      "started_seconds": 0.003,
+      "duration_seconds": 1.318
+    },
+    {
+      "scene": 2,
+      "title": "Важное стало проверяемыми условиями",
+      "started_seconds": 1.376,
+      "duration_seconds": 2.506
+    },
+    {
+      "scene": 3,
+      "title": "Да, но — с нужной стороны и этажа",
+      "started_seconds": 4.008,
+      "duration_seconds": 2.492
+    },
+    {
+      "scene": 4,
+      "title": "Неизвестное — вопрос, а не «нет»",
+      "started_seconds": 6.592,
+      "duration_seconds": 0.443
+    },
+    {
+      "scene": 5,
+      "title": "Пожелания не потеряются в комментарии",
+      "started_seconds": 7.082,
+      "duration_seconds": 0.533
+    },
+    {
+      "scene": 6,
+      "title": "Отель отвечает один раз — по полям",
+      "started_seconds": 7.67,
+      "duration_seconds": 5.063
+    },
+    {
+      "scene": 7,
+      "title": "Договорились о конкретном номере",
+      "started_seconds": 12.808,
+      "duration_seconds": 0.276
+    },
+    {
+      "scene": 8,
+      "title": "Новый смысл — через спецификацию",
+      "started_seconds": 13.152,
+      "duration_seconds": 1.313
+    },
+    {
+      "scene": 9,
+      "title": "У каждого факта есть путь",
+      "started_seconds": 14.53,
+      "duration_seconds": 2.192
+    },
+    {
+      "scene": 10,
+      "title": "247 отелей. Проверяемые основания.",
+      "started_seconds": 17.499,
+      "duration_seconds": 2.895
+    }
+  ],
+  "question_id": "abc0832d4208f8739bebd4f7efe36125",
+  "passport_mode": "preliminary_without_dates",
+  "passport_id": "af2e4cd5-08e8-4cf3-9c74-5d03455fece9",
+  "answer_claim_count": 2,
+  "dry_run": [
+    {
+      "hotel_id": "osm-node-10058556917",
+      "claims": 1,
+      "warnings": []
+    },
+    {
+      "hotel_id": "osm-node-10118233110",
+      "claims": 0,
+      "warnings": [
+        "Недостаточно совместимых свежих входных фактов; общий номер не подтверждён"
+      ]
+    },
+    {
+      "hotel_id": "osm-node-10574252909",
+      "claims": 1,
+      "warnings": []
+    }
+  ],
+  "agent_run_id": "fd5244c7-afa6-4129-b6ab-bbab88a04628",
+  "agent_visible_steps": 7,
+  "final_status": {
+    "name": "О!кно",
+    "mode": "offline",
+    "version": "1.0.0",
+    "hotel_count": 247,
+    "source_object_count": 250,
+    "held_object_count": 3,
+    "characteristic_count": 23,
+    "region_coverage": {
+      "air_quality": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "beach_walk": {
+        "known_hotels": 231,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "building_history": {
+        "known_hotels": 0,
+        "hotels": 247,
+        "status": "no_data",
+        "note": "нет данных в регионе"
+      },
+      "car_access": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "climate": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "connectivity": {
+        "known_hotels": 0,
+        "hotels": 247,
+        "status": "no_data",
+        "note": "нет данных в регионе"
+      },
+      "family_nearby": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "mountain_view": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "nearby_photos": {
+        "known_hotels": 111,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "night_pharmacy": {
+        "known_hotels": 180,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "pets": {
+        "known_hotels": 12,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "quiet_night": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "room_orientation": {
+        "known_hotels": 3,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "sea_view": {
+        "known_hotels": 241,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "soundproofing": {
+        "known_hotels": 1,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "sunset_view": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "nightlife": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "accessible_route": {
+        "known_hotels": 0,
+        "hotels": 247,
+        "status": "awaiting_hotels",
+        "note": null
+      },
+      "beach_surface": {
+        "known_hotels": 150,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "evening_heat": {
+        "known_hotels": 197,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "green_nearby": {
+        "known_hotels": 247,
+        "hotels": 247,
+        "status": "available",
+        "note": null
+      },
+      "morning_sun": {
+        "known_hotels": 197,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      },
+      "railway_noise": {
+        "known_hotels": 71,
+        "hotels": 247,
+        "status": "partial",
+        "note": null
+      }
+    },
+    "no_data_characteristics": [
+      "building_history",
+      "connectivity"
+    ],
+    "seed_version": "sochi-2026-10-26-ab-v2",
+    "region_name": "Сочи: центр + Адлер–Имеретинка"
+  },
+  "quality": {
+    "coverage": {
+      "known_pairs": 3651,
+      "total_pairs": 5750,
+      "ratio": 0.6349565217391304
+    },
+    "manual_label_count": 0,
+    "parser_accuracy": null,
+    "ndcg_at_5": null
+  },
+  "status": "passed",
+  "elapsed_seconds": 45.673,
+  "browser_errors": [],
+  "failed_requests": [],
+  "blocked_external": [],
+  "external_images": 0
+}
