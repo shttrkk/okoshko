@@ -123,16 +123,24 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
 def relative_reason(hit: SearchHit, higher: SearchHit) -> str:
     """Compare adjacent ranked alternatives using only their actual verdicts."""
     prefix = f"«{higher.hotel.name}»: "
-    if higher.must_satisfied > hit.must_satisfied:
-        return prefix + f"подтверждено {higher.must_satisfied} из {higher.must_total} обязательных условий, здесь — {hit.must_satisfied}."
+    def verdicts(candidate):
+        return [(None, v) for v in candidate.verdicts] + [
+            (index, v) for index, room in enumerate(candidate.room_plan) for v in room.verdicts]
+    mine, others = verdicts(hit), verdicts(higher)
+    confirmed = sum(v.required and v.status == "yes" for _, v in others)
+    current_confirmed = sum(v.required and v.status == "yes" for _, v in mine)
+    if confirmed > current_confirmed:
+        return prefix + f"подтверждено {confirmed} из {higher.must_total} обязательных условий, здесь — {current_confirmed}."
     priorities = {"yes": 3, "partial": 2, "unknown": 1, "no": 0}
-    mine = {v.characteristic_id: v for v in hit.verdicts}
-    for other in higher.verdicts:
-        current = mine.get(other.characteristic_id)
-        if current and priorities[other.status] > priorities[current.status]:
+    mine = {(room, v.characteristic_id): v for room, v in mine}
+    for room, other in others:
+        current = mine.get((room, other.characteristic_id))
+        if current and other.status in {"yes", "partial"} and priorities[other.status] > priorities[current.status]:
+            if other.status == "partial":
+                return prefix + f"по условию «{other.label}» есть предварительные данные; здесь {current.symbol} — {current.text}"
             return prefix + f"условие «{other.label}» лучше подтверждено; здесь {current.symbol} — {current.text}"
     if higher.score > hit.score:
-        return prefix + f"выше совокупная оценка выполнения условий с учётом уверенности ({higher.score:g} против {hit.score:g}); проверьте оговорки в критериях."
+        return prefix + f"по условиям у него данные надёжнее; оценка {higher.score:g} против {hit.score:g}. Проверьте оговорки по условиям."
     return prefix + "оценки совпадают; имеющиеся данные не дают основания считать этот отель лучше."
 
 

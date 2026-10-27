@@ -140,13 +140,22 @@ def test_numeric_noise_uses_outer_range_and_partial_without_promoting_boolean_qu
     assert [f.model_dump() for f in facts] == before
 
 
-def test_boolean_noise_answer_does_not_borrow_numeric_values_or_cover_a_missing_slice():
+def test_boolean_noise_needs_its_own_numeric_coverage_and_keeps_agreeing_refs():
     boolean = fact("quiet_night", low=5, high=8, synthetic=True)
     assert advice([boolean]) == []
     numeric = fact("quiet_night", value={"available": True, "night_db_min": 34, "night_db_max": 50}, confidence=.38)
     [quiet] = advice([numeric, boolean])
-    assert bounds(quiet) == [("W", 1, 4)]
-    assert quiet.fact_ids == [numeric.id] and not quiet.synthetic
+    assert bounds(quiet) == [("W", 1, 8)]
+    assert set(quiet.fact_ids) == {numeric.id, boolean.id} and quiet.synthetic
+    assert set(quiet.options[0].evidence_refs) == {numeric.evidence[0].id, boolean.evidence[0].id}
+    assert "≈ 34–50 дБ" in quiet.text and quiet.status == "partial"
+    # Neither a neighbouring floor range nor another facade can supply dB.
+    numeric.scope.floor_max = 4
+    [lower] = advice([numeric, boolean])
+    assert bounds(lower) == [("W", 1, 4)] and lower.fact_ids == [numeric.id]
+    numeric.scope.facade = "E"
+    [east] = advice([numeric, boolean])
+    assert bounds(east) == [("E", 1, 4)] and east.fact_ids == [numeric.id]
 
 
 def test_synthetic_aggregation_is_preserved_and_partial_never_becomes_yes():
