@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { api, useResource, type Resource } from "./api";
 import type { Hotel, ParsedQuery, SearchResult, Spec, Status } from "./types";
 interface AppState {
@@ -41,6 +47,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ? "dark"
         : "light"),
   );
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const followSystem = () => {
+      if (!localStorage.getItem("okno-theme"))
+        setTheme(media.matches ? "dark" : "light");
+    };
+    media.addEventListener("change", followSystem);
+    return () => media.removeEventListener("change", followSystem);
+  }, []);
   const [message, setMessage] = useState("");
   const toggleCompare = (id: string) =>
     setCompare((old) => {

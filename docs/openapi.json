@@ -879,6 +879,60 @@
         }
       }
     },
+    "/api/hotelier": {
+      "get": {
+        "tags": [
+          "hotelier"
+        ],
+        "summary": "Hotelier Summaries",
+        "description": "Read existing queues only; selecting a default must not generate tasks.",
+        "operationId": "hotelier_summaries_api_hotelier_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HotelierSummary"
+                  },
+                  "title": "Response Hotelier Summaries Api Hotelier Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/hotelier/{hotel_id}": {
       "get": {
         "tags": [
@@ -3929,6 +3983,27 @@
         ],
         "title": "HotelPhoto"
       },
+      "HotelierSummary": {
+        "properties": {
+          "hotel_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Hotel Id"
+          },
+          "pending_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Pending Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "hotel_id",
+          "pending_count"
+        ],
+        "title": "HotelierSummary"
+      },
       "LabelRequest": {
         "properties": {
           "hotel_id": {
@@ -5413,6 +5488,19 @@
               }
             ],
             "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Landmark Id"
           }
         },
         "additionalProperties": false,

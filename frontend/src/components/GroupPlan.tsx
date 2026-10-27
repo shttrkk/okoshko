@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Users } from "lucide-react";
+import { ArrowRight, Users } from "lucide-react";
 import { useRoomEvidence } from "../roomApi";
 import type { RoomPlanItem, RoomRequest, RoomScope, Verdict } from "../types";
 import {
@@ -23,6 +23,7 @@ import {
 } from "./group";
 import { SIDES } from "./facts";
 import { guestText } from "./panel-guest-presentation";
+import { ROOM_CHARACTERISTICS } from "./panel-guest-query";
 
 /** What this person asked for; the matched position is in the recommendation. */
 function requestedText(scope?: RoomScope) {
@@ -80,6 +81,13 @@ export function GroupPlan({
           <PlanRow
             key={`${index}:${item.label}`}
             {...{ hotelId, item, index, compact, onOpen, unknownFloors }}
+            requestedIds={
+              requests?.[index]
+                ? [...requests[index].must, ...requests[index].nice].map(
+                    (criterion) => criterion.characteristic_id,
+                  )
+                : undefined
+            }
             requestedScope={
               requests?.[index]
                 ? {
@@ -108,6 +116,7 @@ function PlanRow({
   compact,
   onOpen,
   requestedScope,
+  requestedIds,
   unknownFloors,
 }: {
   hotelId: string;
@@ -115,9 +124,13 @@ function PlanRow({
   index: number;
   compact: boolean;
   requestedScope?: RoomScope;
+  requestedIds?: string[];
   unknownFloors: boolean;
   onOpen?: (index: number, item: RoomPlanItem) => void;
 }) {
+  const showRoomAdvice =
+    requestedIds === undefined ||
+    requestedIds.some((id) => ROOM_CHARACTERISTICS.has(id));
   const [open, setOpen] = useState(false);
   const {
     evidence,
@@ -161,33 +174,36 @@ function PlanRow({
               .join(" · ")}
           </span>
         </div>
-        {onOpen ? (
-          <button
-            className="text-button small"
-            onClick={() => onOpen(index, item)}
-            data-testid={`open-group-room-${index}`}
-          >
-            Проверить окно <ArrowUpRight size={14} />
-          </button>
-        ) : (
-          <Link
-            className="text-button small"
-            to={`/hotel/${encodeURIComponent(hotelId)}?${roomLabParams(item.scope, index)}#room-lab`}
-            data-testid={`open-group-room-${index}`}
-          >
-            Проверить окно <ArrowUpRight size={14} />
-          </Link>
-        )}
+        {showRoomAdvice &&
+          (onOpen ? (
+            <button
+              className="text-button small"
+              onClick={() => onOpen(index, item)}
+              data-testid={`open-group-room-${index}`}
+            >
+              Проверить окно <ArrowRight size={14} />
+            </button>
+          ) : (
+            <Link
+              className="text-button small"
+              to={`/hotel/${encodeURIComponent(hotelId)}?${roomLabParams(item.scope, index)}#room-lab`}
+              data-testid={`open-group-room-${index}`}
+            >
+              Проверить окно <ArrowRight size={14} />
+            </Link>
+          ))}
       </div>
       <p className="group-recommendation">
-        {guestText(
-          item.recommendation,
-          item.verdicts.some((v) => v.synthetic),
-        )}
+        {showRoomAdvice
+          ? guestText(
+              item.recommendation,
+              item.verdicts.some((v) => v.synthetic),
+            )
+          : "Номер для этой позиции ещё нужно уточнить у отеля."}
       </p>
-      {item.profile && (
+      {showRoomAdvice && item.profile && (
         <div className="group-profile-preview">
-          <RoomHighlights profile={item.profile} />
+          <RoomHighlights profile={item.profile} requestedIds={requestedIds} />
           {item.profile.clauses.some((clause) => clause.synthetic) && (
             <>
               {" "}
@@ -200,7 +216,7 @@ function PlanRow({
         className="group-plan-details"
         onToggle={(event) => setOpen(event.currentTarget.open)}
       >
-        <summary>Как посчитано</summary>
+        <summary>Подробнее</summary>
         {open && (
           <>
             {item.caveats.length > 0 && (
@@ -228,6 +244,7 @@ function PlanRow({
               <RoomDescription
                 hotelId={hotelId}
                 profile={item.profile}
+                requestedIds={requestedIds}
                 unknownFloors={unknownFloors}
               />
             ) : (

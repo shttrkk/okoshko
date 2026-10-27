@@ -292,6 +292,10 @@ try {
           mode: "offline",
         },
       });
+    if (path === "/api/hotelier")
+      return route.fulfill({
+        json: [{ hotel_id: hotel.id, pending_count: pending.size }],
+      });
     if (path === `/api/hotelier/${hotel.id}`)
       return route.fulfill({
         json: {
@@ -343,7 +347,10 @@ try {
   });
   await page
     .getByRole("status")
-    .getByText("Вопрос отправлен. Ответ появится здесь и в паспорте ожиданий.", { exact: true })
+    .getByText(
+      "Вопрос отправлен. Ответ появится здесь и в паспорте ожиданий.",
+      { exact: true },
+    )
     .waitFor();
   const choose = async (facade, floor) => {
     await page.getByTestId("room-lab-facade").selectOption(facade);
@@ -378,7 +385,10 @@ try {
   await toolbar.getByRole("button", { name: "Панорама стороны" }).click();
   const footer = page.getByTestId("panorama-question");
   assert.match(await footer.innerText(), /восток.*3-й этаж.*июнь/);
-  assert.equal(await footer.getByTestId("ask-room_orientation").isDisabled(), true);
+  assert.equal(
+    await footer.getByTestId("ask-room_orientation").isDisabled(),
+    true,
+  );
   await footer.getByText("Вопрос отправлен").waitFor();
   assert.deepEqual(bodies.at(-1).scope, exactScope("E", 3));
   assert.equal(aggregate.requested_scopes.length, 2);
@@ -387,26 +397,44 @@ try {
     "panorama footer keeps the chosen window context and states it as a wish, with no external send",
   );
   await choose("W", 7);
-  await confirmAsk(page, page.getByTestId("room-lab-verdicts").getByTestId("ask-sea_view"));
+  await confirmAsk(
+    page,
+    page.getByTestId("room-lab-verdicts").getByTestId("ask-sea_view"),
+  );
   await page
     .getByTestId("room-lab-verdicts")
     .getByText("Вопрос отправлен")
     .waitFor();
   assert.deepEqual(bodies.at(-1).scope, exactScope("W", 7));
-  assert.equal(await page.getByTestId("fact-card-sea_view").getByTestId("ask-sea_view").isDisabled(), true);
+  assert.equal(
+    await page
+      .getByTestId("fact-card-sea_view")
+      .getByTestId("ask-sea_view")
+      .isDisabled(),
+    true,
+  );
   await page
     .getByTestId("fact-card-sea_view")
     .getByText("Вопрос отправлен")
     .waitFor();
   assert.deepEqual(bodies.at(-1).scope, exactScope("W", 7));
-  await confirmAsk(page, page.getByTestId("room-lab-verdicts").getByTestId("ask-night_pharmacy"));
+  await confirmAsk(
+    page,
+    page.getByTestId("room-lab-verdicts").getByTestId("ask-night_pharmacy"),
+  );
   await page
     .getByTestId("room-lab-verdicts")
     .getByTestId("ask-night_pharmacy")
     .getByText("Вопрос отправлен")
     .waitFor();
   assert.equal(Object.hasOwn(bodies.at(-1), "scope"), false);
-  assert.equal(await page.getByTestId("fact-card-night_pharmacy").getByTestId("ask-night_pharmacy").isDisabled(), true);
+  assert.equal(
+    await page
+      .getByTestId("fact-card-night_pharmacy")
+      .getByTestId("ask-night_pharmacy")
+      .isDisabled(),
+    true,
+  );
   await page
     .getByTestId("fact-card-night_pharmacy")
     .getByText("Вопрос отправлен")
@@ -421,7 +449,8 @@ try {
     message: "Недопустимый срез окна (browser fixture)",
   };
   await confirmAsk(page, askWindow);
-  await page.getByRole("dialog")
+  await page
+    .getByRole("dialog")
     .getByRole("alert")
     .getByText(
       nextError?.message || "Недопустимый срез окна (browser fixture)",
@@ -431,7 +460,8 @@ try {
   assert.equal(await askWindow.isEnabled(), true);
   nextError = { status: 409, message: "Вопрос изменился (browser fixture)" };
   await confirmAsk(page, askWindow);
-  await page.getByRole("dialog")
+  await page
+    .getByRole("dialog")
     .getByRole("alert")
     .getByText("Вопрос изменился (browser fixture)", { exact: true })
     .waitFor();
@@ -539,7 +569,8 @@ try {
   // This independent race case starts without successes from the earlier UI flow.
   await harness.evaluate((hotelId) => {
     for (const key of Object.keys(localStorage)) {
-      if (key.startsWith(`okno-question:["${hotelId}",`)) localStorage.removeItem(key);
+      if (key.startsWith(`okno-question:["${hotelId}",`))
+        localStorage.removeItem(key);
     }
   }, hotel.id);
   await harness.addScriptTag({

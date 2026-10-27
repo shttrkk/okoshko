@@ -239,3 +239,34 @@ def test_old_alternate_preview_cannot_overwrite_a_later_confirmed_answer(durable
     assert response.status_code == 409 and "новый вопрос" in response.json()["detail"]
     assert repo.all("claims") == before
 
+
+def test_summary_is_private_tenant_scoped_and_never_generates_or_modifies_questions(durable_client):
+    client, repo, auth, _ = durable_client
+    own, foreign = "osm-node-11866202895", "osm-way-201474330"
+    for hotel_id in (own, foreign):
+        repo.insert("hotels", {"id": hotel_id, "name": "Test", "lat": 43.58, "lon": 39.72})
+    for identity, hotel_id, status in [("own-1", own, "pending"), ("own-2", own, "answered"), ("foreign-1", foreign, "pending")]:
+        repo.insert("questions", question().model_copy(update={"id": identity, "hotel_id": hotel_id, "status": status}).model_dump(mode="json"))
+    before = repo.all("questions")
+    generation = repo.search_generation()
+    assert client.get("/api/hotelier").status_code == 401
+    response = client.get("/api/hotelier", headers=auth)
+    assert response.status_code == 200 and response.headers["Cache-Control"] == "no-store"
+    assert {row["hotel_id"]: row["pending_count"] for row in response.json()} == {"test-hotel": 0, own: 1, foreign: 1}
+    token = client.post("/api/hotelier/login", json={"username": "cascade", "password": "cascade-demo-2026"}).json()["token"]
+    scoped = client.get("/api/hotelier", headers={"Authorization": "Bearer " + token})
+    assert scoped.json() == [{"hotel_id": own, "pending_count": 1}]
+    assert repo.all("questions") == before and repo.search_generation() == generation
+
+
+def test_queue_orders_by_real_search_demand_before_calculation_uncertainty():
+    repo = ApiRepo()
+    repo.upsert("facts", fact("pets", "partial-pets", confidence=.99, status="disputed"))
+    for index in range(20):
+        repo.insert("search_queries", {"id": f"logged-{index}", "text": "Private text", "results": ["test-hotel"],
+                                        "parsed": {"must": [{"characteristic_id": "pets"}]}})
+    pending = generate_questions("test-hotel", repo)
+    assert pending[0].characteristic_ids == ["pets"] and pending[0].demand_estimate == 20
+    assert all(not item.demand_synthetic for item in pending)
+    assert [item.demand_estimate for item in pending] == sorted([item.demand_estimate for item in pending], reverse=True)
+

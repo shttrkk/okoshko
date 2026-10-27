@@ -7,7 +7,7 @@ import { chromium } from "playwright";
 // Read/search only on the shared API. Browser searches are fixture responses;
 // every other write is blocked before navigation.
 const base = process.env.OKNO_BASE_URL || "http://localhost:8080";
-const apiBase = process.env.OKNO_API_BASE_URL || "http://localhost:8080";
+const apiBase = process.env.OKNO_API_BASE_URL || base;
 const artifacts = resolve(
   process.env.OKNO_PANEL_GUEST_ARTIFACTS ||
     fileURLToPath(new URL("../../runtime/panel-guest-b", import.meta.url)),

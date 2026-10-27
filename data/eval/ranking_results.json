@@ -46,9 +46,18 @@
     }
   },
   "input_materialization_matches_frozen": true,
+  "display_name_only_changes": [
+    "data/characteristics/air_quality.yaml",
+    "data/characteristics/beach_walk.yaml",
+    "data/characteristics/climate.yaml",
+    "data/characteristics/mountain_view.yaml",
+    "data/characteristics/quiet_night.yaml",
+    "data/characteristics/sea_view.yaml",
+    "data/characteristics/sunset_view.yaml"
+  ],
   "scorer_sha256": {
-    "backend/agents/ranker.py": "66b28ead6aecce9a681ae1ed12d180b97f8f300bd919126ccf342f678d2df88d",
-    "backend/agents/query_match.py": "2fc574db66eea2fbfca23837339eff5f837ef9cd72d276904124d7c25e5720a0",
+    "backend/agents/ranker.py": "251b538a52cdb75aae18e46aeb926a23211616f4ef4d3452d41f04996ed6aae9",
+    "backend/agents/query_match.py": "7459b0309fe2ac41cc50548ec890a942cf6b141e617f8f51ee23f185a8c27604",
     "backend/catalogue.py": "3b982d74eeb022db0d559ed6b585d03163b7fc81883cbab97fa25369bbcf8e72",
     "data/seed/catalogue_reviews.json": "fd797a28aaf1ce34ca67d415f3e00dbddb6e6d93ffdde99a0c3e22dd69871090"
   },

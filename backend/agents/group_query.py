@@ -423,6 +423,9 @@ def parse_group_query(request: SearchRequest, catalog: list[CharacteristicSpec],
             if required:
                 target.no_data_must.append(criterion)
         target.unmapped = list(dict.fromkeys([*target.unmapped, *single.unmapped]))
+        for suggestion in single.suggestions:
+            if suggestion not in target.suggestions and len(target.suggestions) < 2:
+                target.suggestions.append(suggestion)
         meaningful = [message for message in single.clarifications if not message.startswith(
             ('Не нашли в запросе условий из каталога', 'Что важнее для поездки'))]
         target.clarifications = list(dict.fromkeys([*target.clarifications, *meaningful]))[:2]

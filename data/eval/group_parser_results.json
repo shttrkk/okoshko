@@ -3,36 +3,36 @@
   "synthetic": true,
   "human_labeled": false,
   "gold": {
-    "queries": 45,
+    "queries": 47,
     "count_exact": {
-      "correct": 45,
-      "total": 45,
+      "correct": 47,
+      "total": 47,
       "rate": 1.0
     },
     "ordered_room_criteria_scope_exact": {
-      "correct": 44,
-      "total": 45,
-      "rate": 0.977778
+      "correct": 46,
+      "total": 47,
+      "rate": 0.978723
     },
     "shared_exact": {
-      "correct": 45,
-      "total": 45,
+      "correct": 47,
+      "total": 47,
       "rate": 1.0
     },
     "context_exact": {
-      "correct": 45,
-      "total": 45,
+      "correct": 47,
+      "total": 47,
       "rate": 1.0
     },
     "labels_exact": {
-      "correct": 45,
-      "total": 45,
+      "correct": 47,
+      "total": 47,
       "rate": 1.0
     },
     "semantic_exact": {
-      "correct": 44,
-      "total": 45,
-      "rate": 0.977778
+      "correct": 46,
+      "total": 47,
+      "rate": 0.978723
     }
   },
   "traps": {
@@ -103,7 +103,8 @@
             "no_data": [],
             "no_data_must": [],
             "unmapped": [],
-            "clarifications": []
+            "clarifications": [],
+            "suggestions": []
           },
           {
             "label": "Маме",
@@ -131,7 +132,8 @@
             "no_data": [],
             "no_data_must": [],
             "unmapped": [],
-            "clarifications": []
+            "clarifications": [],
+            "suggestions": []
           }
         ],
         "unmapped": [],
@@ -148,13 +150,13 @@
   "trap_failures": [],
   "suite_kind": "authored_training",
   "corpus_sha256": {
-    "gold": "78da0e75b3967251d74e1d001976208f558734dee63201fe9291cc80d855db90",
+    "gold": "8bd502380f19d621df142b75dca5551479e3ebc3f37c4e77e2a300633dce443e",
     "traps": "bfd263849db6f83f3dcd4a636a27a188c7d5343a306981668963949861ae0a3f"
   },
   "parser_sha256": {
-    "query_parser.py": "bc1f383699a2233bcbc237f21c06cc04410d3a7607dad2f04b70e07b3bfe44de",
-    "query_rules.py": "4b1e2263bf75059bb5f15862633cca228152f81708037d12941900647c495601",
+    "query_parser.py": "23338308e489f41630739ebf0d57c46758e8598d0e2d943262a48ecd63604e7e",
+    "query_rules.py": "1928337335eee94dcb69fd553311a15e535946af34f1d087c6e2a342bfac3a13",
     "query_text.py": "112f46f91203c04f4d5dbb838accde773227f6d81e91ca569c0df2578319bdaf",
-    "group_query.py": "fe48146b77ff497c7ab399f906732d5013f2d754665926b4aeb767c1ee52aa49"
+    "group_query.py": "1766ff6b9a5b42e4d6df0a0b590661e17ddbb7837202b4c82997876605d75454"
   }
 }

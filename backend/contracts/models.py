@@ -6,7 +6,7 @@ from typing import Any, Literal, Protocol
 from urllib.parse import parse_qsl, urlsplit
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
 from backend.contracts.schema_safety import check_schema_safety
 
@@ -93,6 +93,14 @@ class Scope(Model):
     floor_max: int | None = Field(default=None, ge=1, le=100)
     room_type: str | None = None
     month: int | None = Field(default=None, ge=1, le=12)
+    landmark_id: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_]{1,63}$", max_length=64)
+
+    @model_serializer(mode="wrap")
+    def preserve_legacy_shape(self, handler):
+        value = handler(self)
+        if self.landmark_id is None:
+            value.pop("landmark_id", None)
+        return value
 
     @model_validator(mode="after")
     def bounds(self) -> Scope:

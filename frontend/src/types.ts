@@ -22,7 +22,7 @@ export interface HotelPhoto {
   captured_at?: string | null;
   image_id?: string | null;
 }
-export interface Scope {
+export interface Scope extends LandmarkScope {
   type: "hotel" | "facade" | "floor_range" | "room_type";
   facade?: Side | null;
   floor_min?: number | null;
@@ -614,4 +614,9 @@ export interface RoomAdvice {
   status: "yes" | "partial";
   synthetic: boolean;
   caveats: string[];
+}
+
+/** Curated visibility target; independent of the requested room side and floor. */
+export interface LandmarkScope {
+  landmark_id?: string | null;
 }

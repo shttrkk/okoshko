@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright";
+import {
+  blockYandex,
+  openTechnicalFact,
+  revealAncestors,
+  closeSmokeBrowser,
+} from "./panel-guest-smoke-ui.mjs";
 
 const base = process.env.OKNO_BASE_URL || "http://localhost:8080";
 const chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -33,7 +39,8 @@ const errors = [],
   failures = [],
   requests = [],
   relatedBodies = [];
-const watch = (page) => {
+const watch = async (page) => {
+  await blockYandex(page);
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("response", (response) => {
     if (response.status() >= 400 && response.url().startsWith(base))
@@ -87,7 +94,7 @@ async function checkRoomLab(seed) {
     viewport = { width: 1440, height: 1000 },
   ) => {
     const page = await browser.newPage({ viewport });
-    watch(page);
+    await watch(page);
     page.on("request", (request) => {
       if (request.url().includes(`/api/hotels/${hotelId}/evaluate`))
         evaluationBodies.push(request.postDataJSON());
@@ -98,6 +105,8 @@ async function checkRoomLab(seed) {
         query,
       );
     await page.goto(`${base}/hotel/${hotelId}${suffix}`);
+    // Hotel-only requests opt into the same preserved window tool explicitly.
+    await revealAncestors(page.getByTestId("room-lab"));
     await page.getByTestId("room-lab").waitFor({ timeout: 45000 });
     if (
       (await page.getByTestId("room-lab").getAttribute("data-open")) !== "true"
@@ -422,7 +431,7 @@ async function checkRoomLab(seed) {
   const unknown = await browser.newPage({
     viewport: { width: 390, height: 844 },
   });
-  watch(unknown);
+  await watch(unknown);
   await unknown.route(`**/api/hotels/${hotelId}?*`, async (route) => {
     const response = await route.fetch();
     const detail = await response.json();
@@ -486,7 +495,7 @@ try {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
   });
-  watch(page);
+  await watch(page);
   const searchResponse = await page.request.post(`${base}/api/search`, {
     data: { text: "тихий номер с видом на закат недалеко от моря", limit: 3 },
   });
@@ -545,11 +554,14 @@ try {
     relatedBodies.some(
       (body) =>
         body.similar_to === reference.id &&
-        body.text === "" &&
+        body.text === parsed.text &&
         body.limit === 3 &&
-        !body.parsed,
+        JSON.stringify(body.parsed?.must) === JSON.stringify(parsed.must) &&
+        JSON.stringify(body.parsed?.nice) === JSON.stringify(parsed.nice) &&
+        body.check_in === parsed.check_in &&
+        body.check_out === parsed.check_out,
     ),
-    "Related requests use a separate profile query",
+    "Related requests isolate the active edited criteria and dates",
   );
   assert.deepEqual(
     await page.evaluate(() =>
@@ -584,6 +596,7 @@ try {
   const mapAction = page
     .locator('[data-testid^="fact-map-sunset_view-"]')
     .first();
+  await revealAncestors(mapAction);
   const side = (await mapAction.getAttribute("data-testid")).split("-").at(-1);
   await mapAction.click();
   await page.getByTestId("hotel-map-context").waitFor();
@@ -804,7 +817,7 @@ try {
     isMobile: true,
     hasTouch: true,
   });
-  watch(fixture);
+  await watch(fixture);
   await fixture.route(`**/api/hotels/${reference.id}?*`, (route) =>
     route.fulfill({
       json: {
@@ -830,6 +843,10 @@ try {
     .waitFor({ timeout: 45000 });
   for (const fact of fixtures)
     await fixture.getByTestId(`fact-card-${fact.characteristic_id}`).waitFor();
+  for (const fact of fixtures)
+    await openTechnicalFact(
+      fixture.getByTestId(`fact-card-${fact.characteristic_id}`),
+    );
   assert.equal(await fixture.getByTestId("solar-proxy-matrix").count(), 2);
   assert(
     (
@@ -950,5 +967,7 @@ try {
     ),
   );
 } finally {
-  await browser.close();
+  await closeSmokeBrowser(browser);
 }
+
+process.exit(process.exitCode || 0);

@@ -37,10 +37,13 @@ import {
   factDemoLabel,
   factDemoExplanation,
   guestText,
+  humanExplanation,
+  relevantLimitation,
   guestQuote,
   reliability,
   realHotelier,
   verdictLabel,
+  verdictCaveat,
   verdictSymbol,
   verdictTone,
 } from "./panel-guest-presentation";
@@ -352,9 +355,10 @@ export function AskButton({
   const [confirming, setConfirming] = useState(false);
   useEffect(() => {
     const refreshSent = (event: Event) => {
-      const changedKey = event instanceof StorageEvent
-        ? event.key
-        : (event as CustomEvent<string>).detail;
+      const changedKey =
+        event instanceof StorageEvent
+          ? event.key
+          : (event as CustomEvent<string>).detail;
       if (changedKey === storageKey) {
         setRequestState(stored() ? { key, status: "sent" } : null);
       }
@@ -394,7 +398,9 @@ export function AskButton({
       const question = await api.ask(hotelId, characteristicId, scope);
       try {
         localStorage.setItem(storageKey, question.id);
-        window.dispatchEvent(new CustomEvent("okno-question-sent", { detail: storageKey }));
+        window.dispatchEvent(
+          new CustomEvent("okno-question-sent", { detail: storageKey }),
+        );
       } catch {
         /* In-memory success remains visible if storage is unavailable. */
       }
@@ -488,6 +494,24 @@ export function VerdictList({
   /** Search cards: the gist only; caveats live on the hotel page. */
   compact?: boolean;
 }) {
+  const concise = compact
+    ? verdicts.find(
+        (verdict) => verdict.status === "no" && !verdict.disputed,
+      ) ||
+      ["beach_walk", "nightlife", "connectivity", "pets", "sunset_view"]
+        .map((id) =>
+          verdicts.find(
+            (verdict) =>
+              verdict.characteristic_id === id &&
+              ["yes", "partial"].includes(verdict.status) &&
+              !verdict.disputed,
+          ),
+        )
+        .find(Boolean) ||
+      verdicts.find(
+        (verdict) => verdict.status !== "unknown" && !verdict.disputed,
+      )
+    : null;
   return (
     <ul className={`verdict-list ${compact ? "compact" : ""}`}>
       {verdicts.map((v, i) => (
@@ -524,7 +548,13 @@ export function VerdictList({
                   {verdictLabel(v)}
                 </span>
               )}
-              <span>{verdictSummary(v)}</span>
+              {(!compact || v === concise) && (
+                <span
+                  data-testid={compact ? "compact-number-phrase" : undefined}
+                >
+                  {verdictSummary(v)}
+                </span>
+              )}
             </button>
             {!compact && onFocusFact && (
               <button
@@ -536,14 +566,14 @@ export function VerdictList({
                 К факту <ArrowRight size={12} />
               </button>
             )}
-            {(v.caveat || v.text.includes(";")) && (
+            {!compact && (v.caveat || v.text.includes(";")) && (
               <details className="verdict-caveats">
                 <summary>Подробнее</summary>
                 <p>{verdictSummary(v)}</p>
                 <details>
                   <summary>Для дотошных</summary>
                   <p>{guestText(v.text, v.synthetic)}</p>
-                  {v.caveat && <p>{guestText(v.caveat, v.synthetic)}</p>}
+                  {v.caveat && <p>{verdictCaveat(v)}</p>}
                 </details>
               </details>
             )}
@@ -564,14 +594,21 @@ export function VerdictList({
 
 /** The symbol and badge already carry these statuses; keep the full wording in the proof. */
 function verdictSummary(verdict: Verdict) {
-  const first = guestText(verdict.text.split(";")[0], verdict.synthetic);
-  const statusPrefixes = [
-    "Да, но учитывайте условия: ",
-    "Предварительно: ",
-    "Не подтверждено: ",
-  ];
-  const prefix = statusPrefixes.find((item) => first.startsWith(item));
-  return prefix ? first.slice(prefix.length) : first;
+  const duration =
+    verdict.characteristic_id === "sunset_view"
+      ? verdict.text
+          .split(";")
+          .find((part) => /солнц.*мин|мин.*солнц/.test(part))
+      : undefined;
+  const conciseDuration = duration
+    ?.trim()
+    .replace(/^перед закатом солнце видно\s*/i, "Солнце видно ")
+    .replace(/\s+по расч[её]ту$/i, " перед закатом");
+  return humanExplanation(
+    conciseDuration || verdict.text,
+    verdict.synthetic,
+    1,
+  );
 }
 
 export function HotelVisual(props: {
@@ -717,7 +754,6 @@ export function FactValue({ fact }: { fact: Fact }) {
     fee_rub_night: "₽ за ночь",
     download_mbps: "Мбит/с",
     european_aqi: "AQI",
-    probability: "вероятность",
     rooms: "номера",
     windows: "окна",
     months: "месяцы",
@@ -937,9 +973,11 @@ export function EvidenceModal({
             )}
             {[
               ...new Set(
-                e.limitations.map((limitation) =>
-                  guestText(limitation, !!fact.synthetic),
-                ),
+                e.limitations
+                  .filter((limitation) =>
+                    relevantLimitation(limitation, fact.characteristic_id),
+                  )
+                  .map((limitation) => guestText(limitation, !!fact.synthetic)),
               ),
             ]
               .filter((limitation) => limitation !== DEMO_EXPLANATION)
@@ -956,6 +994,7 @@ export function EvidenceModal({
                     {
                       inputs: e.inputs,
                       output: e.output,
+                      limitations: e.limitations,
                       methods: supporting.map((claim) => claim.method),
                     },
                     !!fact.synthetic,

@@ -1,47 +1,47 @@
 {
   "methodology": "Authored synthetic intent cases, without independent human validation; not hotel accuracy or nDCG. no_data uses explicit authoritative fixture context; similarity uses existing catalogue resolver.",
   "gold": {
-    "queries": 239,
-    "exact_matches": 215,
-    "exact_match_rate": 0.899582,
-    "criterion_precision": 0.99661,
-    "criterion_recall": 0.967105,
-    "criterion_true_positive": 294,
-    "criterion_expected": 304,
-    "criterion_actual": 295,
-    "criteria_exact_match_rate": 0.953975,
-    "unmapped_expectation_accuracy": 0.941423,
-    "unmapped_evaluated_queries": 239,
+    "queries": 247,
+    "exact_matches": 224,
+    "exact_match_rate": 0.906883,
+    "criterion_precision": 0.996743,
+    "criterion_recall": 0.968354,
+    "criterion_true_positive": 306,
+    "criterion_expected": 316,
+    "criterion_actual": 307,
+    "criteria_exact_match_rate": 0.955466,
+    "unmapped_expectation_accuracy": 0.947368,
+    "unmapped_evaluated_queries": 247,
     "queries_with_unmapped": 20
   },
   "splits": {
     "development": {
-      "queries": 189,
-      "exact_matches": 182,
-      "exact_match_rate": 0.962963,
-      "criterion_precision": 0.995726,
-      "criterion_recall": 0.974895,
-      "criterion_true_positive": 233,
-      "criterion_expected": 239,
-      "criterion_actual": 234,
-      "criteria_exact_match_rate": 0.962963,
+      "queries": 197,
+      "exact_matches": 190,
+      "exact_match_rate": 0.964467,
+      "criterion_precision": 0.995935,
+      "criterion_recall": 0.976096,
+      "criterion_true_positive": 245,
+      "criterion_expected": 251,
+      "criterion_actual": 246,
+      "criteria_exact_match_rate": 0.964467,
       "unmapped_expectation_accuracy": 1.0,
-      "unmapped_evaluated_queries": 189,
-      "queries_with_unmapped": 4
+      "unmapped_evaluated_queries": 197,
+      "queries_with_unmapped": 5
     },
     "holdout": {
       "queries": 50,
-      "exact_matches": 33,
-      "exact_match_rate": 0.66,
+      "exact_matches": 34,
+      "exact_match_rate": 0.68,
       "criterion_precision": 1.0,
       "criterion_recall": 0.938462,
       "criterion_true_positive": 61,
       "criterion_expected": 65,
       "criterion_actual": 61,
       "criteria_exact_match_rate": 0.92,
-      "unmapped_expectation_accuracy": 0.72,
+      "unmapped_expectation_accuracy": 0.74,
       "unmapped_evaluated_queries": 50,
-      "queries_with_unmapped": 16
+      "queries_with_unmapped": 15
     }
   },
   "stages": {
@@ -60,17 +60,17 @@
       "queries_with_unmapped": 1
     },
     "semantic_extraction": {
-      "queries": 229,
-      "exact_matches": 206,
-      "exact_match_rate": 0.899563,
-      "criterion_precision": 0.996429,
-      "criterion_recall": 0.965398,
-      "criterion_true_positive": 279,
-      "criterion_expected": 289,
-      "criterion_actual": 280,
-      "criteria_exact_match_rate": 0.951965,
-      "unmapped_expectation_accuracy": 0.943231,
-      "unmapped_evaluated_queries": 229,
+      "queries": 237,
+      "exact_matches": 215,
+      "exact_match_rate": 0.907173,
+      "criterion_precision": 0.996575,
+      "criterion_recall": 0.966777,
+      "criterion_true_positive": 291,
+      "criterion_expected": 301,
+      "criterion_actual": 292,
+      "criteria_exact_match_rate": 0.953586,
+      "unmapped_expectation_accuracy": 0.949367,
+      "unmapped_evaluated_queries": 237,
       "queries_with_unmapped": 19
     },
     "similarity_resolution": {
@@ -89,7 +89,7 @@
     }
   },
   "negative": {
-    "queries": 120,
+    "queries": 124,
     "queries_with_false_criteria": 0,
     "false_criteria_rate": 0.0,
     "criteria_emitted": 0
@@ -467,30 +467,6 @@
       ]
     },
     {
-      "id": "gold-197",
-      "text": "С грудным ребенком и коляской, пляж 9 минут",
-      "split": "holdout",
-      "exact": false,
-      "stage": "semantic_extraction",
-      "criteria_exact": true,
-      "true_positive": 2,
-      "expected_count": 2,
-      "actual_count": 2,
-      "unmapped_ok": false,
-      "unmapped_evaluated": true,
-      "has_unmapped": true,
-      "errors": [
-        {
-          "unmapped": {
-            "expected": [],
-            "actual": [
-              "грудным"
-            ]
-          }
-        }
-      ]
-    },
-    {
       "id": "gold-199",
       "text": "Размещают с собакой 25 килограммов?",
       "split": "holdout",
@@ -792,50 +768,50 @@
   "input_fingerprint": {
     "version": 1,
     "parser_sha256": {
-      "backend/agents/query_parser.py": "bc1f383699a2233bcbc237f21c06cc04410d3a7607dad2f04b70e07b3bfe44de",
-      "backend/agents/group_query.py": "fe48146b77ff497c7ab399f906732d5013f2d754665926b4aeb767c1ee52aa49",
+      "backend/agents/query_parser.py": "23338308e489f41630739ebf0d57c46758e8598d0e2d943262a48ecd63604e7e",
+      "backend/agents/group_query.py": "1766ff6b9a5b42e4d6df0a0b590661e17ddbb7837202b4c82997876605d75454",
       "backend/agents/query_text.py": "112f46f91203c04f4d5dbb838accde773227f6d81e91ca569c0df2578319bdaf",
-      "backend/agents/query_rules.py": "4b1e2263bf75059bb5f15862633cca228152f81708037d12941900647c495601",
-      "backend/agents/similarity.py": "99e803c3e3167388a8e620bbf3b0cadcfb33c28b9c0084da0c8115293aa17f8a",
+      "backend/agents/query_rules.py": "1928337335eee94dcb69fd553311a15e535946af34f1d087c6e2a342bfac3a13",
+      "backend/agents/similarity.py": "63de24b7e952a878752080aee6d3a7addbab9d889970b0c591aeb4928097e8c4",
       "backend/contracts/__init__.py": "c7a5746ac4519ef52c85b62f9346a0537f39db8604ee732237f08cd2055bc8f1",
-      "backend/contracts/models.py": "343af88c054305b48799fb1c2b754a56e4a9497ab81bdb79aedd62fe66f04a1f",
+      "backend/contracts/models.py": "a8cacd8d57802fa52ff872f75fc7917b725e9846e2499713b436ce98f7b9ad87",
       "backend/tools/registry.py": "8d5de1d0071e13f37075413d8b0a6009a32c7b9fade06b6e641a7bdac98dc424",
       "backend/parser_quality.py": "565c904961bff176488fd1faed871d68dc9eb632a33bc1a329cbefd83153fc9f",
       "scripts/parser_eval.py": "694851c50ef1509832c6af6cacbdc2b127c17e395a1b415c3f5324802569ad70"
     },
     "catalogue_sha256": {
-      "characteristics/accessible_route.yaml": "45b7a1398fe812bc6476c146ef375b78e8362efe2f91ea6e7b51e3e0662a31eb",
-      "characteristics/air_quality.yaml": "8274ca2105d7ddc7b8492345f308edf535fe9f1ac0c1639bd4f72e37b94bb624",
-      "characteristics/beach_surface.yaml": "56a8cf203467382292a9dba9e5ea18a3a7198734c0befd7dbf0f5e691a5f2fe7",
-      "characteristics/beach_walk.yaml": "d48ab3787424d1618850ceb98a1c21914e15c85953ac7fcee1c8edf8e9016e00",
-      "characteristics/building_history.yaml": "b2779cb2d316639e1b7fc0f20a41dde4cd4fcea7c3b5c1314ae30b35d12569d4",
-      "characteristics/car_access.yaml": "2d222f35494c9f9b487d5476d7767f77b60e5dd7731531328c49c6525e30b72a",
-      "characteristics/climate.yaml": "a4a5790abcffbcfce0df8a7f66f64a38edc9679043d23e5cbc3bd7f2b580b86e",
-      "characteristics/connectivity.yaml": "8f8d8670173d545647b0cb9d0dbf6ffd28f08a9af7e80cdd8ed9ad7246576d1b",
-      "characteristics/evening_heat.yaml": "39f8330f813083ccf98294b78c0e4793dd520550590900c94d6b7d63e08b558a",
-      "characteristics/family_nearby.yaml": "0c7d0f251ad8cbd3845d41200bda1107c7b66e5044b0e7e585686500f5f302e5",
-      "characteristics/green_nearby.yaml": "ba2e92d90f516f0c245ef14e6404f45d6ab91a2187b2e6b8cb6d2e6fa2b4d9b6",
-      "characteristics/morning_sun.yaml": "dcdd9077c1644a9385d81b907d1fb35413920ebc0f8275a03a8a9018eb6d30ca",
-      "characteristics/mountain_view.yaml": "901bcddf4b4d51d3ae2c7a10d337852402c575774454958bde33cf632d6f5ffa",
-      "characteristics/nearby_photos.yaml": "51f7d624104511a8cf9bc282e8277470c916b9f08a156903fd28ba3a4dcbbd6a",
-      "characteristics/night_pharmacy.yaml": "a285682ef25dbfc7a39d51fc59166ea9825d2a278cf8cacb16dbd128a722a4a5",
-      "characteristics/nightlife.yaml": "a6e55617a59c8a928c6e5b45c28e2b31c183134aa1692292b03ac6a663a3c94a",
-      "characteristics/pets.yaml": "854e116f1a2b4fb6302f58844bbe4eb32c04717ebc034e079d968d5416cc9ddb",
-      "characteristics/quiet_night.yaml": "6e0464cfdef7d899e0122adb580ac29d9963ccfb4becb97032da97dbd2465a0c",
-      "characteristics/railway_noise.yaml": "145be9a3575b68d3f3fc0676548533bc249348f3df775e9d170a9843bd0b1b1e",
-      "characteristics/room_orientation.yaml": "6d59244357b576244c9dd4814d2eddd83dc20ac6a29904f5ad8a980aff561460",
-      "characteristics/sea_view.yaml": "a9fecf6bca68144ec4ecccb5b264a31e1b413f0912a9af80ac737ec03ae8de51",
-      "characteristics/soundproofing.yaml": "35de37f3b4f0bd390472cdbfaa2eacce58fdb9def55dec514946558717be10ad",
-      "characteristics/sunset_view.yaml": "149b80cc5f55745e05d3d64aa44bc689ed26ab6954bffaaeb593e4653ac8feca"
+      "characteristics/accessible_route.yaml": "710667ade89a9d60f214a744ae11d25fe8c9a2b798da505765740f2ce933229a",
+      "characteristics/air_quality.yaml": "42f8486a2aa10fd71891e7d1df393ca398732b8e70837f015f95bae61020c719",
+      "characteristics/beach_surface.yaml": "b26dd7536e057c8b92cda1a9f40192237c1e82a18ce01a8ec1b184ffaa878546",
+      "characteristics/beach_walk.yaml": "22051fe1c2a7db825e32f8d0fc5670c9749413de8ee68a155bb7d95268888780",
+      "characteristics/building_history.yaml": "c386d709efa61c253cdc15fad50661ace4820379658598f8988dbf0a74ecf0d3",
+      "characteristics/car_access.yaml": "7495f1d933abd87bb13d47bda44db3b0d004ddda4044a4f767d3c48395ce0446",
+      "characteristics/climate.yaml": "f827618c65fe9beef2f8a7a226b9f4258769f673f9bb145320811c4f132f015f",
+      "characteristics/connectivity.yaml": "aa7e40cf76e307d74fae86adcec4384f80a5a944ed30c7fea12a7fe3f27207c9",
+      "characteristics/evening_heat.yaml": "6204b8e235c37933ffd772f21844203e32082c807ae33766dff16d9d3ad2c17c",
+      "characteristics/family_nearby.yaml": "8ec9364847cea590c8083acd02e0e68fbf9164d1b8eb4ea7cb6a199b2fd6d12b",
+      "characteristics/green_nearby.yaml": "2e06ae77aaa073abdd2b63473725cb6c11edf23bb063295d03bf676140f3de74",
+      "characteristics/morning_sun.yaml": "3a12c8e57d2716e1efbdb90bfe3423373046c007c34982ee67c0ade9baf0e7f8",
+      "characteristics/mountain_view.yaml": "3558b687ef0abcb3d2ce1b96b5b131a5305d317f8c0baaf63b4d85895995207b",
+      "characteristics/nearby_photos.yaml": "b28b37c4545aa4604056c9764ef60f52ac0a7a53aa6c2ac6a575da81e2a3e6ee",
+      "characteristics/night_pharmacy.yaml": "29610377abcc057c88f74dc011461b1f1dfb58f6cab814dd43b005993c46d69b",
+      "characteristics/nightlife.yaml": "7b81e5b4af43a7fe5f31a466c23240ab62dde72cdd502754bcd678878f5c7c24",
+      "characteristics/pets.yaml": "69862fe40b4f88a9eb026252e672ae7c6f090096f37e3bd0034c7f9ddc75379c",
+      "characteristics/quiet_night.yaml": "f78f48d37c0aca4aabb45245386ff0e5a62c42af5d635083952c7db8962fc2aa",
+      "characteristics/railway_noise.yaml": "8e96459bd6e64dd99740ec2658a08b838bef980249e50aed5c217b23dd7ac7f2",
+      "characteristics/room_orientation.yaml": "068cab8652ff657f759640b25802ca04dbe0a4e1bcf86f269e44c1ed3b24a4d1",
+      "characteristics/sea_view.yaml": "254ca872b8fb214262d4dc884e934018092479f4bb6ff5bb4e956dc895b92933",
+      "characteristics/soundproofing.yaml": "470bc425c746f5a2a1695b5390b0d1ce5a1eed379855dc9a18d3c602e0e1c61f",
+      "characteristics/sunset_view.yaml": "2cc43abdaeeeef5a3763245fbbd229cf2746838cdc7e51806d06dd65f9c0f69f"
     },
     "corpora": {
       "gold": {
         "path": "eval/queries_gold.jsonl",
-        "sha256": "011f9520f296a2ebed352557998d60f79de09d71e667ec36f05b51d24cb6a7c1"
+        "sha256": "449373d5b1802de1b5910aefe121fa744761a5470fe3c8dfa9fcc9e0c863d0c0"
       },
       "negative": {
         "path": "eval/queries_negative.jsonl",
-        "sha256": "878608f627319c53c960848bfcc264abcadfb13ed5d919fbfc2b5dc23fc41f1e"
+        "sha256": "d48ef67873bcb1d577f923cf4a392e798e6c5865bfb88faf77bc97e194dc8570"
       }
     },
     "fixture_sha256": {
@@ -847,7 +823,7 @@
     "evaluation_year": 2026
   },
   "corpus_sha256": {
-    "gold": "011f9520f296a2ebed352557998d60f79de09d71e667ec36f05b51d24cb6a7c1",
-    "negative": "878608f627319c53c960848bfcc264abcadfb13ed5d919fbfc2b5dc23fc41f1e"
+    "gold": "449373d5b1802de1b5910aefe121fa744761a5470fe3c8dfa9fcc9e0c863d0c0",
+    "negative": "d48ef67873bcb1d577f923cf4a392e798e6c5865bfb88faf77bc97e194dc8570"
   }
 }

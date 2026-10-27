@@ -165,8 +165,13 @@ def apply_region_coverage(parsed: ParsedQuery, coverage: dict[str, dict]) -> Par
         seen.add(key)
         row = coverage.get(criterion.characteristic_id, {})
         field = criterion.field or row.get('search_field')
-        status = row.get('fields', {}).get(field, row).get('status')
-        if status == 'no_data' or status is None and key in previous:
+        field_coverage = row.get('fields', {}).get(field, row)
+        status = field_coverage.get('status')
+        partial_evidence = (criterion.characteristic_id == 'connectivity'
+                            and field in {'download_mbps', 'upload_mbps', 'latency_ms'}
+                            and field_coverage.get('partial_evidence') is True
+                            and field_coverage.get('wifi_reported_count', 0) > 0)
+        if not partial_evidence and (status == 'no_data' or status is None and key in previous):
             parsed.no_data.append(criterion)
             if required:
                 parsed.no_data_must.append(criterion)

@@ -66,6 +66,8 @@ export function factLabel(fact: Fact) {
 }
 /** Presentation only: source records, original quotes and API values stay intact. */
 export function guestText(text: string, synthetic = false) {
+  if (synthetic)
+    text = text.replace(/^Синтетические демонстрационные данные:\s*/i, "");
   if (
     /СИМУЛЯЦИЯ|Синтетический ответ|hotelier_simulator|synthetic-demo|фикстур|demo truth|Вымышленный ответ|Confidence относится|Синтетические данные/i.test(
       text,
@@ -159,4 +161,62 @@ export function guestQuote(quote: string, synthetic = false) {
         "",
       )
     : quote;
+}
+
+/** Short display copy only; original verdicts and evidence stay in the proof. */
+export function humanExplanation(
+  text: string,
+  synthetic = false,
+  sentences = 2,
+) {
+  const first = guestText(text.split(";")[0], synthetic).replace(
+    /^(?:Да, но учитывайте условия: |Предварительно: |Не подтверждено: )/,
+    "",
+  );
+  return first
+    .split(/(?<=[.!?])\s+(?=[А-ЯЁA-Z])/u)
+    .slice(0, sentences)
+    .join(" ");
+}
+export function relevantLimitation(text: string, characteristicId: string) {
+  if (/больниц/i.test(text) && characteristicId !== "family_nearby")
+    return false;
+  if (
+    /наличи[ея] (?:номеров|окон)|окна? на фасад/i.test(text) &&
+    ![
+      "sea_view",
+      "sunset_view",
+      "mountain_view",
+      "room_orientation",
+      "morning_sun",
+      "evening_heat",
+      "quiet_night",
+      "soundproofing",
+      "railway_noise",
+    ].includes(characteristicId)
+  )
+    return false;
+  return true;
+}
+
+export function verdictCaveat(verdict: Verdict) {
+  let unrelated = false;
+  return (verdict.caveat || "")
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => {
+      if (!relevantLimitation(part, verdict.characteristic_id)) {
+        unrelated = true;
+        return false;
+      }
+      if (unrelated && /^это вопрос отельеру/i.test(part)) {
+        unrelated = false;
+        return false;
+      }
+      unrelated = false;
+      return !!part;
+    })
+    .map((part) => guestText(part, !!verdict.synthetic))
+    .filter((part, index, all) => all.indexOf(part) === index)
+    .join("; ");
 }

@@ -159,18 +159,29 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
     detail = _details(selected, criterion) if selected else ""
     prefixes = {"yes": "Да, но учитывайте условия", "partial": "Предварительно", "no": "Нет", "unknown": "Не подтверждено"}
     text = prefixes[match.status] + ": " + (detail or match.reason)
+    if (selected and selected.characteristic_id == "nightlife" and match.status == "no" and criterion.op == "gte"
+            and criterion.field in {"venues_500m", "bars_500m"} and isinstance(match.value, int | float)):
+        text = f"Не подходит: по карте мало — {number(match.value)} из {number(criterion.value)} заведений в 500 м"
     if (selected and selected.characteristic_id == "beach_walk" and match.status in {"no", "unknown"}
             and (criterion.no_stairs or criterion.no_crossings) and match.reason.startswith("Маршрут ")):
         text = prefixes[match.status] + ": " + match.reason + ("; " + detail if detail else "")
     caveats = []
-    if match.status in {"unknown", "partial"}:
+    if match.status in {"unknown", "partial", "no"}:
         caveats.append(match.reason)
     if match.reason == FLOOR_DOMAIN_UNKNOWN:
         caveats.append(FLOOR_DOMAIN_CAVEAT)
     if selected and selected.characteristic_id == "quiet_night":
         caveats.append("Приближённая модель наружного шума с погрешностью около ±8 дБ; сон и шумоизоляцию окон она не гарантирует. Уточните окна у отеля")
     if selected and selected.characteristic_id == "connectivity":
-        caveats.append("Это агрегированные тесты в районе, а не проверка Wi-Fi конкретного номера")
+        value = selected.value if isinstance(selected.value, dict) else {}
+        if value.get("wifi_reported") is True and not any(value.get(k) is not None for k in ("download_mbps", "upload_mbps", "latency_ms")):
+            caveats.append("Наличие Wi-Fi указано в открытых данных; работу сети и скорость в номере не проверяли")
+        else:
+            caveats.append("Это агрегированные тесты в районе, а не проверка Wi-Fi конкретного номера")
+    if match.status == "no" and selected and selected.confidence < .7:
+        caveats.append("Условие не выполняется по имеющимся данным; данные могут быть неполными")
+    if match.status == "no" and selected and selected.characteristic_id == "nightlife":
+        caveats.append("Карта заведений может быть неполной")
     if selected and selected.characteristic_id == "climate":
         caveats.append("Климатические данные за прошлые периоды, не прогноз погоды на даты поездки")
     if selected and selected.characteristic_id == "beach_walk":

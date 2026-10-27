@@ -4,6 +4,11 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import {
+  closeSmokeBrowser,
+  blockYandex,
+  revealAncestors,
+} from "./panel-guest-smoke-ui.mjs";
+import {
   guestQuery,
   primorskayaId,
   languageFindings,
@@ -53,6 +58,16 @@ const [detail, catalogue, specs, status, index] = await Promise.all([
   json("/data/seed/hotel_photos.json"),
 ]);
 const fixtures = photosFixtures(detail, search);
+// Declare the independent counter fixtures' extra characteristics as requested;
+// compact cards intentionally omit characteristics absent from the active query.
+fixtures.parsed.nice = ["sea_view", "soundproofing"].map((id) => ({
+  characteristic_id: id,
+  label: id === "sea_view" ? "Вид на море" : "Шумоизоляция и окна",
+  field: "available",
+  op: "eq",
+  value: true,
+  weight: 1,
+}));
 const browser = await chromium.launch({ executablePath, headless: true });
 const forbiddenHost = (url) =>
   /(?:^|\.)(?:yandex\.[a-z.]+|ya\.ru|mapillary\.com)$/.test(
@@ -110,8 +125,10 @@ async function checkStatusSummary(card, hit, state) {
     { state, lines, items },
   );
   for (const item of items) {
-    const visibleCount = [...item.text.matchAll(/(?:^|·)\s*(\d+)/gu)]
-      .reduce((sum, match) => sum + Number(match[1]), 0);
+    const visibleCount = [...item.text.matchAll(/(?:^|·)\s*(\d+)/gu)].reduce(
+      (sum, match) => sum + Number(match[1]),
+      0,
+    );
     check(
       visibleCount === expected[item.status],
       "required-status-visible-count",
@@ -163,6 +180,7 @@ try {
     viewport: { width: 1440, height: 1000 },
   });
   const page = await live.newPage();
+  await blockYandex(page);
   const requests = [],
     errors = [];
   page.on("request", (request) => requests.push(request.url()));
@@ -249,6 +267,7 @@ try {
       await page.locator(".result-card").first().waitFor();
       await capture(page, `search-${width}-${theme}`);
       await page.goto(`${base}/hotel/${primorskayaId}`);
+      await revealAncestors(page.getByTestId("room-advice"));
       await page.getByTestId("room-advice").waitFor();
       await page.getByTestId("hotel-map-photos-link").waitFor();
       await capture(page, `hotel-primorskaya-${width}-${theme}`);
@@ -390,12 +409,14 @@ try {
     { parsed: fixtures.parsed, requested },
   );
   const fpage = await ctx.newPage();
+  await blockYandex(fpage);
   fpage.on("request", (request) => {
     if (forbiddenHost(request.url())) fixtureRequests.push(request.url());
   });
   const loadHotel = async () => {
     await fpage.goto(`${base}/hotel/${fixtureHotelId}`);
     await fpage.getByTestId("open-room-photos").waitFor();
+    await revealAncestors(fpage.getByTestId("room-advice-card").first());
     await fpage.getByTestId("room-advice-card").waitFor();
   };
   await loadHotel();
@@ -436,6 +457,7 @@ try {
     (await fpage.getByTestId("room-advice-compromise").count()) === 1,
     "overlap-is-not-full-scope-coverage",
   );
+  const requestedMust = fixtures.parsed.must;
   fixtures.parsed.must = fixtures.parsed.must.filter(
     (criterion) => criterion.characteristic_id !== "quiet_night",
   );
@@ -444,11 +466,13 @@ try {
     .getByTestId(`hotel-card-${fixtureHotelId}`)
     .locator(".hotel-name")
     .click();
+  await revealAncestors(fpage.getByTestId("room-advice-card").first());
   await fpage.getByTestId("room-advice-card").waitFor();
   check(
     (await fpage.getByTestId("room-advice-compromise").count()) === 0,
     "unrequested-goal-has-no-compromise",
   );
+  fixtures.parsed.must = requestedMust;
   for (const width of [1440, 390])
     for (const theme of ["light", "dark"]) {
       await fpage.setViewportSize({ width, height: 1000 });
@@ -677,6 +701,7 @@ try {
   fixtures.search.total = fixtures.search.results.length;
   await fpage.goto(`${base}/search?q=ranking-fixture`);
   const rankingDetails = fpage.getByTestId(`search-reasons-${noPhotoHotelId}`);
+  await revealAncestors(rankingDetails);
   await rankingDetails.locator(":scope > summary").click();
   check(
     (await rankingDetails.getByTestId("ranking-reason").count()) === 1,
@@ -716,14 +741,18 @@ try {
     "three-groups-keep-one-legend",
   );
   check(
-    (await fpage.locator(".result-group").filter({ has: fpage.getByTestId("partial-legend") })
-      .locator(":scope > .result-group-note").count()) === 1,
+    (await fpage
+      .locator(".result-group")
+      .filter({ has: fpage.getByTestId("partial-legend") })
+      .locator(":scope > .result-group-note")
+      .count()) === 1,
     "legend-group-has-no-duplicate-explanation",
   );
   const legacyReason =
     "«Старый вариант»: выше совокупная оценка выполнения условий с учётом уверенности (89.1 против 63.5); проверьте оговорки в критериях.";
   fixtures.search.results[1].why_not_higher = [legacyReason];
   await fpage.goto(`${base}/search?q=legacy-ranking-fixture`);
+  await revealAncestors(rankingDetails);
   await rankingDetails.locator(":scope > summary").click();
   check(
     !/89[.,]1|63[.,]5/u.test(await rankingDetails.innerText()),
@@ -800,7 +829,7 @@ try {
   });
   await ctx.close();
 } finally {
-  await browser.close();
+  await closeSmokeBrowser(browser);
 }
 const result = {
   status: failures.length ? "failed" : "passed",
@@ -822,3 +851,5 @@ console.log(
   ),
 );
 if (failures.length) process.exitCode = 1;
+
+process.exit(process.exitCode || 0);
