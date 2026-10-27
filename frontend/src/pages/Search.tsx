@@ -873,6 +873,39 @@ function distinctRankingReasons(reasons: string[] = []) {
     })
     .slice(0, 3);
 }
+export function requiredStatusCounts(hit: SearchHit) {
+  const counts = { yes: 0, partial: 0, no: 0, unknown: 0 };
+  for (const verdict of [
+    ...hit.verdicts,
+    ...(hit.room_plan || []).flatMap((item) => item.verdicts),
+  ]) {
+    if (verdict.required) counts[verdict.status] += 1;
+  }
+  // Some no-data/scope requirements have no verdict in legacy responses.
+  counts.unknown += Math.max(
+    0,
+    hit.must_total -
+      Object.values(counts).reduce((sum, count) => sum + count, 0),
+  );
+  return counts;
+}
+export function requiredStatusLabel(hit: SearchHit) {
+  const counts = requiredStatusCounts(hit);
+  const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+  if (!total) return "Обязательных условий нет";
+  if (counts.yes === total)
+    return total === 1
+      ? "Обязательное условие подтверждено"
+      : `Все ${total} обязательных подтверждены`;
+  return `Обязательные: ${[
+    counts.yes && `${counts.yes} подтверждено`,
+    counts.partial && `${counts.partial} — пока неточно`,
+    counts.no && `${counts.no} не подходит`,
+    counts.unknown && `по ${counts.unknown} нет данных`,
+  ]
+    .filter(Boolean)
+    .join(", ")}`;
+}
 function SearchCard({
   hit,
   month,
@@ -908,7 +941,7 @@ function SearchCard({
       onMouseLeave={() => onHover(null)}
       data-testid={`hotel-card-${hit.hotel.id}`}
     >
-      <HotelVisual hotel={hit.hotel} />
+      <HotelVisual hotel={hit.hotel} fallbackLink />
       <div className="result-card-body">
         <div className="result-meta">
           <span className="hotel-number">
@@ -930,9 +963,7 @@ function SearchCard({
           <ArrowUpRight size={20} />
         </Link>
         <p className="result-summary">
-          <span>
-            Обязательные: {hit.must_satisfied} из {hit.must_total}
-          </span>
+          <span>{requiredStatusLabel(hit)}</span>
           {hit.room_profile?.scope.facade && !hit.room_recommendation && (
             <span>{scopeText(roomEvidenceScope(hit.room_profile.scope))}</span>
           )}
@@ -1241,6 +1272,26 @@ export function SearchPage() {
           )}
           {(["all", "almost", "unknown", "browse"] as const).map((group) => {
             const hits = results.filter((r) => groupOf(r) === group);
+            const hasPartial =
+              group === "all" &&
+              hits.some((hit) =>
+                [
+                  ...hit.verdicts,
+                  ...(hit.room_plan || []).flatMap((item) => item.verdicts),
+                ].some((verdict) => verdict.status === "partial"),
+              );
+            const legendGroup = (
+              ["all", "almost", "unknown", "browse"] as const
+            ).find((name) =>
+              results.some(
+                (hit) =>
+                  groupOf(hit) === name &&
+                  [
+                    ...hit.verdicts,
+                    ...(hit.room_plan || []).flatMap((item) => item.verdicts),
+                  ].some((v) => v.status === "partial"),
+              ),
+            );
             return (
               hits.length > 0 && (
                 <section className="result-group" key={group}>
@@ -1249,7 +1300,9 @@ export function SearchPage() {
                       <span className="eyebrow">
                         {
                           {
-                            all: "ВАШИ УСЛОВИЯ СОШЛИСЬ",
+                            all: hasPartial
+                              ? "ЕСТЬ ПРЕДВАРИТЕЛЬНЫЕ СОВПАДЕНИЯ"
+                              : "ВАШИ УСЛОВИЯ СОШЛИСЬ",
                             almost: "ЕСТЬ КОМПРОМИСС",
                             unknown: "НУЖНО УТОЧНИТЬ",
                             browse: "ОТЕЛИ РЕГИОНА",
@@ -1259,7 +1312,9 @@ export function SearchPage() {
                       <h2>
                         {
                           {
-                            all: "Подходят по обязательным",
+                            all: hasPartial
+                              ? "Совпадения — с уточнениями"
+                              : "Подходят по обязательным",
                             almost: "Почти то, что нужно",
                             unknown: "Пока не всё известно",
                             browse: "Без учёта ваших условий",
@@ -1269,6 +1324,19 @@ export function SearchPage() {
                     </div>
                     <span className="result-count">{hits.length}</span>
                   </div>
+                  {hasPartial && (
+                    <p className="result-group-note">
+                      Часть условий пока подтверждена только предварительно.
+                    </p>
+                  )}
+                  {group === legendGroup && (
+                    <p
+                      className="result-group-note"
+                      data-testid="partial-legend"
+                    >
+                      ≈ — скорее да, но данных мало; точнее подтвердит отель.
+                    </p>
+                  )}
                   {hits.map((hit) => (
                     <SearchCard
                       key={hit.hotel.id}

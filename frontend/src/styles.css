@@ -6957,3 +6957,80 @@ h3 {
   font-size: 9px;
   line-height: 1.45;
 }
+
+/* Hotel sources stay ordinary links; room images are mounted only on demand. */
+.visual-map-link {
+  position: absolute;
+  z-index: 4;
+  left: 12px;
+  top: 12px;
+  max-width: calc(100% - 24px);
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--heading);
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 2px 8px #0002;
+}
+.hotel-photo-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 12px;
+}
+.hotel-photo-actions > a {
+  min-height: 36px;
+}
+.room-photo-gallery > p {
+  margin-bottom: 14px;
+}
+.room-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.room-photo-grid figure {
+  min-width: 0;
+  margin: 0;
+}
+.room-photo-grid img {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 9px;
+  background: var(--surface);
+}
+.result-group-note {
+  margin: -4px 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.room-advice-compromise {
+  grid-column: 1 / -1;
+  padding: 12px 16px;
+  border-left: 3px solid var(--sea);
+  background: var(--sea-soft);
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.room-advice-compromise p {
+  margin-bottom: 5px;
+}
+.room-advice-compromise p button {
+  display: inline;
+  text-align: left;
+}
+@media (max-width: 680px) {
+  .room-photo-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hotel-photo-actions {
+    gap: 8px;
+  }
+}
