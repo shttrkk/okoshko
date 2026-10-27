@@ -11,6 +11,7 @@ from shapely.geometry import Point, shape
 from shapely.ops import transform
 from shapely.strtree import STRtree
 
+from backend.agents.dependencies import NAMESPACE, fact_fingerprint, metadata, retirement_sources
 from backend.contracts import Claim, Evidence, ToolCall, ToolContext, ToolResult, ToolSpec, uid
 from backend.contracts.validation import validate_value as validate
 from backend.settings import DATA
@@ -158,7 +159,12 @@ class Registry:
             if key not in latest or claim.observed_at>latest[key].observed_at:
                 latest[key] = claim
         for claim in latest.values():
-            selected.append(claim.model_copy(update={"id":uid(),"characteristic_id":context.characteristic_id,"run_id":context.run_id,"supersedes":claim.id if context.characteristic_id == canonical else None,"supersedes_ids":[]}))
+            cloned = claim.model_copy(deep=True, update={"id":uid(),"characteristic_id":context.characteristic_id,"run_id":context.run_id,"supersedes":claim.id if context.characteristic_id == canonical else None,"supersedes_ids":[]})
+            if context.characteristic_id != canonical:
+                for evidence in cloned.evidence:
+                    evidence.inputs = {**evidence.inputs, NAMESPACE: metadata(
+                        input_characteristic_ids=[canonical], input_claim_ids=[claim.id])}
+            selected.append(cloned)
         return ToolResult(claims=selected,artifacts={"cache_hit":True},warnings=[] if selected else ["Нет подтверждённых входных данных для инструмента; значение неизвестно"])
 
     def _ask(self, context, call):
@@ -180,9 +186,11 @@ class Registry:
         if changes and geometry_sensitive and (not artifact or kind == "railway_noise"):
             return ToolResult(warnings=["Геометрия здания изменилась; дополнительный признак требует расчёта по актуальному артефакту"])
         existing = self.repo.find("claims", hotel_id=context.hotel_id, characteristic_id=context.characteristic_id)
+        retired = (retirement_sources(context.hotel_id, [Claim.model_validate(row) for row in self.repo.find("claims", hotel_id=context.hotel_id)])
+                   if context.characteristic_id != kind else {})
         superseded = {item for row in existing for item in [row.get("supersedes"), *row.get("supersedes_ids", [])] if item}
         active = [Claim.model_validate(row) for row in existing
-                  if row["id"] not in superseded and row.get("source") == "geo_engine"
+                  if row["id"] not in superseded and row["id"] not in retired and row.get("source") == "geo_engine"
                   and row.get("scope", {}).get("month") in {None, context.month}]
         observed = datetime.now(UTC)
         digests, invalid_inputs = {}, {}
@@ -254,7 +262,10 @@ class Registry:
             claim = Claim.model_validate(row)
             if claim.characteristic_id != context.characteristic_id:
                 identity = hashlib.sha256((claim.id + context.characteristic_id).encode()).hexdigest()[:32]
-                claim = claim.model_copy(update={"id": "trait-" + identity, "characteristic_id": context.characteristic_id})
+                claim = claim.model_copy(deep=True, update={"id": "trait-" + identity, "characteristic_id": context.characteristic_id})
+                for evidence in claim.evidence:
+                    evidence.inputs = {**evidence.inputs, NAMESPACE: metadata(
+                        geometry_sensitive=geometry_sensitive, geometry_trait_kind=kind)}
             if self.repo.get("claims", claim.id) is not None:
                 claim = claim.model_copy(update={"id": uid(), "supersedes": claim.id})
             claims.append(claim.model_copy(update={"run_id": context.run_id, "supersedes_ids": previous}))
@@ -408,6 +419,7 @@ class Registry:
             valid_until = min(deadlines)
             limitations = list(dict.fromkeys(["Составное условие наследует ограничения и уверенность входных данных"] + [limit for fact in facts for ev in fact.evidence for limit in ev.limitations]))
             evidence = Evidence(kind="calculation", label="Логическое условие над совместимыми входными фактами", source_ids=source_ids or ["geo_engine"], url="/api/runs/"+context.run_id,
-                                inputs={"expression": expression, "values": values, "fact_ids": [fact["id"] for fact in supporting], "scope": scope.model_dump(mode="json")}, output=value, limitations=limitations)
+                                inputs={"expression": expression, "values": values, "fact_ids": [fact["id"] for fact in supporting], "scope": scope.model_dump(mode="json"),
+                                        NAMESPACE: metadata(input_characteristic_ids=names, input_fact_fingerprints={fact.id: fact_fingerprint(fact) for fact in facts})}, output=value, limitations=limitations)
             claims.append(Claim(hotel_id=context.hotel_id, characteristic_id=context.characteristic_id, scope=scope, value=value, source="geo_engine", method="safe_expression@1", evidence=[evidence], confidence=min(fact.confidence for fact in facts), observed_at=observed, valid_until=valid_until, run_id=context.run_id, synthetic=any(fact.synthetic for fact in facts)))
         return ToolResult(claims=claims, warnings=[] if claims else ["Недостаточно совместимых свежих входных фактов; общий номер не подтверждён"])

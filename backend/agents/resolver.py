@@ -7,6 +7,7 @@ import math
 from collections import defaultdict
 from datetime import UTC, datetime
 
+from backend.agents.dependencies import retirement_sources, unknown_dependencies
 from backend.contracts import CharacteristicSpec, Claim, Conflict, Fact, Scope
 
 INTERNAL = {"soundproofing", "room_orientation", "pets"}
@@ -287,9 +288,10 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
     source_priors = {source["id"]: source.get("alpha", 7)/(source.get("alpha", 7)+source.get("beta", 3)) for source in sources}
     spec_by_id = {spec.id: spec for spec in specs}
     superseded = {id for claim in claims for id in ([claim.supersedes] if claim.supersedes else [])+claim.supersedes_ids}
+    retired = retirement_sources(hotel_id, claims)
     latest = {}
     for claim in claims:
-        if claim.hotel_id != hotel_id or claim.id in superseded:
+        if claim.hotel_id != hotel_id or claim.id in superseded or claim.id in retired:
             continue
         if claim.characteristic_id in spec_by_id and claim.spec_version!=spec_by_id[claim.characteristic_id].version:
             continue
@@ -415,7 +417,7 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
                     for fact in facts:
                         if fact.characteristic_id == characteristic_id:
                             fact.resolution = "scope_split"
-    return facts, conflicts
+    return unknown_dependencies(hotel_id, claims, facts, retired), conflicts
 
 
 def reconcile_conflicts(repo, conflicts: list[Conflict], hotel_ids: set[str]) -> None:
