@@ -19,6 +19,7 @@ from backend.contracts import (
     FactEvidence,
     Hotel,
     HotelDetail,
+    HotelPhoto,
     LabelRequest,
     ParsedQuery,
     RoomAdvice,
@@ -284,6 +285,15 @@ def room_advice(hotel_id: str, month: int = 9, repo=_REPO):
     hotel = Hotel.model_validate(searchable_hotel(repo, hotel_id))
     facts = [Fact.model_validate(row) for row in repo.find("facts", hotel_id=hotel_id)]
     return build_room_advice(hotel, facts, catalog(repo), month)
+
+
+@router.get("/hotels/{hotel_id}/photos", response_model=list[HotelPhoto])
+def hotel_photos(hotel_id: str, repo=_REPO):
+    """Read the reviewed offline photo index; never call an image provider."""
+    searchable_hotel(repo, hotel_id)
+    path = DATA / "seed" / "hotel_photos.json"
+    index = json.loads(path.read_text()) if path.is_file() else {}
+    return [HotelPhoto.model_validate(row) for row in index.get("photos", {}).get(hotel_id, [])]
 
 
 @router.get("/hotels/{hotel_id}/rooms", response_model=list[RoomProfile])

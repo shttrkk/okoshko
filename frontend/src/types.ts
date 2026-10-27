@@ -1,6 +1,27 @@
 export type Json = Record<string, unknown>;
 export type Mode = "offline" | "cache" | "live";
 export type Side = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
+export interface HotelPhoto {
+  kind: "building" | "official_site" | "street" | "room";
+  url: string;
+  local: boolean;
+  page_url?: string | null;
+  title?: string | null;
+  author?: string | null;
+  license?: string | null;
+  license_url?: string | null;
+  match?: string | null;
+  match_text?: string | null;
+  distance_m?: number | null;
+  width?: number;
+  height?: number;
+  bytes?: number | null;
+  sha256?: string | null;
+  verified_by_eye?: boolean;
+  captured_year?: number | null;
+  captured_at?: string | null;
+  image_id?: string | null;
+}
 export interface Scope {
   type: "hotel" | "facade" | "floor_range" | "room_type";
   facade?: Side | null;

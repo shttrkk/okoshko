@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 from typing import Any, Literal, Protocol
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -24,6 +25,63 @@ def now() -> datetime:
 
 class Model(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+class HotelPhoto(Model):
+    kind: Literal["building", "official_site", "street", "room"]
+    url: str = Field(min_length=1)
+    local: bool
+    page_url: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    author: str | None = None
+    license: str | None = None
+    license_url: str | None = None
+    match: str | None = None
+    match_text: str | None = None
+    distance_m: float | None = None
+    width: int = Field(gt=0)
+    height: int = Field(gt=0)
+    bytes: int | None = Field(default=None, gt=0)
+    sha256: str | None = None
+    verified_by_eye: Literal[True]
+    captured_year: int | None = Field(default=None, ge=1900, le=2100)
+    captured_at: str | None = None
+    image_id: str | None = None
+
+    @model_validator(mode="after")
+    def provenance(self) -> HotelPhoto:
+        for value in [self.page_url, self.license_url, None if self.local else self.url]:
+            if value is None:
+                continue
+            parsed = urlsplit(value)
+            if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
+                raise ValueError("photo references require public HTTP URLs without credentials")
+        if self.kind in {"official_site", "room"}:
+            if self.local or any([self.license, self.license_url, self.author]):
+                raise ValueError("official photographs are linked, never stored or relicensed")
+        else:
+            if not self.local or not self.url.startswith("/data/seed/photos/hotels/"):
+                raise ValueError("building and street photographs require a saved hotel thumbnail")
+            if ".." in self.url or not self.url.endswith(".webp") or not self.author or not self.license:
+                raise ValueError("saved photographs require a safe WebP path, author and licence")
+            if not self.bytes or not self.sha256:
+                raise ValueError("saved photographs require byte count and checksum")
+        if self.kind == "street":
+            host = (urlsplit(self.page_url).hostname or "").removeprefix("www.")
+            if self.license != "CC BY-SA 4.0" or not self.license_url or host != "mapillary.com":
+                raise ValueError("street photographs require Mapillary attribution and CC BY-SA 4.0")
+            if not self.captured_year or not self.image_id or self.width > 640 or self.bytes > 60_000:
+                raise ValueError("street thumbnail requires capture year, image ID, width <=640 and bytes <=60000")
+        return self
+
+
+class HotelPhotoIndex(Model):
+    generated_at: str
+    method: str = Field(min_length=1)
+    counts: dict[str, int]
+    photos: dict[str, list[HotelPhoto]]
+    room_hotel_count: int = Field(default=0, ge=0)
+    room_photo_count: int = Field(default=0, ge=0)
 
 
 class Scope(Model):
