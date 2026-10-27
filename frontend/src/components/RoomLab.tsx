@@ -258,10 +258,7 @@ function ModelFact({
         <>
           <p>
             {seaProbability !== null ? (
-              <>
-                Море видно в {pct(seaProbability)} симуляций геометрической
-                модели на этом уровне.
-              </>
+              <>Вероятность вида на море по расчёту: {pct(seaProbability)}.</>
             ) : fact.status === "stale" || expired ? (
               "Данные устарели; для этого среза нужна перепроверка."
             ) : fact.status === "disputed" ? (
@@ -295,7 +292,7 @@ function ModelFact({
       )}
       {id === "quiet_night" && (
         <p className="muted small">
-          Наружный шум по модели, не измерение в комнате и не оценка
+          Расчёт уличного шума не определяет звук в комнате или качество
           шумоизоляции.
         </p>
       )}
@@ -384,7 +381,7 @@ export function RoomLab({
     ["mountain_view", "Горы"],
     ["sunset_view", "Закат"],
     ["morning_sun", "Утреннее солнце"],
-    ["evening_heat", "Вечерняя экспозиция"],
+    ["evening_heat", "Вечернее солнце"],
     ["railway_noise", "Железнодорожный шум"],
     ["climate", "Климат и вода"],
   ].filter(([id]) =>
@@ -403,12 +400,12 @@ export function RoomLab({
       >
         <summary>
           <strong>Проверить окно</strong>
-          <span>Фасад, этаж и месяц в геометрической модели</span>
+          <span>Выберите сторону, этаж и месяц</span>
         </summary>
         <div className="room-lab-body">
           <p className="room-lab-disclaimer">
-            Модельный срез, не подтверждённый номер или окно. Наличие номера,
-            расположение окон и условия внутри комнаты нужно уточнить у отеля.
+            Проверяем условия для выбранной стороны и этажа. Реальный номер,
+            расположение окон и наличие мест подтвердит отель.
           </p>
           {roomLabel && (
             <p className="room-lab-person" data-testid="room-lab-person">
@@ -418,16 +415,15 @@ export function RoomLab({
           )}
           {!valid ? (
             <p className="muted">
-              Нет фасадной геометрии для выбора стороны. Модельный срез пока
-              недоступен.
+              Не хватает данных о сторонах здания. Проверка пока недоступна.
             </p>
           ) : (
             <>
               <div className="room-lab-controls">
                 <label>
-                  Фасад
+                  Сторона здания
                   <select
-                    aria-label="Фасад модельного среза"
+                    aria-label="Сторона здания"
                     data-testid="room-lab-facade"
                     value={slice.facade}
                     onChange={(event) =>
@@ -442,9 +438,9 @@ export function RoomLab({
                   </select>
                 </label>
                 <label>
-                  {boundary.known ? "Этаж в модели" : "Условный уровень"}
+                  {boundary.known ? "Этаж" : "Условный уровень"}
                   <select
-                    aria-label="Этаж модельного среза"
+                    aria-label="Этаж для проверки"
                     data-testid="room-lab-floor"
                     value={slice.floor}
                     onChange={(event) =>
@@ -460,9 +456,9 @@ export function RoomLab({
                   </select>
                 </label>
                 <label>
-                  Месяц модели
+                  Месяц
                   <select
-                    aria-label="Месяц модельного среза"
+                    aria-label="Месяц для проверки"
                     data-testid="room-lab-month"
                     value={slice.month}
                     onChange={(event) =>
@@ -479,8 +475,8 @@ export function RoomLab({
               </div>
               <p className="muted small" data-testid="room-lab-floor-note">
                 {boundary.known
-                  ? `Известная этажность: ${boundary.known}. В срезе доступны ${boundary.maximum} уровней модели; это не наличие номеров в продаже.`
-                  : "Этажность отеля неизвестна. Доступен только условный первый уровень модели; верхние этажи не предполагаются."}
+                  ? `Известная этажность: ${boundary.known}. Для проверки доступны этажи до ${boundary.maximum}-го; свободные номера уточнит отель.`
+                  : "Этажность отеля неизвестна. Проверяем только условный первый уровень; об остальных этажах данных нет."}
               </p>
               {parsed && (
                 <p
@@ -516,7 +512,7 @@ export function RoomLab({
                       ?.scrollIntoView({ behavior: "smooth", block: "center" });
                   }}
                 >
-                  <MapPin size={14} /> Показать срез на 3D-карте
+                  <MapPin size={14} /> Показать на карте
                 </button>
                 <button
                   className="text-button small"
@@ -529,7 +525,7 @@ export function RoomLab({
                   data-testid="room-lab-share"
                   href={`/hotel/${encodeURIComponent(detail.hotel.id)}?${shared}`}
                 >
-                  Ссылка на модельный срез <ArrowUpRight size={13} />
+                  Ссылка на выбранные условия <ArrowUpRight size={13} />
                 </a>
               </div>
               <div
@@ -546,7 +542,7 @@ export function RoomLab({
                 />
                 <ModelFact
                   id="quiet_night"
-                  title="Наружный шум ночью"
+                  title="Шум ночью, по расчёту"
                   facts={detail.facts}
                   slice={slice}
                   geo={geo}
@@ -563,7 +559,7 @@ export function RoomLab({
               </div>
               {extra.length > 0 && (
                 <details className="room-lab-extra">
-                  <summary>Ещё модельные характеристики</summary>
+                  <summary>Ещё условия</summary>
                   <div className="room-lab-model-facts">
                     {extra.map(([id, title]) => (
                       <ModelFact
@@ -607,7 +603,7 @@ export function RoomLab({
                     <p className="muted small">
                       Исходные обязательные условия, пороги и ограничения
                       маршрута сохранены. Срез добавляет выбранную сторону,
-                      точный этаж и месяц только к модельной проверке.
+                      точный этаж и месяц для отдельной проверки.
                     </p>
                     {plan.conflicts.length > 0 && (
                       <div
@@ -632,7 +628,8 @@ export function RoomLab({
                         </ul>
                         <p>
                           Условия не заменены выбором среза. Пересчёт запроса не
-                          отправлен; модельные факты можно изучать отдельно.
+                          отправлен; факты выбранной стороны можно изучать
+                          отдельно.
                         </p>
                       </div>
                     )}
@@ -671,7 +668,7 @@ export function RoomLab({
                     )}
                     {plan.query && evaluation.loading && (
                       <p className="muted" role="status">
-                        Проверяем условия для выбранного модельного среза…
+                        Проверяем выбранную сторону и этаж…
                       </p>
                     )}
                     <ErrorState

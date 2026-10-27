@@ -340,16 +340,20 @@ try {
   report.checks.push(
     "RoomLab sends selected room plus shared criteria and dates",
   );
-  const profiles = page
+  const goals = page
     .getByTestId("hotel-room-profiles")
-    .locator(".room-profile-card");
-  await profiles.first().waitFor({ timeout: 45000 });
-  for (let i = 0; i < (await profiles.count()); i++)
-    await profiles.nth(i).locator(":scope > summary").click();
-  const evidence = page
-    .getByTestId("hotel-room-profiles")
-    .getByTestId("room-clause-evidence")
-    .first();
+    .getByTestId("room-advice-card");
+  await goals.first().waitFor({ timeout: 45000 });
+  assert(
+    (await goals.count()) <= 4,
+    "At most four useful goals, not a wall of room profiles",
+  );
+  await goals
+    .first()
+    .getByTestId("room-advice-computed")
+    .locator(":scope > summary")
+    .click();
+  const evidence = goals.first().getByTestId("room-advice-evidence").first();
   await evidence.waitFor();
   const factId = await evidence.getAttribute("data-fact-id");
   await evidence.click();
@@ -360,7 +364,7 @@ try {
     ),
   );
   await page.getByRole("button", { name: "Закрыть", exact: true }).click();
-  report.checks.push("Profile clauses reveal exact fact ID evidence");
+  report.checks.push("Useful room advice reveals exact fact ID evidence");
   const hotelUrl = page.url(),
     hotelId = new URL(hotelUrl).pathname.split("/")[2];
   const hotel = await (

@@ -4,6 +4,7 @@ from __future__ import annotations
 import math
 
 from backend.agents.query_match import (
+    FLOOR_DOMAIN_CAVEAT,
     FLOOR_DOMAIN_UNKNOWN,
     Assessment,
     Match,
@@ -56,7 +57,7 @@ def _details(fact: Fact, criterion: Criterion) -> str:
     if cid == "quiet_night":
         low, high = value.get("night_db_min"), value.get("night_db_max")
         if low is not None and high is not None:
-            details.append(f"модель наружного шума {number(low)}–{number(high)} дБ ночью")
+            details.append(f"ночью снаружи {approximate(low)}–{approximate(high).removeprefix('≈ ')} дБ по расчёту")
     elif cid == "beach_walk":
         if value.get("minutes") is not None:
             details.append(f"до пляжа {approximate(value['minutes'], minutes=True)} мин пешком")
@@ -76,14 +77,12 @@ def _details(fact: Fact, criterion: Criterion) -> str:
     elif cid == "sunset_view":
         aspect = sunset_aspect(fact)
         if aspect and value.get("available") is True:
-            if aspect.oblique:
+            if aspect.minimum_deg > 45:
                 details.append("закат сбоку")
-            if aspect.exact_normal:
-                details.append(f"угол к нормали окна {approximate(aspect.angle_deg)}° по геометрии фасада")
-            else:
-                details.append(f"ориентировочный угол к направлению стороны {approximate(aspect.minimum_deg)}–{math.ceil(aspect.maximum_deg)}°; точная нормаль окна неизвестна")
+            elif aspect.maximum_deg <= 45:
+                details.append("закат перед окнами")
         if value.get("visible_minutes") is not None:
-            details.append(f"перед закатом солнце видно {approximate(value['visible_minutes'])} мин по модели последних 5° над горизонтом")
+            details.append(f"перед закатом солнце видно {approximate(value['visible_minutes'])} мин по расчёту")
     elif cid == "climate":
         month = fact.scope.month or value.get("month")
         if month:
@@ -132,9 +131,14 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
     detail = _details(selected, criterion) if selected else ""
     prefixes = {"yes": "Да, но учитывайте условия", "partial": "Предварительно", "no": "Нет", "unknown": "Не подтверждено"}
     text = prefixes[match.status] + ": " + (detail or match.reason)
+    if (selected and selected.characteristic_id == "beach_walk" and match.status in {"no", "unknown"}
+            and (criterion.no_stairs or criterion.no_crossings) and match.reason.startswith("Маршрут ")):
+        text = prefixes[match.status] + ": " + match.reason + ("; " + detail if detail else "")
     caveats = []
     if match.status in {"unknown", "partial"}:
         caveats.append(match.reason)
+    if match.reason == FLOOR_DOMAIN_UNKNOWN:
+        caveats.append(FLOOR_DOMAIN_CAVEAT)
     if selected and selected.characteristic_id == "quiet_night":
         caveats.append("Приближённая модель наружного шума с погрешностью около ±8 дБ; сон и шумоизоляцию окон она не гарантирует. Уточните окна у отеля")
     if selected and selected.characteristic_id == "connectivity":
@@ -148,6 +152,10 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
         caveats.append("Минуты — сумма видимых интервалов перед закатом по модели, а не гарантия непрерывного вида или видимости до самого заката")
         aspect = sunset_aspect(selected)
         if aspect:
+            if aspect.exact_normal:
+                caveats.append(f"Угол к нормали окна {approximate(aspect.angle_deg)}° по геометрии фасада")
+            else:
+                caveats.append(f"Ориентировочный угол к направлению стороны {approximate(aspect.minimum_deg)}–{math.ceil(aspect.maximum_deg)}°; точная нормаль окна неизвестна")
             caveats.append(f"Сектор окна в геомодели ±{number(aspect.window_half_angle_deg)}°; угол оценивает направление взгляда, а не уверенность в расчёте")
             if not aspect.exact_normal:
                 caveats.append("Для оценки угла использован компасный сектор фасада ±22,5°, точной нормали окна в evidence нет; диапазон ориентировочный")
@@ -180,7 +188,7 @@ def room_from_assessment(assessment: Assessment, parsed: ParsedQuery) -> str:
     relevant = assessment.matches[:len(parsed.must)] or assessment.matches
     domain_reason = assessment.domain_reason or next((m.reason for m in relevant if m.reason == FLOOR_DOMAIN_UNKNOWN), None)
     if domain_reason:
-        return domain_reason + ". Уточните у отеля существование номера, его сторону и этаж; геомодель доступна для условного просмотра."
+        return domain_reason + "."
     if assessment.scope_conflict:
         return "Один номер со всеми обязательными условиями не подтверждён: подходящие данные относятся к разным сторонам, этажам или типам номера. Уточните компромисс у отеля."
     if any(m.status == "no" for m in assessment.matches[:len(parsed.must)]):
@@ -209,10 +217,7 @@ def room_from_assessment(assessment: Assessment, parsed: ParsedQuery) -> str:
         return "Уточните сторону и этаж конкретного номера у отеля."
     complete = bool(relevant) and all(m.status == "yes" for m in relevant)
     prefix = "Просите номер: " if complete else "Можно уточнить номер: "
-    result = prefix + ", ".join(parts) + "."
-    if not complete:
-        result += " Выполнение всех обязательных условий пока не подтверждено."
-    return result
+    return prefix + ", ".join(parts) + "."
 
 
 def recommend_room(facts: list[Fact], parsed: ParsedQuery | None = None, *, hotel: Hotel | None = None) -> str:
@@ -229,15 +234,11 @@ def disappointments_from_assessment(facts: list[Fact], parsed: ParsedQuery, asse
     for criterion, match in zip([*parsed.must, *parsed.nice], assessment.matches, strict=True):
         if match.status == "no":
             notes.append(criterion.label + ": условие не выполняется для выбранного номера.")
-        elif match.status in {"partial", "unknown"}:
-            notes.append(criterion.label + ": " + match.reason.lower() + ".")
     selected = {f.id: f for m in assessment.matches for f in m.facts}
     # Route disadvantages concern the hotel, so they remain useful on detail pages.
     selected.update({f.id: f for f in facts if f.characteristic_id == "beach_walk" and fresh(f)})
     for fact in selected.values():
         value = fact.value if isinstance(fact.value, dict) else {}
-        if fact.characteristic_id == "quiet_night":
-            notes.append("Наружный шум рассчитан приближённо (около ±8 дБ); это не гарантия сна. Шумоизоляцию номера уточните отдельно.")
         if fact.characteristic_id == "beach_walk":
             if isinstance(value.get("return_minutes"), int | float) and isinstance(value.get("minutes"), int | float) and value["return_minutes"] > value["minutes"]:
                 notes.append(f"Обратно с пляжа дольше: {approximate(value['return_minutes'], minutes=True)} мин вместо {approximate(value['minutes'], minutes=True)} мин.")
@@ -247,8 +248,6 @@ def disappointments_from_assessment(facts: list[Fact], parsed: ParsedQuery, asse
                 notes.append("На пути к пляжу есть лестницы — проверьте маршрут, если едете с коляской.")
             if value.get("crossings"):
                 notes.append("На пути к пляжу есть переходы; откройте маршрут перед выбором отеля.")
-        if fact.synthetic:
-            notes.append("Часть условий взята из синтетического ответа симулятора, а не подтверждена реальным отелем.")
     return list(dict.fromkeys(notes))[:8]
 
 

@@ -1,0 +1,42 @@
+{
+  "browser-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 40.98,
+    "log": "/tmp/okno-ux-release-browser-smoke.mjs.log"
+  },
+  "fact-refresh-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 51.56,
+    "log": "/tmp/okno-ux-release-fact-refresh-smoke.mjs.log"
+  },
+  "group-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 46.09,
+    "log": "/tmp/okno-ux-release-group-smoke.mjs.log"
+  },
+  "quality-metrics-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 2.72,
+    "log": "/tmp/okno-ux-release-quality-metrics-smoke.mjs.log"
+  },
+  "relations-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 46.2,
+    "log": "/tmp/okno-ux-release-relations-smoke.mjs.log"
+  },
+  "scoped-question-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 4.96,
+    "log": "/tmp/okno-ux-release-scoped-question-smoke.mjs.log"
+  },
+  "search-reasons-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 2.96,
+    "log": "/tmp/okno-ux-release-search-reasons-smoke.mjs.log"
+  },
+  "security-smoke.mjs": {
+    "exit_code": 0,
+    "seconds": 4.83,
+    "log": "/tmp/okno-ux-release-security-smoke.mjs.log"
+  }
+}

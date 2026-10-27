@@ -21,6 +21,7 @@ from backend.contracts import (
     HotelDetail,
     LabelRequest,
     ParsedQuery,
+    RoomAdvice,
     RoomProfile,
     RoomScope,
     SearchRequest,
@@ -272,6 +273,17 @@ def fact_evidence(hotel_id: str, fact_id: str, repo=_REPO):
     ids = list(dict.fromkeys([*fact.get("supporting_claim_ids", []), *fact.get("conflicting_claim_ids", [])]))
     claims = repo.get_many("claims", ids) if hasattr(repo, "get_many") else [row for cid in ids if (row := repo.get("claims", cid))]
     return FactEvidence(fact=fact, claims=[row for row in claims if row["hotel_id"] == hotel_id])
+
+
+@router.get("/hotels/{hotel_id}/room-advice", response_model=list[RoomAdvice])
+def room_advice(hotel_id: str, month: int = 9, repo=_REPO):
+    from backend.agents.room_profiles import build_room_advice
+
+    if month not in range(1, 13):
+        raise HTTPException(422, "Месяц должен быть от 1 до 12")
+    hotel = Hotel.model_validate(searchable_hotel(repo, hotel_id))
+    facts = [Fact.model_validate(row) for row in repo.find("facts", hotel_id=hotel_id)]
+    return build_room_advice(hotel, facts, catalog(repo), month)
 
 
 @router.get("/hotels/{hotel_id}/rooms", response_model=list[RoomProfile])

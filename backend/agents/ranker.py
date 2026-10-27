@@ -25,6 +25,17 @@ def criterion_utility(match, criterion) -> float:
     return utility + (1-utility)*.15*min(1, max(0, margin))
 
 
+def _matching_summary(criteria, matches) -> str:
+    phrases = []
+    for status, label in (("yes", "Подходит"), ("partial", "Пока неточно"),
+                          ("no", "Не подходит"), ("unknown", "Уточнить")):
+        names = list(dict.fromkeys(c.label.lower() for c, m in zip(criteria, matches, strict=True)
+                                  if m.status == status))
+        if names:
+            phrases.append(label + ": " + ", ".join(names) + ".")
+    return " ".join(phrases)
+
+
 def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
                 specs: list[CharacteristicSpec], *, explain_limit: int | None = None) -> list[SearchHit]:
     if parsed.rooms:
@@ -81,13 +92,13 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
         elif parsed.no_data_must and not active_must_total:
             summary = "Полное совпадение нельзя подтвердить: по обязательным условиям нет данных в регионе."
         elif group == "all":
-            summary = f"Все обязательные условия выполнены по имеющимся данным для совместимого номера ({satisfied} из {must_total})."
-            if any(m.status == "partial" for m in required):
-                summary += " Часть условий рассчитана предварительно — проверьте оговорки и уверенность."
+            summary = _matching_summary(criteria, assessment.matches)
         elif assessment.scope_conflict:
             summary = "Есть компромисс: обязательные условия относятся к разным номерам. Одного подходящего номера не подтверждено."
         else:
-            summary = f"Подтверждено {satisfied} из {must_total} обязательных условий; остальные не выполнены или требуют уточнения."
+            summary = _matching_summary(criteria, assessment.matches)
+            if parsed.no_data_must:
+                summary += " Уточнить: " + ", ".join(c.label.lower() for c in parsed.no_data_must) + "."
         hit.room_recommendation = room_from_assessment(assessment, parsed)
         from backend.agents.room_profiles import describe_room
         from backend.contracts import RoomScope

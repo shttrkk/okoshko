@@ -109,9 +109,11 @@ const verdict = {
   characteristic_id: "sea_view",
   label: "Вид на море",
   status: "yes",
-  reason: "Synthetic test only",
+  text: payload,
+  symbol: "✓",
+  required: true,
+  caveat: "Synthetic test only",
   confidence: 0.9,
-  must: true,
   fact_ids: [fact.id],
   evidence_refs: [evidence.id],
   synthetic: true,
@@ -243,7 +245,10 @@ try {
     else if (key === "GET /api/characteristics") value = specs;
     else if (key === "GET /api/status") value = status;
     else if (key === "GET /api/revision") value = revision;
-    else if (request.method() === "GET" && url.pathname.endsWith("/rooms"))
+    else if (
+      request.method() === "GET" &&
+      (url.pathname.endsWith("/rooms") || url.pathname.endsWith("/room-advice"))
+    )
       value = [];
     else if (key === "POST /api/search") value = search;
     else if (key === `GET /api/hotels/${hotel.id}/geo`) value = originalGeo;

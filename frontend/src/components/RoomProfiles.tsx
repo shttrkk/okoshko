@@ -4,7 +4,14 @@ import { Link } from "react-router-dom";
 import { useResource } from "../api";
 import { roomProfiles, useRoomEvidence } from "../roomApi";
 import type { RoomProfile, RoomScope } from "../types";
-import { AskButton, ErrorState, EvidenceModal, Synthetic } from "./ui";
+import {
+  AskButton,
+  ErrorState,
+  EvidenceModal,
+  scopeText,
+  Synthetic,
+} from "./ui";
+import { RoomAdviceList } from "./RoomAdvice";
 import {
   roomEvidenceScope,
   roomLabParams,
@@ -28,7 +35,7 @@ export function RoomDescription({
       hotelId,
       Object.fromEntries(
         profile.clauses.map((clause, i) => [
-          clause.characteristic_id || String(i),
+          `${i}:${clause.characteristic_id || "fact"}`,
           clause.fact_ids,
         ]),
       ),
@@ -43,69 +50,75 @@ export function RoomDescription({
         <span className="room-conditional">
           {unknownFloors
             ? "Условный уровень 1 · этажность не подтверждена"
-            : "Модельное положение · номер не подтверждён"}
+            : "Сторона и этаж по расчёту · номер уточнит отель"}
         </span>
       )}
       {showCopy && (
         <>
           <p className="room-profile-copy">{profile.description}</p>
-          {profile.clauses.some((clause) => clause.synthetic) && (
-            <Synthetic>Есть синтетические данные</Synthetic>
-          )}
+          {profile.clauses.some((clause) => clause.synthetic) && <Synthetic />}
         </>
       )}
-      <ul className="room-clauses">
-        {profile.clauses.map((clause, i) => (
-          <li key={i} data-status={clause.status}>
-            <span
-              className={`verdict-symbol ${clause.status}`}
-              title={roomStatus[clause.status]}
-            >
-              {roomSymbol[clause.status]}
-            </span>
-            <div>
-              <span>{clause.text}</span> {clause.synthetic && <Synthetic />}
-              <div className="room-clause-actions">
-                {clause.fact_ids.map((factId, index) => (
-                  <button
-                    className="text-button small"
-                    key={factId}
-                    disabled={busy}
-                    onClick={() =>
-                      showEvidence(clause.characteristic_id || String(i), index)
-                    }
-                    data-testid="room-clause-evidence"
-                    data-fact-id={factId}
-                  >
-                    {clause.fact_ids.length > 1
-                      ? `Основание ${index + 1}`
-                      : "Основание"}
-                  </button>
-                ))}
-                {clause.status === "unknown" && clause.characteristic_id && (
-                  <AskButton
-                    hotelId={hotelId}
-                    characteristicId={clause.characteristic_id}
-                    scope={roomEvidenceScope(profile.scope)}
-                    compact
-                  />
-                )}
+      <details className="room-caveats-details room-computed">
+        <summary>Как посчитано</summary>
+        <ul className="room-clauses">
+          {profile.clauses.map((clause, i) => (
+            <li key={i} data-status={clause.status}>
+              <span
+                className={`verdict-symbol ${clause.status}`}
+                title={roomStatus[clause.status]}
+              >
+                {roomSymbol[clause.status]}
+              </span>
+              <div>
+                <span>{clause.text}</span> {clause.synthetic && <Synthetic />}
+                <div className="room-clause-actions">
+                  {clause.fact_ids.map((factId, index) => (
+                    <button
+                      className="text-button small"
+                      key={factId}
+                      disabled={busy}
+                      onClick={() =>
+                        showEvidence(
+                          `${i}:${clause.characteristic_id || "fact"}`,
+                          index,
+                        )
+                      }
+                      data-testid="room-clause-evidence"
+                      data-fact-id={factId}
+                    >
+                      {clause.fact_ids.length > 1
+                        ? `Основание ${index + 1}`
+                        : "Основание"}
+                    </button>
+                  ))}
+                  {clause.status === "unknown" && clause.characteristic_id && (
+                    <AskButton
+                      hotelId={hotelId}
+                      characteristicId={clause.characteristic_id}
+                      scope={roomEvidenceScope(profile.scope)}
+                      compact
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          </li>
-        ))}
-      </ul>
-      {profile.caveats.length > 0 && (
-        <details className="room-caveats-details">
-          <summary>Ограничения расчёта · {profile.caveats.length}</summary>
-          <ul className="room-caveats">
-            {profile.caveats.map((text, i) => (
-              <li key={i}>{text}</li>
-            ))}
-          </ul>
-        </details>
-      )}
-      <ErrorState error={error} retry={retryEvidence} />
+            </li>
+          ))}
+        </ul>
+        {profile.caveats.length > 0 && (
+          <details className="room-caveats-details">
+            <summary>
+              Подробности и ограничения · {profile.caveats.length}
+            </summary>
+            <ul className="room-caveats">
+              {profile.caveats.map((text, i) => (
+                <li key={i}>{text}</li>
+              ))}
+            </ul>
+          </details>
+        )}
+        <ErrorState error={error} retry={retryEvidence} />
+      </details>
       {evidence && (
         <EvidenceModal
           fact={evidence.fact}
@@ -145,7 +158,38 @@ function positionTitle(profile: RoomProfile) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+export function RoomHighlights({ profile }: { profile: RoomProfile }) {
+  return highlights(profile).length ? (
+    <p className="room-highlights">
+      {highlights(profile).map((label) => (
+        <span key={label}>{label}</span>
+      ))}
+    </p>
+  ) : null;
+}
+
 export function RoomProfileList({
+  hotelId,
+  scope,
+  open = true,
+  link = false,
+  unknownFloors = false,
+}: {
+  hotelId: string;
+  scope: RoomScope;
+  open?: boolean;
+  link?: boolean;
+  unknownFloors?: boolean;
+}) {
+  if (!open) return null;
+  if (!scope.facade && !scope.floor_min && !scope.floor_max)
+    return <RoomAdviceList hotelId={hotelId} month={scope.month || 9} />;
+  return (
+    <ScopedRoomProfileList {...{ hotelId, scope, open, link, unknownFloors }} />
+  );
+}
+
+function ScopedRoomProfileList({
   hotelId,
   scope,
   open = true,
@@ -168,53 +212,54 @@ export function RoomProfileList({
   );
   if (!open) return null;
   const current = profiles.data?.key === key ? profiles.data.items : [];
+  const sorted = sortByHighlights(current);
+  const renderProfile = (profile: RoomProfile) => (
+    <details className="room-profile-card" key={profile.id}>
+      <summary>
+        <h3>{positionTitle(profile)}</h3>
+        <RoomHighlights profile={profile} />
+        <p className="room-profile-preview">{profile.description}</p>
+        {profile.clauses.some((clause) => clause.synthetic) && <Synthetic />}
+        <span className="text-button small">Подробности</span>
+      </summary>
+      <RoomDescription
+        hotelId={hotelId}
+        profile={profile}
+        unknownFloors={unknownFloors}
+        showCopy={false}
+      />
+      {link && (
+        <Link
+          className="text-button small"
+          to={`/hotel/${encodeURIComponent(hotelId)}?${roomLabParams(profile.scope)}#room-lab`}
+        >
+          Проверить окно <ArrowUpRight size={14} />
+        </Link>
+      )}
+    </details>
+  );
   return (
     <div className="room-profiles" data-testid="room-profiles">
       {profiles.loading && (
         <p className="muted" role="status">
-          Собираем описания по фактам…
+          Проверяем стороны и этажи…
         </p>
       )}
       <ErrorState error={profiles.error} retry={profiles.reload} />
       {!profiles.loading && !profiles.error && !current.length && (
         <p className="muted">
-          Для этого положения пока нет описания. Сторону, этаж и наличие номера
-          уточнит отель.
+          По выбранной стороне и этажу данных мало. Уточните условия у отеля.
         </p>
       )}
-      {sortByHighlights(current).map((profile) => (
-        <details className="room-profile-card" key={profile.id}>
-          <summary>
-            <h3>{positionTitle(profile)}</h3>
-            {highlights(profile).length > 0 && (
-              <p className="room-highlights">
-                {highlights(profile).map((label) => (
-                  <span key={label}>{label}</span>
-                ))}
-              </p>
-            )}
-            <p className="room-profile-preview">{profile.description}</p>
-            {profile.clauses.some((clause) => clause.synthetic) && (
-              <Synthetic>Есть синтетические данные</Synthetic>
-            )}
-            <span className="text-button small">Факты и основания</span>
-          </summary>
-          <RoomDescription
-            hotelId={hotelId}
-            profile={profile}
-            unknownFloors={unknownFloors}
-            showCopy={false}
-          />
-          {link && (
-            <Link
-              className="text-button small"
-              to={`/hotel/${encodeURIComponent(hotelId)}?${roomLabParams(profile.scope)}#room-lab`}
-            >
-              Проверить окно <ArrowUpRight size={14} />
-            </Link>
-          )}
+      {sorted.slice(0, 4).map(renderProfile)}
+      {sorted.length > 4 && (
+        <details className="room-other-profiles">
+          <summary>Другие стороны и этажи · {sorted.length - 4}</summary>
+          <div className="room-profiles">
+            {sorted.slice(4).map(renderProfile)}
+          </div>
         </details>
-      ))}
+      )}
     </div>
   );
 }
@@ -241,11 +286,16 @@ export function RoomSuggestion({
     >
       <summary>
         <span className="eyebrow">Просите номер</span>
-        <p>{recommendation}</p>
-        <span className="text-button small">Описание и основания</span>
+        <p>
+          {profile
+            ? scopeText(roomEvidenceScope(profile.scope))
+            : "Сочетание условий не подтверждено"}
+        </p>
+        <span className="text-button small">Почему и как посчитано</span>
       </summary>
+      <p>{recommendation}</p>
       <p className="fine-print">
-        Модельное положение. Наличие и количество номеров уточнит отель.
+        Сторону, этаж и наличие номера подтвердит отель.
       </p>
       {open &&
         (profile ? (

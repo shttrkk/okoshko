@@ -120,7 +120,11 @@ export function Empty({
 }) {
   return (
     <div className={art ? "empty has-art" : "empty"}>
-      {art ? <Art name={art} className="empty-art" /> : <CircleHelp size={28} />}
+      {art ? (
+        <Art name={art} className="empty-art" />
+      ) : (
+        <CircleHelp size={28} />
+      )}
       <h3>{title}</h3>
       {children && <p>{children}</p>}
       {action}
@@ -189,11 +193,19 @@ export function PageIntro({
   );
 }
 export function Synthetic({
-  children = "Демонстрация · синтетика",
+  children = "Демо-данные",
 }: {
   children?: ReactNode;
 }) {
-  return <span className="badge synthetic">{children}</span>;
+  // Technical pages may provide their own explicit label.
+  return (
+    <span
+      className="badge synthetic"
+      title="Пример ответа отеля для демонстрации; не настоящий ответ"
+    >
+      {children}
+    </span>
+  );
 }
 export function Modal({
   title,
@@ -399,11 +411,11 @@ export function VerdictList({
               {v.status === "unknown" && !v.disputed && (
                 <span className="badge unknown-badge">Нет данных</span>
               )}
-              {v.synthetic && <Synthetic>Подтверждение · синтетика</Synthetic>}
-              <span>{v.text}</span>
-              {v.caveat && !compact && (
-                <small>{v.caveat.split(";")[0].slice(0, 220)}</small>
+              {v.synthetic && <Synthetic />}
+              {v.status === "partial" && (
+                <span className="badge warning">Пока неточно</span>
               )}
+              <span>{verdictSummary(v)}</span>
             </button>
             {!compact && onFocusFact && (
               <button
@@ -415,14 +427,13 @@ export function VerdictList({
                 К факту <ArrowRight size={12} />
               </button>
             )}
-            {!compact &&
-              v.caveat &&
-              (v.caveat.includes(";") || v.caveat.length > 220) && (
-                <details className="verdict-caveats">
-                  <summary>Все оговорки</summary>
-                  <p>{v.caveat}</p>
-                </details>
-              )}
+            {(v.caveat || v.text.includes(";")) && (
+              <details className="verdict-caveats">
+                <summary>Как посчитано</summary>
+                <p>{v.text}</p>
+                {v.caveat && <p>{v.caveat}</p>}
+              </details>
+            )}
             {v.status === "unknown" && (
               <AskButton
                 compact
@@ -437,6 +448,19 @@ export function VerdictList({
     </ul>
   );
 }
+
+/** The symbol and badge already carry these statuses; keep the full wording in the proof. */
+function verdictSummary(verdict: Verdict) {
+  const first = verdict.text.split(";")[0];
+  const statusPrefixes = [
+    "Да, но учитывайте условия: ",
+    "Предварительно: ",
+    "Не подтверждено: ",
+  ];
+  const prefix = statusPrefixes.find((item) => first.startsWith(item));
+  return prefix ? first.slice(prefix.length) : first;
+}
+
 export function HotelVisual({
   hotel,
   className = "",
@@ -484,7 +508,7 @@ export function HotelVisual({
         <>
           <img
             src={models.data[hotel.id].url}
-            alt={`${hotel.name}: здание на 3D-модели по открытым данным`}
+            alt={`${hotel.name}: схема района по открытым данным`}
             loading="lazy"
             decoding="async"
             onError={() =>
@@ -495,7 +519,10 @@ export function HotelVisual({
             className="photo-credit"
             title="Контур и этажность из OpenStreetMap/Overture на локальной карте. Здание отеля выделено цветом."
           >
-            3D-модель по OSM · не фото
+            Схема района, не фото
+            <small className="snapshot-attribution">
+              © OpenStreetMap contributors
+            </small>
           </span>
         </>
       ) : (
@@ -680,15 +707,20 @@ export function EvidenceModal({
       </div>
       {fact.synthetic && <Synthetic />}
       {deferred && full.loading && (
-        <p className="muted" role="status">Загружаем полное доказательство и даты источников…</p>
+        <p className="muted" role="status">
+          Загружаем полное доказательство и даты источников…
+        </p>
       )}
       <ErrorState error={full.error} retry={full.reload} />
       <dl className="metadata">
         <div>
-          <dt>Уверенность</dt>
+          <dt>Надёжность данных</dt>
           <dd>
             {Math.round(fact.confidence * 100)}%
-            <small>Уверенность модели, не гарантия результата</small>
+            <small>
+              Оценка полноты и согласованности источников, без гарантии
+              результата
+            </small>
           </dd>
         </div>
         <div>
@@ -708,7 +740,12 @@ export function EvidenceModal({
             {[...new Set(supporting.map((c) => c.method))].map((m) => (
               <span className="named-id" key={m}>
                 {METHOD_NAMES[m] || m}
-                {METHOD_NAMES[m] && <code>{m}</code>}
+                {METHOD_NAMES[m] && (
+                  <details>
+                    <summary>Код метода</summary>
+                    <code>{m}</code>
+                  </details>
+                )}
               </span>
             ))}
             {!supporting.length && "Метод не передан API"}
@@ -749,11 +786,14 @@ export function EvidenceModal({
               }[e.kind]
             }
           </span>
-          <h3>{e.label}</h3>
+          <details className="room-caveats-details">
+            <summary>Описание источника</summary>
+            <h3>{e.label}</h3>
+          </details>
           {e.quote && <blockquote>«{e.quote}»</blockquote>}
-          {(e.url || e.artifact) && (
+          {e.url && (
             <a
-              href={e.url || e.artifact!}
+              href={e.url}
               target="_blank"
               rel="noreferrer"
               className="text-button"
@@ -761,11 +801,26 @@ export function EvidenceModal({
               Открыть источник <ExternalLink size={14} />
             </a>
           )}
-          {e.limitations.map((l) => (
-            <p className="muted" key={l}>
-              {l}
-            </p>
-          ))}
+          {e.artifact && e.artifact !== e.url && (
+            <a
+              href={e.artifact}
+              target="_blank"
+              rel="noreferrer"
+              className="text-button"
+            >
+              Открыть расчёт <ExternalLink size={14} />
+            </a>
+          )}
+          {e.limitations.length > 0 && (
+            <details className="room-caveats-details">
+              <summary>Ограничения источника</summary>
+              {e.limitations.map((l) => (
+                <p className="muted" key={l}>
+                  {l}
+                </p>
+              ))}
+            </details>
+          )}
           <details>
             <summary>Входы и результат расчёта</summary>
             <pre>

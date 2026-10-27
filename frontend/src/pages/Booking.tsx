@@ -69,7 +69,7 @@ export function PassportView({
           </span>
           <h3>{statuses[passport.status] || passport.status}</h3>
         </div>
-        {passport.synthetic_booking && <Synthetic>Бронь · синтетика</Synthetic>}
+        {passport.synthetic_booking && <Synthetic>Демо-бронь</Synthetic>}
       </div>
       <div className="passport-meta">
         <span>{passport.guest_name}</span>

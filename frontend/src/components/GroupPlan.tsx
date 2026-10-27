@@ -10,7 +10,11 @@ import {
   Synthetic,
   VerdictList,
 } from "./ui";
-import { RoomDescription, RoomProfileList } from "./RoomProfiles";
+import {
+  RoomDescription,
+  RoomHighlights,
+  RoomProfileList,
+} from "./RoomProfiles";
 import {
   roomEvidenceScope,
   roomLabParams,
@@ -66,8 +70,8 @@ export function GroupPlan({
       </div>
       {!compact && (
         <p className="muted small">
-          У каждого — свои пожелания, отель один. Ниже — подходящие положения в
-          здании по доступным данным.
+          У каждого — свои пожелания, отель один. Ниже — какую сторону и этаж
+          стоит уточнить для каждого.
         </p>
       )}
       <div className="group-plan-list">
@@ -86,11 +90,13 @@ export function GroupPlan({
           />
         ))}
       </div>
-      <p className="fine-print group-availability">
-        Это модельные положения в здании: сколько таких номеров свободно, их
-        вместимость и соседство уточнит отель. Одна сторона и этаж у двоих — не
-        два свободных номера.
-      </p>
+      {!compact && (
+        <p className="fine-print group-availability">
+          Вместимость, соседство и количество свободных номеров подтвердит
+          отель. Одна сторона и этаж у двоих не подтверждают два свободных
+          номера.
+        </p>
+      )}
     </section>
   );
 }
@@ -174,30 +180,30 @@ function PlanRow({
       </div>
       <p className="group-recommendation">{item.recommendation}</p>
       {item.profile && (
-        <p className="group-profile-preview">
-          {item.profile.description}
+        <div className="group-profile-preview">
+          <RoomHighlights profile={item.profile} />
           {item.profile.clauses.some((clause) => clause.synthetic) && (
             <>
               {" "}
-              <Synthetic>синтетические данные</Synthetic>
+              <Synthetic />
             </>
           )}
-        </p>
-      )}
-      {item.caveats.length > 0 && (
-        <ul className="room-caveats">
-          {item.caveats.map((text, i) => (
-            <li key={i}>{text}</li>
-          ))}
-        </ul>
+        </div>
       )}
       <details
         className="group-plan-details"
         onToggle={(event) => setOpen(event.currentTarget.open)}
       >
-        <summary>Почему так и откуда данные</summary>
+        <summary>Как посчитано</summary>
         {open && (
           <>
+            {item.caveats.length > 0 && (
+              <ul className="room-caveats">
+                {item.caveats.map((text, i) => (
+                  <li key={i}>{text}</li>
+                ))}
+              </ul>
+            )}
             <VerdictList
               compact={compact}
               hotelId={hotelId}

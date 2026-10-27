@@ -217,7 +217,7 @@ async function checkRoomLab(seed) {
   assert.match(await room.getByTestId("map-facade-focus").innerText(), /запад/);
   assert.match(
     await room.getByTestId("room-lab-rays-note").innerText(),
-    /нет лучей обзора/,
+    /нет (?:рисунка|лучей) обзора/,
   );
   await room
     .locator(".hotel-hero-map")

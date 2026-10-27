@@ -308,6 +308,7 @@ try {
       return route.fulfill({
         json: [{ ...hotel, floors: unknownFloors ? null : hotel.floors }],
       });
+    if (path.endsWith("/room-advice")) return route.fulfill({ json: [] });
     if (path.endsWith("/rooms")) return route.fulfill({ json: [] });
     if (path === "/api/characteristics") return route.fulfill({ json: specs });
     if (path === "/api/search")
@@ -438,12 +439,12 @@ try {
   const modelPage = await open();
   assert.match(
     await modelPage.getByTestId("room-lab-fact-sea_view").innerText(),
-    /92% симуляций/,
+    /Вероятность вида на море по расчёту: 92%/,
   );
   await modelPage.getByTestId("room-lab-floor").selectOption("1");
   assert.match(
     await modelPage.getByTestId("room-lab-fact-sea_view").innerText(),
-    /0% симуляций/,
+    /Вероятность вида на море по расчёту: 0%/,
   );
   await modelPage.close();
   for (const state of ["stale", "disputed"]) {
@@ -553,10 +554,21 @@ try {
   await panel.waitFor();
   const september = panel.getByRole("button", { name: /^север,.*сентябре:/ });
   const may = panel.getByRole("button", { name: /^север,.*мае:/ });
-  assert.match(await september.getAttribute("title"), /Закат сбоку.*66°/);
+  assert.match(await september.getAttribute("title"), /Закат виден сбоку/);
+  assert.equal(
+    Math.round(Number(await september.getAttribute("data-sunset-angle"))),
+    66,
+  );
+  const computed = panel.locator('details:has([data-testid="sunset-angle-details"])');
+  await computed.locator(":scope > summary").click();
+  assert.match(await computed.innerText(), /сентябре[^\n]*66°/);
+  assert.match(await computed.innerText(), /мае[^\n]*44°/);
   assert.equal(await september.getAttribute("data-sunset-oblique"), "true");
   assert.equal(await may.getAttribute("data-sunset-oblique"), null);
-  assert.match(await may.getAttribute("title"), /44°/);
+  assert.equal(
+    Math.round(Number(await may.getAttribute("data-sunset-angle"))),
+    44,
+  );
   assert.match(
     await panel.locator(".fact-headline").innerText(),
     /Закат сбоку: север/,
@@ -568,10 +580,7 @@ try {
   await normalPage.waitForFunction(
     () => !document.querySelector("[data-sunset-angle]"),
   );
-  assert.match(
-    await panel.locator(".fact-headline").innerText(),
-    /точный угол к фасаду неизвестен/,
-  );
+  assert.match(await computed.innerText(), /точный угол[\s\S]*неизвестен/);
   assert.doesNotMatch(await september.getAttribute("title"), /угол ≈/);
   await normalPage.evaluate(() =>
     window.normalFixture.evidence([340.9590477273491]),
@@ -579,7 +588,10 @@ try {
   await normalPage.waitForFunction(() =>
     document.querySelector('[data-sunset-oblique="true"]'),
   );
-  assert.match(await september.getAttribute("title"), /66°/);
+  assert.equal(
+    Math.round(Number(await september.getAttribute("data-sunset-angle"))),
+    66,
+  );
   await normalPage.evaluate(() => {
     window.normalFixture.setNormals({ N: 340.9590477273491 });
     window.normalFixture.evidence([340.9590477273491, 90]);

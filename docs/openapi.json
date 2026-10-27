@@ -198,6 +198,62 @@
         }
       }
     },
+    "/api/hotels/{hotel_id}/room-advice": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Room Advice",
+        "operationId": "room_advice_api_hotels__hotel_id__room_advice_get",
+        "parameters": [
+          {
+            "name": "hotel_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hotel Id"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 9,
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoomAdvice"
+                  },
+                  "title": "Response Room Advice Api Hotels  Hotel Id  Room Advice Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/hotels/{hotel_id}/rooms": {
       "get": {
         "tags": [
@@ -4296,6 +4352,124 @@
           "text"
         ],
         "title": "Question"
+      },
+      "RoomAdvice": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "characteristic_id": {
+            "type": "string",
+            "title": "Characteristic Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/RoomAdviceOption"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Options"
+          },
+          "fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Fact Ids"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence Refs"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "partial"
+            ],
+            "title": "Status"
+          },
+          "synthetic": {
+            "type": "boolean",
+            "title": "Synthetic",
+            "default": false
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Caveats"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "characteristic_id",
+          "title",
+          "text",
+          "options",
+          "fact_ids",
+          "status"
+        ],
+        "title": "RoomAdvice"
+      },
+      "RoomAdviceOption": {
+        "properties": {
+          "scope": {
+            "$ref": "#/components/schemas/RoomScope"
+          },
+          "fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Fact Ids"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence Refs"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "partial"
+            ],
+            "title": "Status"
+          },
+          "synthetic": {
+            "type": "boolean",
+            "title": "Synthetic",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "scope",
+          "fact_ids",
+          "status"
+        ],
+        "title": "RoomAdviceOption"
       },
       "RoomClause": {
         "properties": {

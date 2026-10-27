@@ -19,7 +19,8 @@ ROOM_CHARACTERISTICS = {"sea_view", "sunset_view", "mountain_view", "quiet_night
 DEFAULT_FIELDS = {"beach_walk": "minutes", "climate": "water_c", "air_quality": "european_aqi", "connectivity": "download_mbps"}
 MONTHLY = {"climate", "sunset_view", "morning_swim", 'morning_sun', 'evening_heat'}
 COMPASS_AZIMUTHS = {side: index * 45 for index, side in enumerate(("N", "NE", "E", "SE", "S", "SW", "W", "NW"))}
-FLOOR_DOMAIN_UNKNOWN = "Этажность отеля/привязка к зданию не подтверждена; этажи геомодели условны для выбранного контура"
+FLOOR_DOMAIN_UNKNOWN = "Этажность отеля пока не подтверждена; сторону и этаж номера нужно уточнить у отеля"
+FLOOR_DOMAIN_CAVEAT = "Этажность отеля/привязка к зданию не подтверждена; этажи геомодели условны для выбранного контура"
 
 
 @dataclass(frozen=True)

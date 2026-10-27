@@ -258,6 +258,31 @@ try {
     const req = route.request(),
       path = new URL(req.url()).pathname;
     requests.push({ path, method: req.method() });
+    if (path.endsWith("/room-advice"))
+      return route.fulfill({
+        json: [
+          {
+            id: "refresh-advice",
+            characteristic_id: "quiet_night",
+            title: "Шум ночью",
+            text: `Описание стороны fixture ${version}`,
+            status: "partial",
+            synthetic: true,
+            caveats: ["Только browser fixture"],
+            fact_ids: [fact(version).id],
+            evidence_refs: [`evidence-${version}`],
+            options: [
+              {
+                scope: { facade: "W", floor_min: 1, floor_max: 3, month: 9 },
+                fact_ids: [fact(version).id],
+                evidence_refs: [`evidence-${version}`],
+                status: "partial",
+                synthetic: true,
+              },
+            ],
+          },
+        ],
+      });
     if (path.endsWith("/rooms"))
       return route.fulfill({
         json: [
@@ -514,9 +539,12 @@ try {
     fullPage: true,
   });
   await hotelPage.getByRole("button", { name: "Закрыть" }).click();
-  const position = hotelPage.getByTestId("room-profiles").first();
-  await position.locator("summary").first().click();
-  await position.getByTestId("room-clause-evidence").first().click();
+  const position = hotelPage.getByTestId("room-advice-card").first();
+  await position
+    .getByTestId("room-advice-computed")
+    .locator(":scope > summary")
+    .click();
+  await position.getByTestId("room-advice-evidence").first().click();
   await hotelPage
     .getByRole("dialog")
     .getByText("«Основание fixture 5»")
@@ -528,7 +556,7 @@ try {
     .getByText("«Основание fixture 6»")
     .waitFor();
   await position
-    .getByText("Описание положения fixture 6", { exact: true })
+    .getByText("Описание стороны fixture 6", { exact: true })
     .first()
     .waitFor();
   checks.push(

@@ -1288,7 +1288,7 @@ export function TravelMap({
               className="map-noise-legend"
               title="Цвет фасада по верхней границе приближённого диапазона, не измерение в номере"
             >
-              <span>Наружный шум ночью · модель</span>
+              <span>Шум ночью, по расчёту</span>
               <div>
                 <i />
                 до 45 <i />
@@ -1334,9 +1334,7 @@ export function TravelMap({
               <span className="map-selected-note">
                 {selected.id !== activeId
                   ? "Нажмите на метку, чтобы показать расчёт на карте"
-                  : geo?.limitations?.length
-                    ? geo.limitations[0]
-                    : "Выберите характеристику, чтобы изучить расчёт"}
+                  : "Выберите условие, чтобы изучить расчёт"}
               </span>
               {onOpen && (
                 <button
@@ -1386,7 +1384,7 @@ export function TravelMap({
       )}
       <div className="map-source">
         <Layers3 size={11} />
-        {base}
+        Схема района, не фото
       </div>
       {full && (
         <Modal
