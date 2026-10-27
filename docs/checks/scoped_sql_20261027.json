@@ -1,0 +1,32 @@
+{
+  "checked_at": "2026-10-27T00:59:18.176702+00:00",
+  "project": "okno-qa-scope",
+  "base_url": "http://localhost:8082",
+  "source_revision": "3e5874d",
+  "method": "real isolated FastAPI + fresh PostgreSQL seed; demo hotelier answer remains explicitly synthetic",
+  "checks": [
+    "search telemetry does not advance data revision",
+    "scoped question persisted",
+    "revision advances on question write",
+    "duplicate request idempotent",
+    "second slice joins same pending question",
+    "bare yes cannot inherit requested scope",
+    "preview creates no claims",
+    "explicit answer determines scope from quote",
+    "explicit preview creates no claims",
+    "confirmation is explicit and synthetic",
+    "saved claims keep citation and provenance",
+    "facts contain new supporting claims",
+    "confirmation retry idempotent",
+    "old question closes"
+  ],
+  "passed": true,
+  "question_id": "5ef129806c41f74fb0d3d2021d7feb8f",
+  "answer_id": "0502296c-9887-4d40-848d-2530be6909d0",
+  "created_claim_ids": [
+    "a21926140a428bd42b4ba46d8a81e185",
+    "cd7bbc5a501c8ef14b55556722e14a6a"
+  ],
+  "claims_before": 352,
+  "claims_after": 354
+}

@@ -1,0 +1,20 @@
+{
+  "source_revision": "3e5874d",
+  "base_url": "http://localhost:8082",
+  "project": "okno-qa-scope",
+  "synthetic_answer": true,
+  "checks": [
+    "UI sends exact selected room scope",
+    "real preview extracts soundproofing",
+    "guest hotel view refreshes from server revision",
+    "independent compare context refreshes from server revision",
+    "evidence modal loads newly confirmed quote",
+    "demo answer stays synthetic",
+    "no JavaScript errors",
+    "no same-origin HTTP errors"
+  ],
+  "errors": [],
+  "failures": [],
+  "refresh_elapsed_ms": 4714,
+  "passed": true
+}

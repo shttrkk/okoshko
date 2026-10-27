@@ -8,7 +8,14 @@ import threading
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from backend.agents.resolver import resolve_hotel
+from backend.agents.dependencies import (
+    GEO_CHARACTERISTICS,
+    GEOMETRY_DEPENDENTS,
+    NAMESPACE,
+    changed_dependencies,
+    metadata,
+)
+from backend.agents.resolver import resolve_claims, resolve_hotel
 from backend.contracts import (
     ChangeEvent,
     CharacteristicSpec,
@@ -25,8 +32,6 @@ from backend.tracing import Trace
 
 _LOCK = threading.RLock()
 DEMO_HOTEL = "osm-node-10058556917"
-GEO_CHARACTERISTICS = {"sea_view", "sunset_view", "mountain_view", "quiet_night", "beach_walk"}
-GEOMETRY_DEPENDENTS = {"morning_sun", "evening_heat", "railway_noise"}
 
 
 def invalidate_geometry_dependents(old_claims: list[dict], artifact: str, run_id: str, change_id: str) -> list[Claim]:
@@ -109,11 +114,11 @@ def durable_geo(result, data_dir: Path = DATA, runtime: Path = RUNTIME_DIR):
     return result
 
 
-def notify_passports(repo, hotel_id, before, after, change_id):
+def notify_passports(repo, hotel_id, before, after, change_id, *, affected=None):
     from backend.api.passports import _all_hold, _stored_criteria, scopes_compatible
     before_by_id = {fact.id: fact for fact in before}
     changed = {fact.characteristic_id for fact in before + after
-               if fact.characteristic_id in GEO_CHARACTERISTICS}
+               if fact.characteristic_id in (affected if affected is not None else GEO_CHARACTERISTICS)}
     notifications = []
     for row in repo.find("expectation_passports", hotel_id=hotel_id):
         passport = ExpectationPassport.model_validate(row)
@@ -158,6 +163,17 @@ def change_id_for(hotel_id: str) -> str:
 def apply_change(repo, hotel_id: str, fixture: dict, result: dict, trace: Trace, *, runtime=RUNTIME_DIR, seeded: bool = False) -> ChangeEvent:
     """Store recomputed synthetic claims, re-resolve, notify passports and record было/стало."""
     change_id = change_id_for(hotel_id)
+    # The demo endpoint keeps its first scenario idempotent. Internal subsequent
+    # recalculations need distinct event identities rather than a duplicate key.
+    if repo.get("change_events", change_id):
+        old_event = repo.get("change_events", change_id)
+        incoming = {row["id"] for row in result["claims"]}
+        if not incoming <= set(old_event.get("payload", {}).get("claim_ids", [])):
+            change_id = hashlib.sha256(json.dumps([change_id, sorted(incoming)]).encode()).hexdigest()[:32]
+        existing = repo.get("change_events", change_id)
+        if existing:
+            trace.finish()
+            return ChangeEvent.model_validate(existing)
     before = [Fact.model_validate(row) for row in repo.find("facts", hotel_id=hotel_id)]
     if not any(row["characteristic_id"] in {"sea_view", "sunset_view", "mountain_view"} for row in result["claims"]):
         raise ValueError("Для пересчёта видимости не хватает геовходов; отсутствие вида не утверждается")
@@ -166,6 +182,8 @@ def apply_change(repo, hotel_id: str, fixture: dict, result: dict, trace: Trace,
                   for cid in GEO_CHARACTERISTICS}
     claims = []
     for row in result["claims"]:
+        if row["hotel_id"] != hotel_id:
+            raise ValueError("Геосервис вернул наблюдение другого отеля")
         claim = Claim.model_validate({**row, "run_id": trace.run.id, "synthetic": True,
                                       "supersedes_ids": supersedes.get(row["characteristic_id"], [])})
         if repo.get("claims", claim.id) is None:
@@ -173,15 +191,44 @@ def apply_change(repo, hotel_id: str, fixture: dict, result: dict, trace: Trace,
     if not claims:
         raise ValueError("Геосервис не смог пересчитать затронутые характеристики; событие не опубликовано")
     claims.extend(invalidate_geometry_dependents(old_claims, result["geo"]["artifact"], trace.run.id, change_id))
+    # Preview the actual replacement, then retire dependent claims to a fixed
+    # point (derive -> derive included). Persist the retirement with the new
+    # canonical claims before insertion: no schema-invalid tombstone is needed.
+    historical = [Claim.model_validate(row) for row in old_claims]
+    specs = [CharacteristicSpec.model_validate(row) for row in repo.all("characteristics")]
+    sources = repo.all("sources")
+    floors = (repo.get("hotels", hotel_id) or {}).get("floors")
+    baseline, _ = resolve_claims(hotel_id, historical, specs, sources, known_floors=floors)
+    invalidated = set()
+    while True:
+        preview, _ = resolve_claims(hotel_id, historical + claims, specs, sources, known_floors=floors)
+        newly_invalidated = changed_dependencies(historical + claims, specs, baseline, preview, result["geo"]["artifact"]) - invalidated
+        if not newly_invalidated:
+            break
+        invalidated.update(newly_invalidated)
+        record = metadata(hotel_id=hotel_id, reason="geometry_changed", invalidated_claim_ids=sorted(invalidated))
+        anchored = False
+        for claim in claims:
+            if claim.source == "geo_engine" and claim.characteristic_id in GEO_CHARACTERISTICS:
+                for evidence in claim.evidence:
+                    if evidence.kind in {"calculation", "simulation"} and (evidence.artifact or "").startswith(("/data/geo/", "/data/runtime/geo/")):
+                        evidence.inputs = {**evidence.inputs, NAMESPACE: record}
+                        anchored = True
+        if not anchored:
+            raise ValueError("Нет доверенного георасчёта для сохранения причины инвалидирования")
+    affected = GEO_CHARACTERISTICS | GEOMETRY_DEPENDENTS | {
+        claim.characteristic_id for claim in historical if claim.id in invalidated}
     repo.insert_claims(claims)
     after = resolve_hotel(hotel_id, repo)
-    notifications = notify_passports(repo, hotel_id, before, after, change_id)
+    notifications = notify_passports(repo, hotel_id, before, after, change_id, affected=affected)
     event = ChangeEvent(id=change_id, kind="osm_building_new", title=CHANGE_TITLE,
                         geometry=fixture["geometry"], payload={"hotel_id": hotel_id, "fixture": fixture, "run_id": trace.run.id,
                         "scenario": "new_building_fixture_v1", "geo_artifact": result["geo"]["artifact"], "seeded": seeded,
-                        "claim_ids": [claim.id for claim in claims]}, affected_hotel_ids=[hotel_id],
-                        before=[fact for fact in before if fact.characteristic_id in GEO_CHARACTERISTICS | GEOMETRY_DEPENDENTS],
-                        after=[fact for fact in after if fact.characteristic_id in GEO_CHARACTERISTICS | GEOMETRY_DEPENDENTS], notifications=notifications)
+                        "claim_ids": [claim.id for claim in claims], "invalidated_claim_ids": sorted(invalidated),
+                        NAMESPACE: metadata(hotel_id=hotel_id, reason="geometry_changed", invalidated_claim_ids=sorted(invalidated))},
+                        affected_hotel_ids=[hotel_id],
+                        before=[fact for fact in before if fact.characteristic_id in affected],
+                        after=[fact for fact in after if fact.characteristic_id in affected], notifications=notifications)
     artifact = result["geo"]["artifact"]
     if artifact.startswith("/data/runtime/geo/"):
         # Persist the final claims, including supersession and run provenance, in the same artifact.

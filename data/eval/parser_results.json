@@ -886,7 +886,7 @@
       "backend/agents/similarity.py": "0de3585c135fb98d3de03abdeb69147135b8467ba537768a4a58c721165c8b7e",
       "backend/contracts/__init__.py": "c7a5746ac4519ef52c85b62f9346a0537f39db8604ee732237f08cd2055bc8f1",
       "backend/contracts/models.py": "a45316911dd2c10f59470c4ddb4528b67990a0d406d42329dc8d10d0014e5874",
-      "backend/tools/registry.py": "e43ede0d73bfb05a3d4c276d12869678c1941f4f320bbde74530f5891cde330d",
+      "backend/tools/registry.py": "c73aa11e26851264a9a93016726f6988ebc2a11e88c22b1fc44b988e27a5e53b",
       "backend/parser_quality.py": "9c344dd516b14098833c9bf3f44496288566e0651fdd041afbe1a8376fa65eec",
       "scripts/parser_eval.py": "694851c50ef1509832c6af6cacbdc2b127c17e395a1b415c3f5324802569ad70"
     },
