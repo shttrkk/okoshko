@@ -2101,6 +2101,18 @@
         "title": "Name Ru",
         "type": "string"
       },
+      "display_name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Display Name"
+      },
       "description": {
         "title": "Description",
         "type": "string"
@@ -2720,6 +2732,16 @@
         "default": false,
         "title": "Synthetic",
         "type": "boolean"
+      },
+      "disposition": {
+        "default": "parsed",
+        "enum": [
+          "parsed",
+          "unknown",
+          "clarification"
+        ],
+        "title": "Disposition",
+        "type": "string"
       },
       "created_claim_ids": {
         "items": {
@@ -4487,6 +4509,23 @@
         "default": false,
         "title": "Disputed",
         "type": "boolean"
+      },
+      "hotelier_confirmed": {
+        "default": false,
+        "title": "Hotelier Confirmed",
+        "type": "boolean"
+      },
+      "basis": {
+        "default": "unknown",
+        "enum": [
+          "calculation",
+          "open_data",
+          "hotelier",
+          "mixed",
+          "unknown"
+        ],
+        "title": "Basis",
+        "type": "string"
       }
     },
     "required": [
@@ -5161,6 +5200,23 @@
             "default": false,
             "title": "Disputed",
             "type": "boolean"
+          },
+          "hotelier_confirmed": {
+            "default": false,
+            "title": "Hotelier Confirmed",
+            "type": "boolean"
+          },
+          "basis": {
+            "default": "unknown",
+            "enum": [
+              "calculation",
+              "open_data",
+              "hotelier",
+              "mixed",
+              "unknown"
+            ],
+            "title": "Basis",
+            "type": "string"
           }
         },
         "required": [
@@ -6218,6 +6274,23 @@
             "default": false,
             "title": "Disputed",
             "type": "boolean"
+          },
+          "hotelier_confirmed": {
+            "default": false,
+            "title": "Hotelier Confirmed",
+            "type": "boolean"
+          },
+          "basis": {
+            "default": "unknown",
+            "enum": [
+              "calculation",
+              "open_data",
+              "hotelier",
+              "mixed",
+              "unknown"
+            ],
+            "title": "Basis",
+            "type": "string"
           }
         },
         "required": [
@@ -6909,6 +6982,23 @@
             "default": false,
             "title": "Disputed",
             "type": "boolean"
+          },
+          "hotelier_confirmed": {
+            "default": false,
+            "title": "Hotelier Confirmed",
+            "type": "boolean"
+          },
+          "basis": {
+            "default": "unknown",
+            "enum": [
+              "calculation",
+              "open_data",
+              "hotelier",
+              "mixed",
+              "unknown"
+            ],
+            "title": "Basis",
+            "type": "string"
           }
         },
         "required": [
@@ -8131,6 +8221,23 @@
             "default": false,
             "title": "Disputed",
             "type": "boolean"
+          },
+          "hotelier_confirmed": {
+            "default": false,
+            "title": "Hotelier Confirmed",
+            "type": "boolean"
+          },
+          "basis": {
+            "default": "unknown",
+            "enum": [
+              "calculation",
+              "open_data",
+              "hotelier",
+              "mixed",
+              "unknown"
+            ],
+            "title": "Basis",
+            "type": "string"
           }
         },
         "required": [
@@ -9861,6 +9968,23 @@
             "default": false,
             "title": "Disputed",
             "type": "boolean"
+          },
+          "hotelier_confirmed": {
+            "default": false,
+            "title": "Hotelier Confirmed",
+            "type": "boolean"
+          },
+          "basis": {
+            "default": "unknown",
+            "enum": [
+              "calculation",
+              "open_data",
+              "hotelier",
+              "mixed",
+              "unknown"
+            ],
+            "title": "Basis",
+            "type": "string"
           }
         },
         "required": [

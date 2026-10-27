@@ -1,6 +1,7 @@
 id: beach_walk
 version: 1
 name_ru: До моря пешком
+display_name: До моря пешком
 description: До моря пешком — подтверждённые данные с указанием источника и ограничений
 category: Рядом
 synonyms:

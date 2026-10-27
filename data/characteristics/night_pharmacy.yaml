@@ -1,6 +1,7 @@
 id: night_pharmacy
 version: 1
 name_ru: Аптека ночью
+display_name: Аптека ночью
 description: Аптека ночью — подтверждённые данные с указанием источника и ограничений
 category: Рядом
 synonyms:

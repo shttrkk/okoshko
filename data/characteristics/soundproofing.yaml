@@ -1,6 +1,7 @@
 id: soundproofing
 version: 1
 name_ru: Шумоизоляция и окна
+display_name: Шумоизоляция и окна
 description: Шумоизоляция и окна — подтверждённые данные с указанием источника и ограничений
 category: Сон
 synonyms:

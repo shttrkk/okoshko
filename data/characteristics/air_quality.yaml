@@ -1,6 +1,7 @@
 id: air_quality
 version: 1
 name_ru: Качество воздуха
+display_name: Качество воздуха
 description: Качество воздуха — подтверждённые данные с указанием источника и ограничений
 category: Окружение
 synonyms:

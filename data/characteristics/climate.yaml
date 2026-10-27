@@ -1,6 +1,7 @@
 id: climate
 version: 1
 name_ru: Климат и вода
+display_name: Климат и вода
 description: Климат и вода — подтверждённые данные с указанием источника и ограничений
 category: Сезон
 synonyms:
