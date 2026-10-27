@@ -2,7 +2,7 @@ id: construction_nearby
 version: 1
 name_ru: Стройки рядом
 display_name: Стройки рядом
-description: Отмеченные на карте стройки в 500 м на дату снимка, по сторонам здания. Карта может отставать; это не прогноз шума.
+description: Архивные отметки строительства в 500 м. Current-enough требует явной проверки construction или survey за 90 дней, близости к фасаду до 150 м и направления ±60°. Это строгая политика допуска, не доказательство работ или шума; последняя правка элемента и дата скачивания не подтверждают актуальность.
 category: Окружение
 synonyms: []
 scope: hotel
@@ -21,7 +21,10 @@ methods:
   params:
     kind: construction_nearby
     radius_m: 500
-  rationale: Отмеченные на карте стройки в 500 м на дату снимка, по сторонам здания. Карта может отставать; это не прогноз шума.
+    facade_distance_m: 150
+    facade_sector_deg: 60
+    max_verification_age_days: 90
+  rationale: 500 м — полный архивный инвентарь; 150 м и сектор ±60° — явный порог близкого фасада. 90 дней — консервативный квартальный срок перепроверки быстро меняющегося признака, не эмпирическая точность. Generic check_date, element.timestamp и будущий срок открытия сами по себе не допускают current yes.
 ttl_days: 14
 change_triggers:
 - kind: source_snapshot_changed

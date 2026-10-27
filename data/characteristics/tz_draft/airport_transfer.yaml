@@ -20,6 +20,10 @@ methods:
 - tool: prepared_observation
   params:
     kind: airport_transfer
+    airport_radius_m: 500
+    airport_walk_minutes: 10
+    hotel_walk_minutes: 15
+    snap_limit_m: 120
   rationale: Связность OSM маршрутов с 0–1 пересадкой; пешие участки по графу. Без GTFS время и ночное движение неизвестны.
 ttl_days: 90
 change_triggers:

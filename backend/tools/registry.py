@@ -157,6 +157,8 @@ class Registry:
             "sunny_hours": (1, 24), "rainy_mm": (.1, 100), "wet_month_days": (1, 31),
             "comfortable_c": (10, 35), "cool_c": (0, 30), "arrival_threshold_m": (1, 100),
             "sector_deg": (1, 90), "max_distance_m": (100, 30000),
+            "facade_distance_m": (1, 500), "facade_sector_deg": (1, 90), "max_verification_age_days": (1, 365),
+            "airport_radius_m": (50, 1500), "airport_walk_minutes": (1, 60), "hotel_walk_minutes": (1, 60),
         }
         self.specs["prepared_observation"] = ToolSpec(
             id="prepared_observation", description="Подготовленные дополнительные расчёты по открытым данным; без догадок и сети",

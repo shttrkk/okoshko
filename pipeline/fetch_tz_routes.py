@@ -27,6 +27,7 @@ def run():
     graph = WalkGraph(read_json(SEED / "walk_graph.json"))
     roads, railways = load_features(SEED / "roads.geojson"), load_features(SEED / "railways.geojson")
     route_parameters = parameters("night_open")
+    transfer_parameters = parameters("airport_transfer")
     planner = NearbyRoutes(graph, roads, railways, snap_limit_m=route_parameters["snap_limit_m"])
     features = load_features(SEED / "pois.geojson")+load_features(SEED / "tz_transit_stops.geojson")+roads
     # Duplicate IDs from original POIs and added transit extract are one place.
@@ -45,10 +46,10 @@ def run():
     airport_origin = planner.from_hotel(terminal_xy) if terminal_xy else None
     airport_stops = []
     for stop in stops:
-        if not terminal or stop["shape"].distance(terminal["shape"]) > 500:
+        if not terminal or stop["shape"].distance(terminal["shape"]) > transfer_parameters["airport_radius_m"]:
             continue
         node = stop_nodes[stop["id"]]
-        if airport_origin and node in airport_origin[2] and airport_origin[2][node] <= 10:
+        if airport_origin and node in airport_origin[2] and airport_origin[2][node] <= transfer_parameters["airport_walk_minutes"]:
             airport_stops.append(stop["id"])
     relations = read_json(SEED / "tz_transit_routes.json")
     rows = []
@@ -83,11 +84,12 @@ def run():
         if arrival:
             for stop in stops:
                 target = stop_nodes[stop["id"]]
-                if target in arrival[2] and arrival[2][target] <= 15:
+                if target in arrival[2] and arrival[2][target] <= transfer_parameters["hotel_walk_minutes"]:
                     reachable_stops.append(stop["id"])
         transfer = transit_connections(relations, airport_stops, reachable_stops)
         car_target, hotel_snap = car.snap(xy)
         transfer.update(airport_stop_ids=airport_stops, hotel_stop_count=len(reachable_stops),
+                        calculation_parameters=transfer_parameters,
                         terminal_osm_id=terminal["id"] if terminal else None,
                         airport_walk_anchor="terminal representative point; ≤10 graph minutes and ≤500 m map proximity", airport_walk_anchor_known=airport_origin is not None,
                         airport_car_distance_km=round(car_costs[car_target]/1000, 3) if car_target in car_costs else None,

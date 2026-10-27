@@ -1,10 +1,13 @@
 """Additional OSM computations, kept separate from the runtime seed loader."""
 from __future__ import annotations
 
+from datetime import datetime
+
 from geo.coordinates import TO_UTM
 from geo.io import read_json
 from geo.region import load_features
 from geo.tz_airport import airport_exposure, select_airport_runways
+from geo.tz_construction import construction_nearby
 from geo.tz_environment import car_arrival, mapped_nearby
 from geo.tz_history import exact_history
 from pipeline.common import CONFIG, SEED, sha
@@ -15,6 +18,7 @@ def run():
     names = ["aeroways", "construction", "entrances", "vehicle_roads", "communication_masts", "history"]
     layers = {n: load_features(SEED / f"tz_{n}.geojson") for n in names}
     areas = load_features(SEED / "tz_areas.geojson")
+    construction_metadata = read_json(SEED / "tz_osm_element_metadata.json")["elements"]
     airport_thresholds = parameters("airport_noise")
     runways = select_airport_runways([r for r in layers["aeroways"] if r["properties"].get("aeroway") == "runway"], areas, iata=airport_thresholds["airport_iata"])
     layers["construction"] += [f for f in areas if f["properties"].get("landuse") == "construction" or f["properties"].get("building") == "construction"]
@@ -36,7 +40,8 @@ def run():
         values = {
             "airport_noise": airport_exposure(xy, runways, facades=facades,
                 extension_m=airport_thresholds["corridor_extension_m"], half_width_m=airport_thresholds["corridor_half_width_m"], nearby_m=airport_thresholds["nearby_m"]),
-            "construction_nearby": mapped_nearby(xy, layers["construction"], radius_m=parameters("construction_nearby")["radius_m"], facades=facades),
+            "construction_nearby": construction_nearby(xy, layers["construction"], construction_metadata, facades,
+                as_of=datetime.fromisoformat(CONFIG["osm"]["snapshot"].replace("Z", "+00:00")).date(), **parameters("construction_nearby")),
             "mobile_masts": mapped_nearby(xy, layers["communication_masts"], radius_m=parameters("mobile_masts")["radius_m"]),
             "car_arrival": car_arrival(hotel, layers["vehicle_roads"], layers["entrances"], parking, threshold_m=parameters("car_arrival")["arrival_threshold_m"]),
             "building_history": exact_history(hotel, history),
@@ -47,7 +52,10 @@ def run():
             rows.append(observation(hotel["id"], kind, value, source_ids=["tz_osm_geofabrik", "osm_geofabrik"],
                         observed_at=CONFIG["osm"]["snapshot"], ttl_days=14 if kind == "construction_nearby" else 180 if kind == "building_history" else 90,
                         emit_claim=not (kind == "building_history" and not value["records"]),
-                        input_sha256={"/data/geo/"+path.name: sha(path)} if facades else {},
+                        method="tz_construction_eligibility@2" if kind == "construction_nearby" else "tz_environment@1",
+                        confidence=.35 if kind == "construction_nearby" else .55,
+                        input_sha256={**({"/data/geo/"+path.name: sha(path)} if facades else {}),
+                                      **({"/data/seed/tz_osm_element_metadata.json": sha(SEED / "tz_osm_element_metadata.json")} if kind == "construction_nearby" else {})},
                         evidence_kind="open_data" if kind == "building_history" else "calculation"))
     sources = read_json(SEED / "tz_osm_sources.json")+[baseline_sources()["osm_geofabrik"]]
     return write_stage("environment", rows, sources, inputs=inputs, limitations=[

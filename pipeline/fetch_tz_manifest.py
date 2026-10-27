@@ -51,6 +51,16 @@ def run():
                     validate_value(claim.value, spec.value_schema)
                     if (claim.valid_until-claim.observed_at).total_seconds() > spec.ttl_days*86400:
                         raise ValueError("claim exceeds specification TTL")
+                if claim.characteristic_id == "construction_nearby":
+                    value = claim.value
+                    eligible = [row for row in value.get("candidates", []) if row.get("eligible_current")]
+                    if value.get("current_eligible_count") != len(eligible) or value.get("available") is False:
+                        raise ValueError("construction archive/unknown semantics violated")
+                    if value.get("available") is True and not eligible:
+                        raise ValueError("construction yes lacks current evidence")
+                    for row in eligible:
+                        if not row["temporal"]["eligible_temporally"] or not row["temporal"]["verification_keys"] or not any(side["eligible_geometry"] for side in row["facades"]):
+                            raise ValueError("construction yes lacks dated verification and facade proximity")
                 for evidence in claim.evidence:
                     for source_id in evidence.source_ids+[claim.source]:
                         if source_id not in sources:
@@ -68,6 +78,10 @@ def run():
     ids = [c.id for c in claims]
     if len(ids) != len(set(ids)):
         raise ValueError("duplicate Claim ID")
+    fisht_path = SEED / "tz_fisht_manifest.json"
+    if fisht_path.exists() and not json.loads(fisht_path.read_text()).get("confirmed_height"):
+        if any(c.characteristic_id == "landmark_view" and c.value.get("landmark_id") == "fisht" for c in claims):
+            raise ValueError("Fisht LOS must remain disabled without confirmed height")
     coverage = {}
     for kind, values in flags.items():
         if set(values) != hotels:

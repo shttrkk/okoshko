@@ -41,44 +41,6 @@ def airport_exposure(xy, runways, *, extension_m=6000, half_width_m=500, nearby_
 
 
 def transit_connections(routes, airport_stops, hotel_stops):
-    """Respect member order. Missing/unsupported stop ordering remains unknown."""
-    usable = []
-    for route in routes:
-        stops = [m["id"] for m in route["members"] if m.get("role", "").startswith("stop")]
-        if len(stops) < 2:
-            stops = [m["id"] for m in route["members"] if m.get("role", "").startswith("platform")]
-        if len(stops) >= 2:
-            usable.append((route, stops))
-    starts, ends = set(airport_stops), set(hotel_stops)
-    direct, transfer = [], []
-    for route, stops in usable:
-        roles = {m["id"]: m.get("role", "") for m in route["members"]}
-        for i, stop in enumerate(stops):
-            if stop in starts and not roles[stop].endswith("exit_only") and any(s in ends and not roles[s].endswith("entry_only") for s in stops[i+1:]):
-                direct.append(route)
-                break
-    if direct:
-        selected = direct[:5]
-        count = 0
-    else:
-        for first, a in usable:
-            a_roles = {m["id"]: m.get("role", "") for m in first["members"]}
-            positions = [i for i, stop in enumerate(a) if stop in starts and not a_roles[stop].endswith("exit_only")]
-            if not positions:
-                continue
-            reachable = {stop for stop in a[min(positions)+1:] if not a_roles[stop].endswith("entry_only")}
-            for second, b in usable:
-                if first["id"] == second["id"]:
-                    continue
-                b_roles = {m["id"]: m.get("role", "") for m in second["members"]}
-                ends_at = [i for i, stop in enumerate(b) if stop in ends and not b_roles[stop].endswith("entry_only")]
-                if ends_at and reachable.intersection(stop for stop in b[:max(ends_at)] if not b_roles[stop].endswith("exit_only")):
-                    transfer.append((first, second))
-        selected = list({r["id"]: r for pair in transfer[:5] for r in pair}.values())
-        count = 1 if transfer else None
-    return {"available": True if count is not None else None, "transfers": count,
-            "routes": [{"id": r["id"], "ref": r["tags"].get("ref"), "mode": r["tags"].get("route"),
-                        "opening_hours": r["tags"].get("opening_hours"), "interval": r["tags"].get("interval"),
-                        "by_night": r["tags"].get("by_night")} for r in selected],
-            "scheduled_minutes": None, "night_service": None,
-            "coverage": "OSM ordered route members; shared exact stop IDs for one transfer; no GTFS"}
+    """Exact member-position semantics; no direction/role inference."""
+    from geo.tz_transit import TransitNetwork
+    return TransitNetwork(routes).connect(airport_stops, hotel_stops)

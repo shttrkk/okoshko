@@ -31,7 +31,11 @@ landmarks:
     source_url: https://www.openstreetmap.org/relation/9353455
 excluded_candidates:
   - name: Фишт
-    reason: В исходном way-слое есть только Overture-контур без проверенной высоты; relation-контур пока не собран.
+    osm_id: osm-relation-3405854
+    wikidata_id: Q1149601
+    evidence_ref: /data/seed/tz_fisht_manifest.json
+    contour_ref: /data/seed/tz_fisht.geojson.gz
+    reason: Точный relation multipolygon собран из PBF; прямой OSM wikidata=Q1149601. Нет OSM height/building:levels и нет Wikidata P2048 (revision2493123226). Без подтверждённой высоты LOS не включается.
   - name: Чаша олимпийского огня
     osm_id: osm-node-2660040429
     reason: Точка OSM без проверенной высоты и контура; дату открытия не превращаем в высоту.

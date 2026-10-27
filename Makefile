@@ -59,12 +59,16 @@ snapshots:
 tz-osm-data:
 	$(PYTHON) -m pipeline.fetch_osm_extra
 	$(PYTHON) -m pipeline.fetch_tz_areas
+	$(PYTHON) -m pipeline.fetch_tz_osm_metadata
+	$(PYTHON) -m pipeline.fetch_tz_fisht
 tz-climate-data:
 	$(PYTHON) -m pipeline.fetch_tz_climate
 tz-derived-data:
 	$(PYTHON) -m pipeline.fetch_tz_osm_facts
+	$(PYTHON) -m pipeline.fetch_tz_construction
 	$(PYTHON) -m pipeline.fetch_tz_routes
 	$(PYTHON) -m pipeline.fetch_tz_history
 	$(PYTHON) -m pipeline.fetch_tz_landmarks
+	$(PYTHON) -m pipeline.fetch_tz_transfer_diagnostics
 	$(PYTHON) -m pipeline.fetch_tz_manifest
 tz-data: tz-osm-data tz-climate-data tz-derived-data
