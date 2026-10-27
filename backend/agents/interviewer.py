@@ -218,7 +218,8 @@ def generate_questions(hotel_id: str, repo) -> list[Question]:
         if value.get("status") == "pending":
             question = Question.model_validate(value)
             by_cid[question.characteristic_ids[0]] = question
-    return sorted(by_cid.values(), key=lambda question: (-question.priority, question.id))
+    return sorted(by_cid.values(), key=lambda question: (question.demand_synthetic, -question.demand_estimate,
+                                                       -question.priority, question.id))
 
 
 def ask_contradictions(repo, conflicts: list) -> list:
