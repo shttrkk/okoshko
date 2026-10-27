@@ -560,7 +560,7 @@ try {
   );
   assert.match(
     await page.getByTestId("related-hotels").innerText(),
-    /не подтверждают их совместимость в одном номере/,
+    /относятся к отелю в целом, а не к одному номеру/,
   );
   assert(
     !requests.some(

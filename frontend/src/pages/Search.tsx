@@ -462,7 +462,7 @@ export function Home() {
       <section className="home-data-note">
         <span className="connection-dot connected" />
         {status.data
-          ? `${status.data.hotel_count ?? hotels.data?.length ?? "…"} отелей · ${status.data.characteristic_count ?? "…"} характеристик · ${status.data.mode}`
+          ? `${status.data.hotel_count ?? hotels.data?.length ?? "…"} отелей · характеристик в каталоге: ${status.data.characteristic_count ?? "…"}`
           : "Подключаем каталог реальных отелей"}
         <Link to="/quality">
           Как проверяем качество <ArrowUpRight size={13} />
@@ -933,7 +933,7 @@ function SearchCard({
           <span>
             Обязательные: {hit.must_satisfied} из {hit.must_total}
           </span>
-          {hit.room_profile?.scope.facade && (
+          {hit.room_profile?.scope.facade && !hit.room_recommendation && (
             <span>{scopeText(roomEvidenceScope(hit.room_profile.scope))}</span>
           )}
         </p>
@@ -1295,10 +1295,9 @@ export function SearchPage() {
           {resource.data && (
             <p className="results-footnote">
               {resource.data.total} результатов ·{" "}
-              {Math.round(resource.data.latency_ms)} мс · режим{" "}
-              {resource.data.mode}. Шум ночью рассчитан приблизительно; внутри
-              номера он может отличаться. Сторону, этаж и наличие номера
-              подтвердит отель.
+              {Math.round(resource.data.latency_ms)} мс. Шум ночью рассчитан
+              приблизительно; внутри номера он может отличаться. Сторону, этаж и
+              наличие номера подтвердит отель.
             </p>
           )}
         </div>

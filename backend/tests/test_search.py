@@ -511,7 +511,7 @@ def test_guest_wording_keeps_uncertainty_and_proof_without_repeated_room_warning
     assert hit.verdicts[0].confidence == .65 and hit.verdicts[0].synthetic
     assert hit.verdicts[0].fact_ids == [item.id] and hit.verdicts[0].evidence_refs
     assert "±8 дБ" in hit.verdicts[0].caveat and "Синтетические" in hit.verdicts[0].caveat
-    assert "Можно уточнить номер: западная сторона, 5–8-й этажи." == hit.room_recommendation
+    assert "Лучший вариант: западная сторона, 5–8-й этажи." == hit.room_recommendation
     main = " ".join([hit.summary, hit.room_recommendation, *[v.text for v in hit.verdicts]])
     assert "≈ 41–50 дБ по расчёту" in main
     assert not any(term in main.lower() for term in ("модел", "прокси", "синтет", "нормал", "pmtiles"))

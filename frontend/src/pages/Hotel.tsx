@@ -63,6 +63,10 @@ const normalizedName = (name: string) =>
     .replaceAll("ё", "е")
     .replace(/[^\p{L}\p{N}]+/gu, "")
     .trim();
+// The column heading already says "similar" or "different".
+const plainReason = (text: string) =>
+  text.split(";")[0].replace(/^(Совпадает|Отличается) /, "");
+
 function relatedHotels(results: SearchHit[], reference: Hotel) {
   const ids = new Set([reference.id]);
   const names = new Set([normalizedName(reference.name)]);
@@ -93,9 +97,8 @@ function RelatedHotels({ hotel }: { hotel: Hotel }) {
       <span className="eyebrow">ПРОФИЛИ ДЛЯ СРАВНЕНИЯ</span>
       <h2>Похожие отели</h2>
       <p className="muted section-lead">
-        Сходство по известным характеристикам за сентябрь. Выбранные условия
-        поездки сохраняются; совпадения профиля не подтверждают их совместимость
-        в одном номере.
+        Похожи по известным характеристикам в сентябре. Совпадения относятся к
+        отелю в целом, а не к одному номеру.
       </p>
       {related.loading && (
         <p role="status" className="muted">
@@ -140,7 +143,7 @@ function RelatedHotels({ hotel }: { hotel: Hotel }) {
                   {similarities.length ? (
                     <ul>
                       {similarities.map((text) => (
-                        <li key={text}>{text.split(";")[0]}</li>
+                        <li key={text}>{plainReason(text)}</li>
                       ))}
                     </ul>
                   ) : (
@@ -152,7 +155,7 @@ function RelatedHotels({ hotel }: { hotel: Hotel }) {
                   {differences.length ? (
                     <ul>
                       {differences.map((text) => (
-                        <li key={text}>{text.split(";")[0]}</li>
+                        <li key={text}>{plainReason(text)}</li>
                       ))}
                     </ul>
                   ) : (

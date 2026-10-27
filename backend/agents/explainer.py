@@ -216,7 +216,7 @@ def room_from_assessment(assessment: Assessment, parsed: ParsedQuery) -> str:
     if not parts:
         return "Уточните сторону и этаж конкретного номера у отеля."
     complete = bool(relevant) and all(m.status == "yes" for m in relevant)
-    prefix = "Просите номер: " if complete else "Можно уточнить номер: "
+    prefix = "Просите номер: " if complete else "Лучший вариант: "
     return prefix + ", ".join(parts) + "."
 
 

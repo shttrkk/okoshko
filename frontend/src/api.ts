@@ -243,10 +243,17 @@ function trackDataRun(run: AgentRun) {
   return run;
 }
 const id = encodeURIComponent;
+// Catalog names stay technical for the parser; guests see plain words.
+const GUEST_NAMES: Record<string, string> = { evening_heat: "Вечернее солнце" };
 export const api = {
   status: () => request<Status>("/api/status"),
   hotels: () => request<Hotel[]>("/api/hotels"),
-  specs: () => request<Spec[]>("/api/characteristics"),
+  specs: () =>
+    request<Spec[]>("/api/characteristics").then((list) =>
+      list.map((s) =>
+        GUEST_NAMES[s.id] ? { ...s, name_ru: GUEST_NAMES[s.id] } : s,
+      ),
+    ),
   search: (body: SearchRequest, signal?: AbortSignal) =>
     request<SearchResult>("/api/search", body, signal),
   hotel: (hotelId: string, parsed?: ParsedQuery | null) =>

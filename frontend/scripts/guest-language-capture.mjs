@@ -224,6 +224,13 @@ export function languageFindings(text) {
     /[\p{L}-]*прокси[\p{L}-]*/giu,
     /[\p{L}-]*нормаль[\p{L}-]*/giu,
     /PMTiles/giu,
+    /[\p{L}-]*экспозиц[\p{L}-]*/giu,
+    /индекс 0–1/giu,
+    /[\p{L}-]*картированн[\p{L}-]*/giu,
+    /по OSM/giu,
+    /<20/gu,
+    /\boffline\b/gu,
+    /видны море/giu,
   ];
   const forbiddenPhrases = [];
   for (const phrase of phrases) {

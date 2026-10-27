@@ -626,7 +626,8 @@ def build_room_advice(hotel: Hotel, facts: list[Fact], specs: list[Characteristi
         selected_facts = [by_id[fid] for fid in fact_ids]
         status = "partial" if any(o.status == "partial" for o in options) else "yes"
         title = "Меньше уличного шума" if cid == "quiet_night" else _LABELS[cid]
-        text = title + " — " + _advice_positions(options, hotel)
+        positions = _advice_positions(options, hotel)
+        text = positions[0].upper() + positions[1:]
         caveats = [_POSITION_CAVEAT]
         if cid == "quiet_night":
             text += "; ночью " + _range(selected_facts, "night_db_min", "night_db_max") + " дБ по расчёту"
@@ -643,8 +644,6 @@ def build_room_advice(hotel: Hotel, facts: list[Fact], specs: list[Characteristi
                 elif all(a is not None and a.maximum_deg <= 45 for a in aspects):
                     text += ", закат перед окнами"
         text += "."
-        if status == "partial":
-            text += " Пока неточно — уточните у отеля."
         _, notes = _known_text(cid, selected_facts, status, month)
         caveats.extend(notes)
         caveats.extend(note for f in selected_facts for e in f.evidence for note in e.limitations)

@@ -43,7 +43,7 @@ def test_upper_floor_sea_strengths_survive_twelve_position_limit_and_group_sides
     assert all(p.scope.floor_min == 5 for p in profiles[:4])
     [sea] = advice(facts)
     assert bounds(sea) == [(s, 5, 8) for s in sides if s in useful]
-    assert sea.text == "Вид на море — юго-восток, юг, юго-запад и запад с 5-го этажа."
+    assert sea.text == "Юго-восток, юг, юго-запад и запад с 5-го этажа."
     assert sea.status == "yes" and all(o.status == "yes" for o in sea.options)
 
 
@@ -102,7 +102,7 @@ def test_month_is_proven_and_internal_month_or_facade_mismatch_stays_unknown():
     [morning] = advice([sun])
     assert morning.status == morning.options[0].status == "partial"
     assert "в сентябре" in morning.text and "≈ 45–140 мин" in morning.text
-    assert "Пока неточно — уточните у отеля" in morning.text
+    assert "Пока неточно" not in morning.text  # the status badge says it once
     sun.value["month"] = 7
     assert advice([sun]) == []
     sun.value["month"] = 9
@@ -135,7 +135,7 @@ def test_numeric_noise_uses_outer_range_and_partial_without_promoting_boolean_qu
     assert quiet.title == "Меньше уличного шума"
     assert bounds(quiet) == [("SW", 1, 8), ("W", 1, 8)]
     assert quiet.status == "partial" and "≈ 34–50 дБ" in quiet.text
-    assert "Пока неточно" in quiet.text and "Тише всего" not in quiet.text
+    assert "Тише всего" not in quiet.text
     assert any("только стороны и этажи" in note for note in quiet.caveats)
     assert [f.model_dump() for f in facts] == before
 
@@ -156,7 +156,6 @@ def test_synthetic_aggregation_is_preserved_and_partial_never_becomes_yes():
     assert sea.synthetic and sea.options[0].synthetic
     assert sea.status == sea.options[0].status == "partial"
     assert set(sea.fact_ids) == {real.id, synthetic.id}
-    assert "Пока неточно" in sea.text
     assert advice([fact(confidence=.29)]) == []
 
 

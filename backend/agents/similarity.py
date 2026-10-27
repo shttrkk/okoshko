@@ -17,9 +17,10 @@ UNITS = {"minutes": "мин", "return_minutes": "мин", "download_mbps": "Мб
 
 def _profile_value(value, field: str, unit: str | None) -> str:
     if isinstance(value, bool):
-        return "да" if value else "нет"
+        return "есть" if value else "нет"
     if isinstance(value, int | float):
         suffix = unit or UNITS.get(field)
+        value = round(value) if abs(value) >= 10 else value  # 380 м, not 380,8 м
         return f"{value:g}".replace(".", ",") + (" " + suffix if suffix else "")
     return str(value)
 
@@ -109,8 +110,11 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
             hit.room_recommendation = "Сходство относится к профилю отеля; сторону, этаж и доступность номера уточните отдельно."
         # Profile comparisons are independent characteristics, not an invented
         # conjunction of views, noise and routes in one room.
-        matches = sorted((row for row in comparisons if row[3] == row[4]), key=lambda row: (-row[0], row[1]))[:3]
-        differences = sorted((row for row in comparisons if row[3] != row[4]
+        # A number for one facade describes that side, not the hotel profile.
+        shown = [row for row in comparisons if isinstance(row[3], bool) or not isinstance(row[3], int | float)
+                 or not (row[5].scope.facade or reference[row[1]][2].scope.facade)]
+        matches = sorted((row for row in shown if row[3] == row[4]), key=lambda row: (-row[0], row[1]))[:3]
+        differences = sorted((row for row in shown if row[3] != row[4]
                               and _profile_value(row[3], fields[row[1]], units[row[1]]) != _profile_value(row[4], fields[row[1]], units[row[1]])),
                              key=lambda row: (-WEIGHTS.get(row[1], 1)*min(reference[row[1]][1], row[5].confidence)*(1-row[2]), row[1]))[:2]
         for _, cid, closeness, left, right, fact in [*matches, *differences]:

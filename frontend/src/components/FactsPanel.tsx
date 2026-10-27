@@ -345,7 +345,7 @@ function SolarMatrix({
                           ? floor && floor > 1
                             ? `${floor}+`
                             : "✓"
-                          : "<20"}
+                          : "—"}
                     </button>
                   </td>
                 );
@@ -355,8 +355,8 @@ function SolarMatrix({
         </tbody>
       </table>
       <p className="matrix-legend">
-        ✓ — есть прямое солнце; «7+» — с 7-го этажа; «?» — нужно уточнить.
-        Нажмите на месяц, чтобы увидеть источник.
+        ✓ — есть прямое солнце; «7+» — с 7-го этажа; «—» — меньше 20 минут
+        солнца; «?» — нужно уточнить. Нажмите на месяц, чтобы увидеть источник.
       </p>
       <details className="room-caveats-details">
         <summary>Как посчитано</summary>
@@ -499,7 +499,7 @@ export function headline(
       (inMonth.every((f) => v(f).available === false)
         ? "на рассчитанных фасадах меньше 20 минут"
         : "достаточность прямого солнца неизвестна");
-    return `${id === "morning_sun" ? "Утреннее" : "Вечернее"} прямое солнце в ${MONTHS_IN[month - 1]}: ${summary}. По расчёту; погода может отличаться${id === "evening_heat" ? " и не температура номера" : ""}.`;
+    return `${id === "morning_sun" ? "Утреннее" : "Вечернее"} прямое солнце в ${MONTHS_IN[month - 1]}: ${summary}. Расчёт для ясного дня.`;
   }
   if (id === "sunset_view") {
     const inMonth = shown.filter(
@@ -533,7 +533,7 @@ export function headline(
     const list = sideList(bySide(shown));
     const what = id === "sea_view" ? "Море" : "Горы";
     return list
-      ? `По расчёту видны ${id === "sea_view" ? "море" : "горы"}: ${list}.`
+      ? `По расчёту ${id === "sea_view" ? "море видно" : "горы видны"}: ${list}.`
       : shown.every((f) => v(f).available === false)
         ? `${what === "Море" ? "Моря" : "Гор"} на рассчитанных фасадах не видно.`
         : `Вид на ${id === "sea_view" ? "море" : "горы"} требует уточнения.`;

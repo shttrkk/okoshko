@@ -65,7 +65,7 @@ export const SIDES_SHORT: Record<string, string> = {
 };
 export const TRAIT_NAMES: Record<string, string> = {
   morning_sun: "Утреннее солнце",
-  evening_heat: "Вечернее солнце и нагрев",
+  evening_heat: "Вечернее солнце",
   railway_noise: "Железнодорожный шум",
   beach_surface: "Покрытие пляжа",
   accessible_route: "Доступность маршрута",
@@ -249,11 +249,11 @@ export function humanFact(
             .join(", ")
         : null;
       return [
-        surface ? `По OSM: ${surface}` : "Покрытие пляжа не указано в OSM",
+        surface ? `По карте: ${surface}` : "Покрытие пляжа не указано на карте",
         v.selection_kind === "beach_walk_destination"
           ? "пляж пешего маршрута"
           : v.selection_kind
-            ? "ближайший картированный пляж"
+            ? "ближайший пляж на карте"
             : null,
         num(v.distance_m) !== null && `${meters(v.distance_m)} по прямой`,
       ]
@@ -287,7 +287,7 @@ export function humanFact(
             : "зелёная территория";
       return num(v.distance_m) === null
         ? null
-        : `Картированный ${kind} в ${meters(v.distance_m)} по прямой · вход и пеший путь не проверены`;
+        : `${kind[0].toUpperCase()}${kind.slice(1)} в ${meters(v.distance_m)} по прямой · вход и пеший путь не проверены`;
     }
     case "sunset_view": {
       const when = month ? `в ${MONTHS_IN[month - 1]}` : "";
