@@ -1,0 +1,20 @@
+{
+  "source_revision": "9ccfabd",
+  "checks": [
+    "source and eligible counts distinguished",
+    "held attraction absent from public catalog",
+    "held attraction absent from five-minute results",
+    "correct hotel leads five-minute results",
+    "direct hotel page explains hold",
+    "direct booking has no form",
+    "no JavaScript errors",
+    "no unexpected same-origin failures"
+  ],
+  "errors": [],
+  "failures": [],
+  "first_beach_result": {
+    "id": "osm-way-218836911",
+    "name": "Dolphin resort Hotel"
+  },
+  "passed": true
+}

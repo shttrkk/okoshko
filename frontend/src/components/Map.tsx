@@ -1423,11 +1423,32 @@ export function GeoModal({
   geo: Geo;
   onClose: () => void;
 }) {
-  const [floor, setFloor] = useState(
-      geo.floors?.modeled_count || hotel.floors || 1,
-    ),
+  const count = (value: unknown) =>
+    typeof value === "number" && Number.isInteger(value) && value >= 1
+      ? value
+      : null;
+  const knownFloors = count(hotel.floors);
+  const maximum = knownFloors
+    ? Math.min(
+        knownFloors,
+        count(geo.floors?.count) || knownFloors,
+        count(geo.floors?.modeled_count) || knownFloors,
+        100,
+      )
+    : 1;
+  const [requestedFloor, setRequestedFloor] = useState(maximum),
     [facade, setFacade] = useState(geo.facades?.[0]?.code || ""),
     [month, setMonth] = useState(9);
+  const floor = Math.max(1, Math.min(maximum, Math.trunc(requestedFloor) || 1));
+  useEffect(() => {
+    setRequestedFloor((current) =>
+      Math.max(1, Math.min(maximum, Math.trunc(current) || 1)),
+    );
+  }, [maximum]);
+  useEffect(() => {
+    if (!geo.facades?.some((entry) => entry.code === facade))
+      setFacade(geo.facades?.[0]?.code || "");
+  }, [geo.facades, facade]);
   const horizon = geo.horizon || [],
     solar = geo.sun_paths?.find((p) => p.month === month)?.points || [];
   const max = Math.max(
@@ -1467,6 +1488,11 @@ export function GeoModal({
       <p className="muted">
         {hotel.name} · геометрия, положение солнца и границы достоверности
       </p>
+      <p className="fine-print" data-testid="geo-floor-note">
+        {knownFloors
+          ? `Известная этажность: ${knownFloors}. В сохранённой модели доступны ${maximum} уровней; наличие номеров не подтверждается.`
+          : "Этажность отеля неизвестна. Показан только условный первый уровень выбранного контура; это не подтверждённый этаж или номер отеля."}
+      </p>
       <div className="geo-controls">
         <label>
           Фасад
@@ -1485,15 +1511,23 @@ export function GeoModal({
           </select>
         </label>
         <label>
-          Этаж
+          {knownFloors ? "Этаж" : "Условный уровень"}
           <input
             type="number"
-            aria-label="Этаж"
+            aria-label={knownFloors ? "Этаж" : "Условный уровень"}
             data-testid="geo-floor"
             min="1"
-            max={geo.floors?.modeled_count || hotel.floors || 100}
+            max={maximum}
+            disabled={!knownFloors}
             value={floor}
-            onChange={(e) => setFloor(Math.max(1, Number(e.target.value)))}
+            onChange={(e) =>
+              setRequestedFloor(
+                Math.max(
+                  1,
+                  Math.min(maximum, Math.trunc(Number(e.target.value)) || 1),
+                ),
+              )
+            }
           />
         </label>
         <label>
@@ -1537,7 +1571,7 @@ export function GeoModal({
                 Видимость в {mc?.iterations || "неизвестном числе"} симуляциях
                 неопределённых входных высот.
               </p>
-              {p80 && (
+              {knownFloors && p80 && p80 <= maximum && (
                 <p>
                   80% устойчивости: <strong>с {p80}-го этажа</strong>
                 </p>
@@ -1557,8 +1591,9 @@ export function GeoModal({
                   : "не виден"}
               </strong>
               <br />
-              {facade} · {floor}-й этаж · опорная дата{" "}
-              {sunset?.date || solarDate || "не передана"}
+              {facade} ·{" "}
+              {knownFloors ? `${floor}-й этаж` : `условный уровень ${floor}`} ·
+              опорная дата {sunset?.date || solarDate || "не передана"}
             </p>
           )}
           <p className="fine-print">

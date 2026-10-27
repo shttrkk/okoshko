@@ -15,7 +15,7 @@ import { api, record, useResource } from "../api";
 import { useApp } from "../state";
 import { GeoModal, TravelMap } from "../components/Map";
 import { FactsPanel } from "../components/FactsPanel";
-import { factCardId, SIDES, TRAIT_NAMES } from "../components/facts";
+import { factCardId, SIDES, TRAIT_NAMES, type FacadeAzimuths } from "../components/facts";
 import { PanoramaModal } from "../components/Panorama";
 import { RoomLab, type RoomSlice } from "../components/RoomLab";
 import {
@@ -31,7 +31,7 @@ import {
   Synthetic,
   VerdictList,
 } from "../components/ui";
-import type { Fact, Hotel, Scope, SearchHit, Verdict } from "../types";
+import type { Fact, Hotel, Scope, SearchHit, Side, Verdict } from "../types";
 import "../night-details.css";
 const conflictStatus: Record<string, string> = {
   asked: "Спросили отель",
@@ -292,6 +292,18 @@ export function HotelPage() {
       .find(Boolean) || "S";
   const valueConflicts = (d?.conflicts || []).filter((c) => c.kind === "value");
   const scopeConflicts = (d?.conflicts || []).filter((c) => c.kind !== "value");
+  const normals = new Map<Side, Set<number>>();
+  for (const facade of geoResource.data?.facades || []) {
+    if (!(facade.code in SIDES) || typeof facade.azimuth_deg !== 'number' || !Number.isFinite(facade.azimuth_deg)) continue;
+    const side = facade.code as Side;
+    const values = normals.get(side) || new Set<number>();
+    values.add(((facade.azimuth_deg % 360) + 360) % 360);
+    normals.set(side, values);
+  }
+  const facadeAzimuths: FacadeAzimuths = {};
+  for (const [side, values] of normals) {
+    if (values.size === 1) facadeAzimuths[side] = [...values][0];
+  }
   const catalogueReview = record(d?.hotel.tags?.catalogue_review);
   if (catalogueReview.disposition === 'hold_for_identity_review')
     return (
@@ -618,6 +630,7 @@ export function HotelPage() {
                     specs={specs.data || []}
                     hotelId={id}
                     month={parsed?.month || 9}
+                    facadeAzimuths={facadeAzimuths}
                     onEvidence={setEvidence}
                     questionScope={questionScope}
                     onPanorama={setPanorama}

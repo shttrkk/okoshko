@@ -201,6 +201,13 @@ function ModelFact({
   onEvidence: (fact: Fact) => void;
 }) {
   const fact = sliceFact(facts, id, slice);
+  // Compact facts omit evidence. The hotelier parser cannot supply probability.
+  const modelProbability = record(fact?.value).probability;
+  const hasModelProbability =
+    typeof modelProbability === "number" &&
+    Number.isFinite(modelProbability) &&
+    modelProbability >= 0 &&
+    modelProbability <= 1;
   const facade = geo.facades?.find((entry) => entry.code === slice.facade);
   const probability = facade?.sea_probability_by_floor?.[slice.floor - 1];
   const expired =
@@ -213,6 +220,7 @@ function ModelFact({
   const seaProbability =
     id === "sea_view" &&
     hasValue &&
+    hasModelProbability &&
     typeof probability === "number" &&
     Number.isFinite(probability)
       ? probability
@@ -238,10 +246,17 @@ function ModelFact({
               </>
             ) : fact.status === "stale" || expired ? (
               "Данные устарели; для этого среза нужна перепроверка."
+            ) : fact.status === "disputed" ? (
+              "Источники расходятся; сведения для этого среза не подтверждены."
             ) : (
               <FactValue fact={fact} />
             )}
           </p>
+          {id === "sea_view" && hasValue && !hasModelProbability && (
+            <p className="muted small">
+              Сообщение источника о виде для выбранного среза.
+            </p>
+          )}
           <p className="muted small">
             Область источника: {scopeText(fact.scope)}.
           </p>
