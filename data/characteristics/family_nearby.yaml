@@ -1,6 +1,7 @@
 id: family_nearby
 version: 1
 name_ru: С детьми
+display_name: С детьми
 description: С детьми — подтверждённые данные с указанием источника и ограничений
 category: Рядом
 synonyms:

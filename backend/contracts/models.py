@@ -236,6 +236,7 @@ class CharacteristicSpec(Model):
     id: str = Field(pattern=r"^[a-z][a-z0-9_]{1,63}$")
     version: int = Field(default=1, ge=1)
     name_ru: str
+    display_name: str | None = None
     description: str
     category: str = "Окружение"
     synonyms: list[str] = Field(default_factory=list)
@@ -290,6 +291,7 @@ class Answer(Model):
     parser: Mode = "offline"
     confirmed: bool = False
     synthetic: bool = False
+    disposition: Literal["parsed", "unknown", "clarification"] = "parsed"
     created_claim_ids: list[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=now)
 
@@ -388,6 +390,8 @@ class CriterionVerdict(Model):
     caveat: str | None = None
     synthetic: bool = False
     disputed: bool = False
+    hotelier_confirmed: bool = False
+    basis: Literal["calculation", "open_data", "hotelier", "mixed", "unknown"] = "unknown"
 
 
 class RoomClause(Model):

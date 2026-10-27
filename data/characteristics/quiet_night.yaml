@@ -1,6 +1,7 @@
 id: quiet_night
 version: 1
 name_ru: Тишина ночью
+display_name: Тишина ночью
 description: Приближённая модель наружного шума, не инструментальное измерение
 category: Сон
 synonyms:

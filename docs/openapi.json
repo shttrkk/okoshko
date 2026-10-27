@@ -2262,6 +2262,16 @@
             "title": "Synthetic",
             "default": false
           },
+          "disposition": {
+            "type": "string",
+            "enum": [
+              "parsed",
+              "unknown",
+              "clarification"
+            ],
+            "title": "Disposition",
+            "default": "parsed"
+          },
           "created_claim_ids": {
             "items": {
               "type": "string"
@@ -2451,6 +2461,17 @@
           "name_ru": {
             "type": "string",
             "title": "Name Ru"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
           },
           "description": {
             "type": "string",
@@ -2947,6 +2968,23 @@
             "type": "boolean",
             "title": "Disputed",
             "default": false
+          },
+          "hotelier_confirmed": {
+            "type": "boolean",
+            "title": "Hotelier Confirmed",
+            "default": false
+          },
+          "basis": {
+            "type": "string",
+            "enum": [
+              "calculation",
+              "open_data",
+              "hotelier",
+              "mixed",
+              "unknown"
+            ],
+            "title": "Basis",
+            "default": "unknown"
           }
         },
         "additionalProperties": false,

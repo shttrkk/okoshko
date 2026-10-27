@@ -1,6 +1,7 @@
 id: pets
 version: 1
 name_ru: С питомцем
+display_name: С питомцем
 description: С питомцем — подтверждённые данные с указанием источника и ограничений
 category: Доступ
 synonyms:

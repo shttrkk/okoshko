@@ -183,6 +183,8 @@ export interface Verdict {
   evidence_refs: string[];
   caveat?: string | null;
   synthetic?: boolean;
+  hotelier_confirmed?: boolean;
+  basis?: "calculation" | "open_data" | "hotelier" | "mixed" | "unknown";
   disputed?: boolean;
 }
 export interface SearchHit {
@@ -275,6 +277,8 @@ export interface Answer {
   parser: Mode;
   confirmed: boolean;
   synthetic: boolean;
+  disposition?: "parsed" | "unknown" | "clarification";
+  created_at?: string;
   created_claim_ids: string[];
 }
 export interface PassportItem {
@@ -323,6 +327,7 @@ export interface Spec {
   id: string;
   version: number;
   name_ru: string;
+  display_name?: string | null;
   description: string;
   category: string;
   synonyms: string[];
@@ -427,6 +432,8 @@ export interface HotelierData {
   facts: Fact[];
   claims: Claim[];
   questions: Question[];
+  answers?: Answer[];
+  answered_questions?: Question[];
   conflicts: Conflict[];
   passports: Passport[];
   strengths: unknown[];

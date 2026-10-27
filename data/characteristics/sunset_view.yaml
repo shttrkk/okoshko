@@ -1,6 +1,7 @@
 id: sunset_view
 version: 1
 name_ru: Закат из окна
+display_name: Закат из окна
 description: Закат из окна — подтверждённые данные с указанием источника и ограничений
 category: Вид
 synonyms:

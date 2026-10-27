@@ -247,3 +247,14 @@ PassportItem получает optional room_label/room_index; ExpectationPasspor
 `photos[id]` содержит записи `HotelPhoto`: kind, url, local, page_url, title, author, license, license_url, match, match_text, distance_m, width, height, bytes, sha256, verified_by_eye, captured_year, captured_at, image_id. Уровни обложки: building (Commons) → official_site → street (Mapillary) → схема и внешняя ссылка. `room` — до восьми независимых фото интерьера номера, никогда не обложка и не доказательство стороны, этажа или вида. `verified_by_eye=true` обязателен. У official_site/room хранятся только URL на домене сайта отеля, local=false, author/license/license_url=null. Street хранится локальным WebP ≤640 px и ≤60000 Б, с автором, CC BY-SA 4.0, ссылкой на кадр, годом съёмки и image_id; токен в записи не допускается. Building сохраняет прежние лицензии и миниатюры.
 
 `counts` считает лучший уровень обложки (building/official_site/street/none); `room_hotel_count` и `room_photo_count` считаются отдельно, поскольку интерьер не доказывает внешний вид здания. Неизвестное отсутствие фото не заменяется фотографией соседнего объекта. Галерея номеров загружает изображения только после нажатия; Яндекс Карты открываются внешней ссылкой только по действию гостя. TypeScript допускает неполные legacy-поля визуального fallback; подтверждённый seed и API проходят строгую Pydantic-валидацию.
+
+
+## Происхождение ответа и отображаемые имена (2026-10-27)
+
+CharacteristicSpec.display_name — единое имя для интерфейсов; name_ru и synonyms сохраняют прежнее значение для разбора. Отсутствующее display_name означает name_ru. Изменение имени не меняет методику характеристики или её version.
+
+CriterionVerdict.basis: calculation/open_data/hotelier/mixed/unknown описывает происхождение supporting evidence; synthetic остаётся независимым признаком. hotelier_confirmed по умолчанию false: true допустим только для yes на свежем непротиворечивом ответе отеля с дословной цитатой без synthetic/simulation/mock. Статусы, score и порядок поиска от этих новых полей не меняются. Расчётное yes не называется подтверждением отеля, демо-ответ обозначается отдельно.
+
+Answer.disposition: parsed (есть проверяемые поля), unknown (отель прямо сообщил, что не знает), clarification (не удалось достаточно разобрать ответ). Для unknown подтверждение закрывает вопрос без выдуманных claims. Частичный parsed сохраняет только обоснованные поля и уточнение неизвестного. Cabinet может дополнительно вернуть answers и answered_questions для истории; создание нового ответа не означает автоматическое изменение паспорта.
+
+Численная confidence сохраняется в API и служебных экранах. Гостевой интерфейс показывает слова: от 0.8 — «надёжно», от 0.6 до 0.8 — «примерно», ниже 0.6 — «мало данных»; synthetic не получает отметку надёжного подтверждения. Математические вероятности расчёта не являются confidence источника.

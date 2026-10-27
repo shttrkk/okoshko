@@ -1,6 +1,7 @@
 id: mountain_view
 version: 1
 name_ru: Вид на горы
+display_name: Вид на горы
 description: Вид на горы — подтверждённые данные с указанием источника и ограничений
 category: Вид
 synonyms:
