@@ -2,6 +2,7 @@
 PYTHON ?= .venv/bin/python
 REGION ?= pipeline/regions/sochi.yaml
 PIPELINE_ARGS ?= --compact-geo
+TZ_PIPELINE_ARGS ?= --stage all --dry-run
 VIDEO ?= demo/okno-demo.mp4
 VOICED_VIDEO ?= demo/okno-demo-voiced.mp4
 
@@ -54,8 +55,11 @@ snapshots:
 	node scripts/render_building_snapshots.mjs $(or $(BASE),http://localhost:8080)
 	python3 -m scripts.build_snapshot_index
 
-.PHONY: tz-osm-data tz-derived-data tz-climate-data tz-stage2-data tz-data
+.PHONY: tz-osm-data tz-derived-data tz-climate-data tz-stage2-data tz-data tz-pipeline
 # Incremental supplemental data only: never rebuilds the original seed/facts.
+tz-pipeline:
+	docker build --platform linux/amd64 -f Dockerfile.pipeline -t okno-pipeline .
+	docker run --rm --platform linux/amd64 --user "$$(id -u):$$(id -g)" --mount "type=bind,src=$$PWD/data,dst=/app/data" --entrypoint python okno-pipeline -m pipeline.tz_rebuild $(TZ_PIPELINE_ARGS)
 tz-osm-data:
 	$(PYTHON) -m pipeline.fetch_osm_extra
 	$(PYTHON) -m pipeline.fetch_tz_areas
