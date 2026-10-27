@@ -3,17 +3,188 @@ import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import assert from "node:assert/strict";
 
 export const guestQuery = "тихий номер с видом на закат недалеко от моря";
 export const primorskayaId = "overture-037ee676-5776-46bd-a4ac-38c828f2a99d";
 const systemChrome =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
+export function scopeIsSupported(
+  option,
+  facts,
+  { hotelId, characteristicId, month = 9 },
+) {
+  const scope = option?.scope;
+  if (!scope || !Array.isArray(facts) || !facts.length) return false;
+  const bounds = (value) => {
+    const min = value.floor_min ?? 1;
+    const max = value.floor_max ?? Infinity;
+    return Number.isInteger(min) &&
+      min >= 1 &&
+      (Number.isInteger(max) || max === Infinity) &&
+      min <= max
+      ? [min, max]
+      : null;
+  };
+  const requested = bounds(scope);
+  if (!requested) return false;
+  const covered = [];
+  for (const fact of facts) {
+    if (
+      !fact ||
+      fact.hotel_id !== hotelId ||
+      fact.characteristic_id !== characteristicId ||
+      ["unknown", "stale", "disputed", "conflict", "conflicted"].includes(
+        fact.status,
+      ) ||
+      /conflict|disput/iu.test(fact.resolution || "") ||
+      fact.conflicting_claim_ids?.length ||
+      !(Date.parse(fact.valid_until) > Date.now())
+    )
+      return false;
+    if (
+      ["sea_view", "morning_sun", "sunset_view"].includes(characteristicId) &&
+      fact.value?.available !== true
+    )
+      return false;
+    if (characteristicId === "quiet_night") {
+      const min = fact.value?.night_db_min;
+      const max = fact.value?.night_db_max;
+      const numericNoise =
+        Number.isFinite(min) && Number.isFinite(max) && min <= max;
+      // A numeric exterior-noise measurement remains evidence when available
+      // is false. It does not establish a boolean promise of indoor silence.
+      if ((min !== undefined || max !== undefined) && !numericNoise)
+        return false;
+      if (!numericNoise && fact.value?.available !== true) return false;
+    }
+    const factScope = fact.scope || {};
+    if (
+      (factScope.facade && factScope.facade !== scope.facade) ||
+      (factScope.month && factScope.month !== (scope.month ?? month)) ||
+      (factScope.room_type && factScope.room_type !== scope.room_type)
+    )
+      return false;
+    const interval = bounds(factScope);
+    if (!interval) return false;
+    const min = Math.max(requested[0], interval[0]);
+    const max = Math.min(requested[1], interval[1]);
+    // An unrelated reference must fail even when other references already
+    // cover all requested floors.
+    if (min > max) return false;
+    covered.push([min, max]);
+  }
+  covered.sort((left, right) => left[0] - right[0]);
+  let lastCovered = requested[0] - 1;
+  for (const [min, max] of covered) {
+    if (min > lastCovered + 1) return false;
+    lastCovered = Math.max(lastCovered, max);
+  }
+  return lastCovered >= requested[1];
+}
+
+export function scopeSupportSelfChecks() {
+  // Pure regression cases only; every browser page still uses the real API.
+  const hotelId = "scope-self-check";
+  const characteristicId = "sea_view";
+  const option = {
+    scope: { facade: "west", floor_min: 1, floor_max: 5, month: 9 },
+  };
+  const fact = (min, max, overrides = {}) => ({
+    hotel_id: hotelId,
+    characteristic_id: characteristicId,
+    status: "computed",
+    resolution: "single",
+    valid_until: "2100-01-01T00:00:00Z",
+    conflicting_claim_ids: [],
+    value: { available: true },
+    scope: { facade: "west", floor_min: min, floor_max: max, month: 9 },
+    ...overrides,
+  });
+  const context = { hotelId, characteristicId };
+  const cases = [
+    ["adjacent-union", [fact(1, 3), fact(4, 5)], true],
+    ["floor-gap", [fact(1, 2), fact(4, 5)], false],
+    [
+      "wrong-side",
+      [fact(1, 5, { scope: { ...option.scope, facade: "east" } })],
+      false,
+    ],
+    [
+      "wrong-month",
+      [fact(1, 5, { scope: { ...option.scope, month: 8 } })],
+      false,
+    ],
+    ["wrong-hotel", [fact(1, 5, { hotel_id: "another-hotel" })], false],
+    [
+      "wrong-characteristic",
+      [fact(1, 5, { characteristic_id: "sunset_view" })],
+      false,
+    ],
+    ["disjoint-reference", [fact(1, 5), fact(6, 7)], false],
+    [
+      "expired-reference",
+      [fact(1, 5, { valid_until: "2000-01-01T00:00:00Z" })],
+      false,
+    ],
+    [
+      "conflicting-reference",
+      [fact(1, 5, { conflicting_claim_ids: ["conflict"] })],
+      false,
+    ],
+    [
+      "boolean-unavailable",
+      [fact(1, 5, { value: { available: false } })],
+      false,
+    ],
+  ];
+  for (const [name, facts, expected] of cases)
+    assert.equal(scopeIsSupported(option, facts, context), expected, name);
+  assert.equal(
+    scopeIsSupported(
+      option,
+      [
+        fact(1, 5, {
+          characteristic_id: "quiet_night",
+          value: { available: false, night_db_min: 49, night_db_max: 58 },
+        }),
+      ],
+      { hotelId, characteristicId: "quiet_night" },
+    ),
+    true,
+    "numeric-noise-unavailable-is-still-data",
+  );
+  assert.equal(
+    scopeIsSupported(
+      option,
+      [
+        fact(1, 5, {
+          characteristic_id: "quiet_night",
+          value: { available: true, night_db_min: 58, night_db_max: 49 },
+        }),
+      ],
+      { hotelId, characteristicId: "quiet_night" },
+    ),
+    false,
+    "reversed-numeric-noise-is-invalid",
+  );
+  return {
+    status: "passed",
+    checks: [
+      ...cases.map(([name]) => name),
+      "numeric-noise-unavailable-is-still-data",
+      "reversed-numeric-noise-is-invalid",
+    ],
+  };
+}
+
 export function sentences(text) {
-  // A line without final punctuation is still a complete UI phrase. Decimal
-  // points (e.g. 0.75) must not turn one phrase into several shorter fragments.
+  // A line without final punctuation is still a complete UI phrase. Table
+  // cells are separate phrases (innerText separates them with tabs). Decimal
+  // points (e.g. 0.75) must not turn one sentence into shorter fragments.
   return text
-    .split(/\n+/u)
+    .split(/[\n\t]+/u)
     .flatMap((line) => {
       const parts = [];
       let start = 0;
@@ -110,9 +281,8 @@ export async function visibleSnapshot(page) {
       return { x, y, width, height };
     };
     const textarea = document.querySelector("textarea");
-    const helper = [...document.querySelectorAll("body *")].findLast(
-      (element) =>
-        element.innerText?.trim() === "Одна фраза вместо десятка фильтров",
+    const helper = document.querySelector(
+      '[data-testid="group-search-example"]',
     );
     const helperRect = rect(helper);
     const textareaRect = rect(textarea);
@@ -138,6 +308,9 @@ export async function visibleSnapshot(page) {
     const roomHeading = headings.find((element) =>
       /Какой номер просить/iu.test(element.innerText),
     );
+    const adviceElement = document.querySelector('[data-testid="room-advice"]');
+    const adviceSection =
+      roomHeading?.closest("section") || roomHeading?.parentElement;
     return {
       innerText,
       title: document.title,
@@ -152,6 +325,7 @@ export async function visibleSnapshot(page) {
         }),
       ),
       helper: {
+        target: '[data-testid="group-search-example"]',
         className: helper?.className || null,
         rect: helperRect,
         textarea: textareaRect,
@@ -162,12 +336,11 @@ export async function visibleSnapshot(page) {
             ? helperTextStart - textareaTextStart
             : null,
       },
-      roomAdvice:
-        (
-          document.querySelector('[data-testid="room-advice"]') ||
-          roomHeading?.closest("section") ||
-          roomHeading?.parentElement
-        )?.innerText || null,
+      roomAdvice: (adviceElement || adviceSection)?.innerText || null,
+      roomAdviceHeading: roomHeading?.innerText || null,
+      roomAdviceSameSection: Boolean(
+        adviceElement && adviceSection?.contains(adviceElement),
+      ),
     };
   });
 }

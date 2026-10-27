@@ -4,6 +4,8 @@ import {
   captureGuestPages,
   guestQuery,
   primorskayaId,
+  scopeIsSupported,
+  scopeSupportSelfChecks,
 } from "./guest-language-capture.mjs";
 
 // Uses the running application's API and seeded hotel catalogue. No fixtures,
@@ -16,6 +18,7 @@ const artifacts = resolve(
 const failures = [],
   apiChecks = [];
 const checkedHotels = new Map();
+const scopeSelfChecks = scopeSupportSelfChecks();
 function check(condition, state, code, detail) {
   if (!condition) failures.push({ state, code, detail });
 }
@@ -34,28 +37,6 @@ function hasFifthFloor(scope) {
     scope.floor_max >= 5
   );
 }
-function scopeIsSupported(option, fact) {
-  const scope = option.scope;
-  const factScope = fact.scope || {};
-  if (factScope.facade && factScope.facade !== scope.facade) return false;
-  if (factScope.month && factScope.month !== (scope.month || 9)) return false;
-  if (
-    factScope.floor_min !== null &&
-    factScope.floor_min !== undefined &&
-    (!Number.isInteger(scope.floor_min) ||
-      scope.floor_min < factScope.floor_min)
-  )
-    return false;
-  if (
-    factScope.floor_max !== null &&
-    factScope.floor_max !== undefined &&
-    (!Number.isInteger(scope.floor_max) ||
-      scope.floor_max > factScope.floor_max)
-  )
-    return false;
-  return true;
-}
-
 async function checkRoomAdvice(page, state, hotelId) {
   if (checkedHotels.has(hotelId)) return checkedHotels.get(hotelId);
   const endpoint = `${base}/api/hotels/${hotelId}/room-advice?month=9`;
@@ -172,12 +153,33 @@ async function checkRoomAdvice(page, state, hotelId) {
             fact &&
             scope &&
             !["unknown", "stale", "disputed"].includes(fact.status) &&
-            Date.parse(fact.valid_until) > Date.now() &&
-            scopeIsSupported(option, fact),
-        ),
+            Date.parse(fact.valid_until) > Date.now(),
+        ) &&
+          scopeIsSupported(option, optionFacts, {
+            hotelId,
+            characteristicId: item.characteristic_id,
+          }),
         state.name,
         "room-advice-option-supported-scope",
-        { optionId, scope, fact_ids: option.fact_ids },
+        {
+          optionId,
+          scope,
+          fact_ids: option.fact_ids,
+          facts: optionFacts.map(
+            (fact) =>
+              fact && {
+                id: fact.id,
+                hotel_id: fact.hotel_id,
+                characteristic_id: fact.characteristic_id,
+                scope: fact.scope,
+                value: fact.value,
+                status: fact.status,
+                resolution: fact.resolution,
+                conflicting_claim_ids: fact.conflicting_claim_ids,
+                valid_until: fact.valid_until,
+              },
+          ),
+        },
       );
       check(
         (option.fact_ids || []).every((id) =>
@@ -270,7 +272,8 @@ const report = await captureGuestPages({
       if (hotelId === primorskayaId)
         check(
           state.roomAdvice &&
-            /Какой номер просить/iu.test(state.roomAdvice) &&
+            /Какой номер просить/iu.test(state.roomAdviceHeading || "") &&
+            state.roomAdviceSameSection &&
             /вид[^\n.!?]{0,30}на море|море из окна/iu.test(state.roomAdvice) &&
             /5\s*[-–]?\s*(?:го|й|м)?\s*этаж/iu.test(state.roomAdvice),
           state.name,
@@ -341,6 +344,7 @@ const result = {
   base,
   artifacts,
   states: report.states.length,
+  scopeSelfChecks,
   apiChecks,
   failureCount: failures.length,
   failures,
