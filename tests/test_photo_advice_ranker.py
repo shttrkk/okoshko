@@ -15,11 +15,11 @@ from backend.contracts import (
 )
 
 
-def verdict(state, *, required=True, cid="pets"):
+def verdict(state, *, required=True, cid="pets", confirmed=False):
     return CriterionVerdict(characteristic_id=cid, label=cid, required=required,
                             status=state, symbol={"yes": "✓", "partial": "≈", "unknown": "?", "no": "✗"}[state],
                             confidence=.65 if state == "partial" else .9 if state == "yes" else 0,
-                            text="Known-answer fixture")
+                            text="Known-answer fixture", hotelier_confirmed=confirmed)
 
 
 def hit(identifier, *, satisfied=0, score=50, verdicts=(), plan=()):
@@ -28,11 +28,11 @@ def hit(identifier, *, satisfied=0, score=50, verdicts=(), plan=()):
                      verdicts=list(verdicts), room_plan=list(plan))
 
 
-def test_confirmed_counts_required_yes_only_in_shared_and_room_plan_verdicts():
-    lower = hit("lower", satisfied=3, verdicts=[verdict("partial"), verdict("yes", required=False)],
-                plan=[RoomPlanItem(label="first", verdicts=[verdict("yes"), verdict("unknown")])])
-    higher = hit("higher", satisfied=5, verdicts=[verdict("yes"), verdict("yes", required=False)],
-                 plan=[RoomPlanItem(label="first", verdicts=[verdict("yes"), verdict("partial")]),
+def test_confirmed_counts_required_real_hotel_yes_only_in_shared_and_room_plan_verdicts():
+    lower = hit("lower", satisfied=3, verdicts=[verdict("partial"), verdict("yes", required=False, confirmed=True)],
+                plan=[RoomPlanItem(label="first", verdicts=[verdict("yes", confirmed=True), verdict("unknown")])])
+    higher = hit("higher", satisfied=5, verdicts=[verdict("yes", confirmed=True), verdict("yes", required=False, confirmed=True)],
+                 plan=[RoomPlanItem(label="first", verdicts=[verdict("yes", confirmed=True), verdict("partial")]),
                        RoomPlanItem(label="second", verdicts=[verdict("unknown")])])
     assert relative_reason(lower, higher) == "«higher»: подтверждено 2 из 5 обязательных условий, здесь — 1."
 

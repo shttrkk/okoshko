@@ -3,6 +3,14 @@ from __future__ import annotations
 
 import math
 
+from backend.agents.guest_text import (
+    beach_name,
+    criterion_label,
+    field_unit,
+    guest_limitation,
+    number,
+    rounded_minutes,
+)
 from backend.agents.query_match import (
     FLOOR_DOMAIN_CAVEAT,
     FLOOR_DOMAIN_UNKNOWN,
@@ -13,19 +21,15 @@ from backend.agents.query_match import (
     scope_values,
     sunset_aspect,
 )
-from backend.contracts import Criterion, CriterionVerdict, Fact, Hotel, ParsedQuery
+from backend.contracts import CharacteristicSpec, Criterion, CriterionVerdict, Fact, Hotel, ParsedQuery
 
 SIDES = {"N": "северная", "NE": "северо-восточная", "E": "восточная", "SE": "юго-восточная", "S": "южная", "SW": "юго-западная", "W": "западная", "NW": "северо-западная"}
-
-
-def number(value) -> str:
-    return f"{value:g}".replace(".", ",") if isinstance(value, int | float) else str(value)
 
 
 def approximate(value, *, minutes=False) -> str:
     if not isinstance(value, int | float) or isinstance(value, bool) or not math.isfinite(value):
         return number(value)
-    rounded = math.ceil(value) if minutes else math.floor(value + .5)
+    rounded = rounded_minutes(value) if minutes else math.floor(value + .5)
     return f"≈ {rounded}"
 
 
@@ -60,7 +64,9 @@ def _details(fact: Fact, criterion: Criterion) -> str:
             details.append(f"ночью снаружи {approximate(low)}–{approximate(high).removeprefix('≈ ')} дБ по расчёту")
     elif cid == "beach_walk":
         if value.get("minutes") is not None:
-            details.append(f"до пляжа {approximate(value['minutes'], minutes=True)} мин пешком")
+            name = beach_name(value.get("beach_name"))
+            destination = "до ближайшего пляжа" if name == "ближайший пляж" else f"до пляжа «{name}»"
+            details.append(f"{destination} {approximate(value['minutes'], minutes=True)} мин пешком")
         if value.get("return_minutes") is not None:
             details.append(f"обратно {approximate(value['return_minutes'], minutes=True)} мин")
         if value.get("return_ascent_m") is not None:
@@ -82,7 +88,7 @@ def _details(fact: Fact, criterion: Criterion) -> str:
             elif aspect.maximum_deg <= 45:
                 details.append("закат перед окнами")
         if value.get("visible_minutes") is not None:
-            details.append(f"перед закатом солнце видно {approximate(value['visible_minutes'])} мин по расчёту")
+            details.append(f"перед закатом солнце видно {approximate(value['visible_minutes'], minutes=True)} мин по расчёту")
     elif cid == "climate":
         month = fact.scope.month or value.get("month")
         if month:
@@ -121,11 +127,33 @@ def _details(fact: Fact, criterion: Criterion) -> str:
     if not details and criterion.field and value.get(criterion.field) is not None:
         actual = value[criterion.field]
         if not isinstance(actual, dict | list | bool):
-            details.append(f"{criterion.label}: {number(actual)}")
+            unit = field_unit(criterion.field)
+            details.append(f"{criterion_label(criterion)}: {number(actual)}" + (f" {unit}" if unit else ""))
     return "; ".join(details)
 
 
-def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQuery, *, conflict: bool = False, alternatives: list[Fact] | None = None) -> CriterionVerdict:
+def supporting_basis(facts: list[Fact]) -> str:
+    """Classify only current supporting witnesses, never the claim's wording."""
+    kinds = {e.kind for f in facts if fresh(f) and f.supporting_claim_ids for e in f.evidence}
+    origins = {"open_data" if kind == "quote" else kind if kind in {"calculation", "open_data", "hotelier"} else "unknown"
+               for kind in kinds}
+    return next(iter(origins)) if len(origins) == 1 else "mixed" if origins else "unknown"
+
+
+def hotelier_confirmation(facts: list[Fact], status: str, *, conflict: bool = False) -> bool:
+    """A successful condition is not itself an actual hotel's confirmation."""
+    if status != "yes" or conflict or not facts or any(
+        not fresh(f) or f.synthetic or f.status == "disputed"
+        or any(e.kind in {"simulation", "mock"} or e.inputs.get("synthetic") is True
+               or "hotelier_simulator" in e.source_ids for e in f.evidence) for f in facts
+    ):
+        return False
+    return any(f.supporting_claim_ids and any(e.kind == "hotelier" and e.quote and e.quote.strip() for e in f.evidence)
+               for f in facts)
+
+
+def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQuery, *, conflict: bool = False,
+            alternatives: list[Fact] | None = None, spec: CharacteristicSpec | None = None) -> CriterionVerdict:
     facts = list({f.id: f for f in [*match.facts, *(alternatives or [] if conflict else [])]}.values())
     selected = match.facts[0] if match.facts else None
     detail = _details(selected, criterion) if selected else ""
@@ -160,17 +188,22 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
             if not aspect.exact_normal:
                 caveats.append("Для оценки угла использован компасный сектор фасада ±22,5°, точной нормали окна в evidence нет; диапазон ориентировочный")
     if any(f.synthetic or any(e.kind == "simulation" for e in f.evidence) for f in facts):
-        caveats.append("Синтетические данные демонстрационного симулятора; реальный ответ отеля ещё нужно получить")
+        if any(e.kind in {"simulation", "hotelier"} for f in facts for e in f.evidence):
+            caveats.append("Ответ отеля · демо; реальный ответ отеля ещё нужно получить")
+        else:
+            caveats.append("Демо-данные; реальные условия нужно уточнить у отеля")
     if conflict:
         caveats.append("Подходящие сведения относятся к разным сторонам, этажам или типам номера. Один номер со всеми обязательными условиями не подтверждён")
     for fact in facts:
         for evidence in fact.evidence:
-            caveats.extend(evidence.limitations)
-    return CriterionVerdict(characteristic_id=criterion.characteristic_id, label=criterion.label,
+            caveats.extend(guest_caveat for limitation in evidence.limitations if (guest_caveat := guest_limitation(limitation)))
+    return CriterionVerdict(characteristic_id=criterion.characteristic_id, label=criterion_label(criterion, spec),
                             required=required, status=match.status, symbol={"yes": "✓", "partial": "≈", "no": "✗", "unknown": "?"}[match.status],
                             text=text, confidence=match.confidence, fact_ids=[f.id for f in facts],
                             evidence_refs=list(dict.fromkeys(e.id for f in facts for e in f.evidence)),
                             caveat="; ".join(dict.fromkeys(caveats)) or None,
+                            hotelier_confirmed=hotelier_confirmation(match.facts, match.status, conflict=conflict),
+                            basis=supporting_basis(match.facts),
                             disputed=any(f.status == "disputed" for f in facts),
                             synthetic=any(f.synthetic or any(e.kind == "simulation" for e in f.evidence) for f in facts))
 
@@ -233,19 +266,22 @@ def disappointments_from_assessment(facts: list[Fact], parsed: ParsedQuery, asse
         notes.append("Обязательные условия найдены в разных номерах; общего сочетания стороны, этажа и типа номера нет в подтверждённых данных.")
     for criterion, match in zip([*parsed.must, *parsed.nice], assessment.matches, strict=True):
         if match.status == "no":
-            notes.append(criterion.label + ": условие не выполняется для выбранного номера.")
+            notes.append(criterion_label(criterion) + ": условие не выполняется для выбранного номера.")
     selected = {f.id: f for m in assessment.matches for f in m.facts}
     # Route disadvantages concern the hotel, so they remain useful on detail pages.
     selected.update({f.id: f for f in facts if f.characteristic_id == "beach_walk" and fresh(f)})
     for fact in selected.values():
         value = fact.value if isinstance(fact.value, dict) else {}
         if fact.characteristic_id == "beach_walk":
-            if isinstance(value.get("return_minutes"), int | float) and isinstance(value.get("minutes"), int | float) and value["return_minutes"] > value["minutes"]:
+            if (isinstance(value.get("return_minutes"), int | float) and not isinstance(value["return_minutes"], bool)
+                    and isinstance(value.get("minutes"), int | float) and not isinstance(value["minutes"], bool)
+                    and math.isfinite(value["return_minutes"]) and math.isfinite(value["minutes"])
+                    and rounded_minutes(value["return_minutes"]) - rounded_minutes(value["minutes"]) >= 1):
                 notes.append(f"Обратно с пляжа дольше: {approximate(value['return_minutes'], minutes=True)} мин вместо {approximate(value['minutes'], minutes=True)} мин.")
             if value.get("return_ascent_m"):
                 notes.append(f"На обратном пути подъём {approximate(value['return_ascent_m'])} м.")
             if value.get("has_steps"):
-                notes.append("На пути к пляжу есть лестницы — проверьте маршрут, если едете с коляской.")
+                notes.append("На пути к пляжу есть лестницы.")
             if value.get("crossings"):
                 notes.append("На пути к пляжу есть переходы; откройте маршрут перед выбором отеля.")
     return list(dict.fromkeys(notes))[:8]

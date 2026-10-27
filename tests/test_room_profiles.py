@@ -166,7 +166,7 @@ def test_beach_route_only_describes_explicit_fields_and_osm_absence():
                  "return_ascent_m": 18.4, "has_steps": False, "crossings": []})
     profile = describe([beach])
     item = clause(profile, "beach_walk")
-    assert "до пляжа ≈ 8 мин" in item.text and "обратно ≈ 11 мин" in item.text
+    assert "до пляжа ≈ 7 мин" in item.text and "обратно ≈ 10 мин" in item.text
     assert "подъём обратно ≈ 18 м" in item.text
     assert "в OSM-маршруте лестницы не отмечены" in item.text
     assert "лестниц нет" not in profile.description and "переходов нет" not in profile.description
