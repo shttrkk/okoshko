@@ -94,6 +94,8 @@ try {
     if (pathname === "/api/quality") return route.fulfill({ json: current });
     if (["/api/hotels", "/api/characteristics"].includes(pathname))
       return route.fulfill({ json: [] });
+    if (pathname === "/api/revision")
+      return route.fulfill({ json: { instance: "fixture", revision: 0 } });
     if (pathname === "/api/status")
       return route.fulfill({
         json: {

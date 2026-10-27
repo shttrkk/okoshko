@@ -29,10 +29,11 @@ async function read(path) {
   assert(response.ok, `Read-only preflight ${response.status}: ${path}`);
   return response.json();
 }
-const [hotels, specs, status] = await Promise.all([
+const [hotels, specs, status, revision] = await Promise.all([
   read("/api/hotels"),
   read("/api/characteristics"),
   read("/api/status"),
+  read("/api/revision"),
 ]);
 const original =
   hotels.find((hotel) => hotel.id === "osm-node-11866202895") || hotels[0];
@@ -241,6 +242,7 @@ try {
     if (key === "GET /api/hotels") value = [hotel];
     else if (key === "GET /api/characteristics") value = specs;
     else if (key === "GET /api/status") value = status;
+    else if (key === "GET /api/revision") value = revision;
     else if (key === "POST /api/search") value = search;
     else if (key === `GET /api/hotels/${hotel.id}/geo`) value = originalGeo;
     else if (
@@ -315,6 +317,10 @@ try {
   await marker.hover();
   await safe();
   await card.locator(".hotel-name").click();
+  await page.waitForURL(/\/hotel\//);
+  await page
+    .getByRole("heading", { level: 1, name: /Synthetic security test/ })
+    .waitFor();
   assert.equal(await page.locator("h1").textContent(), payload);
   await page.getByTestId("evidence-sea_view").first().click();
   const modal = page.getByRole("dialog");
