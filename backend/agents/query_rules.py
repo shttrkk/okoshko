@@ -15,13 +15,22 @@ NUMERIC_FIELDS = {
     'quiet_night': {'night_db_max'},
     'beach_walk': {'minutes', 'distance_m', 'return_minutes', 'ascent_m', 'return_ascent_m'},
     'night_pharmacy': {'minutes', 'distance_m'},
-    'family_nearby': {'playground_distance_m', 'hospital_distance_m', 'crossings'},
+    'family_nearby': {'playground_distance_m', 'hospital_distance_m', 'crossings', 'walk_children_hospital.minutes', 'walk_promenade.minutes'},
     'car_access': {'parking_distance_m', 'ev_distance_m'},
     'climate': {'water_c', 'air_c', 'sunshine_hours', 'precipitation_mm'},
     'pets': {'max_weight_kg', 'fee_rub_night'},
     'air_quality': {'european_aqi', 'pm2_5'},
     'connectivity': {'download_mbps', 'upload_mbps', 'latency_ms'},
     'nightlife': {'venues_500m', 'bars_500m', 'nearest_bar_m', 'promenade_distance_m'},
+    'airport_transfer': {'transfers', 'scheduled_minutes', 'car_distance_km'},
+    'airport_noise': {'runway_distance_m', 'noise_db'}, 'mobile_masts': {'mapped_count'},
+    'climate_days': {'sunny_days', 'rainy_days', 'water_c'},
+    'hotel_parking': {'fee_rub_per_day'},
+    'night_open': {'shop.minutes', 'food.minutes'},
+    'dog_walk': {'dog_park.minutes', 'ordinary_park_fallback.minutes'},
+    'veterinary_nearby': {'minutes', 'distance_m'}, 'pet_shop_nearby': {'minutes', 'distance_m'},
+    'location_access': {'center_route.minutes', 'station_route.minutes', 'bus_stop_route.minutes'},
+    'mobile_internet': {'download_mbps', 'upload_mbps', 'latency_ms'},
 }
 BOOLEAN_FIELDS = {
     'connectivity': {'available', 'wifi_reported'},
@@ -29,6 +38,14 @@ BOOLEAN_FIELDS = {
     'room_orientation': {'available', 'balcony', 'courtyard'},
     'beach_walk': {'available', 'has_steps'},
     'car_access': {'available', 'ev_available', 'pedestrian_zone'},
+    'night_open': {'available', 'shop.available', 'food.available'},
+    'dog_walk': {'available', 'dog_park.available'},
+    'airport_transfer': {'available', 'night_service'},
+    'climate_days': {'available', 'wet_month_proxy'},
+    'hotel_parking': {'private_parking', 'reservation_required', 'ev_charging'},
+    'location_access': {'in_central_sochi', 'metro.available', 'center_route.available', 'station_route.available', 'bus_stop_route.available'},
+    'family_nearby': {'available', 'walk_children_hospital.available', 'walk_playground.available', 'walk_hospital.available', 'walk_promenade.available'},
+    'photo_features': {'available', 'balcony', 'terrace', 'pool'},
 }
 
 
@@ -53,7 +70,7 @@ def _valid_shape(criterion: Criterion, spec: CharacteristicSpec) -> bool:
         kind = 'number'
     elif field in boolean:
         kind = 'boolean'
-    elif spec.id == 'soundproofing' and field == 'windows':
+    elif spec.id == 'soundproofing' and field == 'windows' or spec.id == 'building_history' and field in {'explicit_building_date', 'architecture'}:
         kind = 'string'
     elif spec.id == 'beach_walk' and field == 'crossings':
         kind = 'array'

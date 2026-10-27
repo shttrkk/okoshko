@@ -416,7 +416,8 @@ def parse_group_query(request: SearchRequest, catalog: list[CharacteristicSpec],
                 destination = target if criterion.characteristic_id in ROOM_CHARACTERISTICS else result
                 # Local explicit domain belongs to RoomRequest.scope. Avoid enforcing
                 # a fact-Scope facade requirement for a floor-only wish.
-                redundant_scope = criterion.scope and single.facade and criterion.scope.facade == single.facade
+                redundant_scope = (criterion.scope and single.facade and criterion.scope.facade == single.facade
+                                   and criterion.scope.landmark_id is None)
                 getattr(destination, name).append(criterion.model_copy(update={'scope': None}) if redundant_scope else criterion)
         for criterion, required in courtyard:
             target.no_data.append(criterion)

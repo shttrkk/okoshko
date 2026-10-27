@@ -18,7 +18,7 @@ SIDES = {
 }
 UNCERTAIN = r"(?:не\s+зна\w*|не\s+уверен\w*|возможно|наверно\w*|кажется|может\s+быть|не\s+помню|уточн\w*|неизвест\w*|не\s+провер\w*|не\s+измер\w*|нет\s+измер\w*)"
 NEGATIVE = r"(?:\bне\b|\bнет\b|\bбез\b|нельзя|запрещ\w*|отсутств\w*)"
-INTERNAL = {"soundproofing", "room_orientation", "pets", "quiet_night", "sea_view", "sunset_view", "mountain_view"}
+INTERNAL = {"soundproofing", "room_orientation", "pets", "quiet_night", "sea_view", "sunset_view", "mountain_view", 'hotel_parking'}
 HOTELIER_VALUE_FIELDS = {
     "soundproofing": {"available", "windows", "blackout", "air_conditioning"},
     "room_orientation": {"available", "facade", "min_floor", "max_floor", "rooms", "balcony", "groups", "absent_floors", "courtyard", "sea_view"},
@@ -28,6 +28,7 @@ HOTELIER_VALUE_FIELDS = {
     "sunset_view": {"available", "facade", "min_floor"},
     "mountain_view": {"available", "facade", "min_floor"},
     "beach_walk": {"available", "minutes", "distance_m", "has_steps"},
+    'hotel_parking': {'private_parking', 'fee_rub_per_day', 'reservation_required', 'ev_charging'},
 }
 ROOM_GROUP_FIELDS = {"rooms", "facade", "min_floor", "max_floor", "balcony", "courtyard", "sea_view"}
 MONTH_PATTERNS = (r"январ(?:ь|я|е|ю|ем)", r"феврал(?:ь|я|е|ю|ем)", r"март(?:а|е|у|ом)?", r"апрел(?:ь|я|е|ю|ем)",
@@ -271,11 +272,13 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
                       unknown_fields=question.characteristic_ids,
                       needs_clarification="Уточните конкретные номера, условия и ограничения; неизвестное останется неизвестным.")
     if quick in {"да", "нет"}:
+        if question.characteristic_ids == ['hotel_parking'] and quick == 'нет':
+            add('hotel_parking', {'private_parking': False}, raw)
         boolean_ids = {"pets", "sea_view", "sunset_view", "mountain_view", "quiet_night", "soundproofing"}
         if (len(question.characteristic_ids) == 1 and question.characteristic_ids[0] in boolean_ids
                 and not question.requested_scopes and (quick == "нет" or (not question.hypothesis and question.characteristic_ids[0] != "soundproofing"))):
             add(question.characteristic_ids[0], {"available": quick == "да"}, raw)
-        else:
+        elif question.characteristic_ids != ['hotel_parking'] or quick != 'нет':
             unknown.update(question.characteristic_ids)
             clarifications.append("Уточните, какие именно свойства, номера и ограничения вы подтверждаете.")
 
@@ -336,7 +339,7 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
                     unknown.add("soundproofing.windows")
             elif re.search(r"одинар\w*|однокамер\w*", clause):
                 sound["windows"] = "single"
-        for key, pattern in (("blackout", r"blackout|бл[эе]каут|плотн\w*\s+штор"), ("air_conditioning", r"кондиционер|\bac\b")):
+        for key, pattern in (("blackout", r"blackout|бл[эе]каут|(?:плотн\w*|светонепроницаем\w*)\s+штор|затемнени\w*"), ("air_conditioning", r"кондиционер|\bac\b")):
             if re.search(pattern, low):
                 sound[key] = _bool_feature(low, pattern)
                 if sound[key] is None:
@@ -351,6 +354,36 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
             add("soundproofing", sound, sentence, scope)
         elif sound:
             unknown.add("soundproofing")
+
+        if ('hotel_parking' in question.characteristic_ids
+                and not re.search(r'общественн|публичн|муниципальн|уличн|\bномер\w*|проживан\w*|завтрак\w*', low)):
+            parking = {}
+            if re.search(r'парковк', low) and not re.search(r'общественн|публичн|муниципальн|уличн', low):
+                present = _bool_feature(low, r'парковк')
+                if present is not None:
+                    parking['private_parking'] = present
+                else:
+                    unknown.add('hotel_parking.private_parking')
+            for key, pattern in [('reservation_required', r'брониров\w*|бронь|резерв\w*'),
+                                 ('ev_charging', r'зарядк\w*|зарядн\w*\s+станц\w*')]:
+                if re.search(pattern, low):
+                    present = _bool_feature(low, pattern)
+                    if present is not None:
+                        parking[key] = present
+                    else:
+                        unknown.add('hotel_parking.' + key)
+            money = re.search(r'(?<!\d)(\d[\d ]*(?:[.,]\d+)?)\s*(?:₽|руб\w*)\s*(?:/\s*сут\w*|за\s+сут\w*|в\s+сут\w*|/\s*день|в\s+день|за\s+день)', low)
+            if money and not re.search(UNCERTAIN, low):
+                fee = float(money[1].replace(' ', '').replace(',', '.'))
+                if fee <= 100000:
+                    parking['fee_rub_per_day'] = fee
+            elif re.search(r'парковк\w*\s+бесплатн\w*|бесплатн\w*\s+парковк\w*', low) and not re.search(UNCERTAIN, low):
+                parking['fee_rub_per_day'] = 0
+            elif re.search(r'\d+\s*(?:₽|руб\w*)', low):
+                unknown.add('hotel_parking.fee_rub_per_day')
+                clarifications.append('Уточните стоимость именно парковки в рублях за сутки; разовый сбор не превращается в суточную цену.')
+            if parking:
+                add('hotel_parking', parking, sentence)
 
         animal_pattern = r"питом|животн|собак|кош[екк]|кошк|псов|\bпес\b"
         pet_text = low

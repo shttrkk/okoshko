@@ -1,11 +1,12 @@
 """Compile a description to a declarative, validated plan; never to Python/SQL."""
 import hashlib
+import re
 
 import yaml
 from jsonschema import Draft202012Validator
 
 from backend.agents.spec_templates import SUPPORTED, compile_template
-from backend.contracts import CharacteristicSpec
+from backend.contracts import CharacteristicSpec, SearchSpec, ToolCall
 from backend.llm.client import LLMClient
 from backend.tools.derive import validate_expression
 
@@ -28,6 +29,21 @@ def compile_spec(text, yaml_text, repo, registry):
     low = text.lower()
     catalog = [CharacteristicSpec.model_validate(value) for value in repo.all("characteristics")]
     def fallback():
+        from backend.agents.query_parser import landmark_mentions
+        from backend.agents.query_text import normalize_query_text
+        targets = landmark_mentions(normalize_query_text(text))
+        if re.search(r'вид\w*\s+на|view of', low) and len(targets) == 1:
+            identity, mention = targets[0]
+            return CharacteristicSpec(
+                id='landmark_' + identity, name_ru=text[:80], description=(
+                    'Видимость верхней части выбранного объекта по подтверждённому контуру и высоте. '
+                    'Без этих входов результат остаётся неизвестным; соседние объекты не используются.'),
+                synonyms=[text.lower()], scope='floor_range',
+                value_schema={'type': 'object', 'properties': {'available': {'type': ['boolean', 'null']}}, 'additionalProperties': True},
+                methods=[ToolCall(tool='viewshed_facade', params={'target': 'landmark', 'landmark_id': identity},
+                                  rationale='Проверить вид на ' + mention[0] + ' по сохранённым доказательствам')],
+                search=SearchSpec(kind='boolean', field='available', default_op='eq', default_value=True),
+                ttl_days=90, hotelier_answerable=False, status='draft')
         template = compile_template(text)
         if template is not None:
             return template

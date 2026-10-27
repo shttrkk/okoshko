@@ -50,7 +50,144 @@ def scope_text(fact: Fact) -> str:
     return ", ".join(parts)
 
 
+def _route_detail(route, destination: str) -> str:
+    if not isinstance(route, dict):
+        return destination + ': пеший маршрут не подтверждён'
+    if route.get('minutes') is not None:
+        result = destination + ' ' + approximate(route['minutes'], minutes=True) + ' мин пешком'
+        if route.get('distance_m') is not None:
+            result += ' (' + approximate(route['distance_m']) + ' м)'
+        return result
+    return destination + ': пеший маршрут не подтверждён'
+
+
+def _tz_details(fact: Fact, criterion: Criterion) -> str | None:
+    value = fact.value if isinstance(fact.value, dict) else {}
+    cid, field = fact.characteristic_id, criterion.field or 'available'
+    if cid == 'airport_noise':
+        distance = value.get('runway_distance_m')
+        detail = ('до взлётной полосы ' + approximate(distance) + ' м по карте') if distance is not None else 'расстояние до полосы неизвестно'
+        if value.get('in_corridor') is True:
+            detail += '; отель под продолжением оси полосы'
+        return detail + '. Это геометрический риск, слышимость и ночные рейсы неизвестны'
+    if cid == 'airport_transfer':
+        transfers = value.get('transfers')
+        if transfers is not None:
+            detail = 'по карте есть связь ' + ('без пересадок' if transfers == 0 else 'с одной пересадкой' if transfers == 1 else f'с {number(transfers)} пересадками')
+        else:
+            reasons = {
+                'hotel_stops_absent_from_relations': 'остановки у отеля не связаны с маршрутами в используемой карте',
+                'no_mapped_zero_or_one_transfer_join': 'связь с нулём или одной пересадкой по карте не установлена',
+                'hotel_stop_directed_walk_not_established': 'пеший подход от остановки к отелю не подтверждён',
+                'hotel_ordered_members_missing': 'в карте не хватает порядка остановок маршрута',
+                'hotel_stop_snap_missing_or_walk_disconnected': 'пеший граф у остановки не связан с отелем',
+                'hotel_stop_walk_exceeds_threshold': 'подход к отелю превышает 15 минут по принятому маршруту',
+            }
+            detail = reasons.get(value.get('primary_unknown_reason'), 'транспортная связь по карте не подтверждена')
+        if value.get('car_distance_km') is not None:
+            detail += '; на машине ' + approximate(value['car_distance_km']) + ' км по дорожному графу'
+        return detail + '. Время поездки и работа ночью неизвестны: открытого расписания нет'
+    if cid == 'landmark_view' or fact.scope.landmark_id:
+        name = value.get('name') or 'выбранная достопримечательность'
+        if value.get('available') is None:
+            return str(name) + ': ' + str(value.get('unknown_reason') or 'видимость не рассчитана; нет подтверждённых входных данных')
+        place = scope_text(fact)
+        detail = str(name) + (': ' + place if place else '')
+        if value.get('distance_m') is not None:
+            detail += '; до объекта ' + approximate(value['distance_m']) + ' м'
+        return detail + '. Рассчитан вид на верх контура, вид всего объекта не гарантируется'
+    if cid == 'night_open':
+        kind = field.split('.')[0]
+        if kind in {'shop', 'food'}:
+            route = value.get(kind)
+            return _route_detail(route, 'до магазина' if kind == 'shop' else 'до места, где поесть') + ('; часы по карте: открыто в 02:00' if isinstance(route, dict) else '')
+        return '; '.join(_route_detail(value.get(k), label) for k, label in [('shop', 'до магазина'), ('food', 'до еды')])
+    if cid == 'dog_walk':
+        route = value.get('dog_park')
+        detail = _route_detail(route, 'до площадки для выгула')
+        if not route or route.get('available') is not True:
+            fallback = value.get('ordinary_park_fallback')
+            if fallback:
+                detail += '; ' + _route_detail(fallback, 'обычный парк') + ' — это не площадка для выгула'
+        return detail
+    if cid in {'veterinary_nearby', 'pet_shop_nearby'}:
+        return _route_detail(value, 'до ветклиники' if cid == 'veterinary_nearby' else 'до зоомагазина')
+    if cid == 'hotel_parking':
+        known = value.get('private_parking')
+        detail = 'своя парковка есть' if known is True else 'своей парковки нет' if known is False else 'своя парковка не подтверждена; спросите отель'
+        if value.get('fee_rub_per_day') is not None:
+            detail += '; ' + number(value['fee_rub_per_day']) + ' ₽/сутки'
+        if value.get('reservation_required') is not None:
+            detail += '; нужно бронировать' if value['reservation_required'] else '; бронирование не требуется'
+        return detail
+    if cid == 'car_arrival':
+        distance = value.get('road_distance_m')
+        return ('до разрешённой для машин дороги ' + approximate(distance) + ' м' if distance is not None else 'подъезд по карте не установлен') + '. Открытый въезд к двери нужно уточнить у отеля'
+    if cid == 'mobile_masts':
+        count, radius = value.get('mapped_count'), value.get('radius_m')
+        return ('на карте мачт: ' + number(count) + (' в радиусе ' + number(radius) + ' м' if radius is not None else '') if count is not None else 'данных о мачтах нет') + '. Их число не подтверждает покрытие 4G/5G или скорость'
+    if cid == 'construction_nearby':
+        count = value.get('mapped_count')
+        return ('архивных отметок строительства рядом: ' + number(count) + '. ' if count is not None else '') + 'Текущие работы и шум не подтверждены; карта может отставать от реальности'
+    if cid == 'location_access':
+        if field.startswith('metro.'):
+            routes = [_route_detail(value.get(k), label) for k, label in [('station_route', 'до станции электрички'), ('bus_stop_route', 'до остановки')]]
+            return 'в Сочи нет метро; ' + '; '.join(routes)
+        route = field.split('.')[0]
+        if route.endswith('_route'):
+            return _route_detail(value.get(route), {'center_route': 'до центра зоны', 'station_route': 'до станции электрички', 'bus_stop_route': 'до остановки'}[route])
+        district = value.get('district_name')
+        return ('Центральный район Сочи по административной границе' if value.get('in_central_sochi') else 'за пределами Центрального района Сочи') + (': ' + district if district else '')
+    if cid == 'climate_days':
+        parts = []
+        for key, label in [('sunny_days', 'солнечных дней'), ('rainy_days', 'дождливых дней')]:
+            if value.get(key) is not None:
+                parts.append(label + ' ' + approximate(value[key]))
+        if value.get('water_c') is not None:
+            parts.append('вода ' + approximate(value['water_c']) + ' °C — ' + str(value.get('water_comfort', 'комфорт индивидуален')))
+        return '; '.join(parts) + '. Климат прошлых лет, не прогноз на даты поездки'
+    if cid == 'mobile_internet':
+        if field == 'radio_generation':
+            return 'поколение мобильной сети 4G/5G не подтверждено; число мачт и тесты скорости его не определяют'
+        if value.get('download_mbps') is not None:
+            return 'мобильный интернет в районе ' + approximate(value['download_mbps']) + ' Мбит/с по тестам. Это не Wi-Fi отеля'
+        return 'измерений мобильного интернета для этой точки нет; скорость неизвестна'
+    if cid == 'photo_features':
+        name = {'balcony': 'балконы', 'terrace': 'терраса', 'pool': 'бассейн'}.get(field, 'признаки здания')
+        return name + (': указаны в явно связанном описании или тегах здания' if value.get(field) is True else ': не подтверждены явными метаданными; изображение само по себе не проверялось')
+    if cid == 'events_nearby':
+        return 'актуальный открытый источник мероприятий и перекрытий не получен; события на даты поездки неизвестны'
+    if cid == 'building_history':
+        parts = []
+        if value.get('explicit_building_date'):
+            parts.append('дата постройки по источнику: ' + str(value['explicit_building_date']))
+        elif value.get('inception'):
+            parts.append('дата в источнике: ' + str(value['inception']) + '; она может означать открытие отеля')
+        if value.get('architecture'):
+            parts.append('архитектура: ' + str(value['architecture']))
+        if value.get('historic_designation') is True:
+            parts.append('в источнике указан исторический статус')
+        else:
+            parts.append('старинность здания не подтверждена')
+        return '; '.join(parts)
+    if cid == 'family_nearby' and field.startswith('walk_'):
+        route = field.split('.')[0]
+        labels = {'walk_children_hospital': 'до детской больницы', 'walk_hospital': 'до больницы',
+                  'walk_playground': 'до площадки', 'walk_promenade': 'до пешеходной улицы или набережной'}
+        return _route_detail(value.get(route), labels.get(route, 'до места'))
+    return None
+
+
 def _details(fact: Fact, criterion: Criterion) -> str:
+    from backend.agents.query_match import ROUTE_FIELDS
+    route = ROUTE_FIELDS.get((fact.characteristic_id, criterion.field or 'available'))
+    if route and isinstance(fact.value, dict) and route[0] in fact.value:
+        label = {'walk_playground': 'до детской площадки', 'walk_hospital': 'до больницы',
+                 'walk_parking': 'до публичной парковки', 'walk_ev': 'до зарядки для электромобиля'}[route[0]]
+        return _route_detail(fact.value.get(route[0]), label)
+    custom = _tz_details(fact, criterion)
+    if custom is not None:
+        return custom
     value = fact.value if isinstance(fact.value, dict) else {}
     cid = fact.characteristic_id
     details = []
@@ -154,7 +291,7 @@ def hotelier_confirmation(facts: list[Fact], status: str, *, conflict: bool = Fa
 
 def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQuery, *, conflict: bool = False,
             alternatives: list[Fact] | None = None, spec: CharacteristicSpec | None = None) -> CriterionVerdict:
-    facts = list({f.id: f for f in [*match.facts, *(alternatives or [] if conflict else [])]}.values())
+    facts = list({f.id: f for f in [*match.facts, *match.risk_facts, *(alternatives or [] if conflict else [])]}.values())
     selected = match.facts[0] if match.facts else None
     detail = _details(selected, criterion) if selected else ""
     prefixes = {"yes": "Да, но учитывайте условия", "partial": "Предварительно", "no": "Нет", "unknown": "Не подтверждено"}
@@ -166,6 +303,8 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
             and (criterion.no_stairs or criterion.no_crossings) and match.reason.startswith("Маршрут ")):
         text = prefixes[match.status] + ": " + match.reason + ("; " + detail if detail else "")
     caveats = []
+    if match.risk_facts:
+        caveats.append('Рядом аэропорт или коридор захода: геометрический риск снижает оценку тишины; слышимость самолётов и ночные рейсы не измерялись')
     if match.status in {"unknown", "partial", "no"}:
         caveats.append(match.reason)
     if match.reason == FLOOR_DOMAIN_UNKNOWN:
@@ -276,6 +415,9 @@ def disappointments_from_assessment(facts: list[Fact], parsed: ParsedQuery, asse
     if assessment.scope_conflict:
         notes.append("Обязательные условия найдены в разных номерах; общего сочетания стороны, этажа и типа номера нет в подтверждённых данных.")
     for criterion, match in zip([*parsed.must, *parsed.nice], assessment.matches, strict=True):
+        if match.risk_facts:
+            airport = match.risk_facts[0]
+            notes.append('Тишина ночью: ' + (_tz_details(airport, criterion) or 'рядом аэропорт; слышимость самолётов неизвестна') + '.')
         if match.status == "no":
             notes.append(criterion_label(criterion) + ": условие не выполняется для выбранного номера.")
     selected = {f.id: f for m in assessment.matches for f in m.facts}

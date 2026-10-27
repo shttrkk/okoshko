@@ -15,12 +15,19 @@ from backend.contracts import CharacteristicSpec, Criterion, Fact, Hotel, Parsed
 
 TRUSTED_CONFIDENCE = .7
 ROOM_CHARACTERISTICS = {"sea_view", "sunset_view", "mountain_view", "quiet_night", "soundproofing", "room_orientation",
-                        'morning_sun', 'evening_heat', 'railway_noise'}
+                        'morning_sun', 'evening_heat', 'railway_noise', 'landmark_view'}
 DEFAULT_FIELDS = {"beach_walk": "minutes", "climate": "water_c", "air_quality": "european_aqi", "connectivity": "download_mbps"}
-MONTHLY = {"climate", "sunset_view", "morning_swim", 'morning_sun', 'evening_heat'}
+MONTHLY = {"climate", "sunset_view", "morning_swim", 'morning_sun', 'evening_heat', 'climate_days'}
 COMPASS_AZIMUTHS = {side: index * 45 for index, side in enumerate(("N", "NE", "E", "SE", "S", "SW", "W", "NW"))}
 FLOOR_DOMAIN_UNKNOWN = "Этажность отеля пока не подтверждена; сторону и этаж номера нужно уточнить у отеля"
 FLOOR_DOMAIN_CAVEAT = "Этажность отеля/привязка к зданию не подтверждена; этажи геомодели условны для выбранного контура"
+ROUTE_FIELDS = {
+    ('family_nearby', 'available'): ('walk_playground', 'available'),
+    ('family_nearby', 'playground_distance_m'): ('walk_playground', 'distance_m'),
+    ('family_nearby', 'hospital_distance_m'): ('walk_hospital', 'distance_m'),
+    ('car_access', 'parking_distance_m'): ('walk_parking', 'distance_m'),
+    ('car_access', 'ev_distance_m'): ('walk_ev', 'distance_m'),
+}
 
 
 @dataclass(frozen=True)
@@ -77,6 +84,8 @@ class Match:
     reason: str = "Нет данных по этому условию"
     value: Any = None
     condition_met: bool = False
+    risk_factor: float = 1
+    risk_facts: list[Fact] = field(default_factory=list)
 
     @property
     def supported(self) -> bool:
@@ -94,7 +103,7 @@ class Match:
         # Oblique sunset is useful, but is a weaker fit than a view straight ahead.
         if self.condition_met and any((aspect := sunset_aspect(f)) and aspect.oblique for f in self.facts):
             utility *= .85
-        return utility
+        return utility * self.risk_factor
 
 
 @dataclass
@@ -132,7 +141,8 @@ def value_at(fact: Fact, field_name: str):
 
 def scope_values(fact: Fact) -> dict:
     scope = {key: value for key, value in (("facade", fact.scope.facade), ("floor_min", fact.scope.floor_min),
-             ("floor_max", fact.scope.floor_max), ("room_type", fact.scope.room_type), ("month", fact.scope.month)) if value is not None}
+             ("floor_max", fact.scope.floor_max), ("room_type", fact.scope.room_type), ("month", fact.scope.month),
+             ("landmark_id", fact.scope.landmark_id)) if value is not None}
     value = fact.value if isinstance(fact.value, dict) else {}
     if not scope.get("facade") and value.get("facade") in {"N", "NE", "E", "SE", "S", "SW", "W", "NW"}:
         scope["facade"] = value["facade"]
@@ -156,7 +166,7 @@ def _includes(scope: dict, context: RoomContext) -> bool:
 
 
 def _scope_contains(outer: dict, inner: dict) -> bool:
-    return all(outer.get(key) is None or outer[key] == inner.get(key) for key in ("facade", "room_type", "month")) and (
+    return all(outer.get(key) is None or outer[key] == inner.get(key) for key in ("facade", "room_type", "month", "landmark_id")) and (
         (outer.get("floor_min") or 1) <= (inner.get("floor_min") or 1) and
         (outer.get("floor_max") or 100) >= (inner.get("floor_max") or 100))
 
@@ -247,25 +257,46 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
                   *, hotel: Hotel | None = None) -> Match:
     if not fresh(fact):
         reason = "Данные оспариваются" if fact.status == "disputed" else "Данных нет" if fact.status == "unknown" else "Данные устарели; нужно перепроверить"
+        if fact.characteristic_id == 'landmark_view' and isinstance(fact.value, dict) and fact.value.get('record_type') == 'target_metadata':
+            reason = str(fact.value.get('unknown_reason') or 'Для цели нет подтверждённых входов расчёта видимости')
         return Match(facts=[fact], reason=reason)
     if not fact.evidence or not fact.supporting_claim_ids:
         return Match(facts=[fact], reason="Нет цепочки подтверждающих источников")
     actual = value_at(fact, field_name)
     value = fact.value if isinstance(fact.value, dict) else {}
+    route_field = ROUTE_FIELDS.get((fact.characteristic_id, field_name))
+    if route_field and route_field[0] in value:
+        actual = value_at(fact, '.'.join(route_field))
+    if fact.characteristic_id == 'airport_noise' and field_name == 'noise_db':
+        return Match(facts=[fact], reason='Слышимость самолётов не измерялась; карта показывает только геометрическую близость к полосе и коридору', value=actual)
+    if fact.characteristic_id == 'mobile_masts' and field_name == 'available':
+        return Match(facts=[fact], reason='Число мачт на карте не подтверждает покрытие 4G/5G или скорость мобильного интернета')
+    if fact.characteristic_id == 'building_history' and field_name == 'available':
+        # Legacy criteria keep their public shape. History metadata is useful,
+        # but an opening date or a Wikipedia link cannot prove historic status.
+        import re
+        if re.search(r'историческ|старинн|особняк|сталинк', parsed.text.casefold()):
+            actual = value.get('historic_designation')
+        elif 'history_information' in value:
+            actual = value['history_information']
+    if fact.characteristic_id == 'building_history' and field_name == 'architecture' and actual in {'модерн', 'Art Nouveau', 'art nouveau'}:
+        actual = 'art_nouveau'
     result = _compare(actual, criterion)
     scope = scope_values(fact)
     geometric = any(e.kind in {"calculation", "simulation"} for e in fact.evidence)
     scoped_floors = fact.scope.type == "floor_range" or any(scope.get(key) is not None for key in ("floor_min", "floor_max"))
     if (hotel is not None and hotel_floor_count(hotel) is None and not real_room_confirmation(fact)
-            and (scoped_floors or geometric and fact.characteristic_id in {"sea_view", "sunset_view", "mountain_view"})):
+            and (scoped_floors or geometric and fact.characteristic_id in {"sea_view", "sunset_view", "mountain_view", 'landmark_view'})):
         return Match(facts=[fact], reason=FLOOR_DOMAIN_UNKNOWN, value=actual)
     if fact.scope.month and value.get("month") and fact.scope.month != value["month"]:
         return Match(facts=[fact], reason="Месяц значения расходится с областью действия факта", value=actual)
     if fact.scope.facade and value.get("facade") and fact.scope.facade != value["facade"]:
         return Match(facts=[fact], reason="Сторона в значении расходится с областью действия факта", value=actual)
-    if fact.characteristic_id == "climate" and not scope.get("month"):
+    if fact.scope.landmark_id and value.get('landmark_id') and fact.scope.landmark_id != value['landmark_id']:
+        return Match(facts=[fact], reason='Цель в значении расходится с областью расчёта видимости', value=actual)
+    if fact.characteristic_id in {"climate", 'climate_days'} and not scope.get("month"):
         return Match(facts=[fact], reason="Не указан месяц климатических данных", value=actual)
-    if result is None and value.get("available") is False and criterion.value is not False:
+    if result is None and '.' not in field_name and value.get("available") is False and criterion.value is not False:
         result = False
     if fact.characteristic_id in MONTHLY and value.get("months") and parsed.month not in value["months"]:
         result = criterion.value is False
@@ -299,7 +330,7 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
         if fact.characteristic_id == "soundproofing" and field_name == "available" and any(value.get(k) is not None for k in ("windows", "blackout", "air_conditioning")):
             return Match("partial", [fact], "Есть сведения об окнах, но шумоизоляция не подтверждена", actual)
         return Match(facts=[fact], reason="Нужное поле не подтверждено", value=actual)
-    if result and criterion.characteristic_id in {"sea_view", "sunset_view", "mountain_view"} and not any(
+    if result and criterion.characteristic_id in {"sea_view", "sunset_view", "mountain_view", 'landmark_view'} and not any(
         scope.get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type")
     ):
         return Match("partial", [fact], "Общее заявление о виде не подтверждает сторону и этаж конкретного номера", actual)
@@ -315,9 +346,26 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
 def _best_match(facts: list[Fact], criterion: Criterion, context: RoomContext, field_name: str,
                 scopes: dict, evaluations: dict, detailed: bool) -> Match:
     scoped = [f for f in facts if _includes(scopes[id(f)], context)]
+    route = ROUTE_FIELDS.get((criterion.characteristic_id, field_name))
+    if route and any(isinstance(f.value, dict) and route[0] in f.value for f in scoped):
+        scoped = [f for f in scoped if isinstance(f.value, dict) and route[0] in f.value]
+    if (criterion.characteristic_id == 'building_history' and field_name == 'available'
+            and any(isinstance(f.value, dict) and 'historic_designation' in f.value for f in scoped)):
+        scoped = [f for f in scoped if isinstance(f.value, dict) and 'historic_designation' in f.value]
+    landmark = criterion.scope.landmark_id if criterion.scope else None
+    if criterion.characteristic_id == 'landmark_view' and not landmark and criterion.value is False:
+        return Match(reason='Отсутствие вида на все достопримечательности не подтверждено; укажите конкретный объект')
+    if landmark:
+        scoped = [f for f in scoped if scopes[id(f)].get('landmark_id') == landmark]
     if criterion.scope and not _includes(criterion.scope.model_dump(exclude_none=True), context):
         return Match(reason="Этот номер не соответствует запрошенной стороне или этажу")
     if not scoped:
+        if landmark:
+            from backend.agents.query_parser import landmark_patterns
+            if landmark == 'fisht':
+                return Match(reason='Точный контур Фишта найден, но подтверждённой высоты нет; видимость пока неизвестна')
+            if landmark in landmark_patterns():
+                return Match(reason='Для этой достопримечательности нет подтверждённого расчёта видимости')
         return Match(reason="Для этой стороны, этажа или месяца нет данных")
     # Scoped room calculations outrank hotel-wide marketing, including positive quotes.
     if criterion.characteristic_id in ROOM_CHARACTERISTICS and detailed:
@@ -337,6 +385,16 @@ def _best_match(facts: list[Fact], criterion: Criterion, context: RoomContext, f
         return Match(facts=[f for m in disputed for f in m.facts], reason="Данные оспариваются для этой стороны, этажа или типа номера")
     known = [m for m in evaluated if m.status != "unknown"]
     if known:
+        # Different targets may independently be visible or hidden. A request
+        # for any landmark is existential, not a vote between those targets.
+        if criterion.characteristic_id == 'landmark_view' and not landmark:
+            positive = [m for m in known if m.status in {'yes', 'partial'} and m.condition_met]
+            if positive:
+                return max(positive, key=lambda m: (m.status == 'yes', m.confidence))
+            unknown = [m for m in evaluated if m.status == 'unknown']
+            if unknown:
+                return Match(facts=[f for m in unknown for f in m.facts],
+                             reason='Вид на часть достопримечательностей не рассчитан; отсутствие вида на все объекты не подтверждено')
         if any(m.status == "yes" for m in known) and any(m.status == "no" for m in known):
             return Match("partial", [f for m in known for f in m.facts], "Источники расходятся для одного и того же номера")
         return max(known, key=lambda m: ({"yes": 3, "no": 2, "partial": 1}[m.status], m.confidence))
@@ -430,4 +488,11 @@ def assess_hotel(facts: list[Fact], parsed: ParsedQuery, specs: list[Characteris
     best.alternatives = {i: list({f.id: f for f in fs}.values()) for i, fs in alternatives.items()}
     best.scope_conflict = len(alternatives) >= 2 and not any(
         all(c.matches[i].status in {"yes", "partial"} for i in alternatives) for c in candidates)
+    risks = [f for f in facts if f.characteristic_id == 'airport_noise' and fresh(f)
+             and any(e.kind in {'calculation', 'simulation'} for e in f.evidence)
+             and f.supporting_claim_ids and value_at(f, 'available') is True]
+    for criterion, match in zip(criteria, best.matches, strict=True):
+        if criterion.characteristic_id == 'quiet_night' and risks:
+            match.risk_factor = .9
+            match.risk_facts = risks
     return best

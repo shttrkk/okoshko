@@ -73,6 +73,43 @@ def _normalize_cardinals(text: str) -> str:
 
     return re.sub(pattern, replacement, text)
 _TRANSLATIONS = (
+    (r'\bview of (?:the )?winter theat(?:re|er)\b', 'вид на зимний театр'),
+    (r'\bview of (?:the )?olympic park\b', 'вид на олимпийский парк'),
+    (r'\bview of (?:the )?bolshoy(?: palace)?\b', 'вид на большой'),
+    (r'\b(?:convenient transport|easy to get) from (?:the )?airport\b', 'удобно добираться из аэропорта'),
+    (r'\b(?:shop|store) open at night\b', 'магазин ночью'),
+    (r'\b(?:old hotel|historic mansion)\b', 'старинный отель'),
+    (r'\bnear (?:the )?train station\b', 'рядом со станцией'),
+    (r'\bnear (?:the )?bus stop\b', 'рядом с остановкой'),
+    (r'\b(?:in (?:the )?)?city cent(?:re|er)\b', 'в центре'),
+    (r'\bcell towers? nearby\b', 'мачты связи рядом'),
+    (r'\bmobile internet\b', 'мобильный интернет'),
+    (r'\bevents nearby\b', 'мероприятия рядом'),
+    (r'\brooftop terrace\b', 'терраса на крыше'),
+    (r'\bdark room\b', 'темно в номере'),
+    (r'\bsleep well\b', 'выспаться'),
+    (r'\brainy season\b', 'сезон дождей'),
+    (r'\bnot needed\b', 'не нужна'),
+    (r'\bfar from (?:the )?airport\b', 'далеко от аэропорта'),
+    (r'\b(?:no aircraft noise|no airplane noise)\b', 'без шума самолетов'),
+    (r'\bnear (?:the )?airport\b', 'рядом с аэропортом'),
+    (r'\bfrom (?:the )?airport without transfers\b', 'из аэропорта без пересадок'),
+    (r'\bview of (?:the )?sea terminal\b', 'вид на морской вокзал'),
+    (r'\bview of (?:the )?fisht\b', 'вид на фишт'),
+    (r'\bview of (?:a )?landmark\b', 'вид на достопримечательность'),
+    (r'\b(?:24/7|24-hour) (?:shop|store)\b', 'круглосуточный магазин'),
+    (r'\bfood at night\b', 'поесть ночью'),
+    (r'\bprivate parking\b', 'своя парковка'),
+    (r'\bdrive to (?:the )?entrance\b', 'подъехать к входу'),
+    (r'\bhistoric(?:al)? building\b', 'историческое здание'),
+    (r'\bchildren.s hospital\b', 'детская больница'),
+    (r'\bdog park\b', 'площадка для выгула'),
+    (r'\bvet(?:erinary clinic)?\b', 'ветклиника'),
+    (r'\bpet (?:shop|store)\b', 'зоомагазин'),
+    (r'\bno construction nearby\b', 'без стройки рядом'),
+    (r'\bsunny days\b', 'солнечные дни'),
+    (r'\bno rain\b', 'без дождей'),
+    (r'\bnear (?:the )?metro\b', 'у метро'),
     (r'\bno need (?:for )?(?:wi[ -]?fi|internet)\b', 'интернет не нужен'),
     (r'\b(?:sea|ocean) view\b', 'вид на море'),
     (r'\bmorning sun(?:shine)?\b', 'утреннее солнце'),
@@ -162,7 +199,7 @@ _HOTEL_REQUEST = (r'\b(?:ищ\w*|найди\w*|подбер\w*|выбира\w*|�
                   r'\s+(?:\w+\s+){0,5}(?:отел\w*|номер\w*|гостиниц\w*|жиль\w*)\b')
 _LANGUAGE_TASK = (r'\b(?:словосочетани\w*|слов[аоеу]|словах|выражени\w*|грамматик\w*|'
                   r'орфограф\w*|пунктуац\w*|запят\w*|числительн\w*|аббревиатур\w*|'
-                  r'перевести|перевод\w*|расшифров\w*|библиограф\w*|алфавит\w*|'
+                  r'перевести|перевед\w*|перевод\w*|расшифров\w*|библиограф\w*|алфавит\w*|'
                   r'vocabulary|translate|adjective|homework)\b')
 _DOCUMENT_TASK = (r'\b(?:редактир\w*|перепиш\w*|сократ\w*|подпис\w*|заголов\w*|'
                   r'шрифт\w*|логотип\w*|эмблем\w*|этикет\w*|резюме|учебник\w*|'
@@ -290,6 +327,20 @@ def valid_intent_match(cid: str, text: str, match: re.Match) -> bool:
     left, right = clause_bounds(text, match.start(), match.end())
     clause = text[left:right]
     after = text[match.end():right]
+    if cid == 'soundproofing' and re.search(r'blackout\s+poetry|poetry\s+book', clause):
+        return False
+    if cid == 'connectivity' and re.search(r'мобильн\w*\s+(?:интернет|связ|покрыти)', clause) and not re.search(r'wi[ -]?fi|удален|для\s+работ', clause):
+        return False
+    if cid == 'connectivity' and re.fullmatch(r'[45]g', match[0]):
+        return False
+    if cid == 'location_access' and re.search(r'центр\w*\s+(?:вечерн\w*\s+жизн\w*|внимани\w*|событи\w*)', clause):
+        return False
+    if cid == 'location_access' and re.search(r'(?:удален\w*|далеко|подальше|вдали)\s+от\s+центр\w*', clause):
+        return False
+    if cid == 'family_nearby' and re.search(r'площадк\w*\s+для\s+выгул\w*|собач\w*\s+площадк', clause) and not re.search(r'детск\w*\s+площадк', clause):
+        return False
+    if cid == 'car_access' and re.search(r'(?:сво\w*|собственн\w*|частн\w*)\s+парковк|парковк\w*\s+отел\w*|подъехать\s+(?:прямо\s+)?к\s+вход', clause) and not re.search(r'публичн\w*\s+парковк|общественн\w*\s+парковк', clause):
+        return False
     quoted = any(m.start() < match.start() and m.end() > match.end()
                  for m in re.finditer(r'«[^»]+»|"[^"]+"|“[^”]+”', text))
     if quoted and re.search(r'\b(?:названи\w*|называ\w*|марк\w*|бренд\w*|слово|термин\w*)\b', clause):

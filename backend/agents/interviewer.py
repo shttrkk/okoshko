@@ -10,7 +10,7 @@ from psycopg.errors import UniqueViolation
 from backend.contracts import Question, Scope, now
 
 _LOCK = RLock()
-IMPACT = {"soundproofing": 1., "room_orientation": 1., "pets": .85, "sunset_view": .95, "quiet_night": 1., "sea_view": .9}
+IMPACT = {"soundproofing": 1., "room_orientation": 1., "pets": .85, "sunset_view": .95, "quiet_night": 1., "sea_view": .9, 'hotel_parking': .85}
 SIDES = {"N": "север", "NE": "северо-восток", "E": "восток", "SE": "юго-восток", "S": "юг", "SW": "юго-запад", "W": "запад", "NW": "северо-запад"}
 MONTHS = ("январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь")
 _SCOPE_MARKER = "\nГость просит уточнить модельный срез: "
@@ -108,6 +108,12 @@ def _fact_sentence(fact: dict, label: str) -> str:
 
 
 def _usable(fact: dict) -> bool:
+    if fact.get('characteristic_id') == 'hotel_parking':
+        value = fact.get('value') or {}
+        if not isinstance(value, dict) or value.get('private_parking') is None:
+            return False
+        if value.get('private_parking') is True and any(value.get(k) is None for k in ('fee_rub_per_day', 'reservation_required', 'ev_charging')):
+            return False
     expiry = fact.get("valid_until")
     if isinstance(expiry, str):
         expiry = datetime.fromisoformat(expiry.replace("Z", "+00:00"))
@@ -133,6 +139,7 @@ def _build_question(hotel_id: str, cid: str, facts: list[dict], *, spec=None, re
         "soundproofing": "Какие окна установлены? Есть ли заявленная шумоизоляция, шторы blackout и кондиционер? Укажите номера и ограничения; двойные окна сами по себе не доказывают шумоизоляцию.",
         "room_orientation": "Какие номера выходят на какую сторону, на каких этажах и есть ли у них балкон?",
         "pets": "Какие питомцы разрешены, до какого веса и какая доплата за ночь?",
+        'hotel_parking': 'Есть ли у отеля своя парковка? Сколько она стоит в рублях за сутки, нужно ли бронировать место и есть ли зарядка для электромобиля? Укажите условия; общественную парковку рядом опишите отдельно.',
     }
     scoped = (spec or {}).get("scope", "hotel") != "hotel"
     text = prompts.get(cid, f"Уточните «{label}»: " + ("для каких сторон, этажей или номеров это верно? Укажите различия и ограничения." if scoped else "что вы знаете об этом у вашего отеля? Укажите условия и ограничения."))
