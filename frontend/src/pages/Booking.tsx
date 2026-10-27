@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowRight, Bell, Check, ClipboardCheck, Send } from "lucide-react";
-import { api, dateText, textValue, useResource } from "../api";
+import { api, dateText, record, textValue, useResource } from "../api";
 import { useApp } from "../state";
 import {
   BackLink,
@@ -280,6 +280,17 @@ export function BookingPage() {
       setBusy(false);
     }
   };
+  const catalogueReview = record(detail.data?.hotel.tags?.catalogue_review);
+  if (catalogueReview.disposition === 'hold_for_identity_review')
+    return (
+      <div className="page-container">
+        <BackLink to="/search">К поиску</BackLink>
+        <h1>Объект ожидает проверки</h1>
+        <p>{String(catalogueReview.reason_ru)}</p>
+        <p>Паспорт ожиданий для этой исходной записи временно недоступен.</p>
+        <a href="/data/seed/catalogue_reviews.json">Источники и основания</a>
+      </div>
+    );
   return (
     <div className="page-container booking-page">
       <BackLink to={`/hotel/${id}`} children="К отелю" />

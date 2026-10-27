@@ -349,7 +349,8 @@ def evaluate_gold(path, split="all"):
             "by_split": {name: aggregate_cases([row for row in cases if row["split"] == name]) for name in sorted({row["split"] for row in cases})},
             "input_materialization_matches_frozen": all(row["input_facts_sha256"] == facts_hash for row in rows),
             "scorer_sha256": {path: hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
-                              for path in ["backend/agents/ranker.py", "backend/agents/query_match.py"]},
+                              for path in ["backend/agents/ranker.py", "backend/agents/query_match.py",
+                                           "backend/catalogue.py", "data/seed/catalogue_reviews.json"]},
             "gold_sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "cases": cases,
             "diversity_definition": "Top10 unique normalized names (casefold, ё→е, punctuation/space removed) and complete-link same-name geographic clusters of diameter <=200m; distant namesakes remain separate. This is a complex proxy, not verified property identity.",
             "same_name_nearby_pairs_in_corpus": sum(normalized_name(a.name) == normalized_name(b.name) and distance_m(a, b) <= 200

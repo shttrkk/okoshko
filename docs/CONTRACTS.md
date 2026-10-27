@@ -204,3 +204,9 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
 ### Изменения открытых экранов
 
 `GET /api/revision` возвращает `{instance: string, revision: integer}` с `Cache-Control: no-store`, без идентификаторов гостей и содержимого запросов. Один процесс приложения повышает generation после изменения facts, каталога, вопросов/ответов, конфликтов, событий и паспортов. Журнал поиска и трассы не повышают generation. Видимая вкладка проверяет сигнал раз в 3 секунды; завершение локальной операции обновляет данные сразу. Это process-local механизм одного runtime, не распределённая подписка и не гарантия для прямых SQL-записей.
+
+### Проверка идентичности исходных объектов
+
+`data/seed/catalogue_reviews.json` — локальная политика `hotel_identity_reviews_v1`, отдельная от неизменных raw hotel seeds и claims. Каждая запись содержит точный `hotel_id`, `disposition=hold_for_identity_review`, причину, source/method, evidence, expert_uncalibrated confidence, observed_at/valid_until и ограничения. Hold означает необходимость проверки идентичности или координат, а не отсутствие реальной гостиницы. Истечение срока не возвращает объект в подбор автоматически. Корректный `reviews: []` допустим для другого региона.
+
+`backend.catalogue` валидирует файл на старте; при повреждении после успешной загрузки сохраняет последнюю валидную политику. На холодном старте отсутствие или неверный формат дают явную ошибку конфигурации. IDs находятся в данных, а не в коде. Search/ranking/similarity, compare и создание паспорта исключают holds; профиль по прямому ID сохраняет review metadata в `Hotel.tags.catalogue_review`, не выдавая рекомендацию номера. `/api/status.hotel_count` считает доступные кандидаты; `source_object_count` и `held_object_count` показывают исходный объём и ограничения. Статистика модели по исходному seed и frozen weak labels остаётся отдельным измерением.

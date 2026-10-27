@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from backend.agents.interviewer import stable_id
 from backend.agents.query_match import route_constraints
 from backend.api.hotelier import _get
+from backend.catalogue import searchable
 from backend.contracts import (
     Criterion,
     ExpectationPassport,
@@ -202,7 +203,9 @@ def _trip_reviews(passport: ExpectationPassport, facts: list[Fact]) -> list[str]
 
 
 def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
-    _get(repo, "hotels", request.hotel_id, "Отель")
+    hotel = _get(repo, "hotels", request.hotel_id, "Отель")
+    if not searchable(hotel):
+        raise HTTPException(422, 'Объект временно скрыт из подбора: идентичность или координаты требуют проверки')
     if request.check_in and request.check_out and request.check_out <= request.check_in:
         raise HTTPException(422, "Дата выезда должна быть позже заезда")
     if len(request.guest_name.strip()) > 120 or not request.guest_name.strip():

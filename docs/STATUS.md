@@ -1,6 +1,6 @@
 # Статус О!кно
 
-Обновлено: 27.10.2026 04:31 МСК. Интеграционные проверки выполняются после каждого изменения.
+Обновлено: 27.10.2026 04:40 МСК. Интеграционные проверки выполняются после каждого изменения.
 
 `[x]` — проверено; `[~]` — реализовано частично или есть явно указанное ограничение; `[ ]` — ещё не выполнено.
 
@@ -177,3 +177,5 @@
 - 27.10.2026 04:20: perf(resolver): index categorical scope candidates before traversal; 1086 passed, 1 warning, 125 subtests passed in 126.61s (0:02:06); Ruff и frontend lint PASS.
 
 - 27.10.2026 04:31: кэшируется только проверенная локальная схема, каждый instance валидируется заново; 1000 проверок одной схемы 482,9 → 11,3 мс (native median3, не Docker startup). Изменение схемы, external refs и concurrent validation защищены; 1093 passed, 1 warning, 125 subtests passed in 56.11s; Ruff/frontend lint PASS.
+
+- 27.10.2026 04:40: feat(catalogue): hold reviewed identities outside hotel search; 1133 passed, 1 warning, 125 subtests passed in 72.93s (0:01:12); Ruff и frontend lint PASS.

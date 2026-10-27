@@ -6,6 +6,7 @@ from collections import defaultdict
 
 from backend.agents.explainer import disappointments_from_assessment, room_from_assessment, verdict
 from backend.agents.query_match import assess_hotel, fresh
+from backend.catalogue import searchable
 from backend.contracts import CharacteristicSpec, Fact, Hotel, ParsedQuery, SearchHit
 
 
@@ -28,6 +29,9 @@ def rank_hotels(hotels: list[Hotel], facts: list[Fact], parsed: ParsedQuery,
                 specs: list[CharacteristicSpec], *, explain_limit: int | None = None) -> list[SearchHit]:
     if "region_out_of_scope" in parsed.unmapped:
         return []
+    if parsed.similar_to and not searchable({"id": parsed.similar_to}):
+        return []
+    hotels = [hotel for hotel in hotels if searchable(hotel)]
     by_hotel = defaultdict(list)
     for fact in facts:
         by_hotel[fact.hotel_id].append(fact)
@@ -133,4 +137,7 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
                    explain_limit: int | None = None) -> list[SearchHit]:
     """Compatibility export for API clients; implementation stays independent."""
     from backend.agents.similarity import similar_hotels as find_similar
+    if not searchable({"id": reference_id}):
+        return []
+    hotels = [hotel for hotel in hotels if searchable(hotel)]
     return find_similar(reference_id, hotels, facts, specs, parsed=parsed, explain_limit=explain_limit)

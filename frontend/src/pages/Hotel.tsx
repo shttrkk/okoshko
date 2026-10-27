@@ -11,7 +11,7 @@ import {
   TriangleAlert,
   Waves,
 } from "lucide-react";
-import { api, useResource } from "../api";
+import { api, record, useResource } from "../api";
 import { useApp } from "../state";
 import { GeoModal, TravelMap } from "../components/Map";
 import { FactsPanel } from "../components/FactsPanel";
@@ -292,6 +292,21 @@ export function HotelPage() {
       .find(Boolean) || "S";
   const valueConflicts = (d?.conflicts || []).filter((c) => c.kind === "value");
   const scopeConflicts = (d?.conflicts || []).filter((c) => c.kind !== "value");
+  const catalogueReview = record(d?.hotel.tags?.catalogue_review);
+  if (catalogueReview.disposition === 'hold_for_identity_review')
+    return (
+      <div className="page-container">
+        <BackLink />
+        <h1>{d?.hotel.name}</h1>
+        <div className="notice" role="status">
+          <strong>Объект временно скрыт из подбора</strong>
+          <p>{String(catalogueReview.reason_ru)}</p>
+          <p>Идентичность или координаты требуют проверки. Расчёты исходной точки не используются для выбора номера.</p>
+          <a href="/data/seed/catalogue_reviews.json">Источники и основания проверки</a>
+        </div>
+        <Link className="button primary" to="/search">Выбрать другой отель</Link>
+      </div>
+    );
   return (
     <div className="hotel-page page-container">
       <BackLink />

@@ -20,6 +20,8 @@ def migrate():
 
 
 def main():
+    from backend.catalogue import load_reviews
+    load_reviews()  # Fail clearly before readiness if the bundled policy is broken.
     migrate()
     logging.info("Recovered interrupted jobs/runs: %s", recover_interrupted(get_repo()))
     load_seed()

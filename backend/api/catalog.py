@@ -11,6 +11,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 
+from backend.catalogue import annotate, load_reviews, searchable
 from backend.contracts import (
     CharacteristicSpec,
     ComparisonRequest,
@@ -55,6 +56,13 @@ def catalog(repo):
             if value.get("status", "active") == "active"]
 
 
+def searchable_hotel(repo, hotel_id: str):
+    hotel = required(repo, 'hotels', hotel_id, 'Отель')
+    if not searchable(hotel):
+        raise HTTPException(422, 'Объект временно скрыт из подбора: идентичность или координаты требуют проверки. Основания — /data/seed/catalogue_reviews.json')
+    return hotel
+
+
 def search_coverage(rows: list[dict], specs: list[CharacteristicSpec], hotel_count: int,
                     parsed: ParsedQuery) -> dict[str, dict]:
     """Coverage of the requested fields; a known sibling field is not evidence."""
@@ -92,6 +100,9 @@ def search_coverage(rows: list[dict], specs: list[CharacteristicSpec], hotel_cou
 def read_geo(hotel_id: str, repo, *, hotel_row: dict | None = None, events: list[dict] | None = None,
              fact_rows: list[dict] | None = None) -> dict:
     hotel = hotel_row if hotel_row is not None else required(repo, "hotels", hotel_id, "Отель")
+    if not searchable(hotel):
+        return {'hotel_id': hotel_id, 'facades': [],
+                'limitations': ['Геопривязка исходного объекта требует проверки; модель не используется для выбора отеля.']}
     if "/" in hotel_id or "\\" in hotel_id or hotel_id in {".", ".."}:
         raise HTTPException(422, "Некорректный ID отеля")
     # A change stores the exact durable artifact; do not silently show the old map.
@@ -163,18 +174,19 @@ def details(hotel_ids: list[str], repo, *, text: str = "", month: int | None = N
             grouped[table][row["hotel_id"]].append(row)
     result = []
     for hotel_id in hotel_ids:
-        hotel = Hotel.model_validate(hotels_by_id[hotel_id])
+        hotel = Hotel.model_validate(annotate(hotels_by_id[hotel_id]))
+        eligible = searchable(hotel)
         facts = [Fact.model_validate(row) for row in grouped["facts"][hotel_id]]
         verdicts = []
-        if parsed is not None:
+        if parsed is not None and eligible:
             from backend.agents.ranker import rank_hotels
             hits = rank_hotels([hotel], facts, parsed, specs)
             verdicts = hits[0].verdicts if hits else []
         public_facts = [fact.model_copy(update={"evidence": []}) for fact in facts] if compact else facts
         result.append(HotelDetail(hotel=hotel, facts=public_facts, claims=grouped["claims"][hotel_id],
                                   conflicts=grouped["conflicts"][hotel_id], questions=grouped["questions"][hotel_id],
-                                  verdicts=verdicts, room_recommendation=recommend_room(facts, parsed, hotel=hotel),
-                                  disappointments=disappointments(facts, parsed, hotel=hotel),
+                                  verdicts=verdicts, room_recommendation=recommend_room(facts, parsed, hotel=hotel) if eligible else 'Идентичность или координаты объекта требуют проверки',
+                                  disappointments=disappointments(facts, parsed, hotel=hotel) if eligible else ['Модель исходной точки не используется для выбора номера'],
                                   geo={} if compact else read_geo(hotel_id, repo, hotel_row=hotels_by_id[hotel_id],
                                                                events=rows["change_events"], fact_rows=grouped["facts"][hotel_id]),
                                   evidence_deferred=compact, geometry_deferred=compact))
@@ -217,12 +229,16 @@ def revision(repo=_REPO):
 def status(repo=_REPO):
     manifest_path = DATA / "seed" / "manifest.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
-    hotel_count = len(repo.all("hotels"))
+    hotel_rows = repo.all('hotels')
+    eligible = {hotel['id'] for hotel in hotel_rows if searchable(hotel)}
+    hotel_count = len(eligible)
     specs = catalog(repo)
     rows = repo.search_facts() if hasattr(repo, "search_facts") else repo.all("facts")
+    rows = [row for row in rows if row['hotel_id'] in eligible]
     coverage = region_coverage(rows, specs, hotel_count)
     return {"name": "О!кно", "mode": LLMClient(repo).mode, "version": "1.0.0",
-            "hotel_count": hotel_count, "characteristic_count": len(specs),
+            "hotel_count": hotel_count, "source_object_count": len(hotel_rows),
+            "held_object_count": len(hotel_rows)-hotel_count, "characteristic_count": len(specs),
             "region_coverage": coverage, "no_data_characteristics": sorted(cid for cid, row in coverage.items() if row["status"] == "no_data"),
             "seed_version": manifest.get("seed_version", manifest.get("generated_at", "unknown")),
             "region_name": "Сочи: центр + Адлер–Имеретинка"}
@@ -230,7 +246,7 @@ def status(repo=_REPO):
 
 @router.get("/hotels", response_model=list[Hotel])
 def hotels(repo=_REPO):
-    return repo.all("hotels")
+    return [annotate(hotel) for hotel in repo.all("hotels") if searchable(hotel)]
 
 
 @router.get("/hotels/{hotel_id}", response_model=HotelDetail)
@@ -266,6 +282,8 @@ def compare(ids: str, text: str = "", month: int | None = None, compact: bool = 
     selected = list(dict.fromkeys(part.strip() for part in ids.split(",") if part.strip()))
     if not 2 <= len(selected) <= 4:
         raise HTTPException(422, "Для сравнения выберите от 2 до 4 разных отелей")
+    for hotel_id in selected:
+        searchable_hotel(repo, hotel_id)
     result = {"hotels": details(selected, repo, text=text, month=month, compact=compact), "characteristics": catalog(repo)}
     return JSONResponse({"hotels": [compact_payload(h) for h in result["hotels"]],
                          "characteristics": [spec.model_dump(mode="json") for spec in result["characteristics"]]}) if compact else result
@@ -273,6 +291,8 @@ def compare(ids: str, text: str = "", month: int | None = None, compact: bool = 
 
 @router.post("/compare")
 def compare_parsed(body: ComparisonRequest, compact: bool = False, repo=_REPO):
+    for hotel_id in body.ids:
+        searchable_hotel(repo, hotel_id)
     result = {"hotels": details(body.ids, repo, parsed=body.parsed, compact=compact), "characteristics": catalog(repo)}
     return JSONResponse({"hotels": [compact_payload(h) for h in result["hotels"]],
                          "characteristics": [spec.model_dump(mode="json") for spec in result["characteristics"]]}) if compact else result
@@ -297,15 +317,17 @@ def search(body: SearchRequest, repo=_REPO):
         if "region_out_of_scope" in parsed.unmapped:
             hits = []
         else:
-            hotel_rows = [Hotel.model_validate(row) for row in repo.all("hotels")]
+            all_hotel_rows = [Hotel.model_validate(row) for row in repo.all("hotels")]
+            hotel_rows = [hotel for hotel in all_hotel_rows if searchable(hotel)]
             reference_id = body.similar_to or (body.parsed.similar_to if body.parsed else None)
             reference = Hotel.model_validate(required(repo, "hotels", reference_id, "Отель")) if reference_id else None
             if reference is None and not body.parsed:
                 from backend.agents.similarity import reference_hotel
-                reference, ambiguous = reference_hotel(body.text, hotel_rows)
+                reference, ambiguous = reference_hotel(body.text, all_hotel_rows)
                 if ambiguous:
                     parsed.clarifications = ["Похожих названий несколько: " + ", ".join(ambiguous) + ". Уточните, какой отель вам понравился."]
             if reference is not None:
+                searchable_hotel(repo, reference.id)
                 parsed.similar_to, parsed.similar_to_name = reference.id, reference.name
                 # The reference phrase names a hotel; it is not an unknown condition.
                 from backend.agents.similarity import only_reference_phrase
@@ -318,6 +340,8 @@ def search(body: SearchRequest, repo=_REPO):
             # still require their requested month, rather than September data.
             fact_month = None if reference and (parsed.must or parsed.nice or parsed.no_data) and parsed.month != 9 else 9 if reference else parsed.month
             rows = repo.search_facts(ids, fact_month) if hasattr(repo, "search_facts") else repo.all("facts")
+            eligible = {hotel.id for hotel in hotel_rows}
+            rows = [row for row in rows if row['hotel_id'] in eligible]
             from backend.agents.query_rules import apply_region_coverage
             coverage = search_coverage(rows, [spec for spec in specs if ids is None or spec.id in set(ids)], len(hotel_rows), parsed)
             apply_region_coverage(parsed, coverage)
@@ -367,7 +391,17 @@ def tools(repo=_REPO):
 
 @router.get("/sources", response_model=list[Source])
 def sources(repo=_REPO):
-    return repo.all("sources")
+    rows = repo.all("sources")
+    reviews = list(load_reviews().values())
+    if reviews and not any(row['id'] == 'catalogue_identity_review' for row in rows):
+        observed = min(row['observed_at'] for row in reviews)
+        rows.append(Source(id='catalogue_identity_review', name='Проверка идентичности объектов по первичным источникам',
+                           kind='data_quality_review', url='/data/seed/catalogue_reviews.json',
+                           license='OSM: ODbL; фактические цитаты официальных сайтов — права у источников; собственная методика — MIT',
+                           attribution='OSM/Geofabrik и официальные сайты гостиниц и города; URL в каждой записи',
+                           observed_at=observed, retrieved_at=observed,
+                           notes='Экспертные некалиброванные оценки необходимости проверки. Hold не означает, что реальная гостиница не существует.').model_dump(mode='json'))
+    return rows
 
 
 @lru_cache(maxsize=1)
