@@ -10,8 +10,8 @@
 ## Быстрый старт
 
 ```sh
-git clone <TEAM_REPOSITORY_URL>
-cd <repo>
+git clone https://github.com/ostrovok-hackathon-2026/samarkand.git
+cd samarkand
 docker compose up --build
 # открыть http://localhost:8080
 ```
