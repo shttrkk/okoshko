@@ -641,15 +641,100 @@ def _advice_positions(options: list[RoomAdviceOption], hotel: Hotel) -> str:
     return "; ".join(phrases)
 
 
+
+def _named_rooms(rooms: list[str]) -> str:
+    """Compress only explicitly enumerated adjacent room identifiers, never floors."""
+    ordered = sorted(set(rooms), key=lambda room: (0, int(room), room) if room.isascii() and room.isdecimal() else (1, 0, room))
+    result = []
+    first = previous = None
+    for room in ordered:
+        adjacent = (previous is not None and first is not None and room.isascii() and room.isdecimal()
+                    and previous.isascii() and previous.isdecimal()
+                    and str(int(room)) == room and str(int(previous)) == previous
+                    and int(room) == int(previous) + 1)
+        if not adjacent and first is not None:
+            result.append(first if first == previous else f"{first}–{previous}")
+            first = None
+        if first is None:
+            first = room
+        previous = room
+    if first is not None:
+        result.append(first if first == previous else f"{first}–{previous}")
+    return ", ".join(result)
+
+
+def _named_room_advice(hotel: Hotel, facts: list[Fact], month: int) -> RoomAdvice | None:
+    """Confirmed room labels are separate from modelled facade/floor positions."""
+    groups = []
+    traits = ("sea_view", "balcony", "courtyard")
+    for fact in sorted(facts, key=lambda fact: fact.id):
+        if (fact.hotel_id != hotel.id or fact.characteristic_id != "room_orientation"
+                or fact.status != "confirmed" or not fresh(fact) or not _month_matches(fact, month)
+                or not fact.supporting_claim_ids or fact.conflicting_claim_ids or not isinstance(fact.value, dict)):
+            continue
+        quoted = [e for e in fact.evidence if e.quote and e.quote.strip()
+                  and e.kind in {"hotelier", "simulation", "mock"}]
+        if not quoted or not isinstance(fact.value.get("groups"), list):
+            continue
+        synthetic = _synthetic(fact) or any("hotelier_simulator" in e.source_ids for e in quoted)
+        for group in fact.value["groups"]:
+            if not isinstance(group, dict) or not isinstance(group.get("rooms"), list):
+                continue
+            rooms = [room.strip() for room in group["rooms"] if isinstance(room, str) and room.strip()]
+            properties = {key: group[key] for key in traits if type(group.get(key)) is bool}
+            if rooms and properties:
+                groups.append((fact, rooms, properties, quoted, synthetic))
+    # Even accidentally separate confirmed records must not create opposing
+    # promises about the same named room. Keep only unambiguous room labels.
+    observed = {}
+    for _fact, rooms, properties, _quoted, _synthetic_group in groups:
+        for room in rooms:
+            for trait, value in properties.items():
+                observed.setdefault((room, trait), set()).add(value)
+    conflicting = {room for (room, _trait), values in observed.items() if len(values) > 1}
+    phrases, used, evidence_refs = [], {}, set()
+    demo = False
+    labels = {"sea_view": ("без вида на море", "на море"),
+              "balcony": ("без балкона", "с балконом"),
+              "courtyard": ("окна не во двор", "окна во двор")}
+    for fact, rooms, properties, quoted, synthetic in groups:
+        rooms = [room for room in rooms if room not in conflicting]
+        if not rooms:
+            continue
+        description = ", ".join(labels[trait][value] for trait, value in properties.items())
+        when = f"В {_MONTHS_IN[fact.scope.month - 1]}: " if fact.scope.month else ""
+        phrases.append(f"{when}Номера {_named_rooms(rooms)}: {description}.")
+        used[fact.id] = fact
+        evidence_refs.update(e.id for e in quoted)
+        demo |= synthetic
+    if not phrases:
+        return None
+    phrases = list(dict.fromkeys(phrases))
+    caveats = ["Подтверждены только перечисленные группы и свойства. Сторону и этаж не выводим из номера комнаты. "
+               "Наличие свободных номеров, цена, вместимость и размещение рядом требуют отдельного согласования."]
+    if conflicting:
+        caveats.append("По части номеров ответы расходятся; эти номера не включены в совет.")
+    if demo:
+        caveats.append("Ответ отеля · демо: это пример ответа, реальное подтверждение нужно получить отдельно.")
+    identity = json.dumps([hotel.id, month, sorted(used), phrases, sorted(evidence_refs), demo], ensure_ascii=False)
+    option = RoomAdviceOption(scope=RoomScope(), fact_ids=sorted(used), evidence_refs=sorted(evidence_refs),
+                              status="partial" if demo else "yes", synthetic=demo)
+    return RoomAdvice(id="advice_named_" + hashlib.sha256(identity.encode()).hexdigest()[:20],
+                      characteristic_id="room_orientation", title="Номера по ответу отеля" if demo
+                      else "Номера по подтверждённому ответу отеля", text=" ".join(phrases),
+                      options=[option], fact_ids=option.fact_ids, evidence_refs=option.evidence_refs,
+                      status=option.status, synthetic=demo, caveats=caveats)
+
 def build_room_advice(hotel: Hotel, facts: list[Fact], specs: list[CharacteristicSpec], month: int = 9
                       ) -> list[RoomAdvice]:
-    """Four guest goals, independently proven over all intervals, never /rooms' cap."""
+    """Named hotel room groups plus four independently proven geographic goals."""
     if not 1 <= month <= 12:
         raise ValueError("month must be between 1 and 12")
+    named = _named_room_advice(hotel, facts, month)
     if hotel_floor_count(hotel) is None:
-        return []  # Conditional preview levels cannot establish advice about real floors.
+        return [named] if named else []  # Named rooms never establish hotel floors.
     by_id = {f.id: f for f in facts}
-    advice = []
+    advice = [named] if named else []
     for cid in _ADVICE_IDS:
         options = _advice_options(hotel, facts, specs, cid, month)
         if cid == "quiet_night" and options:

@@ -21,16 +21,47 @@ export function RoomAdviceList({
   onSelect,
   profile,
   requestedCharacteristicIds = [],
+  collapseGeographic = false,
 }: {
   hotelId: string;
   month: number;
   onSelect?: (scope: RoomScope) => void;
   profile?: RoomProfile | null;
   requestedCharacteristicIds?: string[];
+  collapseGeographic?: boolean;
 }) {
   const advice = useResource(
     () => roomAdvice(hotelId, month),
     [hotelId, month],
+  );
+  const named =
+    advice.data?.filter(
+      (item) => item.characteristic_id === "room_orientation",
+    ) || [];
+  const geographic =
+    advice.data?.filter(
+      (item) => item.characteristic_id !== "room_orientation",
+    ) || [];
+  const geographicContent = (
+    <>
+      {profile && (
+        <AdviceCompromise
+          hotelId={hotelId}
+          advice={geographic}
+          profile={profile}
+          requestedCharacteristicIds={requestedCharacteristicIds}
+          onSelect={onSelect}
+        />
+      )}
+      {geographic.map((item) => (
+        <AdviceCard
+          key={item.id}
+          hotelId={hotelId}
+          advice={item}
+          onSelect={onSelect}
+        />
+      ))}
+    </>
   );
   return (
     <div className="room-advice-list" data-testid="room-advice">
@@ -52,23 +83,20 @@ export function RoomAdviceList({
           />
         </div>
       )}
-      {profile && (
-        <AdviceCompromise
-          hotelId={hotelId}
-          advice={advice.data || []}
-          profile={profile}
-          requestedCharacteristicIds={requestedCharacteristicIds}
-          onSelect={onSelect}
-        />
-      )}
-      {advice.data?.slice(0, 4).map((item) => (
-        <AdviceCard
-          key={item.id}
-          hotelId={hotelId}
-          advice={item}
-          onSelect={onSelect}
-        />
+      {named.map((item) => (
+        <AdviceCard key={item.id} hotelId={hotelId} advice={item} />
       ))}
+      {collapseGeographic
+        ? geographic.length > 0 && (
+            <details
+              className="room-other-goals"
+              data-testid="other-room-goals"
+            >
+              <summary>Другие варианты по сторонам и этажам</summary>
+              {geographicContent}
+            </details>
+          )
+        : geographicContent}
     </div>
   );
 }
@@ -195,7 +223,8 @@ function AdviceCard({
         ]),
       ]),
     );
-  const primary = advice.options[0];
+  const named = advice.characteristic_id === "room_orientation";
+  const primary = named ? undefined : advice.options[0];
   const target = (scope: RoomScope) =>
     `/hotel/${encodeURIComponent(hotelId)}?${roomLabParams(scope)}#room-lab`;
   return (
@@ -221,41 +250,57 @@ function AdviceCard({
       ) : (
         <h3>{advice.title}</h3>
       )}
-      <p>{humanExplanation(advice.text, advice.synthetic)}</p>
+      <p>
+        {named
+          ? guestText(advice.text, advice.synthetic)
+          : humanExplanation(advice.text, advice.synthetic)}
+      </p>
       <div className="room-advice-status">
         {advice.status === "partial" && (
           <span className="badge warning">примерно</span>
         )}
-        {advice.synthetic && <Synthetic />}
+        {advice.synthetic && (
+          <Synthetic>{named ? "Ответ отеля · демо" : "Демо"}</Synthetic>
+        )}
       </div>
       <div className="room-advice-options">
-        {advice.options.map((option, index) => {
-          const label = scopeText(roomEvidenceScope(option.scope));
-          const props = {
-            className: "text-button small",
-            "data-testid": "room-advice-option",
-            "data-scope": JSON.stringify(option.scope),
-          };
-          return (
-            <span key={index}>
-              {onSelect ? (
-                <button {...props} onClick={() => onSelect(option.scope)}>
-                  {label}
-                  <ArrowRight size={13} />
-                </button>
-              ) : (
-                <Link {...props} to={target(option.scope)}>
-                  {label}
-                  <ArrowRight size={13} />
-                </Link>
-              )}
-              {option.status === "partial" && advice.status !== "partial" && (
-                <span className="small muted"> · примерно</span>
-              )}
-              {option.synthetic && !advice.synthetic && <Synthetic />}
-            </span>
-          );
-        })}
+        {advice.options
+          .filter(
+            (option) =>
+              !!(
+                option.scope.facade ||
+                option.scope.floor_min ||
+                option.scope.floor_max ||
+                option.scope.room_type
+              ),
+          )
+          .map((option, index) => {
+            const label = scopeText(roomEvidenceScope(option.scope));
+            const props = {
+              className: "text-button small",
+              "data-testid": "room-advice-option",
+              "data-scope": JSON.stringify(option.scope),
+            };
+            return (
+              <span key={index}>
+                {onSelect ? (
+                  <button {...props} onClick={() => onSelect(option.scope)}>
+                    {label}
+                    <ArrowRight size={13} />
+                  </button>
+                ) : (
+                  <Link {...props} to={target(option.scope)}>
+                    {label}
+                    <ArrowRight size={13} />
+                  </Link>
+                )}
+                {option.status === "partial" && advice.status !== "partial" && (
+                  <span className="small muted"> · примерно</span>
+                )}
+                {option.synthetic && !advice.synthetic && <Synthetic />}
+              </span>
+            );
+          })}
       </div>
       <details
         className="room-caveats-details"
@@ -283,29 +328,30 @@ function AdviceCard({
             </button>
           ))}
         </div>
-        {advice.options.map((option, optionIndex) => (
-          <div className="room-option-proof" key={optionIndex}>
-            <p className="small">
-              {scopeText(roomEvidenceScope(option.scope))}
-            </p>
-            <div className="room-clause-actions">
-              {option.fact_ids.map((factId, factIndex) => (
-                <button
-                  className="text-button small"
-                  key={factId}
-                  disabled={busy}
-                  onClick={() =>
-                    showEvidence(`option:${optionIndex}`, factIndex)
-                  }
-                  data-testid="room-advice-option-evidence"
-                  data-fact-id={factId}
-                >
-                  Основание {factIndex + 1}
-                </button>
-              ))}
+        {!named &&
+          advice.options.map((option, optionIndex) => (
+            <div className="room-option-proof" key={optionIndex}>
+              <p className="small">
+                {scopeText(roomEvidenceScope(option.scope))}
+              </p>
+              <div className="room-clause-actions">
+                {option.fact_ids.map((factId, factIndex) => (
+                  <button
+                    className="text-button small"
+                    key={factId}
+                    disabled={busy}
+                    onClick={() =>
+                      showEvidence(`option:${optionIndex}`, factIndex)
+                    }
+                    data-testid="room-advice-option-evidence"
+                    data-fact-id={factId}
+                  >
+                    Основание {factIndex + 1}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
         <details className="room-caveats-details">
           <summary>Ссылки на расчёты</summary>
           <ul>
@@ -381,32 +427,14 @@ export function RoomAdviceSection({
           )}
         </div>
       )}
-      <p className="muted section-lead">
-        {recommendation
-          ? "Если важнее что-то другое"
-          : "Выберите, что важно для вашего отдыха"}
-      </p>
-      {recommendation && (
-        <details className="room-other-goals" data-testid="other-room-goals">
-          <summary>Другие варианты по сторонам и этажам</summary>
-          <RoomAdviceList
-            hotelId={hotelId}
-            month={month}
-            onSelect={onSelect}
-            profile={profile}
-            requestedCharacteristicIds={requestedCharacteristicIds}
-          />
-        </details>
-      )}
-      {!recommendation && (
-        <RoomAdviceList
-          hotelId={hotelId}
-          month={month}
-          onSelect={onSelect}
-          profile={recommendation ? profile : undefined}
-          requestedCharacteristicIds={requestedCharacteristicIds}
-        />
-      )}
+      <RoomAdviceList
+        hotelId={hotelId}
+        month={month}
+        onSelect={onSelect}
+        profile={profile}
+        requestedCharacteristicIds={requestedCharacteristicIds}
+        collapseGeographic={!!recommendation}
+      />
       <p className="fine-print room-stock-note">
         Советы относятся к сторонам здания и этажам. Реальный номер,
         расположение окон и наличие мест подтвердит отель.
