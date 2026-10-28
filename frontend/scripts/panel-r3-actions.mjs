@@ -1088,27 +1088,74 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
       limit: 40,
       compact: true,
     });
-    const demo = demoSearch.results.find((hit) =>
+    const candidates = demoSearch.results.filter((hit) =>
       hit.verdicts.some(
-        (v) =>
-          v.characteristic_id === "pets" &&
-          v.synthetic &&
-          v.basis === "hotelier",
+        (verdict) => verdict.characteristic_id === "pets" && verdict.synthetic,
       ),
     );
+    let demo = null,
+      demoProof = [];
+    for (const candidate of candidates) {
+      const verdict = candidate.verdicts.find(
+        (item) => item.characteristic_id === "pets",
+      );
+      const detail = await api(
+        `/api/hotels/${encodeURIComponent(candidate.hotel.id)}`,
+      );
+      const proof = [];
+      for (const fact of detail.facts.filter(
+        (fact) =>
+          fact.characteristic_id === "pets" &&
+          fact.synthetic &&
+          verdict.fact_ids.includes(fact.id),
+      )) {
+        for (const claimId of fact.supporting_claim_ids) {
+          const claim = detail.claims.find(
+            (claim) =>
+              claim.id === claimId &&
+              claim.hotel_id === candidate.hotel.id &&
+              claim.characteristic_id === "pets" &&
+              claim.synthetic &&
+              claim.source === "hotelier_simulator",
+          );
+          if (!claim) continue;
+          const evidence = claim.evidence.filter(
+            (item) =>
+              item.kind === "simulation" &&
+              item.source_ids.includes("hotelier_simulator") &&
+              fact.evidence.some(
+                (copy) =>
+                  copy.id === item.id &&
+                  copy.kind === item.kind &&
+                  copy.source_ids.includes("hotelier_simulator"),
+              ),
+          );
+          if (evidence.length)
+            proof.push({
+              fact_id: fact.id,
+              claim_id: claim.id,
+              source: claim.source,
+              evidence_ids: evidence.map((item) => item.id),
+            });
+        }
+      }
+      if (proof.length) {
+        demo = candidate;
+        demoProof = proof;
+        break;
+      }
+    }
     check(
-      !!demo,
-      "Existing seed/API demo response is available without creating a new synthetic answer",
+      !!demo && demoProof.length > 0,
+      "Existing synthetic pet verdict is backed by its actual hotelier_simulator claim and simulation evidence, not merely an arbitrary synthetic flag",
     );
-    const demoDetail = await api(
-      `/api/hotels/${encodeURIComponent(demo.hotel.id)}`,
+    const demoVerdict = demo.verdicts.find(
+      (verdict) => verdict.characteristic_id === "pets",
     );
-    check(
-      demoDetail.facts.some(
-        (f) => f.characteristic_id === "pets" && f.synthetic,
-      ),
-      "Existing API fixture retains synthetic provenance",
-    );
+    if (demoVerdict.basis !== "hotelier")
+      report.limitations.push(
+        `Existing simulator fixture has basis=${demoVerdict.basis}; simulator origin is proven independently through actual supporting claims/evidence, and basis is retained unchanged in the report.`,
+      );
     const demoGuest = await guestFact(demo.hotel.id, "pets", "existing-demo", {
       parsed: query("pets"),
     });
@@ -1126,7 +1173,9 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
       existing_fixture: true,
       hotel_id: demo.hotel.id,
       run_id: demoSearch.run_id,
-      verdict: demo.verdicts.find((v) => v.characteristic_id === "pets"),
+      verdict: demoVerdict,
+      basis_observed: demoVerdict.basis,
+      supporting_proof: demoProof,
       no_synthetic_writes: true,
     };
     check(
