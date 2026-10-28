@@ -1,8 +1,0 @@
-{
-  "method": "native Python, same family_nearby schema and value; 1000 validations per sample, three samples; per-instance validation retained; not a Docker startup measurement",
-  "before_samples_ms": [407.036, 482.886, 580.792],
-  "after_samples_ms": [11.321, 11.562, 10.56],
-  "before_median_ms": 482.886,
-  "after_median_ms": 11.321,
-  "checks": ["every instance validated", "nested schema mutation changes cache key", "external refs remain forbidden", "local refs and parallel validation", "equivalent key order shares compilation"]
-}

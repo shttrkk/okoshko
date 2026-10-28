@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "checked_at": "2026-10-28T13:45:27.880356+00:00",
-  "git_head": "f97014762882be08f23e0d7b5a68628ae6c03070",
+  "checked_at": "2026-10-28T15:53:03.861943+00:00",
+  "git_head": "892532379bbd1303b407bb26f451fa9f39a4c718",
   "passed": true,
   "checks": {
     "mandatory_root_files": {
@@ -34,7 +34,6 @@
         {
           "path": "README.md",
           "counts": {
-            "literal_credential_assignment": 1,
             "connection_uri_credentials": 1
           }
         },
@@ -203,8 +202,8 @@
       ]
     }
   },
-  "tracked_files": 1541,
-  "tracked_worktree_total_bytes": 415714497,
+  "tracked_files": 1496,
+  "tracked_worktree_total_bytes": 413069843,
   "largest_tracked_files": [
     {
       "path": "data/geo/terrain_30m.npz",
@@ -248,10 +247,10 @@
     }
   ],
   "git_storage": {
-    "directory_bytes": 346071582,
+    "directory_bytes": 346124397,
     "count_objects": {
-      "count": 5230,
-      "size": 169380,
+      "count": 5261,
+      "size": 169516,
       "in-pack": 1708,
       "packs": 2,
       "size-pack": 182653,
@@ -260,7 +259,7 @@
       "size-garbage": 0
     },
     "pack_bytes": 187036672,
-    "loose_allocated_bytes": 173445120,
+    "loose_allocated_bytes": 173584384,
     "target_pack_bytes": 150000000,
     "target_pack_met": false,
     "interpretation": "Pack target is advisory; owner decides compaction. No gc, purge or rewrite performed."
