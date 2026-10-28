@@ -13,7 +13,7 @@ import {
   Synthetic,
 } from "./ui";
 import type { RoomProfile } from "../types";
-import { guestText } from "./panel-guest-presentation";
+import { guestText, humanExplanation } from "./panel-guest-presentation";
 
 export function RoomAdviceList({
   hotelId,
@@ -221,7 +221,7 @@ function AdviceCard({
       ) : (
         <h3>{advice.title}</h3>
       )}
-      <p>{guestText(advice.text, advice.synthetic)}</p>
+      <p>{humanExplanation(advice.text, advice.synthetic)}</p>
       <div className="room-advice-status">
         {advice.status === "partial" && (
           <span className="badge warning">примерно</span>
@@ -363,7 +363,7 @@ export function RoomAdviceSection({
         <div className="room-request-advice">
           <span className="eyebrow">ПОД ВАШ ЗАПРОС</span>
           <p className="room-recommendation" data-testid="room-recommendation">
-            {recommendation}
+            {humanExplanation(recommendation)}
           </p>
           {reason && (
             <p className="room-request-reason">

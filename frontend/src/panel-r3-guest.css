@@ -1,0 +1,37 @@
+.search-input-label textarea {
+  overflow-y: hidden;
+}
+#company-search-help {
+  margin: 12px 24px;
+}
+.passport-edit-item {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: start;
+}
+.passport-edit-item textarea {
+  grid-column: 2;
+}
+.passport-edit-item > .checkbox-label {
+  grid-column: 3;
+  grid-row: 1;
+}
+.passport-edit-item > .fine-print {
+  grid-column: 2 / -1;
+  margin: 0;
+}
+.passport-hotel-reply {
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+@media (max-width: 680px) {
+  .passport-edit-item {
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+  .passport-edit-item > .checkbox-label {
+    grid-column: 2;
+    grid-row: auto;
+  }
+}

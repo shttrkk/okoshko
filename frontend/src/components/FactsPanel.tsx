@@ -579,7 +579,9 @@ export function headline(
     const quiet = bySide(model).filter((r) => v(r.best).index === "quiet");
     const modelText = model.length
       ? quiet.length
-        ? `По расчёту уличного шума тише: ${quiet.map((r) => SIDES[r.side]).join(", ")}.`
+        ? quiet.length === bySide(model).length
+          ? "По расчёту все проверенные стороны примерно одинаково тихие."
+          : `По расчёту уличного шума тише: ${quiet.map((r) => SIDES[r.side]).join(", ")}.`
         : "Расчёт не выделил тихую сторону. Наружный шум не определяет тишину в номере."
       : "";
     const reportText =
@@ -625,6 +627,7 @@ function FactCard({
   hotelId,
   month,
   onEvidence,
+  onCorrect,
   canAsk,
   onPanorama,
   onShowOnMap,
@@ -641,6 +644,7 @@ function FactCard({
   month: number;
   onEvidence: (f: Fact) => void;
   canAsk: boolean;
+  onCorrect?: (fact: Fact) => void;
   onPanorama?: (side: string) => void;
   onShowOnMap?: (fact: Fact) => void;
   onOpenWindow?: (fact: Fact) => void;
@@ -655,6 +659,12 @@ function FactCard({
       : [];
   const supplemental = facts.filter(isSupplementalFact);
   const rep = representative(supplemental.length ? supplemental : facts, month);
+  const correctionFact = [rep, ...facts].find(
+    (fact) =>
+      !fact.synthetic &&
+      fact.status === "computed" &&
+      fact.evidence.some((evidence) => evidence.kind === "calculation"),
+  );
   const disputed = facts.some((f) => f.status === "disputed");
   const confidence = Math.max(...shown.map((f) => f.confidence), 0);
   const multi = shown.length > 1;
@@ -809,6 +819,16 @@ function FactCard({
         </details>
       </details>
       <div className="fact-card-foot">
+        {onCorrect && correctionFact && (
+          <button
+            className="text-button small"
+            data-testid="correct-calculated-fact"
+            data-fact-id={correctionFact.id}
+            onClick={() => onCorrect(correctionFact)}
+          >
+            Неверно
+          </button>
+        )}
         <EvidenceButton fact={rep} claims={claims} />
         {shown.some((f) => f.synthetic) && (
           <Synthetic>
@@ -880,6 +900,7 @@ export function FactsPanel({
   hotelId,
   month,
   onEvidence,
+  onCorrect,
   hotelier = false,
   onPanorama,
   onShowOnMap,
@@ -897,6 +918,7 @@ export function FactsPanel({
   onEvidence: (f: Fact) => void;
   /** The hotel's own cabinet: no "ask the hotel" actions. */
   hotelier?: boolean;
+  onCorrect?: (fact: Fact) => void;
   /** Open a street panorama turned towards a facade. */
   onPanorama?: (side: string) => void;
   /** Focus a characteristic and its actual scope on the hotel map. */
@@ -921,6 +943,7 @@ export function FactsPanel({
       hotelId,
       month,
       onEvidence,
+      onCorrect,
       hotelier,
       onPanorama,
       onShowOnMap,
@@ -1001,11 +1024,8 @@ export function FactsPanel({
                   hotelId={hotelId}
                   month={month}
                   onEvidence={onEvidence}
-                  canAsk={
-                    !hotelier &&
-                    (!isPlaceTrait(id) ||
-                      spec(id)?.hotelier_answerable !== false)
-                  }
+                  onCorrect={hotelier ? onCorrect : undefined}
+                  canAsk={!hotelier && spec(id)?.hotelier_answerable === true}
                   onPanorama={onPanorama}
                   onShowOnMap={onShowOnMap}
                   onOpenWindow={onOpenWindow}
