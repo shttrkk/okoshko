@@ -281,25 +281,24 @@ export function SearchForm({
             className="button secondary small"
             onClick={mashaExample}
             data-testid="masha-example"
+            title={`Подставить демо-запрос: «${mashaQuery}»`}
           >
-            Как у Маши: тишина, закат и море
+            Демо-запрос
+          </button>
+          <button
+            type="button"
+            className="text-button small group-search-example"
+            data-testid="group-search-example"
+            onClick={() => {
+              setCompanyHelp((open) => !open);
+              textarea.current?.focus();
+            }}
+            aria-expanded={companyHelp}
+            aria-controls="company-search-help"
+          >
+            Едем компанией? Опишите каждого
           </button>
         </div>
-      )}
-      {!compact && (
-        <button
-          type="button"
-          className="text-button small group-search-example"
-          data-testid="group-search-example"
-          onClick={() => {
-            setCompanyHelp((open) => !open);
-            textarea.current?.focus();
-          }}
-          aria-expanded={companyHelp}
-          aria-controls="company-search-help"
-        >
-          Едем компанией? Опишите каждого
-        </button>
       )}
       {companyHelp && (
         <p
@@ -313,7 +312,7 @@ export function SearchForm({
       )}
       {previousText !== null && (
         <p className="fine-print" role="status">
-          Пример вставлен. Поиск начнётся по кнопке «Найти мой отель».{" "}
+          Демо-запрос вставлен. Поиск начнётся по кнопке «Найти мой отель».{" "}
           <button
             type="button"
             className="text-button small"

@@ -7083,7 +7083,22 @@ h3 {
   line-height: 1.6;
 }
 .search-example-chips {
-  margin: 8px 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 4px 24px 12px;
+}
+.search-example-chips .group-search-example {
+  align-self: center;
+  margin: 0;
+  max-width: 100%;
+}
+@media (max-width: 680px) {
+  .search-example-chips {
+    margin-left: 17px;
+    margin-right: 17px;
+  }
 }
 .modal-actions {
   display: flex;
