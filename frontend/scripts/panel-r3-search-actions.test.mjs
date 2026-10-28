@@ -67,6 +67,35 @@ test("every non-search mutation stays forbidden even with the flag", () => {
     );
 });
 
+test("GET cannot reach cabinet/question-generation or operational APIs", () => {
+  for (const method of ["GET", "HEAD", "OPTIONS"])
+    for (const path of [
+      "/api/hotelier/cabinet",
+      "/api/questions",
+      "/api/answers/x",
+      "/api/passports",
+      "/api/changes",
+    ])
+      assert.throws(() =>
+        assertR3SearchRequest(method, "http://localhost:8081" + path, enabled),
+      );
+  for (const path of [
+    "/api/hotels/test/geo?month=9",
+    "/api/hotels/test/facts/fact-1/evidence",
+    "/api/characteristics",
+  ])
+    assert.doesNotThrow(() =>
+      assertR3SearchRequest("GET", "http://localhost:8081" + path, {}),
+    );
+  assert.throws(() =>
+    assertR3SearchRequest(
+      "GET",
+      "http://localhost:8081/api/hotels/%2e%2e%2fhotelier%2fcabinet",
+      enabled,
+    ),
+  );
+});
+
 test("search permission is exact and checked before transport", async () => {
   for (const value of [undefined, "0", "true", true, 1]) {
     const stub = transport();
