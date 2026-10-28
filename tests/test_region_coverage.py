@@ -27,12 +27,16 @@ def test_open_data_without_values_is_no_data_but_hotel_answerable_waits_for_hote
             row("a", "soundproofing", None, "unknown")]
     coverage = region_coverage(rows, CATALOG, 2)
     assert coverage["beach_walk"] == {"known_hotels": 1, "hotels": 2, "status": "partial", "note": None}
-    assert coverage["connectivity"]["status"] == "no_data" and coverage["connectivity"]["note"] == "нет данных в регионе"
+    # R4: the hotel can now supply Wi-Fi details; unknown speed is still unknown.
+    assert coverage["connectivity"]["status"] == "awaiting_hotels" and coverage["connectivity"]["note"] is None
     assert coverage["building_history"]["status"] == "no_data"
     assert coverage["soundproofing"]["status"] == "awaiting_hotels"
 
 
 def test_search_moves_no_data_conditions_out_of_ranking(repo):  # noqa: F811
+    # This test targets the generic unanswerable-source path, independently of
+    # production connectivity's R4 hotel-answerable policy.
+    repo.upsert("characteristics", {**repo.get("characteristics", "connectivity"), "hotelier_answerable": False})
     app.dependency_overrides[get_repo] = lambda: repo
     try:
         with TestClient(app) as client:

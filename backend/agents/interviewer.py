@@ -7,7 +7,7 @@ from threading import RLock
 
 from psycopg.errors import UniqueViolation
 
-from backend.contracts import Question, Scope, now
+from backend.contracts import FieldUpdate, Question, Scope, now
 
 _LOCK = RLock()
 IMPACT = {"soundproofing": 1., "room_orientation": 1., "pets": .85, "sunset_view": .95, "quiet_night": 1., "sea_view": .9, 'hotel_parking': .85}
@@ -89,6 +89,10 @@ def _fact_sentence(fact: dict, label: str) -> str:
     elif cid in {"sea_view", "mountain_view", "sunset_view"}:
         target = {"sea_view": "море", "mountain_view": "горы", "sunset_view": "закат"}[cid]
         detail = f"{target} видно" if available is True else f"{target} не видно" if available is False else f"вид на {target} не подтверждён"
+    elif cid == "soundproofing":
+        detail = "заявлена шумоизоляция" if available is True else "заявленной шумоизоляции нет" if available is False else "шумоизоляция не подтверждена"
+    elif cid == "morning_sun":
+        detail = "утром в окна попадает прямое солнце" if available is True else "утром прямого солнца в окнах нет" if available is False else "утреннее солнце требует уточнения"
     elif cid == "beach_walk" and isinstance(value.get("minutes"), int | float):
         import math
         detail = f"до пляжа около {math.ceil(value['minutes'])} мин пешком"
@@ -127,27 +131,40 @@ def _build_question(hotel_id: str, cid: str, facts: list[dict], *, spec=None, re
     uncertainty = 1-confidence
     hypothesis = None
     label = _label(spec)
-    known = [fact for fact in related if fact.get("value") is not None and fact.get("status") != "stale"]
-    if known:
-        descriptions = list(dict.fromkeys(_fact_sentence(fact, label) for fact in known))
-        hypothesis = "По имеющимся данным: " + "; ".join(descriptions[:3]) + "."
-        if len(descriptions) > 3:
-            hypothesis += " Остальные стороны и периоды показаны в разделе «Что уже известно»."
-        if any(fact.get("status") == "disputed" for fact in related):
-            hypothesis += " Источники расходятся; уточните только известные вам стороны и условия."
+    hypothesis_update = None
+    known = [fact for fact in related if fact.get("status") not in {"stale", "disputed", "unknown"}
+             and isinstance(fact.get("value"), dict) and type(fact["value"].get("available")) is bool]
+    # One Boolean proposition has a precise yes/no meaning. Never combine
+    # opposite facades, numeric proxies or independent amenities into it.
+    if known and cid in {"quiet_night", "sea_view", "mountain_view", "sunset_view", "soundproofing", "morning_sun", "pets"}:
+        fact = max(known, key=lambda item: (item.get("confidence", 0), item.get("id", "")))
+        hypothesis = _fact_sentence(fact, label).capitalize() + "."
+        hypothesis_update = FieldUpdate(characteristic_id=cid, scope=Scope.model_validate(fact.get("scope", {})),
+                                        value={"available": fact["value"]["available"]}, quote=hypothesis)
     prompts = {
-        "soundproofing": "Какие окна установлены? Есть ли заявленная шумоизоляция, шторы blackout и кондиционер? Укажите номера и ограничения; двойные окна сами по себе не доказывают шумоизоляцию.",
+        "soundproofing": "Какие окна установлены? Есть ли заявленная шумоизоляция, плотные светонепроницаемые шторы и кондиционер? Укажите номера и ограничения; двойные окна сами по себе не доказывают шумоизоляцию.",
         "room_orientation": "Какие номера выходят на какую сторону, на каких этажах и есть ли у них балкон?",
-        "pets": "Какие питомцы разрешены, до какого веса и какая доплата за ночь?",
+        "pets": "Какие питомцы разрешены, до какого веса и какая доплата за ночь? Если есть ограничения по месяцам, перечислите их в одном ответе.",
+        "quiet_night": "Ночью в номерах тихо? Если условия различаются, укажите стороны, этажи или номера.",
+        "sea_view": "Из каких номеров видно море? Укажите сторону и этаж, если знаете.",
+        "sunset_view": "Из каких номеров видно закат? Укажите сторону, этаж и месяцы, если знаете.",
+        "mountain_view": "Из каких номеров видно горы? Укажите сторону и этаж, если знаете.",
+        "morning_sun": "В какие номера утром попадает прямое солнце? Укажите сторону и этаж, если знаете.",
+        "evening_heat": "В какие номера вечером попадает прямое солнце? Укажите сторону и этаж, если знаете; температуру измерять не нужно.",
+        "railway_noise": "В каких номерах ночью слышны поезда? Укажите стороны и условия; уровень шума в децибелах без измерения не нужен.",
+        "accessible_route": "Можно ли пройти весь путь от входа отеля до пляжа с коляской? Расскажите про ступени, пандусы и ограничения прохода.",
+        "connectivity": "Есть ли Wi-Fi в номерах? Он бесплатный или платный? Если проверяли скорость, укажите загрузку и отдачу в Мбит/с; неизвестную скорость можно не указывать.",
         'hotel_parking': 'Есть ли у отеля своя парковка? Сколько она стоит в рублях за сутки, нужно ли бронировать место и есть ли зарядка для электромобиля? Укажите условия; общественную парковку рядом опишите отдельно.',
     }
     scoped = (spec or {}).get("scope", "hotel") != "hotel"
     text = prompts.get(cid, f"Уточните «{label}»: " + ("для каких сторон, этажей или номеров это верно? Укажите различия и ограничения." if scoped else "что вы знаете об этом у вашего отеля? Укажите условия и ограничения."))
-    if reason == "guest" and known:
-        text = "Гость просит проверить имеющиеся сведения. " + text
+    if hypothesis_update is not None:
+        text = "Это утверждение верно? «Да» подтвердит его, «Нет» означает обратное. Если верно частично, опишите различия своими словами."
+    if reason == "guest":
+        text = ("Гость просит проверить это утверждение. " if hypothesis_update is not None else "Гость просит уточнить сведения. ") + text
     return Question(id=stable_id("question", hotel_id, cid, ordinal), hotel_id=hotel_id, characteristic_ids=[cid],
                     text=text,
-                    hypothesis=hypothesis, priority=round((1+demand)*uncertainty*IMPACT.get(cid, .65), 3), reason=reason,
+                    hypothesis=hypothesis, hypothesis_update=hypothesis_update, priority=round((1+demand)*uncertainty*IMPACT.get(cid, .65), 3), reason=reason,
                     evidence_refs=[item["id"] for fact in related for item in fact.get("evidence", [])],
                     demand_estimate=demand, demand_synthetic=False)
 
@@ -165,18 +182,21 @@ def create_question(hotel_id: str, characteristic_id: str, repo, *, reason="gues
             original = Question.model_validate(pending)
             # Refresh legacy seeded wording and hypotheses without reopening a
             # question or dropping any of its independently requested slices.
-            if original.reason != "conflict":
+            if original.reason != "conflict" and original.hypothesis_update is None:
                 refreshed = _build_question(hotel_id, characteristic_id, repo.find("facts", hotel_id=hotel_id),
                                             spec=repo.get("characteristics", characteristic_id),
                                             reason="guest" if reason == "guest" else original.reason,
                                             demand=demand.get(characteristic_id, 0))
                 original = original.model_copy(update={"text": refreshed.text, "hypothesis": refreshed.hypothesis,
+                                                       "hypothesis_update": refreshed.hypothesis_update,
                                                        "reason": refreshed.reason, "priority": refreshed.priority,
                                                        "demand_estimate": refreshed.demand_estimate, "demand_synthetic": False})
                 scopes = original.requested_scopes
                 original.requested_scopes = []
                 for requested in scopes:
                     original, _ = _with_requested_scope(original, requested)
+            if reason == "guest" and original.reason != "guest":
+                original = original.model_copy(update={"reason": "guest", "text": "Гость просит проверить сведения. " + original.text})
             question, _ = _with_requested_scope(original, scope)
             if question.model_dump(mode="json") != pending:
                 repo.upsert("questions", question.model_dump(mode="json"))
@@ -221,11 +241,12 @@ def generate_questions(hotel_id: str, repo) -> list[Question]:
             continue
         reason = "disputed" if any(fact.get("status") == "disputed" for fact in related) else "low_confidence" if any(fact.get("value") is not None for fact in related) else "unknown"
         by_cid[cid] = create_question(hotel_id, cid, repo, reason=reason, demand=demand)
+    by_id = {question.id: question for question in by_cid.values()}
     for value in repo.find("questions", hotel_id=hotel_id):
         if value.get("status") == "pending":
             question = Question.model_validate(value)
-            by_cid[question.characteristic_ids[0]] = question
-    return sorted(by_cid.values(), key=lambda question: (question.demand_synthetic, -question.demand_estimate,
+            by_id[question.id] = question
+    return sorted(by_id.values(), key=lambda question: (question.demand_synthetic, -question.demand_estimate,
                                                        -question.priority, question.id))
 
 

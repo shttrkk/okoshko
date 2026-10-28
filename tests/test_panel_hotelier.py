@@ -47,12 +47,15 @@ def test_bare_no_accepts_unscoped_boolean_but_never_inherits_requested_scopes():
 
 def test_partial_pet_policy_keeps_exact_observations_without_all_year_permission():
     answer = parse_answer(question(), PETS)
-    [pets] = answer.updates
-    assert pets.characteristic_id == "pets" and pets.scope == Scope()
-    assert pets.value == {"available": None, "species": ["dog"], "excluded_species": ["cat"],
-                          "max_weight_kg": 5, "fee_rub_night": 500}
-    assert pets.quote in PETS and "pets.available" in answer.unknown_fields
-    assert answer.disposition == "parsed" and "месяц" in answer.needs_clarification
+    # R3 accepts all explicitly stated monthly exceptions in one operator reply.
+    pets = answer.updates
+    assert {item.scope.month for item in pets} == set(range(1, 13))
+    for item in pets:
+        assert item.characteristic_id == "pets"
+        assert item.value == {"available": item.scope.month not in {7, 8}, "species": ["dog"], "excluded_species": ["cat"],
+                              "max_weight_kg": 5, "fee_rub_night": 500}
+        assert item.quote == PETS
+    assert not answer.unknown_fields and answer.disposition == "parsed" and answer.needs_clarification is None
 
 
 def test_room_groups_preserve_ranges_views_balconies_and_explicit_absent_floor():
@@ -119,8 +122,12 @@ def test_confident_facts_do_not_repeat_but_guest_and_unresolved_facades_remain()
     east = Scope(type="facade", facade="E")
     repo.upsert("facts", fact("quiet_night", "quiet-e", scope=east, status="disputed", value={"available": False}))
     pending = next(q for q in generate_questions("test-hotel", repo) if "quiet_night" in q.characteristic_ids)
-    assert "запад" in pending.hypothesis and "восток" in pending.hypothesis
-    assert "тихо" in pending.hypothesis and "шумно" in pending.hypothesis and "{" not in pending.hypothesis
+    # R3 presents one proposition with an unambiguous yes/no meaning. The
+    # disputed eastern observation remains in the facts, not in a merged claim.
+    assert "запад" in pending.hypothesis and "восток" not in pending.hypothesis
+    assert "тихо" in pending.hypothesis and "{" not in pending.hypothesis
+    assert pending.hypothesis_update.scope == west
+    assert repo.get("facts", "quiet-e")["status"] == "disputed"
     repo.upsert("facts", fact("quiet_night", "quiet-e", scope=east, value={"available": False}))
     guest = create_question("test-hotel", "quiet_night", repo, reason="guest")
     assert "Гость просит проверить" in guest.text
@@ -208,7 +215,11 @@ def test_partial_confirm_preserves_quotes_and_synthetic_provenance_and_is_idempo
     assert all(claim["evidence"][0]["quote"] in raw and claim["evidence"][0]["message_id"] == answer["id"] for claim in claims)
     assert client.post(path, json={}, headers=auth).json() == response.json()
     assert repo.all("claims") == claims
-    assert all(claim["value"]["available"] is None for claim in claims)
+    if cid == "room_orientation":
+        assert all(claim["value"]["available"] is None for claim in claims)
+    else:
+        assert {claim["scope"]["month"] for claim in claims} == set(range(1, 13))
+        assert all(claim["value"]["available"] is (claim["scope"]["month"] not in {7, 8}) for claim in claims)
     assert all(raw not in sql for sql, _ in database.calls)
 
 

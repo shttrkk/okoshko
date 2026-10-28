@@ -27,6 +27,9 @@ def add_fact(repository, hotel_id, cid, value):
 
 @pytest.fixture
 def client(repo):  # noqa: F811
+    # This fixture tests generic unanswerable regional coverage. Production
+    # connectivity is hotel-answerable in R4 and is covered by test_r3_hotelier.
+    repo.upsert("characteristics", {**repo.get("characteristics", "connectivity"), "hotelier_answerable": False})
     for fact in repo.all("facts"):
         repo.upsert("facts", {**fact, "supporting_claim_ids": ["synthetic-input"]})
     for hotel in repo.all("hotels"):
