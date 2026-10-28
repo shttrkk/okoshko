@@ -503,3 +503,53 @@ def test_ookla_area_and_room_wifi_stay_in_separate_domains_with_independent_evid
         assert observed.evidence == area.evidence and observed.value == area.value
         assert "wifi_in_rooms" not in observed.value
     assert {fact.value.get("kind") for fact in facts if fact.status == "computed"} == {"fixed", "mobile"}
+
+
+@pytest.mark.parametrize("reason", ["unknown", "low_confidence"])
+@pytest.mark.parametrize("cid,text", [("room_orientation", "Номера 201–210 на море, с балконом."), ("accessible_route", ROUTE)])
+def test_cabinet_read_keeps_explicit_revision_of_complete_automatic_question(api, reason, cid, text):
+    repo, client, auth = api
+    q = create_question("test-hotel", cid, repo, reason=reason)
+    client.get("/api/hotelier/test-hotel", headers=auth)
+    original = parse_answer(Question.model_validate(repo.get("questions", q.id)), text)
+    repo.insert("answers", original.model_dump(mode="json"))
+    confirm_answer(original.id, repo, principal=DEMO_ADMIN)
+    other = create_question("test-hotel", "soundproofing", repo, reason="unknown")
+    count = len(repo.all("questions"))
+    response = client.post(f"/api/answers/{original.id}/revise", headers=auth, json={})
+    assert response.status_code == 200, response.text
+    for _ in range(2):
+        response = client.get("/api/hotelier/test-hotel", headers=auth)
+        assert response.status_code == 200, response.text
+        reopened = next(item for item in response.json()["questions"] if item["id"] == q.id)
+        assert reopened["status"] == "pending" and reopened["reason"] == reason
+        assert repo.get("questions", other.id)["status"] == "pending"
+        assert len(repo.all("questions")) == count
+    preview = client.post(f"/api/questions/{q.id}/answer", headers=auth, json={"text": text})
+    assert preview.status_code == 200, preview.text
+    accepted = client.post(f'/api/answers/{preview.json()["id"]}/confirm', headers=auth, json={})
+    assert accepted.status_code == 200, accepted.text
+    assert repo.get("questions", q.id)["status"] == "answered"
+    assert repo.get("questions", q.id)["reason"] == reason
+    assert repo.get("questions", other.id)["status"] == "pending"
+    assert len(repo.all("questions")) == count
+
+
+def test_new_scope_note_replaces_legacy_marker_without_changing_scope_or_yes_semantics():
+    from backend.agents.interviewer import _with_requested_scope
+
+    q = question("sea_view")
+    legacy = "\nГость просит уточнить модельный срез: запад, 3-й этаж. Это запрос на уточнение модели, не подтверждение существования номера или окна."
+    q.text = "Из каких номеров видно море?" + legacy
+    q.hypothesis = "Море видно." + legacy
+    q.requested_scopes = [Scope(facade="W", floor_min=3, floor_max=3)]
+    original = q.model_dump(mode="json")
+    changed, added = _with_requested_scope(q, Scope(facade="E", floor_min=4, floor_max=4))
+    assert added and len(changed.requested_scopes) == 2
+    assert changed.requested_scopes[0] == q.requested_scopes[0]
+    assert "модель" not in changed.text and "срез" not in changed.text
+    assert "модель" not in changed.hypothesis and "срез" not in changed.hypothesis
+    assert changed.text.count("Гость просит проверить выбранный номер:") == 1
+    assert "одного «Да» недостаточно" in changed.text
+    assert not parse_answer(changed, "Да").updates
+    assert q.model_dump(mode="json") == original

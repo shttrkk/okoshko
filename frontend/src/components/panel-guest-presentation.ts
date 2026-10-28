@@ -84,10 +84,16 @@ export function guestText(text: string, synthetic = false) {
     return synthetic
       ? DEMO_EXPLANATION
       : "Подробности источника доступны в данных расчёта.";
-  return text.replace(
-    /(до\s+)?(?:пляж[ауе]?\s*)?[«"]?OSM\s+osm-(?:way|node|relation)-\d+[»"]?/gi,
-    (_, to: string) => (to ? "до ближайшего пляжа" : "ближайший пляж"),
-  );
+  return text
+    .replace(
+      /(до\s+)?(?:пляж[ауе]?\s*)?[«"]?OSM\s+osm-(?:way|node|relation)-\d+[»"]?/gi,
+      (_, to: string) => (to ? "до ближайшего пляжа" : "ближайший пляж"),
+    )
+    .replace(/local_poi_nightlife@\d+/gi, "поиск кафе и баров по карте")
+    .replace(/POI-расч[её]т/gi, "поиск мест по карте")
+    .replace(/opening_hours/gi, "часы работы")
+    .replace(/провер(?:к[аиу]|ке) среза/gi, "проверка выбранного номера")
+    .replace(/Данных нет\s+Данных нет/gi, "Данных нет");
 }
 export function criterionLabel(c: Criterion) {
   if (typeof c.value !== "number")

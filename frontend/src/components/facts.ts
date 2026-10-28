@@ -557,6 +557,7 @@ export const METHOD_NAMES: Record<string, string> = {
     "Пеший маршрут по графу OSM с учётом уклона",
   exact_quote_v1: "Дословная цитата с сайта отеля",
   "local_poi_lookup@2": "Поиск ближайших объектов OSM",
+  "local_poi_nightlife@1": "Поиск кафе и баров по карте",
   "hotelier_answer@1": "Ответ отеля с цитатой",
   "simulated_hotelier_quote@1": "Демо-ответ отеля с цитатой",
   astral_morning_horizon_proxy_v1: "Расчёт утреннего солнца с учётом горизонта",
