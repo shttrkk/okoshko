@@ -728,18 +728,67 @@ export async function runPanelR3GuestActions({ base, artifacts } = {}) {
     const publication = await uiPost(page, "/api/characteristics/publish", () =>
       page.getByTestId("studio-publish").click(),
     );
-    const end = Date.now() + 180000;
-    let run;
+    const waitStarted = Date.now(),
+      end = waitStarted + 600000;
+    let lastProgressAt = waitStarted,
+      processed = publication.processed || 0,
+      run;
+    report.stages.R5.backfill = {
+      run_id: publication.run_id,
+      initial_publish_status: publication.status,
+      total: publication.total,
+      processed,
+      wait_limit_ms: 600000,
+      stall_limit_ms: 60000,
+      progress: [],
+    };
+    await save();
     do {
       run = await api(`/api/runs/${encodeURIComponent(publication.run_id)}`);
+      const counters = (run.steps || [])
+        .map((step) => step.output?.processed)
+        .filter((value) => Number.isInteger(value) && value >= 0);
+      const observed = Math.max(publication.processed || 0, ...counters);
+      const now = Date.now(),
+        backfill = report.stages.R5.backfill;
+      backfill.elapsed_ms = now - waitStarted;
+      backfill.status = run.status;
+      backfill.processed = observed;
+      backfill.error = run.error ? safeError(run.error) : null;
+      if (observed > processed) lastProgressAt = now;
+      if (
+        !backfill.progress.length ||
+        backfill.progress.at(-1).processed !== observed ||
+        backfill.progress.at(-1).status !== run.status
+      )
+        backfill.progress.push({
+          elapsed_ms: now - waitStarted,
+          processed: observed,
+          status: run.status,
+        });
+      await save();
+      check(observed >= processed, "R5: backfill processed count is monotonic");
+      processed = observed;
       check(run.status !== "failed", "R5: actual backfill has not failed");
       if (run.status === "completed") break;
+      check(
+        now - lastProgressAt < 60000,
+        "R5: active backfill makes progress within 60 seconds",
+      );
       await delay(1000);
     } while (Date.now() < end);
     check(
       run?.status === "completed",
-      "R5: actual publication backfill completes",
+      "R5: actual publication backfill completes within the full 600-second limit",
     );
+    check(
+      processed >= publication.total,
+      "R5: completed backfill processed the full published total",
+    );
+    if (run.started_at && run.finished_at)
+      report.stages.R5.backfill.server_elapsed_ms =
+        Date.parse(run.finished_at) - Date.parse(run.started_at);
+    await save();
     const publishedUI = await searchUI(page, query.studio);
     check(
       publishedUI.parsed.must.some(
@@ -839,6 +888,7 @@ export async function runPanelR3GuestActions({ base, artifacts } = {}) {
       unknownInputVerified = true;
     }
     report.stages.R5 = {
+      ...report.stages.R5,
       status: "passed",
       characteristic_id: spec.id,
       threshold_m: 300,
