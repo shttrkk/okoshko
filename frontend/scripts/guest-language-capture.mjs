@@ -358,9 +358,10 @@ export async function visibleSnapshot(page) {
       return { x, y, width, height };
     };
     const textarea = document.querySelector("textarea");
-    const helper = document.querySelector(
-      '[data-testid="group-search-example"]',
-    );
+    // The example row under the input starts where the typed text starts:
+    // a bordered button aligns by its edge, a plain text link by its text.
+    const helperTarget = ".search-example-chips > :first-child";
+    const helper = document.querySelector(helperTarget);
     const helperRect = rect(helper);
     const textareaRect = rect(textarea);
     const textareaStyle = textarea ? getComputedStyle(textarea) : null;
@@ -371,7 +372,9 @@ export async function visibleSnapshot(page) {
           parseFloat(textareaStyle.paddingLeft)
         : null;
     let helperTextStart = null;
-    if (helper) {
+    if (helper && !helper.classList.contains("text-button"))
+      helperTextStart = helperRect.x;
+    else if (helper) {
       const text = [...helper.childNodes].find(
         (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim(),
       );
@@ -407,7 +410,7 @@ export async function visibleSnapshot(page) {
         }),
       ),
       helper: {
-        target: '[data-testid="group-search-example"]',
+        target: helperTarget,
         className: helper?.className || null,
         rect: helperRect,
         textarea: textareaRect,
