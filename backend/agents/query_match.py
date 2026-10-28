@@ -252,6 +252,32 @@ def real_room_confirmation(fact: Fact) -> bool:
             and not any(e.kind in {"simulation", "mock"} for e in fact.evidence))
 
 
+def wifi_presence_source(fact: Fact) -> str:
+    """Use typed provenance retained in both full and search evidence.
+
+    Hotel quotes describe reported presence, never a measured speed. Do not
+    infer an OSM origin merely from wifi_reported or a missing measurement.
+    """
+    replies = [e for e in fact.evidence if e.kind in {'hotelier', 'simulation'} and e.quote and e.quote.strip()]
+    if any('hotelier_simulator' in e.source_ids for e in replies) or fact.synthetic and any(e.kind == 'hotelier' for e in replies):
+        return 'demo_hotelier'
+    if not fact.synthetic and any(e.kind == 'hotelier' for e in replies) and not any(e.kind in {'simulation', 'mock'} for e in fact.evidence):
+        return 'hotelier'
+    if any(e.kind in {'open_data', 'calculation', 'quote'} and any(
+        source == 'osm' or source.startswith(('osm_', 'osm-')) for source in e.source_ids) for e in fact.evidence):
+        return 'osm'
+    return 'unknown'
+
+
+def wifi_presence_text(fact: Fact) -> str:
+    return {
+        'hotelier': 'Wi-Fi есть по ответу отеля · скорость неизвестна',
+        'demo_hotelier': 'Wi-Fi есть по ответу отеля · демо · скорость неизвестна',
+        'osm': 'Wi-Fi есть по карте · скорость неизвестна',
+        'unknown': 'Wi-Fi указан в источнике · скорость неизвестна',
+    }[wifi_presence_source(fact)]
+
+
 def hotel_floor_count(hotel: Hotel | None) -> int | None:
     return hotel.floors if hotel is not None and type(hotel.floors) is int and 1 <= hotel.floors <= 100 else None
 
@@ -275,7 +301,7 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
             and re.search(r'wi[ -]?fi|вай[ -]?фай|вифи', parsed.text.casefold())):
         present = value.get('wifi_reported') is True
         return Match('partial' if present else 'unknown', [fact],
-                     'Wi-Fi есть по карте · скорость неизвестна' if present
+                     wifi_presence_text(fact) if present
                      else 'Тесты интернета в районе не подтверждают Wi-Fi отеля')
     route_field = ROUTE_FIELDS.get((fact.characteristic_id, field_name))
     if route_field and route_field[0] in value:
@@ -338,7 +364,7 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
     if result is None:
         if (fact.characteristic_id == "connectivity" and field_name in {"download_mbps", "upload_mbps", "latency_ms"}
                 and actual is None and _finite_number(criterion.value) and value.get("wifi_reported") is True):
-            return Match("partial", [fact], "Wi-Fi указан, скорость не измерена", actual, condition_met=False)
+            return Match("partial", [fact], wifi_presence_text(fact), actual, condition_met=False)
         if fact.characteristic_id == "soundproofing" and field_name == "available" and any(value.get(k) is not None for k in ("windows", "blackout", "air_conditioning")):
             return Match("partial", [fact], "Есть сведения об окнах, но шумоизоляция не подтверждена", actual)
         return Match(facts=[fact], reason="Нужное поле не подтверждено", value=actual)
