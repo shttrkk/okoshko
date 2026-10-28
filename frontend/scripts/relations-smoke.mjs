@@ -882,7 +882,7 @@ try {
   );
   assert.match(
     await fixture.getByTestId("fact-card-accessible_route").innerText(),
-    /Данных о проезде с коляской мало/,
+    /проезд с коляской пока не проверен/,
   );
   assert.match(
     await fixture.getByTestId("fact-card-accessible_route").innerText(),
