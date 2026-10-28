@@ -378,6 +378,8 @@ export interface DryResult {
     claims: Claim[];
     warnings: string[];
     matched?: boolean;
+    match_status?: Verdict["status"];
+    match_reason?: string;
   }[];
   run_id: string;
   valid: boolean;

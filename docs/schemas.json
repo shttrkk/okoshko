@@ -3690,6 +3690,36 @@
     },
     "additionalProperties": false,
     "properties": {
+      "match_status": {
+        "anyOf": [
+          {
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Match Status"
+      },
+      "match_reason": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Match Reason"
+      },
       "hotel_id": {
         "title": "Hotel Id",
         "type": "string"
@@ -3861,6 +3891,36 @@
       "DryRunItem": {
         "additionalProperties": false,
         "properties": {
+          "match_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "yes",
+                  "partial",
+                  "no",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Match Status"
+          },
+          "match_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Match Reason"
+          },
           "hotel_id": {
             "title": "Hotel Id",
             "type": "string"
