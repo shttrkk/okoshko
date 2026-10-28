@@ -730,15 +730,39 @@ try {
     )
     .allTextContents();
   check(
-    notes.length === 2 &&
-      new Set(notes).size === 2 &&
+    notes.length === 1 &&
+      new Set(notes).size === 1 &&
       notes.every((note) => !/подтвержден/iu.test(note)),
-    "partial-group-notes-distinct-and-honest",
+    "merged-required-no-group-note-honest",
     notes,
   );
+  // Both fixture hits have a known required rejection, so R7 puts them in
+  // the same final group instead of preserving their incoming group labels.
+  const excludedCards = await fpage
+    .locator(".result-group")
+    .last()
+    .locator(".result-card")
+    .evaluateAll((cards) => cards.map((card) => card.dataset.testid));
+  check(
+    (await fpage.locator(".result-group").count()) === 2 &&
+      excludedCards.length === 2 &&
+      excludedCards.includes(`hotel-card-${noPhotoHotelId}`) &&
+      excludedCards.includes("hotel-card-photos-fixture-almost"),
+    "known-required-no-hits-share-final-group",
+    excludedCards,
+  );
+  for (const hit of fixtures.search.results.slice(1)) {
+    const card = fpage.getByTestId(`hotel-card-${hit.hotel.id}`);
+    check(
+      (await card.locator(".verdict-list .verdict-symbol.no").count()) === 1,
+      "merged-group-retains-required-no",
+      hit.hotel.id,
+    );
+    await checkStatusSummary(card, hit, `merged-group-${hit.hotel.id}`);
+  }
   check(
     (await fpage.getByTestId("partial-legend").count()) === 1,
-    "three-groups-keep-one-legend",
+    "merged-groups-keep-one-legend",
   );
   check(
     (await fpage
@@ -788,6 +812,8 @@ try {
     room_profile: null,
     room_recommendation: null,
     group: "almost",
+    // The ranking explanation belongs to the leader, not every cloned card.
+    why_higher: index === 0 ? repeatedHit.why_higher : null,
     why_not_higher: [],
   }));
   fixtures.search.total = 20;
@@ -795,6 +821,16 @@ try {
     await fpage.setViewportSize({ width, height: 1000 });
     await fpage.goto(`${base}/search?q=required-status-fixture`);
     await fpage.getByTestId("hotel-card-photos-fixture-status-19").waitFor();
+    check(
+      (await fpage.getByTestId("why-higher").count()) ===
+        (repeatedHit.why_higher ? 1 : 0) &&
+        (await fpage
+          .getByTestId("hotel-card-photos-fixture-status-0")
+          .getByTestId("why-higher")
+          .count()) === (repeatedHit.why_higher ? 1 : 0),
+      "ranking-explanation-only-on-fixture-leader",
+      width,
+    );
     for (const hit of fixtures.search.results)
       await checkStatusSummary(
         fpage.getByTestId(`hotel-card-${hit.hotel.id}`),
