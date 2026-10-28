@@ -1,0 +1,56 @@
+{
+  "checked_at": "2026-10-28T13:21:27.692245+00:00",
+  "origin": "http://localhost:8080",
+  "methods": [
+    "GET"
+  ],
+  "qa_mutations": 0,
+  "checks": [
+    "health",
+    "api_status",
+    {
+      "hotel_id": "overture-037ee676-5776-46bd-a4ac-38c828f2a99d",
+      "bytes": 331910
+    },
+    {
+      "hotel_id": "osm-node-10118233110",
+      "bytes": 287566
+    },
+    {
+      "hotel_id": "osm-way-201474330",
+      "bytes": 300195
+    },
+    "connectivity_answerable"
+  ],
+  "health_wait_seconds": 0.045,
+  "container_started_at": "2026-10-28T13:20:34.18113818Z",
+  "image_id": "sha256:f7c55d6b8c9210f2307911369d21ff7fc41b140a4aa52c8de5302133671bb572",
+  "restart_count": 0,
+  "revision": "9080c18af02f3178cc2c7ee4ef4cf6c6047c0933",
+  "passed": true,
+  "preserved_existing_rows": {
+    "questions": {
+      "rows": 56,
+      "original_rows": 56,
+      "missing_original_ids": 0,
+      "changed_original_full_rows": 0,
+      "payloads_unchanged": true
+    },
+    "answers": {
+      "rows": 16,
+      "original_rows": 16,
+      "missing_original_ids": 0,
+      "changed_original_full_rows": 0,
+      "payloads_unchanged": true
+    },
+    "expectation_passports": {
+      "rows": 4,
+      "original_rows": 4,
+      "missing_original_ids": 0,
+      "changed_original_full_rows": 0,
+      "payloads_unchanged": true
+    }
+  },
+  "removed_rows": 0,
+  "qa_written_rows": 0
+}
