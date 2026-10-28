@@ -4880,6 +4880,16 @@
             ],
             "title": "Hypothesis"
           },
+          "hypothesis_update": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FieldUpdate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "options": {
             "items": {
               "type": "string"
@@ -5659,6 +5669,17 @@
             },
             "type": "array",
             "title": "Why Not Higher"
+          },
+          "why_higher": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Why Higher"
           },
           "similarity_reasons": {
             "items": {
