@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "checked_at": "2026-10-28T15:53:03.861943+00:00",
-  "git_head": "892532379bbd1303b407bb26f451fa9f39a4c718",
+  "checked_at": "2026-10-28T16:11:16.867487+00:00",
+  "git_head": "25f88737bff2f65bc656eee3dbacde0e4a3dc337",
   "passed": true,
   "checks": {
     "mandatory_root_files": {
@@ -75,6 +75,13 @@
         },
         {
           "path": "docker-compose.yml",
+          "counts": {
+            "literal_credential_assignment": 1,
+            "connection_uri_credentials": 1
+          }
+        },
+        {
+          "path": "docs/DETAILS.md",
           "counts": {
             "literal_credential_assignment": 1,
             "connection_uri_credentials": 1
@@ -202,8 +209,8 @@
       ]
     }
   },
-  "tracked_files": 1496,
-  "tracked_worktree_total_bytes": 413069843,
+  "tracked_files": 1498,
+  "tracked_worktree_total_bytes": 416051035,
   "largest_tracked_files": [
     {
       "path": "data/geo/terrain_30m.npz",
@@ -234,23 +241,23 @@
       "bytes": 3748065
     },
     {
+      "path": "docs/presentation.pdf",
+      "bytes": 2903979
+    },
+    {
       "path": "data/geo/osm-node-11843553792.json",
       "bytes": 2112311
     },
     {
       "path": "data/eval/ranking_gold.jsonl",
       "bytes": 1728236
-    },
-    {
-      "path": "data/seed/roads.geojson.gz",
-      "bytes": 1671044
     }
   ],
   "git_storage": {
-    "directory_bytes": 346124397,
+    "directory_bytes": 348903147,
     "count_objects": {
-      "count": 5261,
-      "size": 169516,
+      "count": 5278,
+      "size": 172276,
       "in-pack": 1708,
       "packs": 2,
       "size-pack": 182653,
@@ -259,7 +266,7 @@
       "size-garbage": 0
     },
     "pack_bytes": 187036672,
-    "loose_allocated_bytes": 173584384,
+    "loose_allocated_bytes": 176410624,
     "target_pack_bytes": 150000000,
     "target_pack_met": false,
     "interpretation": "Pack target is advisory; owner decides compaction. No gc, purge or rewrite performed."
