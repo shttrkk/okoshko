@@ -295,6 +295,7 @@ export function languageFindings(text) {
     /Вымышленный ответ/giu,
     /(?:Надёжность|Надежность|уверенность)[^\n.!?]{0,40}\d+\s*%/giu,
     /условный уровень/giu,
+    /по модели/giu,
     /\b(?:local_poi_nightlife@\d+|geo_engine)\b/giu,
     /POI-расчёт/giu,
     /opening_hours/giu,
