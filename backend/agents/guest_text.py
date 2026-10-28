@@ -80,6 +80,8 @@ def criterion_label(criterion: Criterion, spec: CharacteristicSpec | None = None
 
 def beach_name(value) -> str:
     name = value.strip() if isinstance(value, str) else ""
+    if name.casefold() in {"пляж", "beach", "ближайший пляж"}:
+        return "ближайший пляж"
     if not name or re.search(r"\bosm\b|\b(?:osm-)?(?:way|node|relation)[-/ ]?\d+\b", name, re.I):
         return "ближайший пляж"
     return name

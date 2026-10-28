@@ -264,12 +264,21 @@ class CharacteristicSpec(Model):
         return self
 
 
+class FieldUpdate(Model):
+    characteristic_id: str
+    scope: Scope = Field(default_factory=Scope)
+    value: Any
+    quote: str = Field(min_length=1)
+    confidence: float = Field(default=.85, ge=0, le=1)
+
+
 class Question(Model):
     id: str = Field(default_factory=uid)
     hotel_id: str
     characteristic_ids: list[str] = Field(min_length=1)
     text: str
     hypothesis: str | None = None
+    hypothesis_update: FieldUpdate | None = None
     options: list[str] = Field(default_factory=lambda: ["Да", "Нет", "Частично", "Не знаю"])
     priority: float = 0
     reason: Literal["unknown", "disputed", "low_confidence", "guest", "conflict"] = "unknown"
@@ -279,14 +288,6 @@ class Question(Model):
     demand_estimate: int = 0
     demand_synthetic: bool = True
     asked_at: datetime = Field(default_factory=now)
-
-
-class FieldUpdate(Model):
-    characteristic_id: str
-    scope: Scope = Field(default_factory=Scope)
-    value: Any
-    quote: str = Field(min_length=1)
-    confidence: float = Field(default=.85, ge=0, le=1)
 
 
 class Answer(Model):
@@ -538,6 +539,7 @@ class SearchHit(Model):
     disappointments: list[str] = Field(default_factory=list)
     summary: str = ""
     why_not_higher: list[str] = Field(default_factory=list)
+    why_higher: str | None = None
     similarity_reasons: list[str] = Field(default_factory=list)
 
 
@@ -702,6 +704,11 @@ class AskRequest(Model):
     hotel_id: str
     characteristic_id: str
     scope: Scope | None = None
+
+
+class HotelierQuestionRequest(Model):
+    scope: Scope | None = None
+    fact_id: str | None = Field(default=None, min_length=1, max_length=200)
 
 
 class LoginRequest(Model):

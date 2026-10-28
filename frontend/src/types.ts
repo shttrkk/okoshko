@@ -214,6 +214,7 @@ export interface SearchHit {
   disappointments: string[];
   summary: string;
   why_not_higher?: string[];
+  why_higher?: string | null;
   similarity_reasons?: string[];
 }
 export interface SearchResult {
@@ -240,6 +241,7 @@ export interface Question {
   requested_scopes?: Scope[];
   text: string;
   hypothesis: string | null;
+  hypothesis_update?: FieldUpdate | null;
   options: string[];
   priority: number;
   reason: string;
