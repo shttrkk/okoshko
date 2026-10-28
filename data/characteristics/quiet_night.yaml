@@ -10,6 +10,9 @@ synonyms:
 - выспаться
 - без шума
 - сплю чутко
+- спокойный номер
+- спокойный район
+- тихий район
 scope: facade
 value_schema:
   type: object

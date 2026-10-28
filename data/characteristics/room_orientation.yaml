@@ -23,6 +23,17 @@ value_schema:
       - boolean
       - 'null'
   additionalProperties: true
+  x-hotelier:
+    substantive_fields:
+    - groups
+    - absent_floors
+    - rooms
+    - facade
+    - min_floor
+    - max_floor
+    - balcony
+    - courtyard
+    - sea_view
 methods:
 - tool: hotelier_ask
   params: {}
