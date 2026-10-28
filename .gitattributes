@@ -1,0 +1,17 @@
+# Seed files are verified by size and SHA-256 at startup, so every file must be
+# checked out byte for byte on any OS (Git for Windows defaults to CRLF).
+* text=auto eol=lf
+data/** -text
+docs/checks/** -text
+*.json -text
+*.jsonl -text
+*.geojson -text
+*.csv -text
+*.gz binary
+*.npz binary
+*.pmtiles binary
+*.png binary
+*.webp binary
+*.jpg binary
+*.pdf binary
+*.mp4 binary
