@@ -7,6 +7,7 @@ import threading
 import yaml
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
+from backend.agents.assessment_rules import required_fulfilled
 from backend.agents.planner import plan_characteristic
 from backend.agents.query_match import assess_hotel
 from backend.agents.resolver import resolve_claims
@@ -88,10 +89,11 @@ def dry_run(body: CharacteristicSpec, repo=_REPO):
             criterion = Criterion(characteristic_id=body.id, label=body.display_name or body.name_ru,
                                   field=body.search.field, op=body.search.default_op, value=body.search.default_value)
             assessment = assess_hotel(facts, ParsedQuery(text="", must=[criterion]), [body], hotel=hotel_model)
-            matched = bool(assessment.matches and assessment.matches[0].status == "yes" and assessment.matches[0].supported
-                           and not assessment.scope_conflict and not assessment.domain_reason)
+            matched = required_fulfilled(assessment, 1)
             results.append({"hotel_id": hotel["id"], "hotel_name": hotel["name"], "claims": claims,
-                            "warnings": warnings, "matched": matched})
+                            "warnings": warnings, "matched": matched,
+                            "match_status": assessment.matches[0].status if assessment.matches else "unknown",
+                            "match_reason": assessment.matches[0].reason if assessment.matches else "Нет данных"})
             trace.step("compiler", "tool_call", "Предпросмотр без записи claims", input={"hotel_id": hotel["id"]},
                        output={"claims": [claim.model_dump(mode="json") for claim in claims], "warnings": warnings}, mode=mode,
                        evidence_refs=[e.id for claim in claims for e in claim.evidence],

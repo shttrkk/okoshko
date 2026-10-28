@@ -336,6 +336,8 @@ class HotelierSummary(Model):
 
 
 class DryRunItem(Model):
+    match_status: Literal["yes", "partial", "no", "unknown"] | None = None
+    match_reason: str | None = None
     hotel_id: str
     hotel_name: str | None = None
     claims: list[Claim] = Field(default_factory=list)
