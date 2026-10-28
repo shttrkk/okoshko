@@ -462,7 +462,7 @@ def search(body: SearchRequest, repo=_REPO):
                             *[c for room in parsed.rooms for c in [*room.must, *room.nice, *room.no_data]]]
             ids = None if reference else sorted({criterion.characteristic_id for criterion in all_criteria} | ROOM_CHARACTERISTICS | {"beach_walk"})
             if ids is not None and any(c.characteristic_id == "quiet_night" for c in all_criteria):
-                ids = sorted({*ids, "airport_noise"})
+                ids = sorted({*ids, "airport_noise", "nightlife"})
             # Similarity uses a September profile; explicit extra conditions
             # still require their requested month, rather than September data.
             fact_month = None if reference and (parsed.must or parsed.nice or parsed.no_data or parsed.rooms) and parsed.month != 9 else 9 if reference else parsed.month

@@ -23,6 +23,18 @@ export function Layout() {
   const { compare, theme, toggleTheme, status, toast } = useApp();
   const [session, setSession] = useState(readHotelierSession);
   const [signingOut, setSigningOut] = useState(false);
+  const [connectionWait, setConnectionWait] = useState("loading");
+  const [connectionRetry, setConnectionRetry] = useState(0);
+  useEffect(() => {
+    if (status.data || status.error) return;
+    setConnectionWait("loading");
+    const slow = window.setTimeout(() => setConnectionWait("slow"), 8000);
+    const failed = window.setTimeout(() => setConnectionWait("failed"), 30000);
+    return () => {
+      window.clearTimeout(slow);
+      window.clearTimeout(failed);
+    };
+  }, [status.data, status.error, connectionRetry]);
   useEffect(() => {
     const refresh = () => setSession(readHotelierSession());
     window.addEventListener("okno-auth-changed", refresh);
@@ -156,9 +168,30 @@ export function Layout() {
           <span
             className={`connection-dot ${status.data ? "connected" : ""}`}
           />
-          {status.data
-            ? `${status.data.hotel_count ?? "…"} отелей`
-            : "Ожидаем подключение API"}
+          {status.data ? (
+            `${status.data.hotel_count ?? "…"} отелей`
+          ) : (
+            <span role="status" data-testid="connection-status">
+              {status.error || connectionWait === "failed"
+                ? "Не удалось загрузить сведения. Проверьте соединение."
+                : connectionWait === "slow"
+                  ? "Ищем дольше обычного…"
+                  : "Загружаем сведения…"}
+              {(status.error || connectionWait === "failed") && (
+                <button
+                  type="button"
+                  className="text-button small"
+                  aria-label="Повторить загрузку сведений"
+                  onClick={() => {
+                    setConnectionRetry((value) => value + 1);
+                    status.reload();
+                  }}
+                >
+                  Повторить
+                </button>
+              )}
+            </span>
+          )}
         </div>
         <Link to="/sources">
           Данные и источники <ArrowRight size={13} />

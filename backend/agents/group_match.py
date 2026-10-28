@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 
+from backend.agents.assessment_rules import required_fulfilled
 from backend.agents.explainer import room_from_assessment, verdict
 from backend.agents.guest_text import criterion_label
 from backend.agents.query_match import (
@@ -193,7 +194,7 @@ def evaluate_room(
     )
     total = len(required) + unsupported + int(scoped_required)
     satisfied = sum(match.supported for match in required) + int(scoped_required and reason is None)
-    complete = satisfied == total and not reason
+    complete = satisfied == total and not reason and required_fulfilled(assessment, len(query.must))
     if reason or unsupported:
         state = "partial" if any(m.supported for m in required) else "unknown"
     elif required:
@@ -335,7 +336,7 @@ def rank_group_hotels(
         needed = assessment.matches[: len(shared.must)]
         total = len(needed) + len(shared.no_data_must)
         satisfied = sum(m.supported for m in needed)
-        complete = satisfied == total and not assessment.domain_reason
+        complete = satisfied == total and required_fulfilled(assessment, len(shared.must))
         criteria = [*shared.must, *shared.nice]
         weighted = [
             (criterion_utility(m, c), c.weight * (2 if i < len(shared.must) else 1))
@@ -382,20 +383,18 @@ def rank_group_hotels(
             disappointments=[INVENTORY_CAVEAT],
         )
         rows.append(hit)
-    rows.sort(
-        key=lambda h: (
-            {"all": 0, "almost": 1, "unknown": 2, "browse": 3}[h.group],
-            -h.must_satisfied,
-            -h.score,
-            h.hotel.id,
-        )
-    )
+    from backend.agents.ranker import explain_demo_leader, hit_order_key, relative_reason
+    rows.sort(key=hit_order_key)
     from backend.agents.room_profiles import describe_room
 
-    for hit in rows[:explain_limit] if explain_limit is not None else rows:
+    shown = rows[:explain_limit] if explain_limit is not None else rows
+    for index, hit in enumerate(shown):
         if describe_room:
             for item in hit.room_plan:
                 # Without a side there is no position to describe, only a list of unknowns.
                 if item.scope.facade:
                     item.profile = describe_room(hit.hotel, by_hotel[hit.hotel.id], specs, item.scope)
+        hit.why_not_higher = [relative_reason(hit, higher) for higher in reversed(rows[max(0, index-3):index])]
+    if shown:
+        explain_demo_leader(rows, facts, parsed, specs)
     return rows

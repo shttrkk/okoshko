@@ -225,7 +225,7 @@ export function tzHumanFact(fact: Fact): string | null {
           ]);
     case "landmark_view":
       return join([
-        `${landmarkName(fact)}: ${v.available === true ? "верх объекта виден по расчёту" : v.available === false ? "верх объекта не виден в этом срезе" : "видимость неизвестна"}`,
+        `${landmarkName(fact)}: ${v.available === true ? "верх объекта виден по расчёту" : v.available === false ? "верх объекта не виден с выбранной стороны и этажа" : "видимость неизвестна"}`,
         n(v.distance_m) !== null && distance(v.distance_m),
       ]);
     case "mobile_masts":

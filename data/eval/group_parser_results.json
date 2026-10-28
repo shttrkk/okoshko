@@ -150,13 +150,13 @@
   "trap_failures": [],
   "suite_kind": "authored_training",
   "corpus_sha256": {
-    "gold": "8bd502380f19d621df142b75dca5551479e3ebc3f37c4e77e2a300633dce443e",
+    "gold": "ae7e28cd2939f0fa97b39c6703b01337a58a3dd30c7700b9a5cea6536c9e13b7",
     "traps": "bfd263849db6f83f3dcd4a636a27a188c7d5343a306981668963949861ae0a3f"
   },
   "parser_sha256": {
-    "query_parser.py": "e5c1d6553e2f229dfc124298b6290d49ccbf6fa0019c067dfc82e41cdd95e7d8",
+    "query_parser.py": "6fcb1e83d3694d313d89f84e67ffaca0824b56ccf5b5fb7bb2ada64a5af4d28c",
     "query_rules.py": "c56026b893b57da9a9f395e7e532be309977e03dcb1e33fd0cf7e2fd0e29971e",
-    "query_text.py": "7587ff00de4113fe88ea75ec13ddf661130f6ecee9b3a6606e51520b2f7f9e05",
+    "query_text.py": "3536f3ded92a19fbeda892cc8677f379c7e80bfb30186609a5b65150b01b558e",
     "group_query.py": "3f1b5ff15fb4e9b1f96f3fd964964e747a65850457bfffce8e1ccdd4ab286853"
   }
 }

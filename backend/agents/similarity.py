@@ -7,7 +7,7 @@ from difflib import SequenceMatcher
 
 from backend.agents.explainer import supporting_basis
 from backend.agents.guest_text import field_unit, rounded_minutes
-from backend.agents.query_match import fresh, scope_values, value_at
+from backend.agents.query_match import DEFAULT_FIELDS, assess_hotel, fresh, scope_values, value_at
 from backend.contracts import CharacteristicSpec, CriterionVerdict, Fact, Hotel, ParsedQuery, SearchHit
 
 WEIGHTS = {"sea_view": 2, "sunset_view": 2, "quiet_night": 2, "beach_walk": 2,
@@ -57,10 +57,26 @@ def similar_hotels(reference_id: str, hotels: list[Hotel], facts: list[Fact],
     constrained = {}
     if parsed is not None and (parsed.must or parsed.nice or parsed.no_data_must or parsed.rooms):
         from backend.agents.ranker import rank_hotels
-        # Explicit musts remain hard eligibility gates in similarity mode.
-        # Nice conditions can move a candidate, without rescuing a failed must.
+        # Keep the established hard gate when there are actual observations of
+        # the requested field. A missing field remains an unresolved alternative,
+        # just as an unavailable regional condition does via no_data_must.
         constrained = {hit.hotel.id: hit for hit in rank_hotels(candidates, facts, parsed, specs)}
-        candidates = [hotel for hotel in candidates if parsed.rooms or not parsed.must or constrained[hotel.id].must_satisfied == len(parsed.must)]
+        search_fields = {s.id: s.search.field for s in specs}
+        def eligible(hotel):
+            if parsed.rooms or not parsed.must or constrained[hotel.id].must_satisfied == len(parsed.must):
+                return True
+            local = by_hotel[hotel.id]
+            assessment = assess_hotel(local, parsed, specs, hotel=hotel)
+            for criterion, match in zip(parsed.must, assessment.matches[:len(parsed.must)], strict=True):
+                if match.supported:
+                    continue
+                field = criterion.field or search_fields.get(criterion.characteristic_id) or DEFAULT_FIELDS.get(criterion.characteristic_id, 'available')
+                if match.status == 'no' or any(f.characteristic_id == criterion.characteristic_id
+                                              and fresh(f) and f.evidence and f.supporting_claim_ids
+                                              and value_at(f, field) is not None for f in local):
+                    return False
+            return True
+        candidates = [hotel for hotel in candidates if eligible(hotel)]
     fields = {s.id: s.search.field for s in specs}
     labels = {s.id: getattr(s, "display_name", None) or s.name_ru for s in specs}
     units = {s.id: s.search.unit for s in specs}

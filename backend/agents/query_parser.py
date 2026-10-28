@@ -78,6 +78,7 @@ RULES['beach_surface'] += r'|\bпесок\b[^,;.!?]{0,30}\bна\s+пляж\w*'
 RULES['nearby_photos'] += r'|\b(?:фотографи\w*|снимк\w*)\s+(?:его\s+)?(?:окрестност\w*|район\w*)'
 RULES['beach_walk'] += r'|\b(?:море|пляж\w*)\s+(?:совсем\s+)?(?:недалеко|близко)\b|\bблизко\s+к\s+(?:морю|пляжу)\b'
 RULES['climate'] += r'|еще\s+купа\w*|тепло\s+в\s+(?:октябр\w*|ноябр\w*|сентябр\w*)'
+RULES['quiet_night'] = r'\b(?:тих\w*|спокойн\w*)\s+(?:номер\w*|район\w*|отел\w*|мест\w*)|' + RULES['quiet_night']
 # "подальше от баров" asks for a calm area: the same measurement, opposite threshold.
 AWAY = r"(?:подальше|вдали|далеко|подальш\w*)\s+от\s+$"
 CALM_VENUES_MAX = 10
@@ -129,8 +130,9 @@ TZ_PATTERNS = {
     'veterinary_nearby': r'ветклиник\w*|ветеринар\w*(?:\s+рядом)?',
     'pet_shop_nearby': r'зоомагазин\w*',
     'climate_days': r'солнечн\w*\s+дн\w*|(?:без\s+)?дожд\w*|сезон\w*\s+дожд\w*',
-    'location_access': r'\bметро\b|(?:рядом|близко|недалеко)\s+(?:с\s+|к\s+|от\s+)?(?:станци\w*|остановк\w*)|(?:станци\w*|остановк\w*)\s+рядом|(?:до|у)\s+(?:станци\w*|остановк\w*)|(?:в\s+)?центр\w*',
+    'location_access': r'\bметро\b|(?:рядом|близко|недалеко)\s+(?:с\s+|к\s+|от\s+)?(?:станци\w*|остановк\w*)|(?:станци\w*|остановк\w*)\s+рядом|(?:до|у)\s+(?:станци\w*|остановк\w*)|\bцентральн\w*\s+район\w*|\b(?:ближе\s+к\s+|поближе\s+к\s+|в\s+)?центр\w*(?:\s+город\w*)?',
 }
+RELATIVE_CENTER = r'\b(?:ближе|поближе)\s+к\s+центр\w*'
 
 
 @lru_cache(maxsize=8)
@@ -265,7 +267,15 @@ def _tz_conditions(spec: CharacteristicSpec, text: str):
                 field, value = 'wet_month_proxy', not bool(re.search(r'без', phrase) or negative)
                 label = 'Без дождливого сезона' if not value else 'Дождливый сезон'
         elif cid == 'location_access':
-            if re.search(r'метро', phrase):
+            if re.search(RELATIVE_CENTER, phrase):
+                numeric = _numeric(text, match.start(), match.end(), 'minutes', 'lte', None)
+                if numeric[1] is None:
+                    # A relative preference supplies neither an origin nor a
+                    # measurable threshold. Do not silently turn it into a
+                    # different boolean condition about the central district.
+                    continue
+                field, (op, value), label = 'center_route.minutes', numeric, 'Пеший путь до центра'
+            elif re.search(r'метро', phrase):
                 field, label = 'metro.available', 'Рядом с метро'
             elif re.search(r'станци', phrase):
                 field, label = 'station_route.available', 'Станция электрички рядом'
@@ -313,6 +323,8 @@ def _stroller_trip_matches(text: str) -> list[re.Match]:
         if any(m.start() <= match.start() < m.end() for m in re.finditer(r'«[^»]+»|"[^"]+"|“[^”]+”', text)):
             continue
         if re.search(r'\b(?:если|вдруг|возможно|допустим|например|сравн\w*)\b|в отличие|может быть', clause):
+            continue
+        if re.search(r'\b(?:пересказ\w*|пересказыва\w*|цитир\w*|прокат\w*|аренд\w*|ремонт\w*|продаж\w*)\b', clause):
             continue
         if (re.search(r'\b(?:не|без)\s*$', before)
                 or re.search(r'\bне\s+(?:ед\w*|поед\w*|бер\w*|возьм\w*)|коляск\w*\s+не\s+(?:нуж\w*|бер\w*)', clause)):
@@ -1185,6 +1197,12 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
                if any(other.field in positives for other in hard) for c in hard):
             warnings.append('Обязательные условия противоречат друг другу: «' + spec.name_ru + '». Уточните, нужно ли это условие.')
     trips = _stroller_trip_matches(text)
+    if trips and any(spec.id == 'accessible_route' and spec.status == 'active' for spec in catalog):
+        positions.setdefault('accessible_route', trips[0].start())
+        if not any(c.characteristic_id == 'accessible_route' for c in parsed.must):
+            parsed.must.append(Criterion(characteristic_id='accessible_route',
+                                         label='Доступность маршрута до пляжа для коляски', field='available'))
+        parsed.nice[:] = [c for c in parsed.nice if c.characteristic_id != 'accessible_route']
     if trips and any(spec.id == 'beach_walk' and spec.status == 'active' for spec in catalog):
         positions.setdefault('beach_walk', trips[0].start())
         existing = [c for c in parsed.must if c.characteristic_id == 'beach_walk' and c.field != 'has_steps']
@@ -1196,6 +1214,12 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
             parsed.must.append(Criterion(characteristic_id='beach_walk', label='Маршрут до пляжа без лестниц',
                                          field='has_steps', value=False))
         consumed.extend((m.start(), m.end()) for m in trips)
+    for mention in re.finditer(RELATIVE_CENTER, text):
+        if (valid_intent_match('location_access', text, mention)
+                and _numeric(text, mention.start(), mention.end(), 'minutes', 'lte', None)[1] is None):
+            parsed.unmapped.append(source_phrase(request.text, mention[0]))
+            warnings.append('«Ближе к центру» пока не влияет на выдачу: не задан измеримый порог. Укажите, за сколько минут хотите дойти до центра.')
+            consumed.append((mention.start(), mention.end()))
     residual = list(source_text)
     for start, end in consumed:
         residual[start:end] = " " * (end-start)
@@ -1206,7 +1230,7 @@ def _fallback(request: SearchRequest, catalog: list[CharacteristicSpec]) -> Pars
     # These clauses describe who is staying home, not hotel restrictions.
     remaining = re.sub(r'\bне\s+с\s+(?:собак|кошк|питом)\w*|\bдет\w*\s+не\s+берем|\bс\s+дет\w*\s+не\s+поедем', ' ', remaining)
     remaining = re.sub(r"\b(?:" + OUTSIDE + "|" + "|".join(MONTHS) + r")\w*\b", " ", remaining)
-    ignored = r"сочи|адлер\w*|сириус\w*|имеретин\w*|центр\w*|номер\w*|отел\w*|гостиниц\w*|вид\w*|сторон\w*|этаж\w*|окн\w*|ноч\w*|днем|летом|утром|пешком|мин\w*|кг|градус\w*|мбит|мб|с|в|во|на|за|к|от|до|и|но|а|не|без|для|из|по|у|со|же|бы|или|нам|мне|мы|я|нас|над|около|это|его|ее|их|чтобы|где|ищу|найти|хочу|хотим|жить|живем|нуж\w*|обязател\w*|важ\w*|обязатель\w*|желатель\w*|необязатель\w*|возможности|хорошо|только|более|менее|ниже|выше|дальше|больше|дольше|максимум|сентябр\w*|пожалуйста|спасибо|ехать|едем|еду|отдых\w*|поездк\w*|пару|двоих|пары|романти\w*|годовщин\w*|муж\w*|жена|спит|сплю|чутко|чуткий|требуется|разрешен\w*|принима\w*|допуска\w*|принципиаль\w*|размер\w*|вес\w*|был\w*|будет|есть|быть|метр\w*|море|моря|пляж\w*|вод\w*|тепл\w*"
+    ignored = r"сочи|адлер\w*|сириус\w*|имеретин\w*|номер\w*|отел\w*|гостиниц\w*|вид\w*|сторон\w*|этаж\w*|окн\w*|ноч\w*|днем|летом|утром|пешком|мин\w*|кг|градус\w*|мбит|мб|с|в|во|на|за|к|от|до|и|но|а|не|без|для|из|по|у|со|же|бы|или|нам|мне|мы|я|нас|над|около|это|его|ее|их|чтобы|где|ищу|найти|хочу|хотим|жить|живем|нуж\w*|обязател\w*|важ\w*|обязатель\w*|желатель\w*|необязатель\w*|возможности|хорошо|только|более|менее|ниже|выше|дальше|больше|дольше|максимум|сентябр\w*|пожалуйста|спасибо|ехать|едем|еду|отдых\w*|поездк\w*|пару|двоих|пары|романти\w*|годовщин\w*|муж\w*|жена|спит|сплю|чутко|чуткий|требуется|разрешен\w*|принима\w*|допуска\w*|принципиаль\w*|размер\w*|вес\w*|был\w*|будет|есть|быть|метр\w*|море|моря|пляж\w*|вод\w*|тепл\w*"
     ignored += r'|найди\w*|главн\w*|отпуск\w*|отдохн\w*|смотреть|любоват\w*|именно|остальн\w*|неважн\w*|принципиал\w*|доступност\w*|пеш\w*|ходьб\w*|поблизости|плюс\w*|можно|хотел\w*|путешеств\w*|один|одна|двое|двумя|хотя|минимум|секунд\w*|скорост\w*|хорош\w*|быстр\w*|стабильн\w*|нормальн\w*|стар\w*|весит|весом|оставить|устраива\w*|меня|мегабит\w*|mbps|aqi|километр\w*|даты|числ\w*|сво\w*|полностью|очень|берем|поедем|интерес\w*|кажд\w*|фасад\w*|вечером|пределах|радиусе|час\w*|гулять|спокойно|штор\w*|кило\w*|станц\w*|зарядн\w*|исключен\w*|ближе'
     # Selection words carry no amenity, price, measurement or priority meaning.
     ignored += r'|подбери(?:те)?|подобрать|покажи(?:те)?|показать|предложи(?:те)?|порекомендуй(?:те)?|вариант(?:а|у|ом|е|ы|ов|ам|ами|ах)?'

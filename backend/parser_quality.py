@@ -32,7 +32,7 @@ PARSER_FILES = (
     "backend/parser_quality.py",
     "scripts/parser_eval.py",
 )
-CORPUS_FILES = {"gold": "eval/queries_gold.jsonl", "negative": "eval/queries_negative.jsonl"}
+CORPUS_FILES = {"gold": "eval/queries_gold_r3.jsonl", "negative": "eval/queries_negative.jsonl"}
 FIXTURE_FILES = ("seed/hotels.json",)
 SUMMARY_FIELDS = (
     "queries",

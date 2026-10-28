@@ -1803,7 +1803,7 @@ export function GeoModal({
               </strong>
               <br />
               {facade} ·{" "}
-              {knownFloors ? `${floor}-й этаж` : `условный уровень ${floor}`} ·
+              {knownFloors ? `${floor}-й этаж` : `${floor}-й этаж (условно)`} ·
               опорная дата {sunset?.date || solarDate || "не передана"}
             </p>
           )}

@@ -21,7 +21,7 @@ export function roomScopeText(scope: RoomScope, unknownFloors = false) {
     [
       scope.facade && SIDES[scope.facade],
       unknownFloors
-        ? "условный уровень 1"
+        ? "1-й этаж (условно)"
         : scope.floor_min && scope.floor_max
           ? scope.floor_min === scope.floor_max
             ? `${scope.floor_min}-й этаж`
