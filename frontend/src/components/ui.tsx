@@ -971,7 +971,10 @@ export function EvidenceModal({
                 : e.kind === "mock"
                   ? "Демо-данные"
                   : {
-                      calculation: "Расчёт",
+                      calculation:
+                        fact.characteristic_id === "quiet_night"
+                          ? "Расчёт по карте"
+                          : "Расчёт",
                       open_data: "Открытые данные",
                       quote: "Дословная цитата",
                       hotelier: "Ответ отеля",

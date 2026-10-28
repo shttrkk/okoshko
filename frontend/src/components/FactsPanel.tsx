@@ -5,12 +5,7 @@ import { factDemoLabel, reliability } from "./panel-guest-presentation";
 import type { Claim, Fact, Scope } from "../types";
 import { NearbyPhotos } from "./Photos";
 import { TzFactDetails } from "./TzFactDetails";
-import {
-  isPlaceTrait,
-  isSupplementalFact,
-  tzDetail,
-  tzSummary,
-} from "./tz-facts";
+import { isSupplementalFact, tzDetail, tzSummary } from "./tz-facts";
 import {
   Art,
   AskButton,
@@ -239,7 +234,7 @@ function SunsetMatrix({
         </span>
         <span>
           <i className="mid" />
-          50–80%
+          виден приблизительно
         </span>
         <span>
           <i className="no" />
@@ -697,10 +692,7 @@ function FactCard({
       <p className="fact-headline">
         {headline(id, facts, month, facadeAzimuths)}
       </p>
-      <details
-        className="room-caveats-details fact-details"
-        open={!canAsk && !isPlaceTrait(id) ? true : undefined}
-      >
+      <details className="room-caveats-details fact-details">
         <summary>Подробнее</summary>
         <p>
           {(supplemental.length
@@ -717,10 +709,7 @@ function FactCard({
             onOpenWindow={onOpenWindow}
           />
         )}
-        <details
-          className="room-caveats-details"
-          open={!canAsk && !isPlaceTrait(id) ? true : undefined}
-        >
+        <details className="room-caveats-details">
           <summary>Для дотошных</summary>
           {id === "accessible_route" &&
             typeof v(rep).wheelchair_tag_coverage === "number" && (

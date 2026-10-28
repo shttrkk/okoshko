@@ -1022,6 +1022,11 @@ if (report.status === "pass" && r3Actions) {
       base: base.origin,
       artifacts: resolve(artifacts, "r3-guest"),
     });
+    const { runPanelR3Loading } = await import("./panel-r3-loading.mjs");
+    report.r3_loading = await runPanelR3Loading({
+      base: base.origin,
+      artifacts: resolve(artifacts, "r3-loading"),
+    });
   } catch (error) {
     report.status = "fail";
     report.error = redact(error.message);
