@@ -123,10 +123,9 @@ try {
       await page.locator("[data-theme=dark]").waitFor();
       await page.getByTestId("search-input").fill("с собакой 15 кг");
       await page.getByTestId("group-search-example").click();
-      assert(
-        (await page.getByTestId("search-input").inputValue()).startsWith(
-          "с собакой 15 кг\n\n",
-        ),
+      assert.equal(
+        await page.getByTestId("search-input").inputValue(),
+        "с собакой 15 кг",
       );
     }
     const params = new URLSearchParams({

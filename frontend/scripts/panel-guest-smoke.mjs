@@ -97,15 +97,14 @@ try {
   assert.equal(await page.getByTestId("search-input").inputValue(), "");
   await page.getByTestId("search-input").fill("Мой текст");
   await page.getByTestId("group-search-example").click();
-  assert(
-    (await page.getByTestId("search-input").inputValue()).startsWith(
-      "Мой текст\n\nЕдем компанией:",
-    ),
-  );
+  assert.equal(await page.getByTestId("search-input").inputValue(), "Мой текст");
   await page.getByTestId("check-in").fill("2027-09-14");
   await page.getByTestId("check-out").fill("2027-09-21");
   await screenshot(page, "390-home");
   await page.getByTestId("masha-example").click();
+  assert.equal(await page.locator(".result-card").count(), 0);
+  await page.getByTestId("restore-search-input").waitFor();
+  await page.getByTestId("search-submit").click();
   await page.locator(".result-card").first().waitFor();
   assert.equal(new URL(page.url()).searchParams.get("check_in"), "2027-09-14");
   assert.equal(new URL(page.url()).searchParams.get("check_out"), "2027-09-21");
@@ -145,7 +144,7 @@ try {
     !/плотн.*штор/i.test(await page.locator(".criteria-panel").innerText()),
   );
   checks.push(
-    "390 light: empty input, append company, Masha one click, preset dates, no duplicate passport items or false no-date status",
+    "390 light: empty input, safe company help, reversible Masha replacement with explicit search, preset dates, no duplicate passport items or false no-date status",
   );
   await ctx.close();
 

@@ -117,7 +117,8 @@ def backfill(spec, repo, trace, job):
                 repo.insert_claims(claims)
             # Reuse the Resolver over this hotel's immutable observation history.
             observed = [Claim.model_validate(row) for row in repo.find("claims", hotel_id=hotel["id"])]
-            facts, conflicts = resolve_claims(hotel["id"], observed, specs, sources)
+            facts, conflicts = resolve_claims(hotel["id"], observed, specs, sources,
+                                             known_floors=Hotel.model_validate(hotel).floors)
             repo.replace_facts(hotel["id"], [fact.model_dump(mode="json") for fact in facts])
             if conflicts:
                 repo.upsert_many("conflicts", [conflict.model_dump(mode="json") for conflict in conflicts])

@@ -114,6 +114,8 @@ try {
     await blockYandex(entry);
     await entry.goto(base);
     await entry.getByTestId("group-search-example").click();
+    assert.equal(await entry.getByTestId("search-input").inputValue(), "");
+    await entry.getByTestId("search-input").fill(parsed.text);
     await entry.getByTestId("search-submit").click();
     await entry.getByTestId("room-criteria-1").waitFor({ timeout: 45000 });
     assert.equal(await entry.locator(".room-criteria").count(), 2);
@@ -260,10 +262,8 @@ try {
   }
   await page.goto(`${base}/`);
   await page.getByTestId("group-search-example").click();
-  assert.match(
-    await page.getByTestId("search-input").inputValue(),
-    /Маше.*Игорю/,
-  );
+  assert.equal(await page.getByTestId("search-input").inputValue(), "");
+  await page.getByTestId("company-search-help").waitFor();
   assert.equal(await page.locator(".scenario-card").count(), 6);
   report.checks.push("Home example and existing six scenarios");
   const initialResponse = page.waitForResponse(
