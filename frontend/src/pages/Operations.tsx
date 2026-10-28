@@ -244,6 +244,20 @@ const hotelierMonths = [
   "декабрь",
 ];
 
+function hotelierQuestionText(text: string) {
+  // Old stored questions keep their original context. Only their visible
+  // legacy wording changes; scope, confirmation semantics and IDs do not.
+  return text
+    .replaceAll(
+      "Гость просит уточнить модельный срез:",
+      "Гость просит проверить выбранный номер:",
+    )
+    .replaceAll(
+      "Это запрос на уточнение модели, не подтверждение",
+      "Это пожелание гостя для проверки номера, а не подтверждение",
+    );
+}
+
 export function HotelierPage() {
   const { hotels, specs } = useApp();
   const questionStack = useRef<HTMLDivElement | null>(null);
@@ -773,8 +787,12 @@ export function HotelierPage() {
                             ? "СВЕДЕНИЯ ДЛЯ УТОЧНЕНИЯ"
                             : "НУЖЕН ВАШ ОПЫТ"}
                         </span>
-                        {question.hypothesis && <p>{question.hypothesis}</p>}
-                        <h3 data-testid="hotelier-question">{question.text}</h3>
+                        {question.hypothesis && (
+                          <p>{hotelierQuestionText(question.hypothesis)}</p>
+                        )}
+                        <h3 data-testid="hotelier-question">
+                          {hotelierQuestionText(question.text)}
+                        </h3>
                         {!!question.requested_scopes?.length && (
                           <div data-testid="hotelier-requested-scopes">
                             <p className="muted small">

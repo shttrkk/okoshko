@@ -13,7 +13,8 @@ _LOCK = RLock()
 IMPACT = {"soundproofing": 1., "room_orientation": 1., "pets": .85, "sunset_view": .95, "quiet_night": 1., "sea_view": .9, 'hotel_parking': .85}
 SIDES = {"N": "север", "NE": "северо-восток", "E": "восток", "SE": "юго-восток", "S": "юг", "SW": "юго-запад", "W": "запад", "NW": "северо-запад"}
 MONTHS = ("январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь")
-_SCOPE_MARKER = "\nГость просит уточнить модельный срез: "
+_SCOPE_MARKER = "\nГость просит проверить выбранный номер: "
+_LEGACY_SCOPE_MARKER = "\nГость просит уточнить модельный срез: "
 
 
 class QuestionScopeLimit(ValueError):
@@ -28,7 +29,7 @@ def _with_requested_scope(question: Question, scope: Scope | None) -> tuple[Ques
     if not meaning or any(existing.model_dump(exclude={"type"}, exclude_none=True) == meaning for existing in question.requested_scopes):
         return question, False
     if len(question.requested_scopes) >= 8:
-        raise QuestionScopeLimit("В одном вопросе можно уточнить не более 8 разных срезов. Новый срез не добавлен.")
+        raise QuestionScopeLimit("В одном вопросе можно уточнить не более 8 разных вариантов. Новый вариант не добавлен.")
     result = question.model_copy(deep=True)
     result.requested_scopes.append(scope.model_copy(deep=True))
     descriptions = []
@@ -46,10 +47,14 @@ def _with_requested_scope(question: Question, scope: Scope | None) -> tuple[Ques
         if requested.room_type:
             parts.append("указанный тип номера")
         descriptions.append(", ".join(parts))
-    note = (_SCOPE_MARKER + " / ".join(descriptions) + ". Это запрос на уточнение модели, не подтверждение существования номера или окна. "
+    note = (_SCOPE_MARKER + " / ".join(descriptions) + ". Это пожелание гостя для проверки номера, а не подтверждение существования номера или окна. "
             "Укажите в ответе сторону, этаж, месяц и ограничения своими словами; одного «Да» недостаточно.")
-    result.text = result.text.split(_SCOPE_MARKER, 1)[0] + note
-    result.hypothesis = (result.hypothesis or "").split(_SCOPE_MARKER, 1)[0] + note
+    def without_note(text):
+        for marker in (_SCOPE_MARKER, _LEGACY_SCOPE_MARKER):
+            text = text.split(marker, 1)[0]
+        return text
+    result.text = without_note(result.text) + note
+    result.hypothesis = without_note(result.hypothesis or "") + note
     return result, True
 
 
@@ -222,6 +227,9 @@ def generate_questions(hotel_id: str, repo) -> list[Question]:
     demand = search_demand(repo, hotel_id)["shown_with"]
     facts = repo.find("facts", hotel_id=hotel_id)
     specs = [spec for spec in repo.all("characteristics") if spec.get("hotelier_answerable", True) and spec.get("status", "active") == "active"]
+    # Reopening an answered question is an explicit correction intent, even
+    # when the existing fact is complete. A read must not expire that form.
+    answered_ids = {answer["question_id"] for answer in repo.all("answers") if answer.get("confirmed")}
     by_cid = {}
     for spec in specs:
         cid = spec["id"]
@@ -231,7 +239,7 @@ def generate_questions(hotel_id: str, repo) -> list[Question]:
         complete = bool(related) and all(_usable(fact) for fact in related)
         previous = repo.find("questions", hotel_id=hotel_id)
         explicit = any(cid in q.get("characteristic_ids", []) and q.get("status") == "pending"
-                       and q.get("reason") in {"guest", "conflict"} for q in previous)
+                       and (q.get("reason") in {"guest", "conflict"} or q["id"] in answered_ids) for q in previous)
         if complete and not explicit:
             for question in previous:
                 if cid in question.get("characteristic_ids", []) and question.get("status") == "pending":

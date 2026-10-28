@@ -46,7 +46,7 @@ def test_scoped_ask_and_repeat_keep_one_pending_question_and_real_demand(client,
     assert response.status_code == 200, response.text
     question = response.json()
     assert question["requested_scopes"] == [requested().model_dump(mode="json")]
-    assert all(word in question["text"] and word in question["hypothesis"] for word in ("модельный срез", "запад", "7-й этаж", "июнь"))
+    assert all(word in question["text"] and word in question["hypothesis"] for word in ("выбранный номер", "запад", "7-й этаж", "июнь"))
     assert "не подтверждение существования номера" in question["text"]
     assert question["demand_estimate"] == 1 and question["demand_synthetic"] is False
     assert "private-guest-search-uuid" not in response.text and "PRIVATE GUEST QUERY" not in response.text
@@ -63,7 +63,7 @@ def test_different_slices_accumulate_without_replacing_existing_context(client, 
     second = ask(client, next_scope).json()
     assert second["id"] == first["id"] and second["asked_at"] == first["asked_at"]
     assert second["requested_scopes"] == [requested().model_dump(mode="json"), next_scope.model_dump(mode="json")]
-    assert second["text"].count("Гость просит уточнить модельный срез") == 1
+    assert second["text"].count("Гость просит проверить выбранный номер") == 1
     assert all(word in second["text"] for word in ("запад", "восток", "июнь", "сентябрь"))
     assert len(repo.find("questions", hotel_id="test-hotel")) == 1
 
