@@ -21,6 +21,8 @@ from backend.agents.query_match import (
     fresh,
     scope_values,
     sunset_aspect,
+    wifi_presence_source,
+    wifi_presence_text,
 )
 from backend.contracts import CharacteristicSpec, Criterion, CriterionVerdict, Fact, Hotel, ParsedQuery
 
@@ -317,7 +319,7 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
     if (selected and selected.characteristic_id == 'connectivity' and match.status == 'partial'
             and isinstance(selected.value, dict) and selected.value.get('wifi_reported') is True
             and match.value is None):
-        text = 'Wi-Fi есть по карте · скорость неизвестна'
+        text = wifi_presence_text(selected)
     if criterion.characteristic_id == 'connectivity' and match.reason == 'Тесты интернета в районе не подтверждают Wi-Fi отеля':
         text = match.reason
     if criterion.characteristic_id == 'accessible_route' and not match.facts and match.risk_facts:
@@ -335,7 +337,13 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
     if selected and selected.characteristic_id == "connectivity":
         value = selected.value if isinstance(selected.value, dict) else {}
         if value.get("wifi_reported") is True and not any(value.get(k) is not None for k in ("download_mbps", "upload_mbps", "latency_ms")):
-            caveats.append("Наличие Wi-Fi указано в открытых данных; работу сети и скорость в номере не проверяли")
+            source = wifi_presence_source(selected)
+            caveats.append({
+                'hotelier': 'Наличие Wi-Fi сообщил отель; измерений скорости в номере нет',
+                'demo_hotelier': 'Наличие Wi-Fi показано демо-ответом отеля; реальный ответ и скорость нужно уточнить',
+                'osm': 'Наличие Wi-Fi указано в открытых данных; работу сети и скорость в номере не проверяли',
+                'unknown': 'Наличие Wi-Fi сообщено источником; работу сети и скорость в номере не проверяли',
+            }[source])
         else:
             caveats.append("Это агрегированные тесты в районе, а не проверка Wi-Fi конкретного номера")
     if match.status == "no" and selected and selected.confidence < .7:

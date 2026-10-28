@@ -238,6 +238,7 @@ def test_regional_speed_tests_are_not_a_measurement_of_hotel_wifi(kind):
 
 def test_wifi_presence_does_not_present_the_requested_speed_as_a_fact():
     item = fact('connectivity', {'wifi_reported': True, 'download_mbps': None}, kind='open_data', confidence=.55)
+    item.evidence[0].source_ids = ['osm_geofabrik']
     [v] = evaluate([item], [criterion('connectivity', 'download_mbps', 'gte', 30)]).verdicts
     assert v.status == 'partial' and v.text == 'Wi-Fi есть по карте · скорость неизвестна'
     assert '30' not in v.text and v.confidence == .55
