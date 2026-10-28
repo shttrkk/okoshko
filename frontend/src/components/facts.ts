@@ -269,13 +269,17 @@ export function humanFact(
         .join(" · ");
     }
     case "accessible_route": {
-      const fromHotel = (fact.evidence || []).some(
-        (e) =>
-          e.kind === "hotelier" ||
-          (e.kind === "simulation" &&
-            !!e.quote &&
-            e.source_ids.includes("hotelier_simulator")),
-      );
+      const fromHotel =
+        (!fact.synthetic &&
+          fact.status === "confirmed" &&
+          fact.supporting_claim_ids.length > 0) ||
+        (fact.evidence || []).some(
+          (e) =>
+            e.kind === "hotelier" ||
+            (e.kind === "simulation" &&
+              !!e.quote &&
+              e.source_ids.includes("hotelier_simulator")),
+        );
       const origin = fromHotel
         ? fact.synthetic
           ? "По ответу отеля · демо"

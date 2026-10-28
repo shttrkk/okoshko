@@ -601,7 +601,7 @@ export function headline(
       ? `В ${MONTHS_IN[month - 1]}: ${text[0].toLowerCase()}${text.slice(1)}.`
       : null;
   }
-  const rep = shown[0];
+  const rep = representative(shown, month);
   return rep ? humanFact(rep) || <FactValue fact={rep} /> : null;
 }
 /** The fact that best stands for a characteristic (evidence link, ask). */
@@ -611,6 +611,14 @@ export function representative(facts: Fact[], month?: number): Fact {
     : facts;
   const shown = (current.length ? current : facts).filter(reliable);
   return (
+    [...shown]
+      .filter(
+        (f) =>
+          !f.synthetic &&
+          f.status === "confirmed" &&
+          f.supporting_claim_ids.length > 0,
+      )
+      .sort((a, b) => b.confidence - a.confidence)[0] ||
     [...shown]
       .filter((f) => v(f).available === true)
       .sort((a, b) => b.confidence - a.confidence)[0] ||
