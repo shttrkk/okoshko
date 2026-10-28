@@ -92,7 +92,7 @@ def test_wifi_tag_is_partial_but_cannot_satisfy_a_speed_requirement(specs):
     hit = evaluate(item, criterion, specs)
     assert hit.group != "all" and hit.must_satisfied == 0
     v = hit.verdicts[0]
-    assert "Wi-Fi указан, скорость не измерена" in v.text
+    assert v.text == "Wi-Fi есть по карте · скорость неизвестна"
     assert "агрегированные тесты" not in v.caveat and not v.hotelier_confirmed
     assert item.value["download_mbps"] is None
 
