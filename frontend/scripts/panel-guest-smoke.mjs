@@ -490,14 +490,10 @@ try {
   await fixture.ctx.close();
   const dark = await context({ width: 1280, height: 800 }, false, "dark");
   await dark.page.goto(base);
-  await dark.page.locator("[data-theme=dark]").waitFor();
-  await dark.page
-    .getByRole("button", { name: "Включить светлую тему", exact: true })
-    .click();
-  await dark.page.reload();
   await dark.page.locator("[data-theme=light]").waitFor();
+  assert.equal(await dark.page.locator(".theme-toggle").count(), 0);
   checks.push(
-    "system theme: dark preference is used initially; an explicit light selection survives reload",
+    "light theme only: a dark system preference still renders the light interface, no theme toggle",
   );
   await dark.ctx.close();
   assert.deepEqual(errors, []);

@@ -120,7 +120,7 @@ try {
     await page.goto(base);
     assert.equal(await page.getByTestId("search-input").inputValue(), "");
     if (item.name === "dina") {
-      await page.locator("[data-theme=dark]").waitFor();
+      await page.locator("[data-theme=light]").waitFor();
       await page.getByTestId("search-input").fill("с собакой 15 кг");
       await page.getByTestId("group-search-example").click();
       assert.equal(
@@ -429,10 +429,7 @@ try {
     "known required no follows unresolved conditions; no/partial/unknown and demo provenance retained; Ask confirmation uses intercepted POST",
   );
   await page.goto(base);
-  await page
-    .getByRole("button", { name: "Включить тёмную тему", exact: true })
-    .click();
-  await page.locator("[data-theme=dark]").waitFor();
+  await page.locator("[data-theme=light]").waitFor();
   await page.evaluate(() => {
     sessionStorage.setItem("okno-token", "panel-v-local-session");
     sessionStorage.setItem(
@@ -463,8 +460,8 @@ try {
   await page.getByTestId("header-logout").waitFor({ state: "hidden" });
   assert.equal(await page.getByTestId("header-logout").count(), 0);
   assert.equal(
-    await page.evaluate(() => localStorage.getItem("okno-theme")),
-    "dark",
+    await page.locator("[data-theme]").getAttribute("data-theme"),
+    "light",
   );
   await page.getByRole("button", { name: "Для команды", exact: false }).click();
   assert.equal(
@@ -472,7 +469,7 @@ try {
     0,
   );
   report.fixtures.push(
-    "global team menu and logout: failure retains session, successful logout emits state change and preserves explicit theme",
+    "global team menu and logout: failure retains session, successful logout emits state change and keeps the light theme",
   );
   await context.close();
   assert.deepEqual(report.errors, []);

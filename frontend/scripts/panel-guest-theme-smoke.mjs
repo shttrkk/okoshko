@@ -14,43 +14,28 @@ try {
       colorScheme: scheme,
       viewport: { width: 1280, height: 800 },
     });
+    await context.addInitScript(() =>
+      localStorage.setItem("okno-theme", "dark"),
+    );
     const page = await context.newPage();
     await page.route(/yandex\.|ya\.ru|mapillary/i, (route) => route.abort());
     await page.route("**/api/**", (route) =>
       route.request().method() === "GET" ? route.continue() : route.abort(),
     );
     await page.goto(base);
-    await page.locator(`[data-theme=${scheme}]`).waitFor();
-    assert.equal(
-      await page.evaluate(() => localStorage.getItem("okno-theme")),
-      null,
-    );
-    const opposite = scheme === "dark" ? "light" : "dark";
-    await page.emulateMedia({ colorScheme: opposite });
-    await page.locator(`[data-theme=${opposite}]`).waitFor();
-    assert.equal(
-      await page.evaluate(() => localStorage.getItem("okno-theme")),
-      null,
-    );
-    await page
-      .getByRole("button", {
-        name:
-          scheme === "dark" ? "Включить тёмную тему" : "Включить светлую тему",
-        exact: true,
-      })
-      .click();
-    await page.locator(`[data-theme=${scheme}]`).waitFor();
-    await page.emulateMedia({ colorScheme: opposite });
+    await page.locator("[data-theme=light]").waitFor();
+    await page.emulateMedia({
+      colorScheme: scheme === "dark" ? "light" : "dark",
+    });
     assert.equal(
       await page.locator("[data-theme]").getAttribute("data-theme"),
-      scheme,
+      "light",
     );
-    await page.reload();
-    await page.locator(`[data-theme=${scheme}]`).waitFor();
+    assert.equal(await page.locator(".theme-toggle").count(), 0);
     await context.close();
   }
   console.log(
-    "PASS: fresh system dark/light, live system changes, explicit choice and reload",
+    "PASS: light theme only for dark/light systems and a stored dark choice; no toggle",
   );
   passed = true;
 } finally {

@@ -594,7 +594,7 @@ try {
     );
     assert.equal(
       await page.locator("[data-theme]").getAttribute("data-theme"),
-      scheme,
+      "light",
     );
     await place.locator(":scope > summary").click();
     for (const id of Object.keys(names).filter(

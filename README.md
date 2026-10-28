@@ -5,7 +5,7 @@
 - **Видео (6,5 минуты):** https://drive.google.com/file/d/1R7B2iEApl6wkq-VI7e77TMHOuc3jqcLS/view?usp=sharing. При просмотре выберите качество **1080p**: шестерёнка в плеере Google Диска.
 - **Презентация:** [docs/presentation.pdf](docs/presentation.pdf), копия на Google Диске: https://drive.google.com/file/d/1PBq8Ym4H2mfwLWCIA_ECiPGmkFMhgyNh/view?usp=share_link
 - **Команда SAMARKAND:** Глеб Кашин, Марк Закон, Фёдор Ведерников, Егор Ожигов, Матвей Панин
-- Развёрнутого сервиса нет, проект запускается локально одной командой.
+- **Развёрнутое демо:** https://66vt4w-147-45-63-206.a.2na.am (может быть недоступно; локальный запуск — одной командой ниже).
 
 ## Ключевые возможности
 

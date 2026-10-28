@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "checked_at": "2026-10-28T23:04:59.757595+00:00",
-  "git_head": "7ec5b20745fe36a43f218a9143d293be256a10c5",
+  "checked_at": "2026-10-28T23:44:42.928334+00:00",
+  "git_head": "53369e11f07d70bfdeee22d0b6584b635e9d2777",
   "passed": true,
   "checks": {
     "mandatory_root_files": {
@@ -210,7 +210,7 @@
     }
   },
   "tracked_files": 1499,
-  "tracked_worktree_total_bytes": 416720719,
+  "tracked_worktree_total_bytes": 416719029,
   "largest_tracked_files": [
     {
       "path": "data/geo/terrain_30m.npz",
@@ -254,10 +254,10 @@
     }
   ],
   "git_storage": {
-    "directory_bytes": 485245927,
+    "directory_bytes": 485261326,
     "count_objects": {
-      "count": 5343,
-      "size": 178112,
+      "count": 5352,
+      "size": 178148,
       "in-pack": 7007,
       "packs": 3,
       "size-pack": 310097,
@@ -266,7 +266,7 @@
       "size-garbage": 0
     },
     "pack_bytes": 317539328,
-    "loose_allocated_bytes": 182386688,
+    "loose_allocated_bytes": 182423552,
     "target_pack_bytes": 150000000,
     "target_pack_met": false,
     "interpretation": "Pack target is advisory; owner decides compaction. No gc, purge or rewrite performed."

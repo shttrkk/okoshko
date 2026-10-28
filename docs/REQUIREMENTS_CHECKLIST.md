@@ -129,7 +129,7 @@
 | 72 | Сидирование и миграции автоматически на старте | ✅ | `backend/boot.py` |
 | 73 | Большие артефакты и модели не в git; LLM через OpenAI-совместимое API | ✅ | Сырые PBF и DEM не в git, в репозитории только сжатый предрасчёт. LLM — OpenAI-совместимое API |
 | 74 | POSIX-совместимый запуск в контейнере | ✅ | `CMD ["python", "-m", "backend.boot"]`, без bash |
-| 75 | Рекомендуется: Makefile, override, CI, внешний хостинг | ✅ / ◐ | `make up/down/seed`, `docker-compose.override.yml`, CI с ручным запуском. Внешнего хостинга нет: он необязателен |
+| 75 | Рекомендуется: Makefile, override, CI, внешний хостинг | ✅ / ◐ | `make up/down/seed`, `docker-compose.override.yml`, CI с ручным запуском. Развёрнутое демо: https://66vt4w-147-45-63-206.a.2na.am |
 
 ## Ответы экспертов на Q&A 28.10
 

@@ -5,8 +5,6 @@ import {
   ChevronDown,
   GitCompareArrows,
   Menu,
-  Moon,
-  Sun,
   X,
 } from "lucide-react";
 import { useApp } from "../state";
@@ -20,7 +18,7 @@ const links = [
   ["/sources", "Источники"],
 ];
 export function Layout() {
-  const { compare, theme, toggleTheme, status, toast } = useApp();
+  const { compare, status, toast } = useApp();
   const [session, setSession] = useState(readHotelierSession);
   const [signingOut, setSigningOut] = useState(false);
   const [connectionWait, setConnectionWait] = useState("loading");
@@ -104,17 +102,6 @@ export function Layout() {
           </div>
         </nav>
         <div className="header-actions">
-          <button
-            className="icon-button theme-toggle"
-            onClick={toggleTheme}
-            aria-label={
-              theme === "light"
-                ? "Включить тёмную тему"
-                : "Включить светлую тему"
-            }
-          >
-            {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
           {session ? (
             <button
               className="text-button hotelier-logout"

@@ -261,7 +261,9 @@ async function home(page, scheme) {
     (await page.getByTestId("search-input").inputValue()) === "",
     "Fresh home input is empty",
   );
-  await page.locator("[data-theme=" + scheme + "]").waitFor();
+  // Light theme only, whatever the system preference.
+  void scheme;
+  await page.locator("[data-theme=light]").waitFor();
   check(
     (await page.evaluate(() => localStorage.getItem("okno-theme"))) === null,
     "System theme has no localStorage override",
@@ -1019,7 +1021,9 @@ if (report.status === "pass" && r3Actions) {
   );
   try {
     const { runPanelR3Actions } = await import("./panel-r3-actions.mjs");
-    const { runPanelR3GuestActions } = await import("./panel-r3-guest-actions.mjs");
+    const { runPanelR3GuestActions } = await import(
+      "./panel-r3-guest-actions.mjs"
+    );
     report.r3_hotelier = await runPanelR3Actions({
       base: base.origin,
       artifacts: resolve(artifacts, "r3-hotelier"),
@@ -1028,7 +1032,9 @@ if (report.status === "pass" && r3Actions) {
       base: base.origin,
       artifacts: resolve(artifacts, "r3-guest"),
     });
-    const { runPanelR3SearchActions } = await import("./panel-r3-search-actions.mjs");
+    const { runPanelR3SearchActions } = await import(
+      "./panel-r3-search-actions.mjs"
+    );
     report.r3_search = await runPanelR3SearchActions({
       base: base.origin,
       artifacts: resolve(artifacts, "r3-search"),

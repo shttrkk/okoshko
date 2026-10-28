@@ -1002,7 +1002,7 @@ export async function runPanelR3SearchActions({
                     height: width === 390 ? 844 : 1000,
                   });
                   await page.emulateMedia({ colorScheme: scheme });
-                  await page.locator(`[data-theme=${scheme}]`).waitFor();
+                  await page.locator("[data-theme=light]").waitFor();
                   const variant = `pets-${scheme}-${width}.png`;
                   await page.screenshot({
                     path: resolve(output, variant),

@@ -414,7 +414,7 @@ try {
     await page.getByTestId("group-plan").first().waitFor({ timeout: 45000 });
     assert.equal(
       await page.locator("[data-theme]").first().getAttribute("data-theme"),
-      theme,
+      "light",
     );
     assert(
       await page.evaluate(

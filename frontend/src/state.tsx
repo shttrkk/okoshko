@@ -1,7 +1,6 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useState,
   type ReactNode,
 } from "react";
@@ -40,22 +39,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     read("okno-parsed", null),
   );
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
-  const [theme, setTheme] = useState(
-    () =>
-      localStorage.getItem("okno-theme") ||
-      (window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"),
-  );
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const followSystem = () => {
-      if (!localStorage.getItem("okno-theme"))
-        setTheme(media.matches ? "dark" : "light");
-    };
-    media.addEventListener("change", followSystem);
-    return () => media.removeEventListener("change", followSystem);
-  }, []);
+  // The interface ships in the light theme only; system and stored dark
+  // preferences are ignored.
+  const theme = "light";
   const [message, setMessage] = useState("");
   const toggleCompare = (id: string) =>
     setCompare((old) => {
@@ -72,12 +58,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setParsedState(p);
     sessionStorage.setItem("okno-parsed", JSON.stringify(p));
   };
-  const toggleTheme = () =>
-    setTheme((old) => {
-      const next = old === "light" ? "dark" : "light";
-      localStorage.setItem("okno-theme", next);
-      return next;
-    });
+  const toggleTheme = () => {};
   const toast = (text: string) => {
     setMessage(text);
     window.setTimeout(() => setMessage(""), 5500);
