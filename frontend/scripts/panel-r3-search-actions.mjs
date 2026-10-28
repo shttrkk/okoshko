@@ -22,6 +22,10 @@ export const SEARCH_CASES = Object.freeze({
   center_district: "центральный район",
 });
 const readOnly = new Set(["GET", "HEAD", "OPTIONS"]);
+// GET cabinet is intentionally excluded: it can refresh question state.
+// No interviewer, answer, passport or other operational API is needed here.
+const publicReadApi =
+  /^\/api\/(?:revision|status|hotels|characteristics|sources|tools)$|^\/api\/hotels\/[A-Za-z0-9][A-Za-z0-9._-]*(?:\/(?:geo|photos|rooms|room-advice)|\/facts\/[A-Za-z0-9][A-Za-z0-9._-]*\/evidence)?$/;
 const normalize = (value) =>
   String(value).toLocaleLowerCase("ru").replace(/\s+/g, " ").trim();
 const safeError = (error) =>
@@ -40,6 +44,11 @@ export function assertR3SearchRequest(method, target, env = process.env) {
       (method === "POST" && url.pathname === "/api/search" && !url.search),
     "Only read-only requests and the exact /api/search POST are permitted",
   );
+  if (readOnly.has(method) && url.pathname.startsWith("/api/"))
+    assert(
+      publicReadApi.test(url.pathname),
+      "Only explicitly read-only public search APIs are permitted",
+    );
   if (!readOnly.has(method))
     assert.equal(
       env.OKNO_PANEL_R3_WRITES,
@@ -224,7 +233,12 @@ export async function runPanelR3SearchActions({
       assert(
         fact.supporting_claim_ids.length &&
           fact.supporting_claim_ids.every((id) =>
-            claims.some((c) => c.id === id && c.hotel_id === fact.hotel_id),
+            claims.some(
+              (c) =>
+                c.id === id &&
+                c.hotel_id === fact.hotel_id &&
+                c.characteristic_id === fact.characteristic_id,
+            ),
           ),
         "Broken supporting-claim chain",
       );
@@ -308,9 +322,14 @@ export async function runPanelR3SearchActions({
         const genuine =
           !v.synthetic &&
           values.every(
-            ({ fact }) =>
+            ({ fact, claims }) =>
               !fact.synthetic &&
-              !["unknown", "disputed", "stale"].includes(fact.status),
+              !["unknown", "disputed", "stale"].includes(fact.status) &&
+              claims
+                .filter((c) => fact.supporting_claim_ids.includes(c.id))
+                .every(
+                  (c) => !c.synthetic && c.source !== "hotelier_simulator",
+                ),
           ) &&
           evidence.some((e) => e.kind === "hotelier" && e.quote?.trim()) &&
           !evidence.some(
@@ -402,8 +421,13 @@ export async function runPanelR3SearchActions({
         if (!v || !["yes", "partial"].includes(v.status)) continue;
         const values = await support(hit, v);
         const facts = values.map(({ fact }) => fact);
-        const areaOnly = facts.every((f) =>
-          ["fixed", "mobile"].includes(f.value?.kind),
+        const areaOnly = values.every(
+          ({ fact, claims }) =>
+            ["fixed", "mobile"].includes(fact.value?.kind) ||
+            [
+              ...fact.evidence.flatMap((e) => e.source_ids),
+              ...claims.map((c) => c.source),
+            ].some((source) => /ookla/i.test(source)),
         );
         assert(
           !areaOnly,
