@@ -16,18 +16,26 @@ def _present(value) -> bool:
     return value is not None and value != ""
 
 
+def _policy(schema) -> dict:
+    policy = schema.get("x-hotelier") if isinstance(schema, dict) else None
+    return policy if isinstance(policy, dict) else {}
+
+
 def substantive_value(value, schema: dict | None) -> bool:
-    policy = (schema or {}).get("x-hotelier", {})
-    return isinstance(value, dict) and any(_present(value.get(key)) for key in policy.get("substantive_fields", []))
+    fields = _policy(schema).get("substantive_fields", [])
+    return (isinstance(value, dict) and isinstance(fields, list) and all(isinstance(key, str) for key in fields)
+            and any(_present(value.get(key)) for key in fields))
 
 
 def normalize_value(value, schema: dict | None):
-    policy = (schema or {}).get("x-hotelier", {})
-    rule = policy.get("availability_from", {})
+    rule = _policy(schema).get("availability_from", {})
     if (not isinstance(value, dict) or value.get("available") is not None
             or not isinstance(rule, dict) or type(rule.get("value")) is not bool
+            or not isinstance(rule.get("field"), str)
+            or not isinstance(rule.get("unless", []), list)
+            or any(not isinstance(key, str) for key in rule.get("unless", []))
             or not isinstance(value.get(rule.get("field")), list) or not _present(value.get(rule.get("field")))
-            or any(_present(value.get(key)) for key in rule.get("unless", []))):
+            or any(value.get(key) is True for key in rule.get("unless", []))):
         return value
     result = deepcopy(value)
     result["available"] = rule["value"]
