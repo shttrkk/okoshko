@@ -43,6 +43,9 @@ POLICY_TEXT = ("3: all musts have compatible non-synthetic evidence with confide
                "0: every must is observed but none matches; null: at least one must lacks current, undisputed, provenance-backed evidence. "
                "Boolean-only strong matches use >=0.6. Numeric margin is an expert preference for a robust fit, not human truth.")
 LEDGERS = ["data/seed/open_claims.jsonl.gz", "data/geo/geo_claims.jsonl.gz", "data/eval/website_claims.jsonl"]
+SOURCE_INPUTS = {*LEDGERS, 'data/seed/hotels.csv.gz', 'data/seed/sources.csv.gz'}
+SCHEMA_SNAPSHOTS = 'data/eval/ranking_schema_inputs'
+ALLOWED_METADATA = ('display_name', 'synonyms', 'value_schema.x-hotelier')
 
 
 def canonical(value):
@@ -53,24 +56,108 @@ def digest(value):
     return hashlib.sha256(canonical(value).encode()).hexdigest()
 
 
-def compatible_input_files(expected: dict[str, str], current: dict[str, str]) -> bool:
-    """Permit only the added one-line display label; all other bytes stay frozen."""
+class _UniqueKeyLoader(yaml.SafeLoader):
+    """A metadata exception must not conceal duplicate or merged YAML keys."""
+
+
+def _unique_mapping(loader, node):
+    result = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=True)
+        if not isinstance(key, str) or key in result or key == '<<':
+            raise ValueError('Non-string, duplicate or merged YAML key')
+        result[key] = loader.construct_object(value_node, deep=True)
+    return result
+
+
+_UniqueKeyLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _unique_mapping)
+
+
+def _repo_bytes(relative: str) -> bytes:
+    path = ROOT / relative
+    if not path.resolve().is_relative_to(ROOT.resolve()):
+        raise ValueError('Input path escapes the repository')
+    return path.read_bytes()
+
+
+def _schema_document(raw: bytes) -> dict:
+    document = yaml.load(raw.decode('utf-8'), Loader=_UniqueKeyLoader)
+    if not isinstance(document, dict):
+        raise ValueError('Characteristic YAML must be a mapping')
+    if document.get('display_name') is not None and not isinstance(document['display_name'], str):
+        raise ValueError('Invalid display_name metadata')
+    if 'synonyms' in document and (not isinstance(document['synonyms'], list)
+                                   or not all(isinstance(value, str) for value in document['synonyms'])):
+        raise ValueError('Invalid synonyms metadata')
+    schema = document.get('value_schema', {})
+    if not isinstance(schema, dict) or 'x-hotelier' in schema and not isinstance(schema['x-hotelier'], dict):
+        raise ValueError('Invalid value_schema metadata')
+    return document
+
+
+def _ranking_semantics(document: dict) -> dict:
+    result = {key: value for key, value in document.items() if key not in {'display_name', 'synonyms'}}
+    if 'value_schema' in result:
+        result['value_schema'] = {key: value for key, value in result['value_schema'].items() if key != 'x-hotelier'}
+    return result
+
+
+def input_metadata_changes(expected: dict[str, str], current: dict[str, str]) -> list[dict] | None:
+    """Accept only hash-anchored metadata differences, without touching gold.
+
+    Source ledgers remain byte-identical. A schema's original bytes must match
+    its hash in gold, recovered by the historical display-line removal or from
+    a local snapshot named by that exact hash. Every other semantic key remains
+    equal, including unknown annotations and all schema/search constraints.
+    """
     if set(expected) != set(current):
-        return False
-    for path, expected_hash in expected.items():
-        if current[path] == expected_hash:
-            continue
-        if not path.startswith("data/characteristics/") or not path.endswith(".yaml"):
-            return False
-        raw = (ROOT / path).read_bytes()
-        labels = list(re.finditer(rb"(?m)^display_name:[^\r\n]*(?:\r?\n|$)", raw))
-        if len(labels) != 1:
-            return False
-        label = labels[0]
-        original = raw[:label.start()] + raw[label.end():]
-        if hashlib.sha256(original).hexdigest() != expected_hash:
-            return False
-    return True
+        return None
+    changes = []
+    try:
+        for path, expected_hash in expected.items():
+            if (not isinstance(path, str)
+                    or not all(isinstance(value, str) and re.fullmatch(r'[0-9a-f]{64}', value)
+                               for value in (expected_hash, current[path]))):
+                return None
+            characteristic = re.fullmatch(r'data/characteristics/[a-z][a-z0-9_]{0,79}\.yaml', path)
+            if path not in SOURCE_INPUTS and not characteristic:
+                return None
+            raw = _repo_bytes(path)
+            if hashlib.sha256(raw).hexdigest() != current[path]:
+                return None
+            if current[path] == expected_hash:
+                continue
+            if not characteristic:
+                return None
+            labels = list(re.finditer(rb'(?m)^display_name:[^\r\n]*(?:\r?\n|$)', raw))
+            original = raw[:labels[0].start()] + raw[labels[0].end():] if len(labels) == 1 else b''
+            verification, snapshot = 'sha256_verified_display_name_removal', None
+            if hashlib.sha256(original).hexdigest() != expected_hash:
+                snapshot = f'{SCHEMA_SNAPSHOTS}/{expected_hash}.yaml'
+                snapshot_path = ROOT / snapshot
+                if snapshot_path.is_symlink():
+                    return None
+                original = _repo_bytes(snapshot)
+                verification = 'sha256_verified_original_snapshot'
+            if hashlib.sha256(original).hexdigest() != expected_hash:
+                return None
+            before, after = _schema_document(original), _schema_document(raw)
+            if canonical(_ranking_semantics(before)) != canonical(_ranking_semantics(after)):
+                return None
+            missing = object()
+            changed = [key for key in ALLOWED_METADATA[:2] if before.get(key, missing) != after.get(key, missing)]
+            if before.get('value_schema', {}).get('x-hotelier', missing) != after.get('value_schema', {}).get('x-hotelier', missing):
+                changed.append('value_schema.x-hotelier')
+            changes.append({'path': path, 'original_sha256': expected_hash, 'current_sha256': current[path],
+                            'verification': verification, 'original_snapshot': snapshot,
+                            'changed_metadata_paths': changed})
+    except (OSError, ValueError, TypeError, UnicodeError, RecursionError, yaml.YAMLError):
+        return None
+    return changes
+
+
+def compatible_input_files(expected: dict[str, str], current: dict[str, str]) -> bool:
+    return input_metadata_changes(expected, current) is not None
 
 
 def criterion(cid, field="available", op="eq", value=True, **extra):
@@ -337,8 +424,12 @@ def evaluate_gold(path, split="all"):
     rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
     hotels, specs, facts, _, hashes, facts_hash = load_inputs()
     from backend.agents.ranker import rank_hotels
-    if any(not compatible_input_files(row["input_files_sha256"], hashes) for row in rows):
+    expected = rows[0]['input_files_sha256'] if rows else {}
+    metadata_changes = input_metadata_changes(expected, hashes)
+    if metadata_changes is None or any(row['input_files_sha256'] != expected for row in rows):
         raise ValueError("Frozen input files changed; do not regenerate labels to fit new rankings. Review a new dataset version.")
+    if any(row['input_facts_sha256'] != facts_hash for row in rows):
+        raise ValueError('Frozen fact materialization changed; metadata exceptions cannot conceal changed evidence. Review a new dataset version.')
 
     class Frozen(datetime):
         @classmethod
@@ -368,8 +459,11 @@ def evaluate_gold(path, split="all"):
             "split": split, **aggregate_cases(cases),
             "by_split": {name: aggregate_cases([row for row in cases if row["split"] == name]) for name in sorted({row["split"] for row in cases})},
             "input_materialization_matches_frozen": all(row["input_facts_sha256"] == facts_hash for row in rows),
-            "display_name_only_changes": sorted(path for path, value in hashes.items()
-                                                if rows and rows[0]["input_files_sha256"].get(path) != value),
+            'input_facts_sha256': facts_hash,
+            'input_file_validation': 'exact_sha256_or_hash_verified_yaml_metadata_v1',
+            'metadata_only_input_changes': metadata_changes,
+            'display_name_only_changes': sorted(change['path'] for change in metadata_changes
+                                                if change['changed_metadata_paths'] == ['display_name']),
             "scorer_sha256": {path: hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
                               for path in ["backend/agents/ranker.py", "backend/agents/query_match.py",
                                            "backend/catalogue.py", "data/seed/catalogue_reviews.json"]},
@@ -381,7 +475,8 @@ def evaluate_gold(path, split="all"):
             "limitations": ["No human labels; source evidence and predictions share a model, so this measures policy agreement only.",
                             "Unknown/stale/disputed/low-confidence pairs are unjudged. Main nDCG excludes queries with any unjudged top5 item; judged share and loose bounds are reported separately.",
                             "The graded ideal is over judged candidates; unknown candidates could change the ideal. Bounds allow their grades to vary from 0 to 3.",
-                            "Explicit criteria isolate the ranker and do not evaluate natural-language parsing. Synthetic hotelier/demo facts are excluded."]}
+                            "Explicit criteria isolate the ranker and do not evaluate natural-language parsing. Synthetic hotelier/demo facts are excluded.",
+                            "Only display_name, synonyms and value_schema.x-hotelier may differ from hash-verified original YAML. Source ledgers, all other schema semantics and the resolved fact materialization remain frozen."]}
 
 
 def main():
