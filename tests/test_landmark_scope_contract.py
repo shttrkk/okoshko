@@ -1,4 +1,6 @@
 """Visibility targets must not change legacy scope bytes or accept arbitrary paths."""
+from datetime import timedelta
+
 import pytest
 from pydantic import ValidationError
 
@@ -10,9 +12,10 @@ def test_legacy_scope_keeps_exact_wire_shape_even_when_nested_in_claim():
     expected = {"type": "hotel", "facade": None, "floor_min": None,
                 "floor_max": None, "room_type": None, "month": None}
     assert Scope().model_dump(mode="json") == expected
+    observed = now()
     claim = Claim(hotel_id="legacy", characteristic_id="sea_view", value=True,
                   source="fixture", method="known_fixture", confidence=.7,
-                  observed_at=now(), valid_until=now(), synthetic=True,
+                  observed_at=observed, valid_until=observed + timedelta(days=1), synthetic=True,
                   evidence=[{"kind": "simulation", "label": "Known synthetic fixture", "source_ids": ["fixture"], "artifact": "/tests/test_landmark_scope_contract.py"}])
     assert claim.model_dump(mode="json")["scope"] == expected
     assert scope_key(Scope()) == '{"type": "hotel"}'
