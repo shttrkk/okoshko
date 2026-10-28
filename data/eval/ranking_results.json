@@ -46,18 +46,92 @@
     }
   },
   "input_materialization_matches_frozen": true,
+  "input_facts_sha256": "3e826cea2d5af61925f1f7ef744853bda1447698016492b95080dc2452070085",
+  "input_file_validation": "exact_sha256_or_hash_verified_yaml_metadata_v1",
+  "metadata_only_input_changes": [
+    {
+      "path": "data/characteristics/air_quality.yaml",
+      "original_sha256": "8274ca2105d7ddc7b8492345f308edf535fe9f1ac0c1639bd4f72e37b94bb624",
+      "current_sha256": "42f8486a2aa10fd71891e7d1df393ca398732b8e70837f015f95bae61020c719",
+      "verification": "sha256_verified_display_name_removal",
+      "original_snapshot": null,
+      "changed_metadata_paths": [
+        "display_name"
+      ]
+    },
+    {
+      "path": "data/characteristics/beach_walk.yaml",
+      "original_sha256": "d48ab3787424d1618850ceb98a1c21914e15c85953ac7fcee1c8edf8e9016e00",
+      "current_sha256": "22051fe1c2a7db825e32f8d0fc5670c9749413de8ee68a155bb7d95268888780",
+      "verification": "sha256_verified_display_name_removal",
+      "original_snapshot": null,
+      "changed_metadata_paths": [
+        "display_name"
+      ]
+    },
+    {
+      "path": "data/characteristics/climate.yaml",
+      "original_sha256": "a4a5790abcffbcfce0df8a7f66f64a38edc9679043d23e5cbc3bd7f2b580b86e",
+      "current_sha256": "f827618c65fe9beef2f8a7a226b9f4258769f673f9bb145320811c4f132f015f",
+      "verification": "sha256_verified_display_name_removal",
+      "original_snapshot": null,
+      "changed_metadata_paths": [
+        "display_name"
+      ]
+    },
+    {
+      "path": "data/characteristics/mountain_view.yaml",
+      "original_sha256": "901bcddf4b4d51d3ae2c7a10d337852402c575774454958bde33cf632d6f5ffa",
+      "current_sha256": "3558b687ef0abcb3d2ce1b96b5b131a5305d317f8c0baaf63b4d85895995207b",
+      "verification": "sha256_verified_display_name_removal",
+      "original_snapshot": null,
+      "changed_metadata_paths": [
+        "display_name"
+      ]
+    },
+    {
+      "path": "data/characteristics/quiet_night.yaml",
+      "original_sha256": "6e0464cfdef7d899e0122adb580ac29d9963ccfb4becb97032da97dbd2465a0c",
+      "current_sha256": "e6822682793f45a3bc22c3110dc5e3516bd265394a304764046ef24fb0d8a9a4",
+      "verification": "sha256_verified_original_snapshot",
+      "original_snapshot": "data/eval/ranking_schema_inputs/6e0464cfdef7d899e0122adb580ac29d9963ccfb4becb97032da97dbd2465a0c.yaml",
+      "changed_metadata_paths": [
+        "display_name",
+        "synonyms"
+      ]
+    },
+    {
+      "path": "data/characteristics/sea_view.yaml",
+      "original_sha256": "a9fecf6bca68144ec4ecccb5b264a31e1b413f0912a9af80ac737ec03ae8de51",
+      "current_sha256": "254ca872b8fb214262d4dc884e934018092479f4bb6ff5bb4e956dc895b92933",
+      "verification": "sha256_verified_display_name_removal",
+      "original_snapshot": null,
+      "changed_metadata_paths": [
+        "display_name"
+      ]
+    },
+    {
+      "path": "data/characteristics/sunset_view.yaml",
+      "original_sha256": "149b80cc5f55745e05d3d64aa44bc689ed26ab6954bffaaeb593e4653ac8feca",
+      "current_sha256": "2cc43abdaeeeef5a3763245fbbd229cf2746838cdc7e51806d06dd65f9c0f69f",
+      "verification": "sha256_verified_display_name_removal",
+      "original_snapshot": null,
+      "changed_metadata_paths": [
+        "display_name"
+      ]
+    }
+  ],
   "display_name_only_changes": [
     "data/characteristics/air_quality.yaml",
     "data/characteristics/beach_walk.yaml",
     "data/characteristics/climate.yaml",
     "data/characteristics/mountain_view.yaml",
-    "data/characteristics/quiet_night.yaml",
     "data/characteristics/sea_view.yaml",
     "data/characteristics/sunset_view.yaml"
   ],
   "scorer_sha256": {
-    "backend/agents/ranker.py": "251b538a52cdb75aae18e46aeb926a23211616f4ef4d3452d41f04996ed6aae9",
-    "backend/agents/query_match.py": "732134b7de0e5c8360731cf31f32cd2027a9a4d213f721977c1b3a49713420f0",
+    "backend/agents/ranker.py": "979e70d9b07d1312dc2fd0571c6703403a9bfd7bf5b7b1a427e9e76b660cf687",
+    "backend/agents/query_match.py": "b44047aa64b8c6031cf52f23b18b92f3d5a3fbc1c64dc7051fee7a7c2402c8bf",
     "backend/catalogue.py": "3b982d74eeb022db0d559ed6b585d03163b7fc81883cbab97fa25369bbcf8e72",
     "data/seed/catalogue_reviews.json": "fd797a28aaf1ce34ca67d415f3e00dbddb6e6d93ffdde99a0c3e22dd69871090"
   },
@@ -1715,6 +1789,7 @@
     "No human labels; source evidence and predictions share a model, so this measures policy agreement only.",
     "Unknown/stale/disputed/low-confidence pairs are unjudged. Main nDCG excludes queries with any unjudged top5 item; judged share and loose bounds are reported separately.",
     "The graded ideal is over judged candidates; unknown candidates could change the ideal. Bounds allow their grades to vary from 0 to 3.",
-    "Explicit criteria isolate the ranker and do not evaluate natural-language parsing. Synthetic hotelier/demo facts are excluded."
+    "Explicit criteria isolate the ranker and do not evaluate natural-language parsing. Synthetic hotelier/demo facts are excluded.",
+    "Only display_name, synonyms and value_schema.x-hotelier may differ from hash-verified original YAML. Source ledgers, all other schema semantics and the resolved fact materialization remain frozen."
   ]
 }
