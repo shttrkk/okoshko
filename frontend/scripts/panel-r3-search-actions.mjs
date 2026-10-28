@@ -116,6 +116,21 @@ const verdicts = (hit) => [
   ...(hit.room_plan || []).flatMap((room) => room.verdicts),
 ];
 const required = (hit) => verdicts(hit).filter((v) => v.required);
+export function r3DemoGroupWitnesses(result) {
+  return result.results.flatMap((hit) =>
+    hit.group === "all"
+      ? required(hit)
+          .filter(
+            (v) =>
+              v.status === "yes" &&
+              v.synthetic &&
+              !v.disputed &&
+              !["calculation", "open_data"].includes(v.basis || "unknown"),
+          )
+          .map((verdict) => ({ hit, verdict }))
+      : [],
+  );
+}
 const criterionList = (parsed) =>
   ["must", "nice", "no_data"].flatMap((key) => parsed[key] || []);
 const hotelId = (hit) => hit.hotel.id;
@@ -713,7 +728,13 @@ export async function runPanelR3SearchActions({
           return route.continue();
         });
       });
-      for (const id of ["masha", "wifi", "dina_full", "center_relative"])
+      for (const id of [
+        "masha",
+        "pets",
+        "wifi",
+        "dina_full",
+        "center_relative",
+      ])
         await attempt(`DOM.${id}`, async () => {
           const page = await context.newPage();
           page.on("pageerror", (error) =>
@@ -807,39 +828,6 @@ export async function runPanelR3SearchActions({
                   "R8.because_only_yes.DOM",
                   "Current rendered cards do not exercise both a reason and a non-yes room condition",
                 );
-              if (
-                result.results.some(
-                  (h) =>
-                    h.group === "all" &&
-                    required(h).some(
-                      (v) =>
-                        v.status === "yes" &&
-                        v.synthetic &&
-                        !["calculation", "open_data"].includes(
-                          v.basis || "unknown",
-                        ),
-                    ),
-                )
-              ) {
-                assert.equal(
-                  await page.getByText(/^ВАШИ УСЛОВИЯ СОШЛИСЬ$/i).count(),
-                  0,
-                  "An all/demo group has an unconditional success heading",
-                );
-                assert(
-                  await page
-                    .getByText(
-                      /В совпадениях есть демо-ответы — подтвердите их у отеля/i,
-                    )
-                    .isVisible(),
-                  "All/demo group lacks the neutral confirmation caveat",
-                );
-                pass("R8.demo_group_heading.DOM");
-              } else
-                limited(
-                  "R8.demo_group_heading.DOM",
-                  "No all-group required demo=yes witness is currently rendered",
-                );
               const leader = result.results[0];
               if (leader.why_higher) {
                 assert.equal(
@@ -858,6 +846,78 @@ export async function runPanelR3SearchActions({
                 limited(
                   "R8.why_higher_visible.DOM",
                   "The current leader has no why_higher field",
+                );
+            } else if (id === "pets") {
+              const observed = [];
+              for (const { hit, verdict } of r3DemoGroupWitnesses(result)) {
+                if (verdict.characteristic_id !== "pets") continue;
+                const card = page.getByTestId(`hotel-card-${hotelId(hit)}`);
+                if (!(await card.count())) continue;
+                const values = await support(hit, verdict);
+                assert(
+                  values.some(
+                    ({ fact }) =>
+                      fact.synthetic &&
+                      fact.evidence.some(
+                        (e) =>
+                          e.source_ids.includes("hotelier_simulator") &&
+                          e.quote?.trim(),
+                      ),
+                  ),
+                  "Required demo pets=yes lacks a quoted demo hotel reply",
+                );
+                const group = page
+                  .locator(".result-group")
+                  .filter({ has: card });
+                assert.equal(await group.count(), 1);
+                const eyebrow = group.locator(".result-group-title .eyebrow");
+                const heading = group.getByRole("heading", { level: 2 });
+                assert(await eyebrow.isVisible());
+                assert(await heading.isVisible());
+                assert.equal(
+                  normalize(await eyebrow.innerText()),
+                  normalize("СОВПАДЕНИЯ С ДЕМО-ОТВЕТАМИ"),
+                  "All/demo group lacks its neutral demo label",
+                );
+                assert.equal(
+                  normalize(await heading.innerText()),
+                  normalize(
+                    "В совпадениях есть демо-ответы — подтвердите их у отеля",
+                  ),
+                  "All/demo group lacks the neutral confirmation caveat",
+                );
+                const row = card.locator(".verdict-list > li").filter({
+                  has: page.getByText(verdict.label, { exact: true }),
+                });
+                assert.equal(await row.count(), 1);
+                const badge = row.locator(".verdict-text > .badge.synthetic");
+                assert(await badge.isVisible());
+                assert.equal(
+                  normalize(await badge.innerText()),
+                  normalize("Ответ отеля · демо"),
+                  "Required demo pets=yes lacks its visible demo-answer badge",
+                );
+                assert.equal(await row.locator(".badge.confirmed").count(), 0);
+                observed.push({
+                  hotel_id: hotelId(hit),
+                  characteristic_id: verdict.characteristic_id,
+                  fact_ids: verdict.fact_ids,
+                });
+              }
+              if (observed.length) {
+                assert.equal(
+                  await page.getByText(/^ВАШИ УСЛОВИЯ СОШЛИСЬ$/i).count(),
+                  0,
+                  "An all/demo group has an unconditional success heading",
+                );
+                pass("R8.demo_group_heading.DOM", {
+                  query: SEARCH_CASES.pets,
+                  observed,
+                });
+              } else
+                limited(
+                  "R8.demo_group_heading.DOM",
+                  "No all-group required pets demo=yes witness is currently rendered; partials do not test this boundary",
                 );
             } else if (id === "wifi") {
               let count = 0;
@@ -934,6 +994,22 @@ export async function runPanelR3SearchActions({
               fullPage: false,
             });
             report.captures.push(name);
+            if (id === "pets")
+              for (const width of [1440, 390])
+                for (const scheme of ["light", "dark"]) {
+                  await page.setViewportSize({
+                    width,
+                    height: width === 390 ? 844 : 1000,
+                  });
+                  await page.emulateMedia({ colorScheme: scheme });
+                  await page.locator(`[data-theme=${scheme}]`).waitFor();
+                  const variant = `pets-${scheme}-${width}.png`;
+                  await page.screenshot({
+                    path: resolve(output, variant),
+                    fullPage: true,
+                  });
+                  report.captures.push(variant);
+                }
           } finally {
             await routeLifecycle.close(page);
           }

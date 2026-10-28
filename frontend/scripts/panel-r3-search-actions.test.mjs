@@ -8,6 +8,7 @@ import {
   assertR3SearchRequest,
   createR3SearchClient,
   createR3RouteLifecycle,
+  r3DemoGroupWitnesses,
   runPanelR3SearchActions,
 } from "./panel-r3-search-actions.mjs";
 
@@ -22,6 +23,41 @@ function transport() {
     },
   };
 }
+
+test("demo heading acceptance requires a mandatory undisputed demo yes in all", () => {
+  const verdict = {
+    characteristic_id: "pets",
+    required: true,
+    status: "yes",
+    synthetic: true,
+    basis: "hotelier",
+  };
+  const hit = { group: "all", verdicts: [verdict] };
+  assert.deepEqual(r3DemoGroupWitnesses({ results: [hit] }), [
+    { hit, verdict },
+  ]);
+  for (const changes of [
+    { status: "partial" },
+    { status: "unknown" },
+    { status: "no" },
+    { required: false },
+    { synthetic: false },
+    { disputed: true },
+    { basis: "calculation" },
+    { basis: "open_data" },
+  ])
+    assert.deepEqual(
+      r3DemoGroupWitnesses({
+        results: [{ ...hit, verdicts: [{ ...verdict, ...changes }] }],
+      }),
+      [],
+    );
+  assert.deepEqual(r3DemoGroupWitnesses({ results: [] }), []);
+  assert.deepEqual(
+    r3DemoGroupWitnesses({ results: [{ ...hit, group: "almost" }] }),
+    [],
+  );
+});
 
 test("only the literal localhost:8081 HTTP origin is accepted", () => {
   for (const base of [
