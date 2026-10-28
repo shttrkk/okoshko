@@ -82,7 +82,7 @@ def scan_secrets(data, path=""):
             name, value = match.group(1).lower(), match.group(3 if pattern is QUOTED else 2)
             if not value or value.startswith((b"os.", b"self.", b"settings.", b"secrets.")):
                 continue
-            known_demo = name.endswith(b"password") and value.lower() in {b"okno", b"app", b"postgres", b"hotelier123"}
+            known_demo = name.endswith(b"password") and value.lower() in {b"okno", b"app", b"postgres", b"hotelier123", b"cascade-demo-2026", b"brevis-demo-2026"}
             target = examples if placeholder(value) or known_demo else potential
             target["literal_credential_assignment"] += 1
     for match in CONNECTION.finditer(data):

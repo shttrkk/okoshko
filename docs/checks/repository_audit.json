@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "checked_at": "2026-10-26T17:43:05.485045+00:00",
-  "git_head": "9ac03ec054b14412c5d04c10516a01083c0978b4",
+  "checked_at": "2026-10-28T13:45:27.880356+00:00",
+  "git_head": "f97014762882be08f23e0d7b5a68628ae6c03070",
   "passed": true,
   "checks": {
     "mandatory_root_files": {
@@ -69,6 +69,12 @@
           }
         },
         {
+          "path": "backend/tests/test_r3_hotelier.py",
+          "counts": {
+            "literal_credential_assignment": 1
+          }
+        },
+        {
           "path": "docker-compose.yml",
           "counts": {
             "literal_credential_assignment": 1,
@@ -76,7 +82,25 @@
           }
         },
         {
+          "path": "frontend/scripts/panel-r3-guest-actions.mjs",
+          "counts": {
+            "literal_credential_assignment": 1
+          }
+        },
+        {
           "path": "scripts/smoke.py",
+          "counts": {
+            "literal_credential_assignment": 1
+          }
+        },
+        {
+          "path": "tests/test_panel_hotelier.py",
+          "counts": {
+            "literal_credential_assignment": 2
+          }
+        },
+        {
+          "path": "tests/test_panel_run_privacy.py",
           "counts": {
             "literal_credential_assignment": 1
           }
@@ -141,7 +165,7 @@
         },
         {
           "path": "requirements-dev.lock",
-          "packages": 71,
+          "packages": 74,
           "unpinned_requirement_line_numbers": [],
           "packages_without_sha256": 0
         },
@@ -165,7 +189,7 @@
         {
           "path": "frontend/package-lock.json",
           "lockfile_version": 3,
-          "packages": 303,
+          "packages": 304,
           "bundled_packages_covered_by_parent_hash": 6,
           "missing_version_or_integrity": 0
         },
@@ -177,14 +201,10 @@
           "missing_version_or_integrity": 0
         }
       ]
-    },
-    "history_secret_patterns": {
-      "passed": true,
-      "potential_matches": []
     }
   },
-  "tracked_files": 877,
-  "tracked_worktree_total_bytes": 383198247,
+  "tracked_files": 1541,
+  "tracked_worktree_total_bytes": 415714497,
   "largest_tracked_files": [
     {
       "path": "data/geo/terrain_30m.npz",
@@ -192,7 +212,7 @@
     },
     {
       "path": "data/geo/geo_claims.jsonl.gz",
-      "bytes": 8000956
+      "bytes": 8029239
     },
     {
       "path": "data/tiles/city.pmtiles",
@@ -207,31 +227,31 @@
       "bytes": 4686376
     },
     {
+      "path": "data/seed/tz_vehicle_roads.geojson.gz",
+      "bytes": 3849684
+    },
+    {
+      "path": "data/seed/geo_trait_claims.jsonl.gz",
+      "bytes": 3748065
+    },
+    {
       "path": "data/geo/osm-node-11843553792.json",
-      "bytes": 2111943
+      "bytes": 2112311
+    },
+    {
+      "path": "data/eval/ranking_gold.jsonl",
+      "bytes": 1728236
     },
     {
       "path": "data/seed/roads.geojson.gz",
       "bytes": 1671044
-    },
-    {
-      "path": "data/geo/osm-node-11016638375.json",
-      "bytes": 1597791
-    },
-    {
-      "path": "data/geo/overture-76383584-f4a0-4333-bb90-3fd6d19a354d.json",
-      "bytes": 1593126
-    },
-    {
-      "path": "data/geo/overture-1c518e59-cd59-4a6e-917d-51de476c4b1b.json",
-      "bytes": 1491451
     }
   ],
   "git_storage": {
-    "directory_bytes": 259563194,
+    "directory_bytes": 346071582,
     "count_objects": {
-      "count": 961,
-      "size": 72304,
+      "count": 5230,
+      "size": 169380,
       "in-pack": 1708,
       "packs": 2,
       "size-pack": 182653,
@@ -240,254 +260,13 @@
       "size-garbage": 0
     },
     "pack_bytes": 187036672,
-    "loose_allocated_bytes": 74039296,
+    "loose_allocated_bytes": 173445120,
     "target_pack_bytes": 150000000,
     "target_pack_met": false,
     "interpretation": "Pack target is advisory; owner decides compaction. No gc, purge or rewrite performed."
   },
   "history": {
-    "enabled": true,
-    "reachable_objects": 2519,
-    "object_types": {
-      "commit": 148,
-      "tree": 635,
-      "blob": 1736
-    },
-    "text_objects_scanned": 1320,
-    "binary_blobs_not_secret_scanned": 564,
-    "historical_path_count": 896,
-    "potential_secret_matches": [],
-    "recognized_examples": [
-      {
-        "path": ".env.example",
-        "counts": {
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "README.md",
-        "counts": {
-          "literal_credential_assignment": 1,
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "backend/contracts/models.py",
-        "counts": {
-          "type_annotation_not_credential": 1
-        }
-      },
-      {
-        "path": "backend/db/migrations/env.py",
-        "counts": {
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "backend/settings.py",
-        "counts": {
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "backend/tests/test_hotelier.py",
-        "counts": {
-          "literal_credential_assignment": 1
-        }
-      },
-      {
-        "path": "backend/tests/test_passport.py",
-        "counts": {
-          "literal_credential_assignment": 2
-        }
-      },
-      {
-        "path": "docker-compose.yml",
-        "counts": {
-          "literal_credential_assignment": 1,
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "scripts/smoke.py",
-        "counts": {
-          "literal_credential_assignment": 1
-        }
-      },
-      {
-        "path": "docs/RULES.md",
-        "counts": {
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "docs/research/agent_architecture.md",
-        "counts": {
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "README.md",
-        "counts": {
-          "literal_credential_assignment": 1,
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "README.md",
-        "counts": {
-          "literal_credential_assignment": 1,
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "backend/contracts/models.py",
-        "counts": {
-          "type_annotation_not_credential": 1
-        }
-      },
-      {
-        "path": "backend/tests/test_hotelier.py",
-        "counts": {
-          "literal_credential_assignment": 1
-        }
-      },
-      {
-        "path": "backend/tests/test_passport.py",
-        "counts": {
-          "literal_credential_assignment": 2
-        }
-      },
-      {
-        "path": "README.md",
-        "counts": {
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "README.md",
-        "counts": {
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "README.md",
-        "counts": {
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "backend/contracts/models.py",
-        "counts": {
-          "type_annotation_not_credential": 1
-        }
-      },
-      {
-        "path": "backend/tests/test_passport.py",
-        "counts": {
-          "literal_credential_assignment": 1
-        }
-      },
-      {
-        "path": "README.md",
-        "counts": {
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "backend/tests/test_passport.py",
-        "counts": {
-          "literal_credential_assignment": 2
-        }
-      },
-      {
-        "path": "backend/tests/test_passport.py",
-        "counts": {
-          "literal_credential_assignment": 2
-        }
-      },
-      {
-        "path": "README.md",
-        "counts": {
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "backend/contracts/models.py",
-        "counts": {
-          "type_annotation_not_credential": 1
-        }
-      },
-      {
-        "path": "backend/contracts/models.py",
-        "counts": {
-          "type_annotation_not_credential": 1
-        }
-      },
-      {
-        "path": "backend/tests/test_hotelier.py",
-        "counts": {
-          "literal_credential_assignment": 1
-        }
-      },
-      {
-        "path": "backend/tests/test_passport.py",
-        "counts": {
-          "literal_credential_assignment": 1
-        }
-      },
-      {
-        "path": "backend/contracts/models.py",
-        "counts": {
-          "type_annotation_not_credential": 1
-        }
-      },
-      {
-        "path": "backend/tests/test_hotelier.py",
-        "counts": {
-          "literal_credential_assignment": 1
-        }
-      },
-      {
-        "path": "backend/tests/test_hotelier.py",
-        "counts": {
-          "literal_credential_assignment": 1
-        }
-      },
-      {
-        "path": "backend/tests/test_hotelier.py",
-        "counts": {
-          "literal_credential_assignment": 1
-        }
-      },
-      {
-        "path": "README.md",
-        "counts": {
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "backend/contracts/models.py",
-        "counts": {
-          "type_annotation_not_credential": 1
-        }
-      },
-      {
-        "path": "backend/settings.py",
-        "counts": {
-          "connection_uri_credentials": 1
-        }
-      },
-      {
-        "path": "docker-compose.yml",
-        "counts": {
-          "literal_credential_assignment": 1,
-          "connection_uri_credentials": 1
-        }
-      }
-    ],
-    "historical_files_over_50mb": [],
-    "historical_sensitive_or_raw_paths": []
+    "enabled": false
   },
   "licensing_inventory": {
     "project_license_files": [],
