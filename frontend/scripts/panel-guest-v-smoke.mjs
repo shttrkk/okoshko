@@ -343,24 +343,69 @@ try {
   await page.goto(`${base}/search?q=known-statuses`);
   await page.locator(".result-card").first().waitFor();
   const cards = page.locator(".result-card");
-  assert.match(await cards.nth(0).innerText(), /не подходит.*|Не подходит/);
-  assert.match(await cards.nth(0).innerText(), /37 м/);
-  assert.match(await cards.nth(1).innerText(), /9 заведений из 30/);
+  const routeName = "Маршрут · проверка демо-расчёта";
+  const nightlifeName = "Окружение · проверка демо-расчёта";
+  const wifiName = "Wi-Fi · проверка демо-данных";
+  const routeCard = cards.filter({ hasText: routeName });
+  const nightlifeCard = cards.filter({ hasText: nightlifeName });
+  const wifiCard = cards.filter({ hasText: wifiName });
+  assert.equal(await cards.count(), 3);
+  for (const card of [routeCard, nightlifeCard, wifiCard]) {
+    assert.equal(await card.count(), 1);
+    const sourceBadges = await card
+      .locator(".verdict-list .badge.synthetic")
+      .allTextContents();
+    assert(sourceBadges.length > 0);
+    assert(sourceBadges.every((badge) => badge === "Демо-расчёт"));
+    assert.equal(
+      await card.locator(".verdict-list .badge.confirmed").count(),
+      0,
+    );
+  }
+  const cardOrder = await cards.locator(".hotel-name").allTextContents();
+  for (const name of [routeName, nightlifeName, wifiName])
+    assert(cardOrder.includes(name));
+  // R7 groups known required failures after unresolved conditions.
+  assert(cardOrder.indexOf(wifiName) < cardOrder.indexOf(routeName));
+  assert(cardOrder.indexOf(wifiName) < cardOrder.indexOf(nightlifeName));
+  assert.match(await routeCard.innerText(), /не подходит.*|Не подходит/);
+  assert.match(await routeCard.innerText(), /37 м/);
+  assert.match(await nightlifeCard.innerText(), /9 заведений из 30/);
+  for (const card of [routeCard, nightlifeCard]) {
+    const symbol = card.locator(".verdict-symbol.no");
+    assert.equal(await symbol.count(), 1);
+    assert.equal(await symbol.getAttribute("aria-label"), "Не подходит");
+    assert.equal((await symbol.textContent()).trim(), "✗");
+  }
   assert.match(
-    await cards.nth(2).innerText(),
+    await wifiCard.innerText(),
     /Wi-Fi указан, скорость не измерена/,
   );
   assert.equal(
-    (
-      await cards.nth(2).locator(".verdict-symbol").first().textContent()
-    ).trim(),
+    (await wifiCard.locator(".verdict-symbol.partial").textContent()).trim(),
     "≈",
   );
-  for (const [index, unrelated] of [
-    [0, /наличие номеров|окон на фасаде|это вопрос отельеру/i],
-    [1, /больниц/i],
+  assert.equal(
+    await wifiCard
+      .locator(".verdict-symbol.partial")
+      .getAttribute("aria-label"),
+    "Частично",
+  );
+  assert.equal(
+    await wifiCard
+      .locator(".verdict-symbol.unknown")
+      .getAttribute("aria-label"),
+    "Неизвестно",
+  );
+  assert.equal(
+    (await wifiCard.locator(".verdict-symbol.unknown").textContent()).trim(),
+    "?",
+  );
+  for (const [card, unrelated] of [
+    [routeCard, /наличие номеров|окон на фасаде|это вопрос отельеру/i],
+    [nightlifeCard, /больниц/i],
   ]) {
-    const details = cards.nth(index).getByTestId("card-details");
+    const details = card.getByTestId("card-details");
     await details.locator(":scope > summary").click();
     await details.getByTestId("card-proof").locator(":scope > summary").click();
     assert(!unrelated.test(await details.innerText()));
@@ -381,7 +426,7 @@ try {
   assert.equal(questionPosts, 1);
   await capture(page, "known-statuses-fixture", true);
   report.fixtures.push(
-    "pending backend integration: known stairs/threshold fail render as no; reported Wi-Fi as partial; Ask confirmation uses intercepted POST",
+    "known required no follows unresolved conditions; no/partial/unknown and demo provenance retained; Ask confirmation uses intercepted POST",
   );
   await page.goto(base);
   await page

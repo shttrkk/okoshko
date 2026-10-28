@@ -776,7 +776,7 @@ function HotelVisualContent({
             <i />
           </div>
           <span className="visual-caption">
-            {hotel.address || "Черноморское побережье"}
+            {hotel.name}
             <br />
             <small>Схема · фото отеля пока нет</small>
           </span>

@@ -141,6 +141,39 @@ function validateResult(result) {
   return result;
 }
 
+// Keep the context guard installed while each page's real API relays finish.
+// Rejections are reported before aborting the route, never left unhandled.
+export function createR3RouteLifecycle(recordFailure) {
+  const active = new Map();
+  const closing = new WeakSet();
+  return {
+    isClosing: (page) => closing.has(page),
+    run(page, route, action) {
+      if (!active.has(page)) active.set(page, new Set());
+      const tasks = active.get(page);
+      const task = Promise.resolve()
+        .then(action)
+        .catch(async (error) => {
+          recordFailure(error, route);
+          try {
+            await route.abort("failed");
+          } catch (abortError) {
+            recordFailure(abortError, route);
+          }
+        });
+      tasks.add(task);
+      return task.finally(() => tasks.delete(task));
+    },
+    async close(page) {
+      closing.add(page);
+      const tasks = active.get(page);
+      while (tasks?.size) await Promise.all([...tasks]);
+      await page.close();
+      active.delete(page);
+    },
+  };
+}
+
 export async function runPanelR3SearchActions({
   base = ORIGIN,
   artifacts,
@@ -176,6 +209,7 @@ export async function runPanelR3SearchActions({
     browser_requests: [],
     forbidden_mutations: [],
     blocked_external_reads: [],
+    teardown_cancellations: [],
     page_errors: [],
   };
   const pass = (id, detail = {}) =>
@@ -598,46 +632,86 @@ export async function runPanelR3SearchActions({
         viewport: { width: 1440, height: 1000 },
         serviceWorkers: "block",
       });
-      await context.route("**/*", async (route) => {
+      const routeLifecycle = createR3RouteLifecycle((error, route) => {
+        const request = route.request();
+        report.failures.push({
+          id: "browser_route",
+          method: request.method(),
+          path: new URL(request.url()).pathname,
+          error: safeError(error),
+        });
+      });
+      await context.route("**/*", (route) => {
         const request = route.request(),
           url = new URL(request.url());
+        let page;
         try {
-          assertR3SearchRequest(request.method(), url, env);
+          page = request.frame().page();
         } catch (error) {
-          if (readOnly.has(request.method()) && url.origin !== origin.origin)
-            report.blocked_external_reads.push(url.hostname);
-          else
-            report.forbidden_mutations.push({
-              method: request.method(),
-              path: url.pathname,
-              error: safeError(error),
-            });
-          return route.abort("blockedbyclient");
+          return routeLifecycle.run(null, route, () => {
+            throw error;
+          });
         }
-        if (url.pathname.startsWith("/api/")) {
-          // Relay the actual API response unchanged; this is not a fixture.
-          // A browser redirect must not turn an allowed search into a second,
-          // unguarded POST (including a same-origin answer/passport endpoint).
-          const response = await route.fetch({
-            maxRedirects: 0,
-            timeout: 60000,
-          });
-          report.browser_requests.push({
-            method: request.method(),
-            path: url.pathname,
-            status: response.status(),
-          });
-          if (response.status() >= 300 && response.status() < 400) {
-            report.forbidden_mutations.push({
-              method: request.method(),
-              path: url.pathname,
-              error: "API redirect was blocked before following it",
-            });
+        return routeLifecycle.run(page, route, async () => {
+          try {
+            assertR3SearchRequest(request.method(), url, env);
+          } catch (error) {
+            if (readOnly.has(request.method()) && url.origin !== origin.origin)
+              report.blocked_external_reads.push(url.hostname);
+            else
+              report.forbidden_mutations.push({
+                method: request.method(),
+                path: url.pathname,
+                error: safeError(error),
+              });
             return route.abort("blockedbyclient");
           }
-          return route.fulfill({ response });
-        }
-        return route.continue();
+          if (routeLifecycle.isClosing(page)) {
+            // Only not-yet-forwarded reads can be cancelled as teardown work.
+            // A new search POST after checks is an unexpected mutation attempt.
+            if (!readOnly.has(request.method()))
+              report.forbidden_mutations.push({
+                method: request.method(),
+                path: url.pathname,
+                error: "New mutation after page checks finished",
+              });
+            report.teardown_cancellations.push({
+              method: request.method(),
+              path: url.pathname,
+              reason: "page_checks_finished_before_forwarding",
+              expected: readOnly.has(request.method()),
+            });
+            return route.abort("aborted");
+          }
+          if (url.pathname.startsWith("/api/")) {
+            // Relay the actual API response unchanged; this is not a fixture.
+            // A browser redirect must not turn an allowed search into a second,
+            // unguarded POST (including a same-origin answer/passport endpoint).
+            const response = await route.fetch({
+              maxRedirects: 0,
+              timeout: 60000,
+            });
+            report.browser_requests.push({
+              method: request.method(),
+              path: url.pathname,
+              status: response.status(),
+            });
+            if (response.status() >= 300 && response.status() < 400) {
+              report.forbidden_mutations.push({
+                method: request.method(),
+                path: url.pathname,
+                error: "API redirect was blocked before following it",
+              });
+              return route.abort("blockedbyclient");
+            }
+            assert(
+              response.ok(),
+              `${request.method()} ${url.pathname}: HTTP ${response.status()}`,
+            );
+            return route.fulfill({ response });
+          }
+          return route.continue();
+        });
       });
       for (const id of ["masha", "wifi", "dina_full", "center_relative"])
         await attempt(`DOM.${id}`, async () => {
@@ -861,7 +935,7 @@ export async function runPanelR3SearchActions({
             });
             report.captures.push(name);
           } finally {
-            await page.close();
+            await routeLifecycle.close(page);
           }
         });
     }
@@ -882,17 +956,30 @@ export async function runPanelR3SearchActions({
   } catch (error) {
     report.failures.push({ id: "runner", error: safeError(error) });
   } finally {
-    if (context) await context.close();
-    if (browser && !suppliedBrowser) {
-      const { closeSmokeBrowser } = await import("./panel-guest-smoke-ui.mjs");
-      await closeSmokeBrowser(browser);
+    try {
+      if (context) await context.close();
+    } catch (error) {
+      report.failures.push({ id: "context_cleanup", error: safeError(error) });
+    }
+    try {
+      if (browser && !suppliedBrowser) {
+        const { closeSmokeBrowser } = await import(
+          "./panel-guest-smoke-ui.mjs"
+        );
+        await closeSmokeBrowser(browser);
+      }
+    } catch (error) {
+      report.failures.push({ id: "browser_cleanup", error: safeError(error) });
     }
     report.requests = client.requests;
-    report.status = report.failures.length
-      ? "failed"
-      : report.limitations.length
-        ? "completed_with_limitations"
-        : "passed";
+    report.status =
+      report.failures.length ||
+      report.forbidden_mutations.length ||
+      report.page_errors.length
+        ? "failed"
+        : report.limitations.length
+          ? "completed_with_limitations"
+          : "passed";
     report.finished_at = new Date().toISOString();
     await writeFile(
       resolve(output, "panel-r3-search-actions.json"),

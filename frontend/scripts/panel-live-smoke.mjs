@@ -1012,6 +1012,11 @@ try {
   );
 }
 if (report.status === "pass" && r3Actions) {
+  report.status = "running_extended";
+  await writeFile(
+    resolve(artifacts, "report.json"),
+    JSON.stringify(report, null, 2) + "\n",
+  );
   try {
     const { runPanelR3Actions } = await import("./panel-r3-actions.mjs");
     const { runPanelR3GuestActions } = await import("./panel-r3-guest-actions.mjs");
@@ -1035,6 +1040,8 @@ if (report.status === "pass" && r3Actions) {
       base: base.origin,
       artifacts: resolve(artifacts, "r3-loading"),
     });
+    report.extended_actions_completed = true;
+    report.status = "pass";
   } catch (error) {
     report.status = "fail";
     report.error = redact(error.message);

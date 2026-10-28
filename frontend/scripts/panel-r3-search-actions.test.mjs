@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   assertR3SearchRequest,
   createR3SearchClient,
+  createR3RouteLifecycle,
   runPanelR3SearchActions,
 } from "./panel-r3-search-actions.mjs";
 
@@ -179,4 +180,104 @@ test("an API redirect is rejected after exactly one permitted request", async ()
   });
   await assert.rejects(client.search("центр"), /HTTP 307/);
   assert.equal(calls, 1);
+});
+
+test("page teardown waits for its unfinished real relay before closing", async () => {
+  const failures = [];
+  const lifecycle = createR3RouteLifecycle((error) => failures.push(error));
+  let release,
+    relayed = false,
+    closed = false;
+  const response = new Promise((done) => (release = done));
+  const page = {
+    close: async () => {
+      assert(relayed, "Closing first reproduces the live route.fetch crash");
+      closed = true;
+    },
+  };
+  const route = { abort: async () => assert.fail("Successful relay aborted") };
+  const relay = lifecycle.run(page, route, async () => {
+    await response;
+    relayed = true;
+  });
+  const teardown = lifecycle.close(page);
+  assert(lifecycle.isClosing(page));
+  await Promise.resolve();
+  assert(!closed);
+  release();
+  await Promise.all([relay, teardown]);
+  assert(closed);
+  assert.deepEqual(failures, []);
+});
+
+test("transport and assertion rejections are recorded, not unhandled or cancelled away", async () => {
+  for (const failure of [
+    new Error("Actual API HTTP 503"),
+    new assert.AssertionError({ message: "Source mismatch" }),
+  ]) {
+    const failures = [],
+      aborted = [];
+    const lifecycle = createR3RouteLifecycle((error) => failures.push(error));
+    let closed = false;
+    const page = { close: async () => (closed = true) };
+    const route = { abort: async (reason) => aborted.push(reason) };
+    const relay = lifecycle.run(page, route, async () => {
+      throw failure;
+    });
+    await lifecycle.close(page);
+    await relay;
+    assert(closed);
+    assert.deepEqual(failures, [failure]);
+    assert.deepEqual(aborted, ["failed"]);
+  }
+});
+
+test("failed cleanup abort is also recorded and cannot prevent final page closure", async () => {
+  const failures = [];
+  const lifecycle = createR3RouteLifecycle((error) =>
+    failures.push(error.message),
+  );
+  const page = { close: async () => {} };
+  const route = {
+    abort: async () => {
+      throw new Error("Abort failed");
+    },
+  };
+  const relay = lifecycle.run(page, route, async () => {
+    throw new Error("API failed");
+  });
+  await lifecycle.close(page);
+  await relay;
+  assert.deepEqual(failures, ["API failed", "Abort failed"]);
+});
+
+test("draining one page waits for late handlers without closing another page", async () => {
+  const failures = [],
+    events = [];
+  const lifecycle = createR3RouteLifecycle((error) => failures.push(error));
+  let release;
+  const pending = new Promise((done) => (release = done));
+  const page = { close: async () => events.push("closed") };
+  const otherPage = { close: async () => assert.fail("Unrelated page closed") };
+  const first = lifecycle.run(page, { abort: async () => {} }, () => pending);
+  const other = lifecycle.run(
+    otherPage,
+    { abort: async () => {} },
+    () => pending,
+  );
+  const teardown = lifecycle.close(page);
+  const late = lifecycle.run(page, { abort: async () => {} }, async () => {
+    assert(lifecycle.isClosing(page));
+    assertR3SearchRequest(
+      "GET",
+      "http://localhost:8081/api/hotels/test/geo",
+      enabled,
+    );
+    events.push("late read cancelled before forwarding");
+  });
+  assert(!lifecycle.isClosing(otherPage));
+  release();
+  await Promise.all([first, other, late, teardown]);
+  assert.deepEqual(events, ["late read cancelled before forwarding", "closed"]);
+  assert.deepEqual(failures, []);
 });

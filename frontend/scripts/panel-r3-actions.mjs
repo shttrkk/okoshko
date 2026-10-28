@@ -1081,6 +1081,162 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
       verdict: wifiVerdict,
       guest_headline: headline,
     };
+    phase = "T10-calculated-correction";
+    currentPage = operator;
+    const correctionBefore = await cabinet(target.id);
+    const correctionCandidates = correctionBefore.facts.filter(
+      (fact) =>
+        fact.hotel_id === target.id &&
+        !other.characteristic_ids.includes(fact.characteristic_id) &&
+        catalogue.some(
+          (spec) =>
+            spec.id === fact.characteristic_id &&
+            spec.hotelier_answerable === true,
+        ) &&
+        [
+          "quiet_night",
+          "sea_view",
+          "mountain_view",
+          "sunset_view",
+          "morning_sun",
+        ].includes(fact.characteristic_id) &&
+        fact.status === "computed" &&
+        !fact.synthetic &&
+        typeof fact.value?.available === "boolean" &&
+        fact.evidence.some((evidence) => evidence.kind === "calculation"),
+    );
+    check(
+      correctionCandidates.length > 0,
+      "T10 has an actual answerable non-synthetic calculated witness outside the control pending CID; no fact is fabricated",
+    );
+    await operator.goto(new URL("/hotelier", stand).href);
+    await operator.getByTestId("hotelier-hotel").selectOption(target.id);
+    const renderedCorrectionIds = await until(
+      () =>
+        operator
+          .getByTestId("correct-calculated-fact")
+          .evaluateAll((buttons) => buttons.map((button) => button.dataset.factId)),
+      (factIds) => correctionCandidates.some((fact) => factIds.includes(fact.id)),
+      "T10 actual calculated witness has a rendered correction button",
+    );
+    const correctionFact = correctionCandidates.find((fact) =>
+      renderedCorrectionIds.includes(fact.id),
+    );
+    const correctionCard = operator.getByTestId(
+      `fact-card-${correctionFact.characteristic_id}`,
+    );
+    const correctionButton = correctionCard.locator(
+      `[data-testid="correct-calculated-fact"][data-fact-id="${correctionFact.id}"]`,
+    );
+    await capture(operator, "t10-calculated-before", correctionCard);
+    const correctionPath = `/api/hotelier/${encodeURIComponent(target.id)}/questions/${correctionFact.characteristic_id}`;
+    const correctionPosts = [];
+    const recordCorrectionPost = (request) => {
+      if (request.method() === "POST")
+        correctionPosts.push(new URL(request.url()).pathname);
+    };
+    operator.on("request", recordCorrectionPost);
+    const correctionResponse = operator.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        new URL(response.url()).pathname === correctionPath,
+    );
+    await correctionButton.click();
+    const correctionHttp = await correctionResponse;
+    const correctionBody = correctionHttp.request().postDataJSON();
+    assert.deepEqual(
+      correctionBody,
+      { scope: correctionFact.scope, fact_id: correctionFact.id },
+      "T10 UI posts the exact selected fact and scope to the same hotel/CID endpoint",
+    );
+    const correctionQuestion = await responseJson(correctionHttp, "T10 correction");
+    check(
+      correctionQuestion.hotel_id === target.id &&
+        isDeepStrictEqual(correctionQuestion.characteristic_ids, [
+          correctionFact.characteristic_id,
+        ]) &&
+        correctionQuestion.status === "pending" &&
+        isDeepStrictEqual(
+          correctionQuestion.hypothesis_update?.scope,
+          correctionFact.scope,
+        ) &&
+        correctionQuestion.hypothesis_update?.value.available ===
+          correctionFact.value.available,
+      "T10 returned form retains the actual selected hotel, CID, scope and Boolean proposition",
+    );
+    const existed = allQuestions(correctionBefore).some(
+      (question) => question.id === correctionQuestion.id,
+    );
+    check(
+      existed || correctionQuestion.reason === "low_confidence",
+      "T10 explicit operator action does not create a false guest question",
+    );
+    await until(
+      () =>
+        operator
+          .locator(
+            `[data-testid="hotelier-question-select"] option[value="${correctionQuestion.id}"]`,
+          )
+          .count(),
+      (count) => count === 1,
+      `T10 returned Question ${correctionQuestion.id} is in the actual queue`,
+    );
+    await until(
+      () => operator.getByTestId("hotelier-question-select").inputValue(),
+      (id) => id === correctionQuestion.id,
+      "T10 same form selects the exact returned question without a reload",
+    );
+    check(
+      (await operator.getByTestId("hotelier-question").innerText()).includes(
+        correctionQuestion.hypothesis,
+      ) && (await operator.getByTestId("hotelier-answer").inputValue()) === "",
+      "T10 displays the selected proposition in an empty operator answer form",
+    );
+    await capture(
+      operator,
+      "t10-calculated-form",
+      operator.getByTestId("hotelier-question"),
+    );
+    const correctionAfter = await cabinet(target.id);
+    assert.deepEqual(
+      correctionAfter.answers.map((answer) => answer.id).sort(),
+      correctionBefore.answers.map((answer) => answer.id).sort(),
+      "T10 click alone creates no Answer or confirmation",
+    );
+    assert.deepEqual(
+      correctionAfter.claims.map((claim) => claim.id).sort(),
+      correctionBefore.claims.map((claim) => claim.id).sort(),
+      "T10 click alone creates no Claim",
+    );
+    check(
+      pending(correctionAfter).some((question) => question.id === other.id),
+      "T10 leaves the control pending question open",
+    );
+    operator.off("request", recordCorrectionPost);
+    check(
+      correctionPosts.length === 1 && correctionPosts[0] === correctionPath,
+      "T10 only posts the selected correction request; no answer parse/confirm is sent",
+    );
+    report.cases.t10 = {
+      hotel_id: target.id,
+      witness: subset(correctionFact, [
+        "id",
+        "characteristic_id",
+        "scope",
+        "status",
+        "synthetic",
+        "value",
+        "supporting_claim_ids",
+      ]),
+      calculation_evidence: correctionFact.evidence
+        .filter((evidence) => evidence.kind === "calculation")
+        .map((evidence) => subset(evidence, ["id", "kind", "source_ids"])),
+      post: { path: correctionPath, body: correctionBody },
+      question: correctionQuestion,
+      control_pending_question_id: other.id,
+      no_answer_or_claim_created: true,
+      no_reload_after_click: true,
+    };
     phase = "existing-synthetic-label";
     const demoSearch = await api("/api/search", {
       text: "с собакой 4 кг",

@@ -115,7 +115,9 @@ try {
     await entry.goto(base);
     await entry.getByTestId("group-search-example").click();
     assert.equal(await entry.getByTestId("search-input").inputValue(), "");
-    await entry.getByTestId("search-input").fill(parsed.text);
+    await entry.getByTestId("search-input").fill(
+      "Едем компанией: Маше — тихий номер; Игорю — вид на море. Для всех — пляж рядом",
+    );
     await entry.getByTestId("search-submit").click();
     await entry.getByTestId("room-criteria-1").waitFor({ timeout: 45000 });
     assert.equal(await entry.locator(".room-criteria").count(), 2);
@@ -135,7 +137,7 @@ try {
       path: new URL("raw-company-390.png", artifacts).pathname,
     });
     report.checks.push(
-      "home helper submits raw text into two room editors and real result plans without a saved parsed query",
+      "home help preserves an empty input; an explicitly entered supported group query produces two room editors and real result plans without a saved parsed query",
     );
     await guest.close();
   }

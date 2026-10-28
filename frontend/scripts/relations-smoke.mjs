@@ -867,7 +867,8 @@ try {
   const heatCell = fixture
     .getByTestId("fact-card-evening_heat")
     .getByRole("button", { name: /вечернее прямое солнце 35–66 мин/ });
-  assert.match(await heatCell.getAttribute("title"), /0,2–0,33 из 1/);
+  assert.match(await heatCell.getAttribute("title"), /вечернее прямое солнце 35–66 мин/);
+  assert.doesNotMatch(await heatCell.getAttribute("title"), /из 1|индекс/);
   assert.match(
     await fixture
       .getByTestId("fact-card-railway_noise")
