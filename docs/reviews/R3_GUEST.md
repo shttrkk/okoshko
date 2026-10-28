@@ -50,8 +50,8 @@ Backend: `backend/api/passports.py`. Frontend: страницы Search/Hotel/Com
 
 Новый prop: `FactsPanel.onCorrect?: (fact: Fact) => void`. Кнопка «Неверно» (`correct-calculated-fact`) только в hotelier mode для non-synthetic computed calculation evidence. Hotelier-поток передаёт handler. GroupPlan onOpen получает item с выбранным scope. Timeline confirm добавляет JSON-поля `hotel_comment` и `reported_room_number`; общие модели не меняются.
 
-Root согласовал нейтральный будущий TTL и обновление старых тестов. Search-поток добавляет optional `SearchHit.why_higher`; UI показывает строку явно. Изменение YAML connectivity/hotelier answer parsing/общих моделей — не в этой ветке. Root добавил контракты `a80c25d`, которые требуется merge в ветку после feature commit.
+Root согласовал нейтральный будущий TTL и обновление старых тестов. Search-поток добавляет optional `SearchHit.why_higher`; UI показывает строку явно. Изменение YAML connectivity/hotelier answer parsing/общих моделей — не в этой ветке. Root добавил контракты `a80c25d`; выполнен обычный merge в `1028b0b` без конфликтов. После merge: focused passport pytest **76 passed, 21 subtests**, Ruff и frontend lint PASS.
 
 Smoke selectors: `company-search-help`, `restore-search-input`, `passport-saved-scope`, `passport-recheck`, `passport-hotel-reply`, `passport-required-fields`, `why-higher`, `correct-calculated-fact`. Проверить both link/onOpen для компании и slow search abort/retry. Старые smoke, ожидающие append фиктивных людей или critical future-TTL, надо обновить под R3.
 
-Коммит реализации: `fix(guest): preserve passport choices and clarify search evidence` (точный SHA передан root вместе с результатами gate). После него — обычный merge `a80c25d`, без cherry-pick/rebase/amend/push.
+Коммит реализации: `4b21406 fix(guest): preserve passport choices and clarify search evidence`. Контракты root влиты обычным merge `1028b0b`, без cherry-pick/rebase/amend/push.
