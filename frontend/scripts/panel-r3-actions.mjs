@@ -1115,8 +1115,11 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
       () =>
         operator
           .getByTestId("correct-calculated-fact")
-          .evaluateAll((buttons) => buttons.map((button) => button.dataset.factId)),
-      (factIds) => correctionCandidates.some((fact) => factIds.includes(fact.id)),
+          .evaluateAll((buttons) =>
+            buttons.map((button) => button.dataset.factId),
+          ),
+      (factIds) =>
+        correctionCandidates.some((fact) => factIds.includes(fact.id)),
       "T10 actual calculated witness has a rendered correction button",
     );
     const correctionFact = correctionCandidates.find((fact) =>
@@ -1144,12 +1147,34 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
     await correctionButton.click();
     const correctionHttp = await correctionResponse;
     const correctionBody = correctionHttp.request().postDataJSON();
+    const correctionQuestion = await responseJson(
+      correctionHttp,
+      "T10 correction",
+    );
+    const correctionStep = {
+      hotel_id: target.id,
+      witness: subset(correctionFact, [
+        "id",
+        "characteristic_id",
+        "scope",
+        "status",
+        "synthetic",
+        "value",
+        "supporting_claim_ids",
+      ]),
+      calculation_evidence: correctionFact.evidence
+        .filter((evidence) => evidence.kind === "calculation")
+        .map((evidence) => subset(evidence, ["id", "kind", "source_ids"])),
+      post: { path: correctionPath, body: correctionBody },
+      question: correctionQuestion,
+      control_pending_question_id: other.id,
+    };
+    report.case_steps.t10 = correctionStep;
     assert.deepEqual(
       correctionBody,
       { scope: correctionFact.scope, fact_id: correctionFact.id },
       "T10 UI posts the exact selected fact and scope to the same hotel/CID endpoint",
     );
-    const correctionQuestion = await responseJson(correctionHttp, "T10 correction");
     check(
       correctionQuestion.hotel_id === target.id &&
         isDeepStrictEqual(correctionQuestion.characteristic_ids, [
@@ -1186,16 +1211,27 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
       (id) => id === correctionQuestion.id,
       "T10 same form selects the exact returned question without a reload",
     );
+    const correctionForm = operator.locator(".question-hypothesis");
+    await correctionForm.scrollIntoViewIfNeeded();
+    await capture(operator, "t10-calculated-form", correctionForm);
+    correctionStep.form = {
+      selected_question_id: await operator
+        .getByTestId("hotelier-question-select")
+        .inputValue(),
+      visible_text: await correctionForm.innerText(),
+      question_text: await operator
+        .getByTestId("hotelier-question")
+        .innerText(),
+      answer_text: await operator.getByTestId("hotelier-answer").inputValue(),
+      preview_count: await operator.getByTestId("answer-fields").count(),
+    };
     check(
-      (await operator.getByTestId("hotelier-question").innerText()).includes(
-        correctionQuestion.hypothesis,
-      ) && (await operator.getByTestId("hotelier-answer").inputValue()) === "",
-      "T10 displays the selected proposition in an empty operator answer form",
+      correctionStep.form.visible_text.includes(correctionQuestion.hypothesis),
+      "T10 question container displays the exact selected proposition",
     );
-    await capture(
-      operator,
-      "t10-calculated-form",
-      operator.getByTestId("hotelier-question"),
+    check(
+      correctionStep.form.answer_text === "",
+      "T10 selected correction form has an empty operator answer",
     );
     const correctionAfter = await cabinet(target.id);
     assert.deepEqual(
@@ -1218,22 +1254,7 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
       "T10 only posts the selected correction request; no answer parse/confirm is sent",
     );
     report.cases.t10 = {
-      hotel_id: target.id,
-      witness: subset(correctionFact, [
-        "id",
-        "characteristic_id",
-        "scope",
-        "status",
-        "synthetic",
-        "value",
-        "supporting_claim_ids",
-      ]),
-      calculation_evidence: correctionFact.evidence
-        .filter((evidence) => evidence.kind === "calculation")
-        .map((evidence) => subset(evidence, ["id", "kind", "source_ids"])),
-      post: { path: correctionPath, body: correctionBody },
-      question: correctionQuestion,
-      control_pending_question_id: other.id,
+      ...correctionStep,
       no_answer_or_claim_created: true,
       no_reload_after_click: true,
     };
