@@ -245,7 +245,7 @@ def test_calculated_correction_uses_selected_fact_context_without_guest_question
     assert response.status_code == 200, response.text
     q = response.json()
     assert q["reason"] == "low_confidence"
-    assert "ночью шумно" in q["hypothesis"].lower()
+    assert "ночью не тихо" in q["hypothesis"].lower()
     assert q["hypothesis_update"]["scope"]["facade"] == "W"
     assert q["hypothesis_update"]["value"] == {"available": False}
     # A cabinet background refresh must not replace the selected hypothesis.
@@ -553,3 +553,80 @@ def test_new_scope_note_replaces_legacy_marker_without_changing_scope_or_yes_sem
     assert "одного «Да» недостаточно" in changed.text
     assert not parse_answer(changed, "Да").updates
     assert q.model_dump(mode="json") == original
+
+
+@pytest.mark.parametrize("available,index,phrase", [
+    (True, "quiet", "ночью тихо"),
+    (False, "moderate", "ночью умеренный шум"),
+    (False, "loud", "ночью шумно"),
+    (False, "noisy", "ночью шумно"),
+    (False, None, "ночью не тихо"),
+    (False, "unrecognized", "ночью не тихо"),
+    (False, ["moderate"], "ночью не тихо"),
+    (True, None, "ночью тихо"),
+])
+def test_night_question_uses_explicit_noise_index_without_changing_yes_scope_or_value(api, available, index, phrase):
+    repo, client, auth = api
+    scope = Scope(type="floor_range", facade="W", floor_min=3, floor_max=3)
+    value = {"available": available, **({"index": index} if index else {})}
+    fact = Fact(id="night-index-test-copy", hotel_id="test-hotel", characteristic_id="quiet_night", scope=scope,
+                value=value, status="computed", confidence=.65, valid_until=now() + timedelta(days=1))
+    repo.insert("facts", fact.model_dump(mode="json"))
+    q = create_question("test-hotel", "quiet_night", repo, reason="low_confidence")
+    assert phrase in q.hypothesis.lower()
+    if index == "moderate" or index is None and not available:
+        assert "ночью шумно" not in q.hypothesis.lower()
+    preview = client.post(f"/api/questions/{q.id}/answer", headers=auth, json={"text": "Да"})
+    assert preview.status_code == 200, preview.text
+    update = preview.json()["updates"][0]
+    assert update["value"] == {"available": available}
+    assert update["scope"] == scope.model_dump(mode="json")
+    accepted = client.post(f'/api/answers/{preview.json()["id"]}/confirm', headers=auth, json={})
+    assert accepted.status_code == 200, accepted.text
+    claim = repo.get("claims", accepted.json()["created_claim_ids"][0])
+    assert claim["value"] == {"available": available} and claim["scope"] == update["scope"]
+    assert claim["evidence"][0]["quote"] == "Да"
+    assert claim["evidence"][0]["inputs"]["question_hypothesis"] == q.hypothesis
+
+
+@pytest.mark.parametrize("minutes,expected", [(2.42, 2), (2.5, 3), (.4, 1), (0, 0)])
+def test_beach_question_minutes_match_the_shared_guest_display_rule(minutes, expected):
+    from backend.agents.guest_text import rounded_minutes
+    from backend.agents.interviewer import _fact_sentence
+
+    sentence = _fact_sentence({"characteristic_id": "beach_walk", "value": {"minutes": minutes}}, "До пляжа")
+    assert f"около {expected} мин" in sentence
+    assert expected == rounded_minutes(minutes)
+
+
+def test_legacy_moderate_wording_refresh_keeps_boolean_scope_and_rejects_old_preview(api):
+    repo, client, auth = api
+    scope = Scope(type="facade", facade="W")
+    q = question("quiet_night")
+    q.reason = "low_confidence"
+    q.hypothesis = "Ночью шумно (сторона: запад)."
+    q.hypothesis_update = FieldUpdate(characteristic_id="quiet_night", scope=scope, value={"available": False}, quote=q.hypothesis)
+    repo.insert("questions", q.model_dump(mode="json"))
+    repo.insert("facts", Fact(id="legacy-moderate-fact", hotel_id="test-hotel", characteristic_id="quiet_night", scope=scope,
+                              value={"available": False, "index": "moderate"}, status="computed", confidence=.65,
+                              valid_until=now() + timedelta(days=1)).model_dump(mode="json"))
+    old = client.post(f"/api/questions/{q.id}/answer", headers=auth, json={"text": "Да"})
+    assert old.status_code == 200, old.text
+    snapshot = old.json()
+    cabinet = client.get("/api/hotelier/test-hotel", headers=auth)
+    assert cabinet.status_code == 200, cabinet.text
+    changed = next(item for item in cabinet.json()["questions"] if item["id"] == q.id)
+    assert "умеренный шум" in changed["hypothesis"] and "ночью шумно" not in changed["hypothesis"].lower()
+    assert changed["hypothesis_update"]["scope"] == scope.model_dump(mode="json")
+    assert changed["hypothesis_update"]["value"] == {"available": False}
+    assert changed["reason"] == q.reason and changed["requested_scopes"] == []
+    blocked = client.post(f'/api/answers/{snapshot["id"]}/confirm', headers=auth, json={})
+    assert blocked.status_code == 409 and not repo.all("claims")
+    new = client.post(f"/api/questions/{q.id}/answer", headers=auth, json={"text": "Да"})
+    assert new.status_code == 200, new.text
+    assert new.json()["updates"] == snapshot["updates"]
+    accepted = client.post(f'/api/answers/{new.json()["id"]}/confirm', headers=auth, json={})
+    assert accepted.status_code == 200, accepted.text
+    claim = repo.get("claims", accepted.json()["created_claim_ids"][0])
+    assert claim["value"] == {"available": False} and claim["scope"] == scope.model_dump(mode="json")
+    assert claim["evidence"][0]["inputs"]["question_hypothesis"] == changed["hypothesis"]
