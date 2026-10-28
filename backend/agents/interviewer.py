@@ -7,6 +7,7 @@ from threading import RLock
 
 from psycopg.errors import UniqueViolation
 
+from backend.agents.guest_text import rounded_minutes
 from backend.contracts import FieldUpdate, Question, Scope, now
 
 _LOCK = RLock()
@@ -90,7 +91,10 @@ def _fact_sentence(fact: dict, label: str) -> str:
     cid = fact["characteristic_id"]
     available = value.get("available")
     if cid == "quiet_night":
-        detail = "ночью тихо" if available is True else "ночью шумно" if available is False else "тишина ночью не подтверждена"
+        index = value.get("index")
+        detail = {"quiet": "ночью тихо", "moderate": "ночью умеренный шум", "loud": "ночью шумно", "noisy": "ночью шумно"}.get(index) if isinstance(index, str) else None
+        if detail is None:
+            detail = "ночью тихо" if available is True else "ночью не тихо" if available is False else "тишина ночью не подтверждена"
     elif cid in {"sea_view", "mountain_view", "sunset_view"}:
         target = {"sea_view": "море", "mountain_view": "горы", "sunset_view": "закат"}[cid]
         detail = f"{target} видно" if available is True else f"{target} не видно" if available is False else f"вид на {target} не подтверждён"
@@ -99,8 +103,7 @@ def _fact_sentence(fact: dict, label: str) -> str:
     elif cid == "morning_sun":
         detail = "утром в окна попадает прямое солнце" if available is True else "утром прямого солнца в окнах нет" if available is False else "утреннее солнце требует уточнения"
     elif cid == "beach_walk" and isinstance(value.get("minutes"), int | float):
-        import math
-        detail = f"до пляжа около {math.ceil(value['minutes'])} мин пешком"
+        detail = f"до пляжа около {rounded_minutes(value['minutes'])} мин пешком"
     elif cid == "beach_surface":
         surface = {"sand": "песок", "pebblestone": "галька", "pebbles": "галька", "gravel": "гравий"}.get(value.get("surface"))
         detail = f"на пляже {surface}" if surface else "покрытие пляжа требует уточнения"
@@ -114,6 +117,33 @@ def _fact_sentence(fact: dict, label: str) -> str:
         detail = f"«{label}»: условие выполнено" if available is True else f"«{label}»: условие не выполнено" if available is False else f"«{label}»: есть частичные сведения"
     place = _place(fact.get("scope", {}))
     return detail + (f" ({place})" if place else "")
+
+
+def _refresh_night_hypothesis(question: Question, facts: list[dict]) -> Question:
+    """Correct wording on the same proposition; never select another scope.
+
+    Preview's stored question_context makes any changed wording require a new
+    preview before confirmation. The Boolean value and original scope stay put.
+    """
+    update = question.hypothesis_update
+    if (question.characteristic_ids != ["quiet_night"] or update is None
+            or not isinstance(update.value, dict) or type(update.value.get("available")) is not bool):
+        return question
+    matching = [fact for fact in facts if fact.get("characteristic_id") == "quiet_night"
+                and fact.get("status") in {"computed", "confirmed"}
+                and isinstance(fact.get("value"), dict)
+                and fact["value"].get("available") is update.value["available"]
+                and Scope.model_validate(fact.get("scope", {})) == update.scope]
+    if len(matching) != 1:
+        return question
+    statement = _fact_sentence(matching[0], "Тишина ночью").capitalize() + "."
+    prior = question.hypothesis or ""
+    offsets = [prior.index(marker) for marker in (_SCOPE_MARKER, _LEGACY_SCOPE_MARKER) if marker in prior]
+    suffix = prior[min(offsets):] if offsets else ""
+    if prior == statement + suffix and update.quote == statement:
+        return question
+    return question.model_copy(update={"hypothesis": statement + suffix,
+                                       "hypothesis_update": update.model_copy(update={"quote": statement})})
 
 
 def _usable(fact: dict) -> bool:
@@ -200,6 +230,8 @@ def create_question(hotel_id: str, characteristic_id: str, repo, *, reason="gues
                 original.requested_scopes = []
                 for requested in scopes:
                     original, _ = _with_requested_scope(original, requested)
+            elif original.reason != "conflict":
+                original = _refresh_night_hypothesis(original, repo.find("facts", hotel_id=hotel_id))
             if reason == "guest" and original.reason != "guest":
                 original = original.model_copy(update={"reason": "guest", "text": "Гость просит проверить сведения. " + original.text})
             question, _ = _with_requested_scope(original, scope)

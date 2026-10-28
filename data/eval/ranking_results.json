@@ -131,7 +131,7 @@
   ],
   "scorer_sha256": {
     "backend/agents/ranker.py": "979e70d9b07d1312dc2fd0571c6703403a9bfd7bf5b7b1a427e9e76b660cf687",
-    "backend/agents/query_match.py": "b44047aa64b8c6031cf52f23b18b92f3d5a3fbc1c64dc7051fee7a7c2402c8bf",
+    "backend/agents/query_match.py": "9328493e249a1d6bb9be8ddf3a64bb9598b54aed025c2a85da2c9acb494576d4",
     "backend/catalogue.py": "3b982d74eeb022db0d559ed6b585d03163b7fc81883cbab97fa25369bbcf8e72",
     "data/seed/catalogue_reviews.json": "fd797a28aaf1ce34ca67d415f3e00dbddb6e6d93ffdde99a0c3e22dd69871090"
   },
