@@ -161,12 +161,17 @@ def ask(request: AskRequest, repo=_REPO):
         raise HTTPException(409, str(error)) from error
 
 
+def _question_context(question: Question) -> dict:
+    return question.model_dump(mode="json", include={"characteristic_ids", "text", "hypothesis", "hypothesis_update",
+                                                    "requested_scopes", "evidence_refs"})
+
+
 def _save_preview(answer: Answer, question: Question, repo) -> Answer:
     repo.insert("answers", answer.model_dump(mode="json"))
     run = AgentRun(kind="interview", hotel_id=question.hotel_id, status="waiting", llm_mode=answer.parser,
                    trigger="hotelier_preview")
     run.steps = [AgentStep(run_id=run.id, seq=0, agent="answer_parser", type="extraction", name="Предпросмотр ответа с цитатами",
-                           input={"question_id": question.id, "answer_id": answer.id},
+                           input={"question_id": question.id, "answer_id": answer.id, "question_context": _question_context(question)},
                            output={"updates": [update.model_dump(mode="json") for update in answer.updates],
                                    "unknown_fields": answer.unknown_fields, "synthetic": answer.synthetic},
                            rationale="Claims появятся только после явного подтверждения отельером", mode=answer.parser)]
@@ -232,6 +237,12 @@ def confirm_answer(answer_id: str, repo, *, principal: Principal) -> Answer:
             raise HTTPException(409, "Вопрос уже закрыт другим ответом; создайте новый вопрос для исправления")
         if answer.created_at < question.asked_at:
             raise HTTPException(409, "Предпросмотр относится к прежнему ответу. Разберите исправленный текст заново")
+        for run in repo.find("agent_runs", hotel_id=question.hotel_id):
+            for step in run.get("steps", []):
+                snapshot = step.get("input", {})
+                if (snapshot.get("answer_id") == answer.id and "question_context" in snapshot
+                        and snapshot["question_context"] != _question_context(question)):
+                    raise HTTPException(409, "Контекст вопроса изменился после предпросмотра. Разберите ответ заново перед подтверждением")
         expected = parse_answer(question, answer.raw_text, synthetic=answer.synthetic)
         if not answer.updates and answer.disposition != "unknown":
             raise HTTPException(422, "В ответе нет подтверждаемых значений; требуется уточнение")
