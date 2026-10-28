@@ -52,3 +52,27 @@ def test_studio_compiles_and_previews_a_template_and_explains_unknown_text(repo)
     claims = [claim for row in preview.json()["results"] for claim in row["claims"]]
     assert claims and all(claim["method"] == "local_poi_category@1" and "distance_m" in claim["value"] for claim in claims)
     assert unknown.status_code == 422 and SUPPORTED[:40] in unknown.json()["detail"]
+
+
+@pytest.mark.parametrize(("text", "category", "metres"), [
+    ("рядом нет ночных клубов", "bar", 500), ("без баров ближе 300 м", "bar", 300),
+    ("подальше от рынка", "marketplace", 500), ("чтобы не было заправки в пределах 1 км", "fuel", 1000),
+])
+def test_absence_of_a_place_is_not_turned_into_its_presence(text, category, metres):
+    spec = compile_template(text)
+    assert spec.id == f"no_{category}_{metres}m" and spec.methods[0].params == {"category": category, "near_m": metres}
+    assert (spec.search.field, spec.search.default_op, spec.search.default_value) == ("available", "eq", False)
+    validate_spec(spec, Registry(None))
+
+
+def test_limits_with_ne_stay_proximity_conditions():
+    assert compile_template("бар не дальше 400 м").id == "near_bar_400m"
+    assert compile_template("нет шумных баров рядом").id == "no_bar_500m"
+    assert compile_template("пляж в 5 минутах без лестниц").id == "near_beach_400m"
+    assert compile_template("без лестниц до пляжа рядом").id == "near_beach_500m"
+
+
+def test_a_word_containing_a_synonym_is_not_that_place(repo):  # noqa: F811
+    from backend.agents.spec_compiler import compile_spec
+    with pytest.raises(ValueError, match="не сопоставлено"):
+        compile_spec("аквапарк рядом", None, repo, Registry(repo))

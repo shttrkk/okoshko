@@ -6,6 +6,8 @@ over the tool registry, never by executing or generating code:
 * «<место> рядом», «<место> в N минутах», «<место> ближе/до/не дальше N м»,
   «<место> в пределах N км» -> poi_nearby(category, near_m) and a numeric
   search on distance_m;
+* «рядом нет <места>», «без <места> ближе N м», «подальше от <места>» -> the same
+  poi_nearby, searched as "nothing of this category within N m";
 * «искупаться до завтрака: пляж до N минут, вода от T°» -> derive over the
   walking route and the water temperature.
 
@@ -38,8 +40,10 @@ CATEGORY_WORDS = [
     (r"прокат\w*|аренд\w*\s+(?:велосипед|самокат|авто|машин)\w*", "rental"),
     (r"заправк\w*|\bазс\b", "fuel"),
 ]
+# Asking for the absence of a place: «рядом нет баров», «без ночных клубов», «подальше от рынка».
+NEGATION = re.compile(r"(?<!\w)(?:нет|без|никаких|подальше\s+от|вдали\s+от|не\s+рядом|не\s+должно\s+быть|чтобы\s+не\s+было)(?!\w)")
 SUPPORTED = ("Без LLM студия понимает шаблоны «<место> рядом», «<место> в N минутах», «<место> ближе N м» "
-             "(также «до N м», «не дальше N м», «в пределах N км»), где место — супермаркет или продукты, аптека, кафе, "
+             "(также «до N м», «не дальше N м», «в пределах N км») и «рядом нет <места>», где место — супермаркет или продукты, аптека, кафе, "
              "ресторан, бар, остановка, парк, банкомат, детская площадка, спортзал, рынок, пляж, набережная, прокат, "
              "заправка; а также «искупаться до завтрака: пляж до N минут, вода от T°». Другое описание задайте YAML "
              "или подключите LLM.")
@@ -74,6 +78,12 @@ def _threshold(text: str) -> tuple[int, str] | None:
 def proximity_template(text: str) -> CharacteristicSpec | None:
     low = text.casefold().replace("ё", "е")
     found, threshold = _category(low), _threshold(low)
+    # The negation must govern the place itself («нет (шумных) баров»), not
+    # another word: «до пляжа без лестниц» still asks for a beach.
+    negated = bool(found) and any(m.end() <= found[1].start() and len(low[m.end():found[1].start()].split()) <= 1
+                                  for m in NEGATION.finditer(low))
+    if negated and found and not threshold:
+        threshold = NEARBY_DEFAULT_M, f"≤ {NEARBY_DEFAULT_M} м"
     if not found or not threshold:
         return None
     category, word = found
@@ -81,6 +91,8 @@ def proximity_template(text: str) -> CharacteristicSpec | None:
     if not 50 <= metres <= 5000:
         raise ValueError("Порог расстояния должен быть от 50 м до 5 км. " + SUPPORTED)
     label = POI_CATEGORIES[category][0]
+    if negated:
+        return absence_spec(text, low, category, label, word[0].strip(), metres)
     name = f"{label} рядом ({phrase})"
     note = (" Минуты переведены в расстояние по прямой при 80 м/мин; это не время пешего маршрута." if "мин" in phrase else "")
     return CharacteristicSpec(
@@ -94,6 +106,23 @@ def proximity_template(text: str) -> CharacteristicSpec | None:
         ttl_days=90, hotelier_answerable=False,
         search=SearchSpec(kind="numeric", field="distance_m", default_op="lte", default_value=metres, unit="м",
                           explain_ok=f"{label} в пределах {metres} м", explain_bad=f"Ближайший объект «{label}» дальше {metres} м"))
+
+
+def absence_spec(text: str, low: str, category: str, label: str, word: str, metres: int) -> CharacteristicSpec:
+    # Nothing mapped within the search radius stays unknown in poi_nearby, so
+    # "absent" is claimed only when the nearest mapped object is farther away.
+    return CharacteristicSpec(
+        id=f"no_{category}_{metres}m", name_ru=f"Нет поблизости: {label.casefold()} (ближе {metres} м)"[:80], category="Рядом",
+        description=f"{text.strip()} — ближайший объект OSM категории «{label}» дальше {metres} м по прямой.",
+        synonyms=list(dict.fromkeys([low.strip(), f"рядом нет: {label.casefold()}", f"без {word}"])),
+        value_schema={"type": "object", "properties": {"available": {"type": ["boolean", "null"]},
+                                                       "distance_m": {"type": ["number", "null"]}}, "additionalProperties": True},
+        methods=[ToolCall(tool="poi_nearby", params={"category": category, "near_m": metres},
+                          rationale=f"Локальный снимок OSM: есть ли объект «{label}» ближе {metres} м")],
+        ttl_days=90, hotelier_answerable=False,
+        search=SearchSpec(kind="boolean", field="available", default_op="eq", default_value=False,
+                          explain_ok=f"Ближе {metres} м нет объектов «{label}»",
+                          explain_bad=f"«{label}» ближе {metres} м"))
 
 
 def morning_swim_template(text: str) -> CharacteristicSpec | None:

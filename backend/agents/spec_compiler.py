@@ -47,7 +47,8 @@ def compile_spec(text, yaml_text, repo, registry):
         template = compile_template(text)
         if template is not None:
             return template
-        matches = [spec for spec in catalog if any(synonym in low for synonym in spec.synonyms)]
+        # A synonym must start a word: «парк» is not found inside «аквапарк».
+        matches = [spec for spec in catalog if any(re.search(r"(?<!\w)" + re.escape(synonym), low) for synonym in spec.synonyms)]
         if len(matches)==1:
             spec=matches[0].model_copy(deep=True)
             spec.id="custom_"+hashlib.sha256(text.encode()).hexdigest()[:12]
