@@ -42,9 +42,17 @@ def _local_file(data_dir: Path, reference: str) -> Path:
     return current
 
 
+def _content(path: Path) -> bytes:
+    """Shipped bytes. Plain JSON is committed with LF; a CRLF checkout (Git for Windows
+    autocrlf) is compared as the committed text, compressed files are never touched."""
+    data = path.read_bytes()
+    if path.suffix == ".json" and b"\r\n" in data:
+        data = data.replace(b"\r\n", b"\n")
+    return data
+
+
 def _sha(path: Path) -> str:
-    with path.open("rb") as stream:
-        return hashlib.file_digest(stream, "sha256").hexdigest()
+    return hashlib.sha256(_content(path)).hexdigest()
 
 
 def prepare_seed(data_dir: Path, known_hotels: set[str]) -> PreparedSeed:
@@ -72,7 +80,8 @@ def prepare_seed(data_dir: Path, known_hotels: set[str]) -> PreparedSeed:
         if not _NAME.fullmatch(name):
             raise ValueError("Unsafe prepared-data filename")
         path = _local_file(data_dir, f"/data/seed/{name}")
-        if not 0 <= metadata.get("bytes", -1) <= _MAX_FILE or path.stat().st_size != metadata["bytes"]:
+        if (not 0 <= metadata.get("bytes", -1) <= _MAX_FILE or path.stat().st_size > 2 * _MAX_FILE
+                or len(_content(path)) != metadata["bytes"]):
             raise ValueError(f"Prepared-data size mismatch: {name}")
         check(f"/data/seed/{name}", metadata.get("sha256"))
 

@@ -54,6 +54,22 @@ def test_valid_bundle_keeps_value_provenance_and_dates(tmp_path):
     assert bundle.claims[0].evidence[0].inputs["input_sha256"]
 
 
+def test_crlf_checkout_of_shipped_json_is_the_same_data(tmp_path):
+    """Git for Windows may check JSON out with CRLF; content changes are still rejected."""
+    write_bundle(tmp_path)
+    sources = tmp_path / "seed/tz_routes_sources.json"
+    sources.write_bytes(json.dumps(json.loads(sources.read_text()), indent=1).encode())  # multi-line, LF
+    manifest = json.loads((tmp_path / "seed/tz_manifest.json").read_text())
+    manifest["outputs"]["tz_routes_sources.json"] = {"bytes": sources.stat().st_size,
+                                                     "sha256": hashlib.sha256(sources.read_bytes()).hexdigest()}
+    (tmp_path / "seed/tz_manifest.json").write_text(json.dumps(manifest))
+    sources.write_bytes(sources.read_bytes().replace(b"\n", b"\r\n"))
+    assert len(prepare_seed(tmp_path, {"h"}).sources) == 1
+    sources.write_bytes(sources.read_bytes().replace(b"Test author", b"Tset author"))
+    with pytest.raises(ValueError, match="checksum"):
+        prepare_seed(tmp_path, {"h"})
+
+
 @pytest.mark.parametrize("change", [
     lambda claim: claim.update(hotel_id="other"),
     lambda claim: claim.update(source="unknown"),
