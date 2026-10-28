@@ -1022,6 +1022,13 @@ if (report.status === "pass" && r3Actions) {
       base: base.origin,
       artifacts: resolve(artifacts, "r3-guest"),
     });
+    const { runPanelR3SearchActions } = await import("./panel-r3-search-actions.mjs");
+    report.r3_search = await runPanelR3SearchActions({
+      base: base.origin,
+      artifacts: resolve(artifacts, "r3-search"),
+    });
+    if (report.r3_search.status === "completed_with_limitations")
+      report.limitations.push(...report.r3_search.limitations);
     const { runPanelR3Loading } = await import("./panel-r3-loading.mjs");
     report.r3_loading = await runPanelR3Loading({
       base: base.origin,
