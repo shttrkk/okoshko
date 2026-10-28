@@ -269,17 +269,37 @@ export function humanFact(
         .join(" · ");
     }
     case "accessible_route": {
+      const fromHotel = (fact.evidence || []).some(
+        (e) =>
+          e.kind === "hotelier" ||
+          (e.kind === "simulation" &&
+            !!e.quote &&
+            e.source_ids.includes("hotelier_simulator")),
+      );
+      const origin = fromHotel
+        ? fact.synthetic
+          ? "По ответу отеля · демо"
+          : "По ответу отеля"
+        : "По карте";
       return [
-        v.wheelchair_suitable === true
-          ? "По карте маршрут подходит для коляски"
-          : v.wheelchair_suitable === false
-            ? "В OSM есть явное ограничение проезда на коляске"
-            : "Данных о проезде с коляской мало",
+        `${origin}: ${
+          v.wheelchair_suitable === false ||
+          v.has_steps === true ||
+          v.available === false
+            ? "на маршруте есть препятствия для коляски"
+            : v.wheelchair_suitable === true ||
+                (fromHotel && v.available === true)
+              ? "с коляской пройти можно"
+              : "проезд с коляской пока не проверен"
+        }`,
         v.has_steps === true
-          ? "на маршруте отмечены лестницы"
+          ? "на маршруте есть лестницы"
           : v.has_steps === false
-            ? "на рёбрах маршрута лестницы не отмечены"
+            ? fromHotel
+              ? "лестниц нет"
+              : "лестницы на карте не отмечены"
             : "о лестницах нет данных",
+        v.entrance_ramp === true && "у входа пандус",
       ]
         .filter(Boolean)
         .join(" · ");
@@ -329,8 +349,10 @@ export function humanFact(
     }
     case "climate":
       return [
-        `Воздух ${fmt(v.air_c)}°`,
-        num(v.water_c) !== null && `вода ${fmt(v.water_c)}°`,
+        num(v.air_c) !== null &&
+          `По многолетним средним ${Number(v.air_c) >= 25 ? "жарко" : Number(v.air_c) >= 18 ? "тепло" : "прохладно"}`,
+        num(v.water_c) !== null &&
+          `вода ${Number(v.water_c) >= 22 ? "достаточно тёплая для купания" : Number(v.water_c) >= 18 ? "прохладная" : "холодная"}`,
         num(v.sunshine_hours) !== null &&
           `солнце ${fmt(v.sunshine_hours)} ч в месяц`,
       ]

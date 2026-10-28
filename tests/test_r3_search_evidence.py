@@ -183,6 +183,43 @@ def test_map_wheelchair_tags_alone_do_not_prove_the_whole_accessible_route():
     assert hit.verdicts[0].status == 'partial' and hit.group != 'all'
 
 
+@pytest.mark.parametrize('confidence,status', [(.9, 'yes'), (.65, 'partial')])
+def test_explicit_simulated_hotel_accessibility_answer_keeps_demo_semantics(confidence, status):
+    item = fact('accessible_route', {'available': True, 'has_steps': False, 'wheelchair_suitable': True},
+                kind='simulation', synthetic=True, confidence=confidence)
+    item.evidence[0] = item.evidence[0].model_copy(update={
+        'source_ids': ['hotelier_simulator'], 'quote': 'До пляжа без ступенек, с коляской проходят свободно.'})
+    [v] = evaluate([item], [criterion('accessible_route')]).verdicts
+    assert v.status == status and v.synthetic and not v.hotelier_confirmed
+    assert v.fact_ids == [item.id] and 'Ответ отеля · демо' in v.caveat
+
+
+@pytest.mark.parametrize('kind,sources,quote', [
+    ('calculation', ['geo_engine'], None),
+    ('simulation', ['geo_engine'], 'Геометрический расчёт'),
+    ('simulation', ['hotelier_simulator'], None),
+    ('simulation', ['hotelier_simulator'], '  '),
+    ('mock', ['hotelier_simulator'], 'Да, доступно'),
+    ('calculation', ['hotelier_simulator'], 'Да, доступно'),
+])
+def test_synthetic_map_or_missing_hotel_quote_cannot_prove_accessibility(kind, sources, quote):
+    item = fact('accessible_route', {'available': True, 'wheelchair_suitable': True},
+                kind=kind, synthetic=True, confidence=.9)
+    item.evidence[0] = item.evidence[0].model_copy(update={'source_ids': sources, 'quote': quote})
+    hit = evaluate([item], [criterion('accessible_route')])
+    assert hit.verdicts[0].status == 'partial' and hit.group != 'all'
+    assert not hit.verdicts[0].hotelier_confirmed
+
+
+@pytest.mark.parametrize('updates', [{'supporting_claim_ids': []}, {'status': 'disputed'}])
+def test_simulated_hotel_quote_cannot_bypass_missing_provenance_or_dispute(updates):
+    item = fact('accessible_route', {'available': True}, kind='simulation', synthetic=True, confidence=.9, **updates)
+    item.evidence[0] = item.evidence[0].model_copy(update={
+        'source_ids': ['hotelier_simulator'], 'quote': 'До пляжа с коляской проходят свободно.'})
+    [v] = evaluate([item], [criterion('accessible_route')]).verdicts
+    assert v.status == 'unknown' and not v.hotelier_confirmed
+
+
 def test_explicit_wheelchair_barrier_is_not_overridden_by_a_step_free_route():
     item = fact('accessible_route', {'available': False, 'wheelchair_suitable': False}, confidence=.55)
     route = fact('beach_walk', {'available': True, 'has_steps': False, 'return_ascent_m': 5, 'crossings': []})

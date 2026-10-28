@@ -343,7 +343,14 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
             return Match("partial", [fact], "Есть сведения об окнах, но шумоизоляция не подтверждена", actual)
         return Match(facts=[fact], reason="Нужное поле не подтверждено", value=actual)
     if fact.characteristic_id == 'accessible_route' and result and not real_room_confirmation(fact):
-        return Match('partial', [fact], 'По карте есть сведения о маршруте; бордюры, ширина и проезд у входов не проверены. Доступность с коляской уточните у отеля', actual)
+        # An explicit simulated hotel quote keeps the ordinary demo semantics.
+        # Synthetic geometry or mocks cannot impersonate an answer, and this
+        # exception never replaces real_room_confirmation in room/floor guards.
+        demo_reply = fact.synthetic and bool(fact.supporting_claim_ids) and any(
+            e.kind == 'simulation' and 'hotelier_simulator' in e.source_ids and e.quote and e.quote.strip()
+            for e in fact.evidence)
+        if not demo_reply:
+            return Match('partial', [fact], 'По карте есть сведения о маршруте; бордюры, ширина и проезд у входов не проверены. Доступность с коляской уточните у отеля', actual)
     if result and criterion.characteristic_id in {"sea_view", "sunset_view", "mountain_view", 'landmark_view'} and not any(
         scope.get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type")
     ):

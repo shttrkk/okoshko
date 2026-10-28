@@ -290,6 +290,7 @@ export function SearchForm({
         <button
           type="button"
           className="text-button small group-search-example"
+          data-testid="group-search-example"
           onClick={() => {
             setCompanyHelp((open) => !open);
             textarea.current?.focus();

@@ -4,12 +4,15 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { assertR3GuestWriteTarget } from "./panel-r3-guest-actions.mjs";
 
 // Run only after the integrated application has been rebuilt:
 // OKNO_BASE_URL=http://localhost:8080 node scripts/panel-live-smoke.mjs
-// Real APIs throughout: no response fixtures, no answers, questions, passports,
-// refreshes or compilations. Preview itself is a disallowed answer POST.
+// The default pass does not create answers, questions, passports or compilations.
+// Explicit R3 actions run afterward, exclusively on the disposable :8081 copy.
 const base = new URL(process.env.OKNO_BASE_URL || "http://localhost:8080");
+const r3Actions = process.env.OKNO_PANEL_R3_WRITES === "1";
+if (r3Actions) assertR3GuestWriteTarget(base);
 assert(
   ["http:", "https:"].includes(base.protocol) &&
     !base.username &&
@@ -791,10 +794,9 @@ try {
   await dina.page.getByTestId("search-input").fill("с собакой 15 кг");
   await dina.page.getByTestId("group-search-example").click();
   check(
-    (await dina.page.getByTestId("search-input").inputValue()).startsWith(
-      "с собакой 15 кг\n\n",
-    ),
-    "Company example appends to Dina's existing text",
+    (await dina.page.getByTestId("search-input").inputValue()) ===
+      "с собакой 15 кг",
+    "Company help preserves Dina's text without adding example people",
   );
   await capture(dina.page, "dina-home-dark-1280");
   await searchUI(dina.page, queries.wifi);
@@ -1002,6 +1004,28 @@ try {
     new Promise((done) => setTimeout(done, 5000)),
   ]);
   report.search_run_ids = [...runIds].sort();
+  report.finished_at = new Date().toISOString();
+  await writeFile(
+    resolve(artifacts, "report.json"),
+    JSON.stringify(report, null, 2) + "\n",
+  );
+}
+if (report.status === "pass" && r3Actions) {
+  try {
+    const { runPanelR3Actions } = await import("./panel-r3-actions.mjs");
+    const { runPanelR3GuestActions } = await import("./panel-r3-guest-actions.mjs");
+    report.r3_hotelier = await runPanelR3Actions({
+      base: base.origin,
+      artifacts: resolve(artifacts, "r3-hotelier"),
+    });
+    report.r3_guest = await runPanelR3GuestActions({
+      base: base.origin,
+      artifacts: resolve(artifacts, "r3-guest"),
+    });
+  } catch (error) {
+    report.status = "fail";
+    report.error = redact(error.message);
+  }
   report.finished_at = new Date().toISOString();
   await writeFile(
     resolve(artifacts, "report.json"),

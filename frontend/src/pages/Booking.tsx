@@ -21,7 +21,6 @@ import {
 } from "../components/group";
 import {
   criterionLabel,
-  DEMO_REPLY,
   guestQuote,
   MAP_REFERENCE_IDS,
   russianDateRange,
@@ -30,7 +29,7 @@ import { ROOM_CHARACTERISTICS } from "../components/panel-guest-query";
 const statuses: Record<string, string> = {
   draft: "Черновик",
   sent: "Ожидает ответа отеля",
-  confirmed: "Отель подтвердил",
+  confirmed: "Отель подтвердил ожидания",
   alternative: "Предложена альтернатива",
   at_risk: "Ожидание под угрозой",
   pending: "Ожидает подтверждения",
@@ -100,9 +99,7 @@ export function PassportView({
             ПАСПОРТ {passport.id.slice(0, 8).toUpperCase()}
           </span>
           <h3>
-            {passport.synthetic_booking && passport.status === "confirmed"
-              ? DEMO_REPLY
-              : statuses[passport.status] || passport.status}
+            {statuses[passport.status] || passport.status}
           </h3>
         </div>
         {passport.synthetic_booking && <Synthetic>Демо-бронь</Synthetic>}
@@ -131,7 +128,7 @@ export function PassportView({
             className="passport-hotel-reply"
             data-testid="passport-hotel-reply"
           >
-            <strong>{DEMO_REPLY}</strong>
+            <strong>Ответ отеля</strong>
             {!!hotelReply.reported_room_number && !passport.room_number && (
               <p>
                 Отель указал номер: {textValue(hotelReply.reported_room_number)}
@@ -193,8 +190,8 @@ export function PassportView({
               {MAP_REFERENCE_IDS.has(item.characteristic_id) &&
               item.status === "confirmed"
                 ? "Проверено по карте"
-                : passport.synthetic_booking && item.status === "confirmed"
-                  ? DEMO_REPLY
+                : item.status === "confirmed"
+                  ? "Согласовано в кабинете отеля"
                   : statuses[item.status] || item.status}
               {item.critical && " · важно для поездки"}
             </p>

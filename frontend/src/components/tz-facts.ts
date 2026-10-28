@@ -204,7 +204,8 @@ export function tzHumanFact(fact: Fact): string | null {
         n(v.sunny_days) !== null &&
           `солнечных дней ≈ ${f(v.sunny_days)} в месяц`,
         n(v.rainy_days) !== null && `дождливых ≈ ${f(v.rainy_days)}`,
-        n(v.water_c) !== null && `вода ≈ ${f(v.water_c)} °C`,
+        n(v.water_c) !== null &&
+          `вода ${Number(v.water_c) >= 22 ? "достаточно тёплая для купания" : Number(v.water_c) >= 18 ? "прохладная" : "холодная"}`,
         safeName(v.water_comfort),
       ]);
     case "construction_nearby":

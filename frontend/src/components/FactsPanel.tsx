@@ -235,7 +235,7 @@ function SunsetMatrix({
       <p className="matrix-legend">
         <span>
           <i className="high" />
-          виден, вероятность ≥ 80%
+          виден по расчёту
         </span>
         <span>
           <i className="mid" />
@@ -517,7 +517,12 @@ export function headline(
         : null;
     return [base && humanFact(base), supplementary].filter(Boolean).join(". ");
   }
-  const shown = facts.filter(reliable);
+  const shown = facts
+    .filter(reliable)
+    .filter(
+      (fact) =>
+        id !== "pets" || !fact.scope.month || fact.scope.month === month,
+    );
   if (!shown.length) {
     if (facts.some((f) => f.status === "disputed"))
       return "Источники противоречат друг другу — уточните у отеля.";

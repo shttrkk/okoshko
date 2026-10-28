@@ -36,6 +36,22 @@ def supplemental_observation(claim: Claim) -> bool:
             and bool(SUPPLEMENTAL_FIELDS.get(claim.characteristic_id, set()) & claim.value.keys()))
 
 
+def _connectivity_area(claim: Claim) -> str | None:
+    if claim.characteristic_id != "connectivity" or not isinstance(claim.value, dict):
+        return None
+    sources = {claim.source, *(source for evidence in claim.evidence for source in evidence.source_ids)}
+    if any("ookla" in source.lower() for source in sources):
+        # Fixed/mobile area samples are not an observation of the room's Wi-Fi.
+        return str(claim.value.get("kind") or "area")
+    return None
+
+
+def _content_key(characteristic_id: str, key: str, item) -> str:
+    if characteristic_id == "connectivity" and key == "fee" and isinstance(item, str):
+        item = {"no": "free", "yes": "paid"}.get(item, item)
+    return json.dumps(item, sort_keys=True)
+
+
 def stale_prepared_landmarks(facts: list[Fact], events: list[dict]) -> list[Fact]:
     """Reject static LOS under a different active geometry; preserve the ledger.
 
@@ -358,11 +374,13 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
         spec = spec_by_id.get(claim.characteristic_id)
         if spec is not None:
             claim = claim.model_copy(update={"value": normalize_value(claim.value, spec.value_schema)})
-        key = (claim.characteristic_id, scope_key(claim.scope), claim.source, claim.method)
+        key = (claim.characteristic_id, scope_key(claim.scope), claim.source, claim.method, _connectivity_area(claim))
         if key not in latest or (claim.observed_at, claim.id) > (latest[key].observed_at, latest[key].id):
             latest[key] = claim
     supplemental = [claim for claim in latest.values() if supplemental_observation(claim)]
-    grouped = partition_claims([claim for claim in latest.values() if not supplemental_observation(claim)], at=at)
+    connectivity_areas = [claim for claim in latest.values() if _connectivity_area(claim) is not None]
+    grouped = partition_claims([claim for claim in latest.values() if not supplemental_observation(claim)
+                               and _connectivity_area(claim) is None], at=at)
     facts, conflicts = [], []
     for (characteristic_id, scope_json), group in grouped.items():
         valid = [claim for claim in group if claim.valid_until > at]
@@ -401,6 +419,48 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
                               valid_until=partial.valid_until, synthetic=partial.synthetic,
                               status="computed" if has_observation else "unknown", confidence=partial.confidence if has_observation else 0))
             continue
+        # A partial description is not an opposite vote on availability.
+        # Retain compatible observations with their own confidence/evidence;
+        # an explicitly conflicting common scalar field remains a real vote.
+        from backend.coverage import known_search_value
+
+        primary = [claim for claim in valid if not isinstance(claim.value, dict)
+                   or type(claim.value.get("available")) is bool
+                   or spec is not None and known_search_value(claim.value, spec)]
+        observations = []
+        if not primary:
+            # Compatible partial descriptions (for example OSM Wi-Fi presence
+            # and room/fee details from the hotel) are independent observations,
+            # not competing complete answers. Keep a real quoted reply as the
+            # anchor, while every sibling retains its own evidence/confidence.
+            primary = [max(valid, key=lambda claim: (claim.source.startswith("hotelier") and not claim.synthetic,
+                                                    claim.confidence, claim.observed_at, claim.id))]
+        policy = spec.value_schema.get("x-hotelier") if spec else None
+        configured = policy.get("substantive_fields", []) if isinstance(policy, dict) else []
+        fields = set(configured) if isinstance(configured, list) and all(isinstance(key, str) for key in configured) else set()
+        if spec:
+            fields.add(spec.search.field)
+        if primary:
+            for claim in valid:
+                if claim in primary:
+                    continue
+                contradictory = any(
+                    isinstance(other.value, dict) and any(
+                        key in fields and key != "available" and item is not None and other.value.get(key) is not None
+                        and isinstance(item, str | bool | int | float)
+                        and isinstance(other.value[key], str | bool | int | float)
+                        and _content_key(characteristic_id, key, item) != _content_key(characteristic_id, key, other.value[key])
+                        for key, item in claim.value.items())
+                    for other in primary)
+                if not contradictory:
+                    observations.append(claim)
+            valid = [claim for claim in valid if claim not in observations]
+        for observation in observations:
+            facts.append(Fact(id=stable_id("fact-partial", hotel_id, characteristic_id, scope_json, observation.id),
+                              hotel_id=hotel_id, characteristic_id=characteristic_id, scope=scope, value=observation.value,
+                              status="confirmed" if observation.source.startswith("hotelier") and not observation.synthetic else "computed",
+                              confidence=observation.confidence, supporting_claim_ids=[observation.id],
+                              evidence=observation.evidence, valid_until=observation.valid_until, synthetic=observation.synthetic))
         buckets = defaultdict(list)
         for claim in valid:
             buckets[value_key(claim, spec)].append(claim)
@@ -449,6 +509,19 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
             confidence=confidence, status=status, resolution=resolution, supporting_claim_ids=[c.id for c in winner],
             conflicting_claim_ids=[c.id for c in opposing], evidence=list(evidence.values()),
             valid_until=min(c.valid_until for c in winner), synthetic=any(c.synthetic for c in winner)))
+    # Ookla values describe a containing area and measurement population.
+    # Their speed neither conflicts with nor confirms a hotel's room Wi-Fi.
+    for claim in connectivity_areas:
+        from backend.coverage import known_search_value
+
+        spec = spec_by_id.get(claim.characteristic_id)
+        usable = claim.valid_until > at and spec is not None and known_search_value(claim.value, spec)
+        facts.append(Fact(id=stable_id("fact-connectivity-area", hotel_id, _connectivity_area(claim),
+                                      scope_key(claim.scope), claim.source, claim.method),
+                          hotel_id=hotel_id, characteristic_id=claim.characteristic_id, scope=claim.scope, value=claim.value,
+                          status="computed" if usable else "stale" if claim.valid_until <= at else "unknown",
+                          confidence=claim.confidence if usable else 0, supporting_claim_ids=[claim.id], evidence=claim.evidence,
+                          valid_until=claim.valid_until, synthetic=claim.synthetic))
     # Each supplementary observation keeps its own evidence and confidence.
     # Combining its fields with an unrelated high-confidence baseline available
     # would manufacture confidence and false value conflicts.
