@@ -57,7 +57,14 @@ async function checkRoomAdvice(page, state, hotelId) {
     checkedHotels.set(hotelId, null);
     return null;
   }
-  check(advice.length <= 4, state.name, "room-advice-limit", advice.length);
+  check(
+    advice.length <= 5 &&
+      advice.filter((item) => item.characteristic_id === "room_orientation").length <= 1 &&
+      advice.filter((item) => item.characteristic_id !== "room_orientation").length <= 4,
+    state.name,
+    "room-advice-limit",
+    advice.length,
+  );
   const detailResponse = await page.request.get(
     `${base}/api/hotels/${hotelId}`,
   );

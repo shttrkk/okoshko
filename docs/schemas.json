@@ -1290,6 +1290,22 @@
         "title": "Evidence",
         "type": "array"
       },
+      "origin_kinds": {
+        "items": {
+          "enum": [
+            "hotelier",
+            "demo_hotelier",
+            "calculation",
+            "open_data",
+            "simulation",
+            "mock"
+          ],
+          "type": "string"
+        },
+        "maxItems": 6,
+        "title": "Origin Kinds",
+        "type": "array"
+      },
       "updated_at": {
         "format": "date-time",
         "title": "Updated At",
@@ -2278,8 +2294,186 @@
     "title": "CharacteristicSpec",
     "type": "object"
   },
+  "FieldUpdate": {
+    "$defs": {
+      "Scope": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "default": "hotel",
+            "enum": [
+              "hotel",
+              "facade",
+              "floor_range",
+              "room_type"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
+          }
+        },
+        "title": "Scope",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "characteristic_id": {
+        "title": "Characteristic Id",
+        "type": "string"
+      },
+      "scope": {
+        "$ref": "#/$defs/Scope"
+      },
+      "value": {
+        "title": "Value"
+      },
+      "quote": {
+        "minLength": 1,
+        "title": "Quote",
+        "type": "string"
+      },
+      "confidence": {
+        "default": 0.85,
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Confidence",
+        "type": "number"
+      }
+    },
+    "required": [
+      "characteristic_id",
+      "value",
+      "quote"
+    ],
+    "title": "FieldUpdate",
+    "type": "object"
+  },
   "Question": {
     "$defs": {
+      "FieldUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "characteristic_id": {
+            "title": "Characteristic Id",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/$defs/Scope"
+          },
+          "value": {
+            "title": "Value"
+          },
+          "quote": {
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "confidence": {
+            "default": 0.85,
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Confidence",
+            "type": "number"
+          }
+        },
+        "required": [
+          "characteristic_id",
+          "value",
+          "quote"
+        ],
+        "title": "FieldUpdate",
+        "type": "object"
+      },
       "Scope": {
         "additionalProperties": false,
         "properties": {
@@ -2423,6 +2617,17 @@
         "default": null,
         "title": "Hypothesis"
       },
+      "hypothesis_update": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/FieldUpdate"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
       "options": {
         "items": {
           "type": "string"
@@ -2494,150 +2699,6 @@
       "text"
     ],
     "title": "Question",
-    "type": "object"
-  },
-  "FieldUpdate": {
-    "$defs": {
-      "Scope": {
-        "additionalProperties": false,
-        "properties": {
-          "type": {
-            "default": "hotel",
-            "enum": [
-              "hotel",
-              "facade",
-              "floor_range",
-              "room_type"
-            ],
-            "title": "Type",
-            "type": "string"
-          },
-          "facade": {
-            "anyOf": [
-              {
-                "enum": [
-                  "N",
-                  "NE",
-                  "E",
-                  "SE",
-                  "S",
-                  "SW",
-                  "W",
-                  "NW"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Facade"
-          },
-          "floor_min": {
-            "anyOf": [
-              {
-                "maximum": 100,
-                "minimum": 1,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Floor Min"
-          },
-          "floor_max": {
-            "anyOf": [
-              {
-                "maximum": 100,
-                "minimum": 1,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Floor Max"
-          },
-          "room_type": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Room Type"
-          },
-          "month": {
-            "anyOf": [
-              {
-                "maximum": 12,
-                "minimum": 1,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Month"
-          },
-          "landmark_id": {
-            "anyOf": [
-              {
-                "maxLength": 64,
-                "pattern": "^[a-z][a-z0-9_]{1,63}$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Landmark Id"
-          }
-        },
-        "title": "Scope",
-        "type": "object"
-      }
-    },
-    "additionalProperties": false,
-    "properties": {
-      "characteristic_id": {
-        "title": "Characteristic Id",
-        "type": "string"
-      },
-      "scope": {
-        "$ref": "#/$defs/Scope"
-      },
-      "value": {
-        "title": "Value"
-      },
-      "quote": {
-        "minLength": 1,
-        "title": "Quote",
-        "type": "string"
-      },
-      "confidence": {
-        "default": 0.85,
-        "maximum": 1,
-        "minimum": 0,
-        "title": "Confidence",
-        "type": "number"
-      }
-    },
-    "required": [
-      "characteristic_id",
-      "value",
-      "quote"
-    ],
-    "title": "FieldUpdate",
     "type": "object"
   },
   "Answer": {
@@ -3645,6 +3706,36 @@
     },
     "additionalProperties": false,
     "properties": {
+      "match_status": {
+        "anyOf": [
+          {
+            "enum": [
+              "yes",
+              "partial",
+              "no",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Match Status"
+      },
+      "match_reason": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Match Reason"
+      },
       "hotel_id": {
         "title": "Hotel Id",
         "type": "string"
@@ -3816,6 +3907,36 @@
       "DryRunItem": {
         "additionalProperties": false,
         "properties": {
+          "match_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "yes",
+                  "partial",
+                  "no",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Match Status"
+          },
+          "match_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Match Reason"
+          },
           "hotel_id": {
             "title": "Hotel Id",
             "type": "string"
@@ -8308,6 +8429,18 @@
         "title": "Why Not Higher",
         "type": "array"
       },
+      "why_higher": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Why Higher"
+      },
       "similarity_reasons": {
         "items": {
           "type": "string"
@@ -9450,6 +9583,18 @@
             "title": "Why Not Higher",
             "type": "array"
           },
+          "why_higher": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Why Higher"
+          },
           "similarity_reasons": {
             "items": {
               "type": "string"
@@ -10026,6 +10171,22 @@
             "title": "Evidence",
             "type": "array"
           },
+          "origin_kinds": {
+            "items": {
+              "enum": [
+                "hotelier",
+                "demo_hotelier",
+                "calculation",
+                "open_data",
+                "simulation",
+                "mock"
+              ],
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Origin Kinds",
+            "type": "array"
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -10055,6 +10216,40 @@
           "characteristic_id"
         ],
         "title": "Fact",
+        "type": "object"
+      },
+      "FieldUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "characteristic_id": {
+            "title": "Characteristic Id",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/$defs/Scope"
+          },
+          "value": {
+            "title": "Value"
+          },
+          "quote": {
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "confidence": {
+            "default": 0.85,
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Confidence",
+            "type": "number"
+          }
+        },
+        "required": [
+          "characteristic_id",
+          "value",
+          "quote"
+        ],
+        "title": "FieldUpdate",
         "type": "object"
       },
       "Hotel": {
@@ -10265,6 +10460,17 @@
             ],
             "default": null,
             "title": "Hypothesis"
+          },
+          "hypothesis_update": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FieldUpdate"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
           },
           "options": {
             "items": {
@@ -11089,6 +11295,22 @@
               "$ref": "#/$defs/Evidence"
             },
             "title": "Evidence",
+            "type": "array"
+          },
+          "origin_kinds": {
+            "items": {
+              "enum": [
+                "hotelier",
+                "demo_hotelier",
+                "calculation",
+                "open_data",
+                "simulation",
+                "mock"
+              ],
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Origin Kinds",
             "type": "array"
           },
           "updated_at": {
@@ -12503,6 +12725,22 @@
               "$ref": "#/$defs/Evidence"
             },
             "title": "Evidence",
+            "type": "array"
+          },
+          "origin_kinds": {
+            "items": {
+              "enum": [
+                "hotelier",
+                "demo_hotelier",
+                "calculation",
+                "open_data",
+                "simulation",
+                "mock"
+              ],
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Origin Kinds",
             "type": "array"
           },
           "updated_at": {
@@ -14114,6 +14352,148 @@
       "characteristic_id"
     ],
     "title": "AskRequest",
+    "type": "object"
+  },
+  "HotelierQuestionRequest": {
+    "$defs": {
+      "Scope": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "default": "hotel",
+            "enum": [
+              "hotel",
+              "facade",
+              "floor_range",
+              "room_type"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "facade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "N",
+                  "NE",
+                  "E",
+                  "SE",
+                  "S",
+                  "SW",
+                  "W",
+                  "NW"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facade"
+          },
+          "floor_min": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Min"
+          },
+          "floor_max": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Floor Max"
+          },
+          "room_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Room Type"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Month"
+          },
+          "landmark_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_]{1,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Landmark Id"
+          }
+        },
+        "title": "Scope",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "scope": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/Scope"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "fact_id": {
+        "anyOf": [
+          {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Fact Id"
+      }
+    },
+    "title": "HotelierQuestionRequest",
     "type": "object"
   },
   "LoginRequest": {

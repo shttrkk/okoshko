@@ -123,15 +123,27 @@ def test_month_specific_sunset_statement_uses_its_own_month(catalog):
     assert not any(c.id.startswith(CONTRADICTION_PREFIX) for c in conflicts)
 
 
-@pytest.mark.parametrize("resolve", [resolve_hotel, resolve_all], ids=["single-hotel", "all-hotels"])
+@pytest.mark.parametrize("resolve", [resolve_hotel, resolve_all, "studio-backfill"],
+                         ids=["single-hotel", "all-hotels", "studio-backfill"])
 @pytest.mark.parametrize("known_floors", [None, 5], ids=["unknown-floors", "known-floors"])
-def test_repository_resolution_passes_hotel_floor_metadata(resolve, known_floors):
+def test_repository_resolution_passes_hotel_floor_metadata(resolve, known_floors, monkeypatch):
     repo = ApiRepo()
     repo.insert("hotels", {"id": "h1", "name": "Synthetic", "lat": 43.58, "lon": 39.72, "floors": known_floors})
     for claim in [website(), *facade_model()]:
         repo.add_claim(claim)
     if resolve is resolve_hotel:
         resolve("h1", repo)
+    elif resolve == "studio-backfill":
+        from backend.api import studio
+        from backend.tracing import Trace
+
+        monkeypatch.setattr(studio, "execute_preview", lambda *_: ([], [], "offline"))
+        spec = next(spec for spec in studio.catalog(repo) if spec.id == "sea_view")
+        trace = Trace(repo, "backfill", characteristic_id=spec.id)
+        job = {"id": trace.run.id, "processed": 0, "total": len(repo.all("hotels")),
+               "claim_count": 0, "status": "running"}
+        studio.backfill(spec, repo, trace, job)
+        assert job["status"] == "completed"
     else:
         resolve(repo)
     disputes = [c for c in repo.find("conflicts", hotel_id="h1") if c["id"].startswith(CONTRADICTION_PREFIX)]

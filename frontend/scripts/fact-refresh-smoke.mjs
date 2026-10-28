@@ -1,4 +1,4 @@
-import { blockYandex } from "./panel-guest-smoke-ui.mjs";
+import { blockYandex, openTechnicalFact } from "./panel-guest-smoke-ui.mjs";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { mkdir, readFile } from "node:fs/promises";
@@ -563,6 +563,8 @@ try {
   await hotelPage.getByRole("button", { name: "Закрыть" }).click();
   const quietCard = hotelPage.getByTestId("fact-card-quiet_night");
   await quietCard.locator("details.fact-details > summary").click();
+  assert.doesNotMatch(await quietCard.locator(".fact-headline").innerText(), /\d+\s*дБ/);
+  await openTechnicalFact(quietCard);
   assert.match(await quietCard.innerText(), /50/);
   const otherGoals = hotelPage.getByTestId("other-room-goals");
   if (

@@ -1488,9 +1488,9 @@ export function TravelMap({
               <span>Шум ночью, по расчёту</span>
               <div>
                 <i />
-                до 45 <i />
-                45–55 <i />
-                выше 55 дБ
+                тише <i />
+                умеренно <i />
+                шумнее
               </div>
             </div>
           )}
@@ -1721,10 +1721,10 @@ export function GeoModal({
           </select>
         </label>
         <label>
-          {knownFloors ? "Этаж" : "Условный уровень"}
+          {knownFloors ? "Этаж" : "Этаж (условно)"}
           <input
             type="number"
-            aria-label={knownFloors ? "Этаж" : "Условный уровень"}
+            aria-label={knownFloors ? "Этаж" : "Этаж (условно)"}
             data-testid="geo-floor"
             min="1"
             max={maximum}
@@ -1802,8 +1802,8 @@ export function GeoModal({
                   : "не виден"}
               </strong>
               <br />
-              {facade} ·{" "}
-              {knownFloors ? `${floor}-й этаж` : `условный уровень ${floor}`} ·
+              {SIDES[facade] || "Сторона не выбрана"} ·{" "}
+              {knownFloors ? `${floor}-й этаж` : `${floor}-й этаж (условно)`} ·
               опорная дата {sunset?.date || solarDate || "не передана"}
             </p>
           )}
@@ -1823,7 +1823,7 @@ export function GeoModal({
       <section className="horizon-section">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">Взгляд по азимуту</span>
+            <span className="eyebrow">Что видно из окна</span>
             <h3>Что закрывает горизонт</h3>
           </div>
           <div className="graph-legend">
@@ -1863,7 +1863,17 @@ export function GeoModal({
                   fill="currentColor"
                   fontSize="11"
                 >
-                  {a}°
+                  {
+                    (
+                      {
+                        0: "Север",
+                        90: "Восток",
+                        180: "Юг",
+                        270: "Запад",
+                        360: "Север",
+                      } as Record<number, string>
+                    )[a]
+                  }
                 </text>
               </g>
             ))}

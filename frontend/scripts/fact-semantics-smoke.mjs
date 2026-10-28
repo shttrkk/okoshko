@@ -384,11 +384,11 @@ try {
   const negativeReport = page.getByTestId(`quiet-report-${quietFalse.id}`);
   assert.match(
     await positiveReport.innerText(),
-    /По сообщению источника: тихо/,
+    /По ответу отеля · демо: ночью тихо/,
   );
   assert.match(
     await negativeReport.innerText(),
-    /По сообщению источника: не тихо/,
+    /По ответу отеля · демо: ночью не тихо/,
   );
   assert.match(await positiveReport.innerText(), /7-й этаж.*июнь/s);
   assert.match(await negativeReport.innerText(), /7-й этаж.*июль/s);
@@ -398,7 +398,7 @@ try {
   await page.getByRole("dialog").locator(".evidence-card").waitFor();
   assert.match(
     await page.getByRole("dialog").innerText(),
-    /По сообщению источника: не тихо/,
+    /По ответу отеля · демо: ночью не тихо/,
   );
   assert.match(await page.getByRole("dialog").innerText(), /available=false/);
   await page.keyboard.press("Escape");
@@ -513,11 +513,11 @@ try {
   );
   assert.match(
     await floorPage.getByRole("dialog").innerText(),
-    /условный уровень 1/,
+    /1-й этаж \(условно\)/,
   );
   assert.doesNotMatch(
     await floorPage.getByRole("dialog").innerText(),
-    /1-й этаж/,
+    /условный уровень|(?:[2-9]|1[0-6])-й этаж/,
   );
   await floorPage.screenshot({
     path: new URL("conditional-geo-level.png", artifacts).pathname,
@@ -546,10 +546,16 @@ try {
     stdin: {
       resolveDir: new URL("..", import.meta.url).pathname,
       contents: `import React,{useState} from 'react';import {createRoot} from 'react-dom/client';
-      import {FactsPanel,headline} from './src/components/FactsPanel.tsx';import {AppProvider} from './src/state.tsx';
+      import {FactsPanel,headline,representative} from './src/components/FactsPanel.tsx';import {AppProvider} from './src/state.tsx';
       import {humanFact} from './src/components/facts.ts';
       const seed=${JSON.stringify(seed)};
       window.beachSummary=(name)=>humanFact({...seed.facts[0],characteristic_id:'beach_walk',value:{available:true,minutes:5,distance_m:380,beach_name:name}});
+      window.confirmedSourceSummary=()=>{
+        const base={...seed.facts[0],characteristic_id:'accessible_route',scope:{type:'hotel'},synthetic:false,evidence:[],evidence_deferred:true};
+        const map={...base,id:'map-route',status:'computed',confidence:.65,value:{available:true,has_steps:false},supporting_claim_ids:['map-claim']};
+        const hotel={...base,id:'hotel-route',status:'confirmed',confidence:.85,value:{available:true,wheelchair_suitable:true,has_steps:false,entrance_ramp:true},supporting_claim_ids:['hotel-claim']};
+        return [[map,hotel],[hotel,map]].map(facts=>({text:headline('accessible_route',facts,9),representative:representative(facts,9).id}));
+      };
       function App(){const [normals,setNormals]=useState({N:340.9590477273491});const [facts,setFacts]=useState(seed.facts);
         window.normalFixture={setNormals,evidence:(values)=>setFacts(seed.facts.map(f=>({...f,evidence:values.map((n,i)=>({id:'e'+i,kind:'calculation',label:'Fixture',source_ids:['geo_engine'],inputs:{facade_azimuth_deg:n},output:{},limitations:[]}))}))),summary:()=>headline('sunset_view',facts,9,normals)};
         return React.createElement('div',{className:'page-container'},React.createElement(FactsPanel,{...seed,facts,claims:[],onEvidence:()=>{},facadeAzimuths:normals}));}
@@ -580,6 +586,12 @@ try {
   await normalPage.waitForFunction(
     () => typeof window.beachSummary === "function",
   );
+  for (const result of await normalPage.evaluate(() => window.confirmedSourceSummary())) {
+    assert.equal(result.representative, "hotel-route");
+    assert.match(result.text, /По ответу отеля[\s\S]*пандус/);
+    assert.doesNotMatch(result.text, /По карте|лестницы на карте/);
+  }
+  checks.push("Compact hotel reply headline and evidence use the same confirmed witness in either fact order");
   for (const name of [
     "OSM osm-way-248628882",
     "Пляж OSM osm-way-248628882",

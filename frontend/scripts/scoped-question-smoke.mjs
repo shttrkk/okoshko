@@ -41,7 +41,7 @@ const hotel = {
   tags: {},
 };
 const query = {
-  text: "Море из окна и аптека рядом",
+  text: "Море из окна, аптека рядом и можно с питомцем",
   month: 9,
   facade: null,
   min_floor: null,
@@ -63,6 +63,15 @@ const query = {
       field: "distance_m",
       op: "lte",
       value: 500,
+      weight: 1,
+      scope: null,
+    },
+    {
+      characteristic_id: "pets",
+      label: "С питомцем",
+      field: "available",
+      op: "eq",
+      value: true,
       weight: 1,
       scope: null,
     },
@@ -124,29 +133,60 @@ const pharmacy = {
   confidence: 0,
   status: "unknown",
 };
+const pets = {
+  ...pharmacy,
+  id: "pets-fixture",
+  characteristic_id: "pets",
+};
+// Capabilities match the real registry; unanswerable pharmacy stays hidden.
+// Quiet/soundproofing are also used by the independent async button harness.
 const specs = [
   {
     id: "sea_view",
     name_ru: "Вид на море",
     category: "Вид",
     scope: "floor_range",
+    hotelier_answerable: true,
   },
   {
     id: "night_pharmacy",
     name_ru: "Аптека",
     category: "Рядом",
     scope: "hotel",
+    hotelier_answerable: false,
   },
   {
     id: "room_orientation",
     name_ru: "Сторона и этаж номера",
     category: "Номер",
     scope: "room_type",
+    hotelier_answerable: true,
+  },
+  {
+    id: "pets",
+    name_ru: "С питомцем",
+    category: "Доступ",
+    scope: "hotel",
+    hotelier_answerable: true,
+  },
+  {
+    id: "quiet_night",
+    name_ru: "Тишина ночью",
+    category: "Номер",
+    scope: "facade",
+    hotelier_answerable: true,
+  },
+  {
+    id: "soundproofing",
+    name_ru: "Шумоизоляция и окна",
+    category: "Номер",
+    scope: "room_type",
+    hotelier_answerable: true,
   },
 ];
 const detail = {
   hotel,
-  facts: [sea, pharmacy],
+  facts: [sea, pharmacy, pets],
   claims: [],
   conflicts: [],
   questions: [],
@@ -163,7 +203,9 @@ const detail = {
     text: "Браузерная проверка: требуется уточнение",
     confidence: 0,
     fact_ids: [
-      criterion.characteristic_id === "sea_view" ? sea.id : pharmacy.id,
+      { sea_view: sea.id, night_pharmacy: pharmacy.id, pets: pets.id }[
+        criterion.characteristic_id
+      ],
     ],
     evidence_refs: [],
   })),
@@ -268,7 +310,7 @@ try {
           mode: "offline",
           version: "fixture",
           hotel_count: 1,
-          characteristic_count: 3,
+          characteristic_count: specs.length,
           seed_version: "fixture",
         },
       });
@@ -418,30 +460,54 @@ try {
     .getByText("Вопрос отправлен")
     .waitFor();
   assert.deepEqual(bodies.at(-1).scope, exactScope("W", 7));
-  await confirmAsk(
-    page,
-    page.getByTestId("room-lab-verdicts").getByTestId("ask-night_pharmacy"),
+  assert.equal(
+    await page
+      .getByTestId("room-lab-verdicts")
+      .getByTestId("ask-night_pharmacy")
+      .count(),
+    0,
   );
-  await page
-    .getByTestId("room-lab-verdicts")
-    .getByTestId("ask-night_pharmacy")
-    .getByText("Вопрос отправлен")
-    .waitFor();
-  assert.equal(Object.hasOwn(bodies.at(-1), "scope"), false);
   assert.equal(
     await page
       .getByTestId("fact-card-night_pharmacy")
       .getByTestId("ask-night_pharmacy")
+      .count(),
+    0,
+  );
+  assert.equal(
+    bodies.some((body) => body.characteristic_id === "night_pharmacy"),
+    false,
+  );
+  checks.push(
+    "unanswerable pharmacy has no AskButton in RoomLab or fact card and sends no question",
+  );
+  await confirmAsk(
+    page,
+    page.getByTestId("room-lab-verdicts").getByTestId("ask-pets"),
+  );
+  await page
+    .getByTestId("room-lab-verdicts")
+    .getByTestId("ask-pets")
+    .getByText("Вопрос отправлен")
+    .waitFor();
+  assert.equal(Object.hasOwn(bodies.at(-1), "scope"), false);
+  assert.equal(bodies.at(-1).characteristic_id, "pets");
+  for (const field of ["facade", "floor_min", "floor_max"])
+    assert.equal(Object.hasOwn(bodies.at(-1), field), false);
+  assert.equal(
+    await page
+      .getByTestId("fact-card-pets")
+      .getByTestId("ask-pets")
       .isDisabled(),
     true,
   );
   await page
-    .getByTestId("fact-card-night_pharmacy")
+    .getByTestId("fact-card-pets")
     .getByText("Вопрос отправлен")
     .waitFor();
   assert.equal(Object.hasOwn(bodies.at(-1), "scope"), false);
   checks.push(
-    "RoomLab and fact-card room questions carry exact slice; hotel-wide pharmacy remains unscoped",
+    "RoomLab and fact-card room questions carry exact slice; answerable hotel-wide pets remains unscoped",
   );
   await choose("W", 8);
   nextError = {

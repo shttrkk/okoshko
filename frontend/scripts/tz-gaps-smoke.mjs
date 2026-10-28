@@ -674,7 +674,8 @@ try {
       /2010.*дата постройки не подтверждена/,
     );
     assert.match(await card("climate").innerText(), /солнечных дней.*20/i);
-    assert.match(await card("climate").innerText(), /Воздух 25°.*вода 23°/);
+    assert.match(await card("climate").innerText(), /многолетним средним жарко.*вода достаточно тёплая/s);
+    assert.doesNotMatch(await card("climate").locator(".fact-headline").innerText(), /\d+\s*°/);
     await card("climate").locator(".fact-details > summary").click();
     assert.equal(
       await card("climate").locator(".tz-observation").count(),

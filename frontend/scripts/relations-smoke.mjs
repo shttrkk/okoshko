@@ -368,7 +368,7 @@ async function checkRoomLab(seed) {
   await blocked.getByTestId("room-lab-scope-conflict").waitFor();
   assert.match(
     await blocked.getByTestId("room-lab-scope-conflict").innerText(),
-    /несовместим.*обязательными/s,
+    /не соответствует обязательным условиям/,
   );
   assert.equal(await blocked.getByTestId("room-lab-verdicts").count(), 0);
   assert.equal(
@@ -458,8 +458,9 @@ async function checkRoomLab(seed) {
   assert.equal(await unknown.getByTestId("room-lab-floor").inputValue(), "1");
   assert.match(
     await unknown.getByTestId("room-lab-floor-note").innerText(),
-    /Этажность отеля неизвестна/,
+    /Этажность нужно уточнить у отеля.*1-й этаж \(условно\)/,
   );
+  assert.doesNotMatch(await unknown.getByTestId("room-lab-floor-note").innerText(), /по модели/);
   await unknown.close();
   assert(
     evaluationBodies.every((body) =>
@@ -867,7 +868,8 @@ try {
   const heatCell = fixture
     .getByTestId("fact-card-evening_heat")
     .getByRole("button", { name: /вечернее прямое солнце 35–66 мин/ });
-  assert.match(await heatCell.getAttribute("title"), /0,2–0,33 из 1/);
+  assert.match(await heatCell.getAttribute("title"), /вечернее прямое солнце 35–66 мин/);
+  assert.doesNotMatch(await heatCell.getAttribute("title"), /из 1|индекс/);
   assert.match(
     await fixture
       .getByTestId("fact-card-railway_noise")
@@ -881,7 +883,7 @@ try {
   );
   assert.match(
     await fixture.getByTestId("fact-card-accessible_route").innerText(),
-    /Данных о проезде с коляской мало/,
+    /проезд с коляской пока не проверен/,
   );
   assert.match(
     await fixture.getByTestId("fact-card-accessible_route").innerText(),

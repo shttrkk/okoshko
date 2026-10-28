@@ -1,0 +1,37 @@
+{
+  "base_url": "http://localhost:8081",
+  "checked_at": "2026-10-28T13:06:25.372018+00:00",
+  "method": "sequential warm HTTP, no concurrent-load SLA; UTF-8 response bytes",
+  "compact_profile_bytes": {
+    "count": 247,
+    "p50": 196697,
+    "p95": 315958.2,
+    "max": 385869
+  },
+  "compact_profile_ms": {
+    "count": 247,
+    "p50": 30.055,
+    "p95": 53.903,
+    "max": 312.157
+  },
+  "over_400000_bytes": [],
+  "warm_search_ms": {
+    "count": 40,
+    "p50": 99.426,
+    "p95": 112.272,
+    "max": 365.287
+  },
+  "search_response_bytes": {
+    "count": 40,
+    "p50": 337377.0,
+    "p95": 384347.0,
+    "max": 384347
+  },
+  "requested_search_limit": 40,
+  "compact_page_returned_counts": [
+    30,
+    40
+  ],
+  "catalogue_hotels": 247,
+  "passed": true
+}

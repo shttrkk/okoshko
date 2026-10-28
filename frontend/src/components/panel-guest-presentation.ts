@@ -29,6 +29,14 @@ export function verdictLabel(verdict: Verdict) {
   if (verdict.synthetic)
     return isDemoAnswer(verdict) ? DEMO_REPLY : DEMO_CALCULATION;
   if (realHotelier(verdict)) return "Подтвердил отель";
+  if (
+    verdict.characteristic_id === "connectivity" &&
+    verdict.status === "partial" &&
+    /скорость (?:неизвестна|не измерена|не проверена)/i.test(verdict.text)
+  )
+    return "мало данных";
+  if (verdict.basis === "open_data" && verdict.status === "yes")
+    return "по карте";
   return {
     yes: "по расчёту",
     partial: "примерно",
@@ -76,10 +84,16 @@ export function guestText(text: string, synthetic = false) {
     return synthetic
       ? DEMO_EXPLANATION
       : "Подробности источника доступны в данных расчёта.";
-  return text.replace(
-    /(до\s+)?(?:пляж[ауе]?\s*)?[«"]?OSM\s+osm-(?:way|node|relation)-\d+[»"]?/gi,
-    (_, to: string) => (to ? "до ближайшего пляжа" : "ближайший пляж"),
-  );
+  return text
+    .replace(
+      /(до\s+)?(?:пляж[ауе]?\s*)?[«"]?OSM\s+osm-(?:way|node|relation)-\d+[»"]?/gi,
+      (_, to: string) => (to ? "до ближайшего пляжа" : "ближайший пляж"),
+    )
+    .replace(/local_poi_nightlife@\d+/gi, "поиск кафе и баров по карте")
+    .replace(/POI-расч[её]т/gi, "поиск мест по карте")
+    .replace(/opening_hours/gi, "часы работы")
+    .replace(/провер(?:к[аиу]|ке) среза/gi, "проверка выбранного номера")
+    .replace(/Данных нет\s+Данных нет/gi, "Данных нет");
 }
 export function criterionLabel(c: Criterion) {
   if (typeof c.value !== "number")
@@ -132,14 +146,22 @@ export function isDemoAnswer(verdict: Verdict) {
 }
 export function factDemoLabel(fact: Fact) {
   if (
+    fact.origin_kinds?.includes("demo_hotelier") ||
     fact.evidence.some(
       (e) =>
-        ["hotelier", "simulation"].includes(e.kind) ||
+        ["hotelier", "simulation"].includes(e.kind) &&
         e.source_ids.includes("hotelier_simulator"),
     )
   )
     return DEMO_REPLY;
-  if (fact.evidence.some((e) => ["calculation", "open_data"].includes(e.kind)))
+  if (
+    fact.origin_kinds?.some((kind) =>
+      ["calculation", "open_data", "simulation"].includes(kind),
+    ) ||
+    fact.evidence.some((e) =>
+      ["calculation", "open_data", "simulation"].includes(e.kind),
+    )
+  )
     return DEMO_CALCULATION;
   // Compact facts defer their source. A neutral badge does not invent it.
   return "Демо";
@@ -174,6 +196,30 @@ export function humanExplanation(
     "",
   );
   return first
+    .replace(
+      /Ночью снаружи\s*[≈~]?\s*\d+(?:[.,]\d+)?(?:[–—-]\d+(?:[.,]\d+)?)?\s*дБ по расч[её]ту\s*[—–-]\s*/gi,
+      "По расчёту снаружи ",
+    )
+    .replace(
+      /Модельный прокси наружного (?:железнодорожного )?шума ночью:[^.]+\.?/gi,
+      "Приблизительный расчёт уличного шума.",
+    )
+    .replace(/\s+по модели последних[^;.]*?(?:над горизонтом|$)/gi, "")
+    .replace(
+      /(?:[·,]\s*)?(?:ночью\s*)?[≈~]?\s*\d+(?:[.,]\d+)?(?:[–—-]\d+(?:[.,]\d+)?)?\s*дБ/gi,
+      "",
+    )
+    .replace(
+      /\s*[·,]\s*(?:уровень в дБ не указан|угол[^;.]*|ориентировочный угол[^;.]*)/gi,
+      "",
+    )
+    .replace(
+      /(?:^|[·,]\s*)индекс (?:вечерней солнечной )?экспозиции[^;.]*|\d+(?:[.,]\d+)?(?:[–—-]\d+)?°[^;.]*/gi,
+      "",
+    )
+    .replace(/условный уровень 1/gi, "этажность нужно уточнить")
+    .replace(/Данных нет(?:\s+Данных нет)+/gi, "Данных нет")
+    .replace(/\s*[·,]\s*$/, "")
     .split(/(?<=[.!?])\s+(?=[А-ЯЁA-Z])/u)
     .slice(0, sentences)
     .join(" ");
@@ -219,4 +265,33 @@ export function verdictCaveat(verdict: Verdict) {
     .map((part) => guestText(part, !!verdict.synthetic))
     .filter((part, index, all) => all.indexOf(part) === index)
     .join("; ");
+}
+
+/** Nearby routes and places remain information from the map, not hotel promises. */
+export const MAP_REFERENCE_IDS = new Set([
+  "beach_walk",
+  "beach_surface",
+  "night_pharmacy",
+  "family_nearby",
+  "nightlife",
+  "green_nearby",
+]);
+export function russianDateRange(start?: string | null, end?: string | null) {
+  const format = (date: string) =>
+    new Intl.DateTimeFormat("ru-RU", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    })
+      .format(new Date(date))
+      .replace(/\s*г\.$/, " года");
+  if (!start && !end) return "Предварительный выбор · даты ещё не указаны";
+  if (!start || !end) return format((start || end)!);
+  const a = new Date(start),
+    b = new Date(end);
+  return a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth()
+    ? `${a.getUTCDate()}–${format(end)}`
+    : `${format(start)} — ${format(end)}`;
 }

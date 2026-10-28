@@ -1,4 +1,10 @@
-import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+} from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowDown,
@@ -16,7 +22,8 @@ import {
   Waves,
   X,
 } from "lucide-react";
-import { api, useResource } from "../api";
+import { api } from "../api";
+import "../panel-r3-guest.css";
 import {
   criterionBaseLabel,
   criterionLabel,
@@ -36,12 +43,13 @@ import {
   chooseSuggestion,
   QuerySuggestions,
   roomRequestReason,
+  useGuestSearch,
   requestedCriteria,
   mobilityContext,
   contextualDisappointment,
 } from "../components/panel-guest-query";
 import { RoomSuggestion } from "../components/RoomProfiles";
-import { groupExample, roomEvidenceScope } from "../components/group";
+import { roomEvidenceScope } from "../components/group";
 import {
   CompareButton,
   Empty,
@@ -215,7 +223,22 @@ export function SearchForm({
       () => sessionStorage.getItem("okno-example-check-out") || "",
     ),
     [similarId, setSimilarId] = useState(""),
-    [isSimilar, setIsSimilar] = useState(similar);
+    [isSimilar, setIsSimilar] = useState(similar),
+    [companyHelp, setCompanyHelp] = useState(false),
+    [previousText, setPreviousText] = useState<string | null>(null);
+  const textarea = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (!textarea.current) return;
+    textarea.current.style.height = "auto";
+    textarea.current.style.height = `${textarea.current.scrollHeight}px`;
+  }, [text, companyHelp]);
+  const mashaExample = () => {
+    if (!text.trim()) return runSearch(mashaQuery);
+    if (text === mashaQuery) return textarea.current?.focus();
+    setPreviousText(text);
+    setText(mashaQuery);
+    textarea.current?.focus();
+  };
   const runSearch = (query: string) => {
     setText(query);
     const params = new URLSearchParams({ q: query });
@@ -237,10 +260,15 @@ export function SearchForm({
       <label className="search-input-label">
         <span className="sr-only">Расскажите, какой отдых вы хотите</span>
         <textarea
+          ref={textarea}
           value={text}
           onChange={(e) => setText(e.target.value)}
           maxLength={2000}
-          placeholder="Тихий номер с видом на закат недалеко от моря…"
+          placeholder={
+            companyHelp
+              ? "Едем компанией: … — …; … — …. Для всех — …"
+              : "Тихий номер с видом на закат недалеко от моря…"
+          }
           rows={compact ? 2 : 3}
           data-testid="search-input"
           required={!isSimilar}
@@ -251,7 +279,7 @@ export function SearchForm({
           <button
             type="button"
             className="button secondary small"
-            onClick={() => runSearch(mashaQuery)}
+            onClick={mashaExample}
             data-testid="masha-example"
           >
             Как у Маши: тишина, закат и море
@@ -262,17 +290,43 @@ export function SearchForm({
         <button
           type="button"
           className="text-button small group-search-example"
-          onClick={() =>
-            setText((current) =>
-              current.trim()
-                ? `${current.trim()}\n\n${groupExample}`
-                : groupExample,
-            )
-          }
           data-testid="group-search-example"
+          onClick={() => {
+            setCompanyHelp((open) => !open);
+            textarea.current?.focus();
+          }}
+          aria-expanded={companyHelp}
+          aria-controls="company-search-help"
         >
           Едем компанией? Опишите каждого
         </button>
+      )}
+      {companyHelp && (
+        <p
+          id="company-search-help"
+          className="fine-print"
+          data-testid="company-search-help"
+        >
+          Укажите свои пожелания по образцу: «Едем компанией: … — …; … — …. Для
+          всех — …». Эта подсказка не добавляется в ваш запрос.
+        </p>
+      )}
+      {previousText !== null && (
+        <p className="fine-print" role="status">
+          Пример вставлен. Поиск начнётся по кнопке «Найти мой отель».{" "}
+          <button
+            type="button"
+            className="text-button small"
+            data-testid="restore-search-input"
+            onClick={() => {
+              setText(previousText);
+              setPreviousText(null);
+              textarea.current?.focus();
+            }}
+          >
+            Вернуть мой текст
+          </button>
+        </p>
       )}
       <div className="search-form-bottom">
         <div className="date-inputs">
@@ -1123,6 +1177,13 @@ function SearchCard({
           <h3>{hit.hotel.name}</h3>
           <ArrowRight size={20} />
         </Link>
+        {"why_higher" in hit &&
+          typeof hit.why_higher === "string" &&
+          hit.why_higher && (
+            <p className="fine-print" data-testid="why-higher">
+              {hit.why_higher}
+            </p>
+          )}
         <div className="result-summary">
           <RequiredStatusSummary hit={{ ...hit, verdicts: visibleVerdicts }} />
           {hit.room_profile?.scope.facade && !hit.room_recommendation && (
@@ -1164,7 +1225,7 @@ function SearchCard({
             className="verdict-caveats result-explanation"
             data-testid="card-details"
           >
-            <summary>Подробнее</summary>
+            <summary>Почему так</summary>
             {hit.summary && (
               <p>
                 {humanExplanation(
@@ -1172,6 +1233,10 @@ function SearchCard({
                   hit.verdicts.some((v) => v.synthetic),
                   1,
                 )}
+                {hit.verdicts.some(
+                  (verdict) =>
+                    verdict.status === "yes" && isDemoAnswer(verdict),
+                ) && " Основание: ответ отеля · демо."}
               </p>
             )}
             {hit.disappointments.length > 0 && (
@@ -1267,7 +1332,7 @@ function SearchCard({
             onClick={() => navigate(`/hotel/${hit.hotel.id}`)}
             data-testid={`open-hotel-${index}`}
           >
-            Подробнее <ArrowRight size={16} />
+            Страница отеля <ArrowRight size={16} />
           </button>
         </div>
       </div>
@@ -1287,7 +1352,7 @@ export function SearchPage() {
     similar_to: params.get("similar_to"),
     limit: 40,
   });
-  const resource = useResource(() => api.search(request), [request]);
+  const resource = useGuestSearch(request);
   const [edited, setEdited] = useState<ParsedQuery | null>(null),
     [activeId, setActiveId] = useState<string | null>(null),
     [hoverId, setHoverId] = useState<string | null>(null),
@@ -1348,9 +1413,22 @@ export function SearchPage() {
     !resource.data.parsed.no_data_must?.length &&
     !resource.data.parsed.rooms?.length &&
     !resource.data.parsed.similar_to;
-  const groupOf = (hit: SearchHit) =>
-    noCriteria && hit.group === "all" ? "browse" : hit.group;
-  const firstResultId = (["all", "almost", "unknown", "browse"] as const)
+  const groups = ["all", "almost", "unknown", "browse", "excluded"] as const;
+  const groupOf = (hit: SearchHit) => {
+    const requiredNo = [
+      ...hit.verdicts,
+      ...(hit.room_plan || []).flatMap((item) => item.verdicts),
+    ].some(
+      (verdict) =>
+        verdict.required && verdict.status === "no" && !verdict.disputed,
+    );
+    return requiredNo
+      ? "excluded"
+      : noCriteria && hit.group === "all"
+        ? "browse"
+        : hit.group;
+  };
+  const firstResultId = groups
     .map((group) => results.find((hit) => groupOf(hit) === group)?.hotel.id)
     .find(Boolean);
   return (
@@ -1514,7 +1592,7 @@ export function SearchPage() {
               {DEMO_BANNER}
             </p>
           )}
-          {(["all", "almost", "unknown", "browse"] as const).map((group) => {
+          {groups.map((group) => {
             const hits = results.filter((r) => groupOf(r) === group);
             const hasPartial = hits.some((hit) =>
               [
@@ -1522,9 +1600,23 @@ export function SearchPage() {
                 ...(hit.room_plan || []).flatMap((item) => item.verdicts),
               ].some((verdict) => verdict.status === "partial"),
             );
-            const legendGroup = (
-              ["all", "almost", "unknown", "browse"] as const
-            ).find((name) =>
+            const hasRequiredDemo =
+              group === "all" &&
+              hits.length > 0 &&
+              hits.some((hit) => {
+                const required = [
+                  ...hit.verdicts,
+                  ...(hit.room_plan || []).flatMap((item) => item.verdicts),
+                ].filter((verdict) => verdict.required);
+                return (
+                  required.length > 0 &&
+                  required.some(
+                    (verdict) =>
+                      verdict.status === "yes" && isDemoAnswer(verdict),
+                  )
+                );
+              });
+            const legendGroup = groups.find((name) =>
               results.some(
                 (hit) =>
                   groupOf(hit) === name &&
@@ -1542,24 +1634,31 @@ export function SearchPage() {
                       <span className="eyebrow">
                         {
                           {
-                            all: hasPartial
-                              ? "ЕСТЬ ПРЕДВАРИТЕЛЬНЫЕ СОВПАДЕНИЯ"
-                              : "ВАШИ УСЛОВИЯ СОШЛИСЬ",
+                            all: hasRequiredDemo
+                              ? "СОВПАДЕНИЯ С ДЕМО-ОТВЕТАМИ"
+                              : hasPartial
+                                ? "ЕСТЬ ПРЕДВАРИТЕЛЬНЫЕ СОВПАДЕНИЯ"
+                                : "ВАШИ УСЛОВИЯ СОШЛИСЬ",
                             almost: "ЕСТЬ КОМПРОМИСС",
                             unknown: "НУЖНО УТОЧНИТЬ",
                             browse: "ОТЕЛИ РЕГИОНА",
+                            excluded: "ЕСТЬ НЕСОВПАДЕНИЕ",
                           }[group]
                         }
                       </span>
                       <h2>
                         {
                           {
-                            all: hasPartial
-                              ? "Совпадения — с уточнениями"
-                              : "Подходят по обязательным",
+                            all: hasRequiredDemo
+                              ? "В совпадениях есть демо-ответы — подтвердите их у отеля"
+                              : hasPartial
+                                ? "Совпадения — с уточнениями"
+                                : "Подходят по обязательным",
                             almost: "Почти то, что нужно",
                             unknown: "Пока не всё известно",
                             browse: "Без учёта ваших условий",
+                            excluded:
+                              "Есть обязательное условие, которое не подходит",
                           }[group]
                         }
                       </h2>
@@ -1576,6 +1675,8 @@ export function SearchPage() {
                           unknown:
                             "Данных не хватает: часть ответов ещё нужно уточнить",
                           browse: "Некоторые пожелания ещё требуют уточнения",
+                          excluded:
+                            "По известным данным обязательное условие не выполняется",
                         }[group]
                       }
                     </p>
@@ -1585,7 +1686,8 @@ export function SearchPage() {
                       className="result-group-note"
                       data-testid="partial-legend"
                     >
-                      ≈ — скорее да, но данных мало; точнее подтвердит отель.
+                      ≈ — расчёт или предварительные сведения. Источник указан
+                      рядом.
                     </p>
                   )}
                   {hits.map((hit) => (
@@ -1598,7 +1700,10 @@ export function SearchPage() {
                       requestedIds={requestedCriteria(
                         resource.data?.parsed,
                       ).map((criterion) => criterion.characteristic_id)}
-                      roomReason={roomRequestReason(resource.data?.parsed)}
+                      roomReason={roomRequestReason(
+                        resource.data?.parsed,
+                        hit.verdicts,
+                      )}
                       index={results.indexOf(hit)}
                       firstResultId={firstResultId}
                       active={activeId === hit.hotel.id}

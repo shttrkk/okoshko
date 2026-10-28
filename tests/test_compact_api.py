@@ -34,6 +34,7 @@ def test_compact_is_opt_in_and_evidence_can_be_loaded_completely(client, calcula
     preview = next(f for f in compact["facts"] if f["id"] == fact["id"])
     assert preview["supporting_claim_ids"] == [claim["id"]]
     assert preview["evidence"] == []
+    assert preview["origin_kinds"] == ["simulation"]
     assert HotelDetail.model_validate(compact).evidence_deferred
     loaded = client.get(path + "/facts/" + fact["id"] + "/evidence").json()
     assert loaded["fact"]["evidence"][0]["id"] == fact["evidence"][0]["id"]
@@ -46,6 +47,36 @@ def test_compact_is_opt_in_and_evidence_can_be_loaded_completely(client, calcula
     assert client.get("/api/hotels/test-2/facts/" + fact["id"] + "/evidence").status_code == 404
     assert client.get(path + "/facts/missing/evidence").status_code == 404
     assert client.get("/api/hotels/missing/facts/" + fact["id"] + "/evidence").status_code == 404
+
+
+@pytest.mark.parametrize("kind,source,synthetic,expected", [
+    ("hotelier", "hotelier", False, "hotelier"),
+    ("simulation", "hotelier_simulator", True, "demo_hotelier"),
+    ("calculation", "geo_engine", True, "calculation"),
+    ("calculation", "hotelier_simulator", True, "calculation"),
+    ("open_data", "osm_geofabrik", False, "open_data"),
+    ("quote", "hotel_website", False, "open_data"),
+    ("simulation", "geo_engine", True, "simulation"),
+    ("mock", "synthetic_card", True, "mock"),
+])
+def test_compact_preserves_origin_without_loading_raw_proof(client, repo, calculation, kind, source, synthetic, expected):  # noqa: F811
+    fact, original = calculation
+    evidence = {**original["evidence"][0], "kind": kind, "source_ids": [source],
+                "quote": "Дословный ответ для проверки" if kind in {"quote", "hotelier", "simulation"} else None}
+    claim = Claim.model_validate({**original, "id": "origin-claim", "source": source,
+                                  "synthetic": synthetic, "evidence": [evidence]})
+    repo.add_claim(claim)
+    fact.update(evidence=[evidence], supporting_claim_ids=[claim.id], synthetic=synthetic)
+    repo.upsert("facts", fact)
+    path = "/api/hotels/" + fact["hotel_id"]
+    compact = client.get(path + "?compact=true").json()
+    projected = next(row for row in compact["facts"] if row["id"] == fact["id"])
+    assert projected["evidence"] == [] and projected["origin_kinds"] == [expected]
+    assert projected["supporting_claim_ids"] == [claim.id]
+    assert "origin_kinds" not in next(row for row in client.get(path).json()["facts"] if row["id"] == fact["id"])
+    complete = client.get(path + "/facts/" + fact["id"] + "/evidence").json()
+    assert complete["claims"][0]["source"] == source
+    assert complete["fact"]["evidence"][0]["inputs"] == evidence["inputs"]
 
 
 def test_compare_uses_one_bulk_read_and_edited_criteria_survive(client, repo, calculation):  # noqa: F811

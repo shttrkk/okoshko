@@ -6,6 +6,7 @@ Floor boundaries from facts make the search exact for closed floor intervals.
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from itertools import product
@@ -86,6 +87,7 @@ class Match:
     condition_met: bool = False
     risk_factor: float = 1
     risk_facts: list[Fact] = field(default_factory=list)
+    context_confidence: float | None = None
 
     @property
     def supported(self) -> bool:
@@ -93,7 +95,8 @@ class Match:
 
     @property
     def confidence(self) -> float:
-        return min((f.confidence for f in self.facts), default=0)
+        return (self.context_confidence if self.context_confidence is not None
+                else min((f.confidence for f in self.facts), default=0))
 
     @property
     def utility(self) -> float:
@@ -249,6 +252,32 @@ def real_room_confirmation(fact: Fact) -> bool:
             and not any(e.kind in {"simulation", "mock"} for e in fact.evidence))
 
 
+def wifi_presence_source(fact: Fact) -> str:
+    """Use typed provenance retained in both full and search evidence.
+
+    Hotel quotes describe reported presence, never a measured speed. Do not
+    infer an OSM origin merely from wifi_reported or a missing measurement.
+    """
+    replies = [e for e in fact.evidence if e.kind in {'hotelier', 'simulation'} and e.quote and e.quote.strip()]
+    if any('hotelier_simulator' in e.source_ids for e in replies) or fact.synthetic and any(e.kind == 'hotelier' for e in replies):
+        return 'demo_hotelier'
+    if not fact.synthetic and any(e.kind == 'hotelier' for e in replies) and not any(e.kind in {'simulation', 'mock'} for e in fact.evidence):
+        return 'hotelier'
+    if any(e.kind in {'open_data', 'calculation', 'quote'} and any(
+        source == 'osm' or source.startswith(('osm_', 'osm-')) for source in e.source_ids) for e in fact.evidence):
+        return 'osm'
+    return 'unknown'
+
+
+def wifi_presence_text(fact: Fact) -> str:
+    return {
+        'hotelier': 'Wi-Fi есть по ответу отеля · скорость неизвестна',
+        'demo_hotelier': 'Wi-Fi есть по ответу отеля · демо · скорость неизвестна',
+        'osm': 'Wi-Fi есть по карте · скорость неизвестна',
+        'unknown': 'Wi-Fi указан в источнике · скорость неизвестна',
+    }[wifi_presence_source(fact)]
+
+
 def hotel_floor_count(hotel: Hotel | None) -> int | None:
     return hotel.floors if hotel is not None and type(hotel.floors) is int and 1 <= hotel.floors <= 100 else None
 
@@ -264,6 +293,16 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
         return Match(facts=[fact], reason="Нет цепочки подтверждающих источников")
     actual = value_at(fact, field_name)
     value = fact.value if isinstance(fact.value, dict) else {}
+    if (fact.characteristic_id == 'accessible_route' and field_name == 'available' and criterion.value is True
+            and (value.get('available') is False or value.get('wheelchair_suitable') is False or value.get('has_steps') is True)):
+        return Match('no', [fact], 'По сведениям о маршруте есть препятствие для коляски', False)
+    if (fact.characteristic_id == 'connectivity' and field_name in {'download_mbps', 'upload_mbps', 'latency_ms'}
+            and value.get('kind') in {'mobile', 'fixed'}
+            and re.search(r'wi[ -]?fi|вай[ -]?фай|вифи', parsed.text.casefold())):
+        present = value.get('wifi_reported') is True
+        return Match('partial' if present else 'unknown', [fact],
+                     wifi_presence_text(fact) if present
+                     else 'Тесты интернета в районе не подтверждают Wi-Fi отеля')
     route_field = ROUTE_FIELDS.get((fact.characteristic_id, field_name))
     if route_field and route_field[0] in value:
         actual = value_at(fact, '.'.join(route_field))
@@ -274,7 +313,6 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
     if fact.characteristic_id == 'building_history' and field_name == 'available':
         # Legacy criteria keep their public shape. History metadata is useful,
         # but an opening date or a Wikipedia link cannot prove historic status.
-        import re
         if re.search(r'историческ|старинн|особняк|сталинк', parsed.text.casefold()):
             actual = value.get('historic_designation')
         elif 'history_information' in value:
@@ -326,10 +364,19 @@ def evaluate_fact(fact: Fact, criterion: Criterion, parsed: ParsedQuery, field_n
     if result is None:
         if (fact.characteristic_id == "connectivity" and field_name in {"download_mbps", "upload_mbps", "latency_ms"}
                 and actual is None and _finite_number(criterion.value) and value.get("wifi_reported") is True):
-            return Match("partial", [fact], "Wi-Fi указан, скорость не измерена", actual, condition_met=False)
+            return Match("partial", [fact], wifi_presence_text(fact), actual, condition_met=False)
         if fact.characteristic_id == "soundproofing" and field_name == "available" and any(value.get(k) is not None for k in ("windows", "blackout", "air_conditioning")):
             return Match("partial", [fact], "Есть сведения об окнах, но шумоизоляция не подтверждена", actual)
         return Match(facts=[fact], reason="Нужное поле не подтверждено", value=actual)
+    if fact.characteristic_id == 'accessible_route' and result and not real_room_confirmation(fact):
+        # An explicit simulated hotel quote keeps the ordinary demo semantics.
+        # Synthetic geometry or mocks cannot impersonate an answer, and this
+        # exception never replaces real_room_confirmation in room/floor guards.
+        demo_reply = fact.synthetic and bool(fact.supporting_claim_ids) and any(
+            e.kind == 'simulation' and 'hotelier_simulator' in e.source_ids and e.quote and e.quote.strip()
+            for e in fact.evidence)
+        if not demo_reply:
+            return Match('partial', [fact], 'По карте есть сведения о маршруте; бордюры, ширина и проезд у входов не проверены. Доступность с коляской уточните у отеля', actual)
     if result and criterion.characteristic_id in {"sea_view", "sunset_view", "mountain_view", 'landmark_view'} and not any(
         scope.get(k) is not None for k in ("facade", "floor_min", "floor_max", "room_type")
     ):
@@ -399,6 +446,48 @@ def _best_match(facts: list[Fact], criterion: Criterion, context: RoomContext, f
             return Match("partial", [f for m in known for f in m.facts], "Источники расходятся для одного и того же номера")
         return max(known, key=lambda m: ({"yes": 3, "no": 2, "partial": 1}[m.status], m.confidence))
     return max(evaluated, key=lambda m: m.confidence, default=Match())
+
+
+def _route_accessibility(facts: list[Fact], criterion: Criterion, primary: Match) -> Match:
+    """A route can expose barriers, but cannot establish complete wheelchair access.
+
+    The original route remains a context witness with its own CID and ID. Never
+    invent an accessible_route Fact or present the route as a hotel's answer.
+    """
+    if criterion.field not in {None, 'available'} or criterion.value is not True or primary.status in {'yes', 'no'}:
+        return primary
+    routes = [f for f in facts if f.characteristic_id == 'beach_walk' and fresh(f)
+              and not f.synthetic and f.evidence and f.supporting_claim_ids
+              and not any(e.kind in {'simulation', 'mock'} or e.inputs.get('synthetic') is True for e in f.evidence)
+              and (value_at(f, 'available') is True or _finite_number(value_at(f, 'distance_m'))
+                   and value_at(f, 'distance_m') > 0)]
+    if not routes:
+        return primary
+    stairs = [f for f in routes if value_at(f, 'has_steps') is True]
+    if stairs:
+        route = max(stairs, key=lambda f: f.confidence)
+        return Match('no', reason='Для коляски не подходит: на маршруте до пляжа отмечены лестницы',
+                     risk_facts=[route], context_confidence=route.confidence)
+    usable = [f for f in routes if value_at(f, 'has_steps') is False
+              and _finite_number(value_at(f, 'return_ascent_m')) and value_at(f, 'return_ascent_m') >= 0
+              and (isinstance(value_at(f, 'crossings'), list)
+                   or _finite_number(value_at(f, 'crossings')) and value_at(f, 'crossings') >= 0)]
+    if any(f.status == 'disputed' for f in primary.facts):
+        return primary
+    if not usable:
+        if primary.status != 'unknown':
+            return primary
+        route = max(routes, key=lambda f: f.confidence)
+        return Match(reason='Маршрут на карте есть, но не хватает сведений о лестницах, подъёме или переходах. Проезд с коляской нужно уточнить у отеля',
+                     facts=primary.facts, risk_facts=[route], context_confidence=route.confidence)
+    route = max(usable, key=lambda f: f.confidence)
+    from backend.agents.guest_text import number
+    crossings = value_at(route, 'crossings')
+    count = len(crossings) if isinstance(crossings, list) else crossings
+    detail = ('По карте лестниц нет; подъём обратно ' + number(round(value_at(route, 'return_ascent_m')))
+              + ' м; ' + (f'переходов: {number(count)}' if count else 'переходов не отмечено'))
+    return Match('partial', reason=detail + '. Бордюры, ширина и проезд у входов не проверены; уточните у отеля',
+                 risk_facts=[route], context_confidence=route.confidence)
 
 
 def assess_hotel(facts: list[Fact], parsed: ParsedQuery, specs: list[CharacteristicSpec] | None = None,
@@ -488,11 +577,19 @@ def assess_hotel(facts: list[Fact], parsed: ParsedQuery, specs: list[Characteris
     best.alternatives = {i: list({f.id: f for f in fs}.values()) for i, fs in alternatives.items()}
     best.scope_conflict = len(alternatives) >= 2 and not any(
         all(c.matches[i].status in {"yes", "partial"} for i in alternatives) for c in candidates)
+    for index, criterion in enumerate(criteria):
+        if criterion.characteristic_id == 'accessible_route':
+            best.matches[index] = _route_accessibility(facts, criterion, best.matches[index])
     risks = [f for f in facts if f.characteristic_id == 'airport_noise' and fresh(f)
              and any(e.kind in {'calculation', 'simulation'} for e in f.evidence)
              and f.supporting_claim_ids and value_at(f, 'available') is True]
+    bars = [f for f in facts if f.characteristic_id == 'nightlife' and fresh(f)
+            and f.evidence and f.supporting_claim_ids and not f.synthetic
+            and not any(e.kind in {'simulation', 'mock'} or e.inputs.get('synthetic') is True for e in f.evidence)
+            and _finite_number(value_at(f, 'nearest_bar_m')) and 0 <= value_at(f, 'nearest_bar_m') < 100]
     for criterion, match in zip(criteria, best.matches, strict=True):
-        if criterion.characteristic_id == 'quiet_night' and risks:
-            match.risk_factor = .9
-            match.risk_facts = risks
+        if criterion.characteristic_id == 'quiet_night':
+            if risks:
+                match.risk_factor = .9
+            match.risk_facts = [*risks, *bars]
     return best

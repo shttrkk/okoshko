@@ -203,7 +203,7 @@ def details(hotel_ids: list[str], repo, *, text: str = "", month: int | None = N
             verdicts = hits[0].verdicts if hits else []
             room_plan = hits[0].room_plan if hits else []
             room_profile = hits[0].room_profile if hits else None
-        public_facts = [fact.model_copy(update={"evidence": []}) for fact in facts] if compact else facts
+        public_facts = [fact.model_copy(update={"evidence": [], "origin_kinds": fact_origins(fact)}) for fact in facts] if compact else facts
         result.append(HotelDetail(hotel=hotel, facts=public_facts, claims=grouped["claims"][hotel_id],
                                   conflicts=grouped["conflicts"][hotel_id], questions=grouped["questions"][hotel_id],
                                   verdicts=verdicts, room_plan=room_plan, room_profile=room_profile, room_recommendation=recommend_room(facts, parsed, hotel=hotel) if eligible else 'Идентичность или координаты объекта требуют проверки',
@@ -216,6 +216,19 @@ def details(hotel_ids: list[str], repo, *, text: str = "", month: int | None = N
 
 def detail(hotel_id: str, repo, **kwargs) -> HotelDetail:
     return details([hotel_id], repo, **kwargs)[0]
+
+
+def fact_origins(fact: Fact) -> list[str]:
+    """Small source classification survives deferred evidence; never infer from values."""
+    kinds = set()
+    for evidence in fact.evidence:
+        if evidence.kind in {"simulation", "hotelier"} and "hotelier_simulator" in evidence.source_ids:
+            kinds.add("demo_hotelier")
+        elif evidence.kind == "quote":
+            kinds.add("open_data")
+        else:
+            kinds.add(evidence.kind)
+    return sorted(kinds)
 
 
 def compact_fact_value(value):
@@ -462,7 +475,7 @@ def search(body: SearchRequest, repo=_REPO):
                             *[c for room in parsed.rooms for c in [*room.must, *room.nice, *room.no_data]]]
             ids = None if reference else sorted({criterion.characteristic_id for criterion in all_criteria} | ROOM_CHARACTERISTICS | {"beach_walk"})
             if ids is not None and any(c.characteristic_id == "quiet_night" for c in all_criteria):
-                ids = sorted({*ids, "airport_noise"})
+                ids = sorted({*ids, "airport_noise", "nightlife"})
             # Similarity uses a September profile; explicit extra conditions
             # still require their requested month, rather than September data.
             fact_month = None if reference and (parsed.must or parsed.nice or parsed.no_data or parsed.rooms) and parsed.month != 9 else 9 if reference else parsed.month

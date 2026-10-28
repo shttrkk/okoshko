@@ -12,7 +12,7 @@ import {
   Synthetic,
 } from "./ui";
 import { RoomAdviceList } from "./RoomAdvice";
-import { guestText } from "./panel-guest-presentation";
+import { guestText, humanExplanation } from "./panel-guest-presentation";
 import {
   roomEvidenceScope,
   roomScopeText,
@@ -52,9 +52,9 @@ export function RoomDescription({
             requestedIds.includes(clause.characteristic_id),
         )
         .slice(0, 2)
-        .map((clause) => guestText(clause.text, clause.synthetic))
+        .map((clause) => humanExplanation(clause.text, clause.synthetic))
         .join(" ") || "Данных по вашим пожеланиям пока мало."
-    : guestText(
+    : humanExplanation(
         profile.description,
         profile.clauses.some((clause) => clause.synthetic),
       );
@@ -67,14 +67,20 @@ export function RoomDescription({
       {profile.conditional && (
         <span className="room-conditional">
           {unknownFloors
-            ? "Условный уровень 1 · этажность не подтверждена"
+            ? "Этажность нужно уточнить у отеля"
             : "Сторона и этаж по расчёту · номер уточнит отель"}
         </span>
       )}
       {showCopy && (
         <>
           <p className="room-profile-copy">{description}</p>
-          {profile.clauses.some((clause) => clause.synthetic) && <Synthetic />}
+          {profile.clauses.some(
+            (clause) =>
+              clause.synthetic &&
+              (!requestedIds ||
+                (!!clause.characteristic_id &&
+                  requestedIds.includes(clause.characteristic_id))),
+          ) && <Synthetic />}
         </>
       )}
       <details className="room-caveats-details room-computed">
@@ -257,7 +263,7 @@ function ScopedRoomProfileList({
         <h3>{positionTitle(profile)}</h3>
         <RoomHighlights profile={profile} />
         <p className="room-profile-preview">
-          {guestText(
+          {humanExplanation(
             profile.description,
             profile.clauses.some((clause) => clause.synthetic),
           )}
@@ -340,16 +346,21 @@ export function RoomSuggestion({
         <p>
           {profile
             ? unknownFloors
-              ? roomScopeText(profile.scope, true)
+              ? roomScopeText(profile.scope, true).replace(
+                  "условный уровень 1",
+                  "этажность нужно уточнить",
+                )
               : scopeText(roomEvidenceScope(profile.scope))
             : "Сочетание условий не подтверждено"}
         </p>
-        <span className="room-request-reason">
-          Потому что: {reason.toLocaleLowerCase("ru")}.
-        </span>
-        <span className="text-button small">Подробнее о номере</span>
+        {reason && (
+          <span className="room-request-reason">
+            Потому что: {reason.toLocaleLowerCase("ru")}.
+          </span>
+        )}
+        <span className="text-button small">Совет по номеру</span>
       </summary>
-      <p>{recommendation}</p>
+      <p>{humanExplanation(recommendation)}</p>
       <p className="fine-print">
         Сторону, этаж и наличие номера подтвердит отель.
       </p>

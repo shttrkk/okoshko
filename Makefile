@@ -84,3 +84,10 @@ tz-stage2-data:
 	$(PYTHON) -m pipeline.fetch_tz_catalog
 	$(PYTHON) -m pipeline.fetch_tz_manifest
 tz-data: tz-osm-data tz-climate-data tz-derived-data
+
+.PHONY: parser-eval-legacy group-parser-eval-legacy
+# Keep the previous authored contract measurable after the R3 stroller policy.
+parser-eval-legacy:
+	$(PYTHON) -m scripts.parser_eval --gold data/eval/queries_gold.jsonl
+group-parser-eval-legacy:
+	$(PYTHON) -m scripts.group_parser_eval --gold data/eval/group_gold.jsonl

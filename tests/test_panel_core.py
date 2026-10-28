@@ -202,7 +202,7 @@ def test_relative_reason_explicitly_names_a_demo_reply_without_counting_it_as_co
     higher = comparison_hit("выше", comparison_verdict(synthetic=True), 90)
     current = comparison_hit("здесь", comparison_verdict(status="unknown", confidence=0), 20)
     reason = relative_reason(current, higher)
-    assert "отель ответил на вопрос о тишине (демо-ответ)" in reason
+    assert "есть ответ отеля о тишине — это демо-ответ" in reason
     assert "подтверждено" not in reason
 
 
@@ -218,5 +218,5 @@ def test_same_status_score_advantage_from_demo_does_not_masquerade_as_more_relia
     higher = comparison_hit("выше", comparison_verdict(synthetic=True, status="partial", confidence=.69), 64)
     current = comparison_hit("здесь", comparison_verdict(status="partial", confidence=.61), 60)
     reason = relative_reason(current, higher)
-    assert "отель ответил на вопрос о тишине (демо-ответ)" in reason
+    assert "есть ответ отеля о тишине — это демо-ответ" in reason
     assert "надёжнее" not in reason and "подтверждено" not in reason

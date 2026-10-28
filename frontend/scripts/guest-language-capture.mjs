@@ -294,6 +294,13 @@ export function languageFindings(text) {
     /demo truth/giu,
     /Вымышленный ответ/giu,
     /(?:Надёжность|Надежность|уверенность)[^\n.!?]{0,40}\d+\s*%/giu,
+    /условный уровень/giu,
+    /по модели/giu,
+    /\b(?:local_poi_nightlife@\d+|geo_engine)\b/giu,
+    /POI-расчёт/giu,
+    /opening_hours/giu,
+    /(?:\d+(?:[.,]\d+)?\s*дБ|\d+(?:[.,]\d+)?\s*°)/giu,
+    /Данных нет\s+Данных нет/giu,
   ];
   const forbiddenPhrases = [];
   for (const phrase of phrases) {

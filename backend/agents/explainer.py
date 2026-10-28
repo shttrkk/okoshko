@@ -14,12 +14,15 @@ from backend.agents.guest_text import (
 from backend.agents.query_match import (
     FLOOR_DOMAIN_CAVEAT,
     FLOOR_DOMAIN_UNKNOWN,
+    ROOM_CHARACTERISTICS,
     Assessment,
     Match,
     assess_hotel,
     fresh,
     scope_values,
     sunset_aspect,
+    wifi_presence_source,
+    wifi_presence_text,
 )
 from backend.contracts import CharacteristicSpec, Criterion, CriterionVerdict, Fact, Hotel, ParsedQuery
 
@@ -289,6 +292,20 @@ def hotelier_confirmation(facts: list[Fact], status: str, *, conflict: bool = Fa
                for f in facts)
 
 
+def context_caveats(match: Match) -> list[str]:
+    """Context witnesses qualify a condition without becoming its primary proof."""
+    notes = []
+    for fact in match.risk_facts:
+        if fact.characteristic_id == 'airport_noise':
+            notes.append('Рядом аэропорт или направление захода самолётов: учитываем это при оценке тишины. Слышимость самолётов и ночные рейсы неизвестны')
+        elif fact.characteristic_id == 'nightlife':
+            distance = fact.value.get('nearest_bar_m') if isinstance(fact.value, dict) else None
+            notes.append(f'Рядом бар — {approximate(distance)} м по карте. Ночью может быть шумно; часы работы и слышимость в номере неизвестны')
+        elif fact.characteristic_id == 'beach_walk':
+            notes.append('Предварительная оценка по маршруту на карте: бордюры, ширина проходов и проезд у входов не проверены')
+    return notes
+
+
 def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQuery, *, conflict: bool = False,
             alternatives: list[Fact] | None = None, spec: CharacteristicSpec | None = None) -> CriterionVerdict:
     facts = list({f.id: f for f in [*match.facts, *(alternatives or [] if conflict else [])]}.values())
@@ -299,12 +316,18 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
     if (selected and selected.characteristic_id == "nightlife" and match.status == "no" and criterion.op == "gte"
             and criterion.field in {"venues_500m", "bars_500m"} and isinstance(match.value, int | float)):
         text = f"Не подходит: по карте мало — {number(match.value)} из {number(criterion.value)} заведений в 500 м"
+    if (selected and selected.characteristic_id == 'connectivity' and match.status == 'partial'
+            and isinstance(selected.value, dict) and selected.value.get('wifi_reported') is True
+            and match.value is None):
+        text = wifi_presence_text(selected)
+    if criterion.characteristic_id == 'connectivity' and match.reason == 'Тесты интернета в районе не подтверждают Wi-Fi отеля':
+        text = match.reason
+    if criterion.characteristic_id == 'accessible_route' and not match.facts and match.risk_facts:
+        text = match.reason
     if (selected and selected.characteristic_id == "beach_walk" and match.status in {"no", "unknown"}
             and (criterion.no_stairs or criterion.no_crossings) and match.reason.startswith("Маршрут ")):
         text = prefixes[match.status] + ": " + match.reason + ("; " + detail if detail else "")
-    caveats = []
-    if match.risk_facts:
-        caveats.append('Рядом аэропорт или направление захода самолётов: учитываем это при оценке тишины; слышимость и ночные рейсы не измерялись')
+    caveats = context_caveats(match)
     if match.status in {"unknown", "partial", "no"}:
         caveats.append(match.reason)
     if match.reason == FLOOR_DOMAIN_UNKNOWN:
@@ -314,7 +337,13 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
     if selected and selected.characteristic_id == "connectivity":
         value = selected.value if isinstance(selected.value, dict) else {}
         if value.get("wifi_reported") is True and not any(value.get(k) is not None for k in ("download_mbps", "upload_mbps", "latency_ms")):
-            caveats.append("Наличие Wi-Fi указано в открытых данных; работу сети и скорость в номере не проверяли")
+            source = wifi_presence_source(selected)
+            caveats.append({
+                'hotelier': 'Наличие Wi-Fi сообщил отель; измерений скорости в номере нет',
+                'demo_hotelier': 'Наличие Wi-Fi показано демо-ответом отеля; реальный ответ и скорость нужно уточнить',
+                'osm': 'Наличие Wi-Fi указано в открытых данных; работу сети и скорость в номере не проверяли',
+                'unknown': 'Наличие Wi-Fi сообщено источником; работу сети и скорость в номере не проверяли',
+            }[source])
         else:
             caveats.append("Это агрегированные тесты в районе, а не проверка Wi-Fi конкретного номера")
     if match.status == "no" and selected and selected.confidence < .7:
@@ -355,7 +384,7 @@ def verdict(criterion: Criterion, match: Match, required: bool, parsed: ParsedQu
                             context_evidence_refs=list(dict.fromkeys(e.id for f in match.risk_facts for e in f.evidence)),
                             caveat="; ".join(dict.fromkeys(caveats)) or None,
                             hotelier_confirmed=hotelier_confirmation(match.facts, match.status, conflict=conflict),
-                            basis=supporting_basis(match.facts),
+                            basis=supporting_basis(match.facts or (match.risk_facts if criterion.characteristic_id == 'accessible_route' else [])),
                             disputed=any(f.status == "disputed" for f in facts),
                             synthetic=any(f.synthetic or any(e.kind == "simulation" for e in f.evidence) for f in facts))
 
@@ -417,11 +446,11 @@ def disappointments_from_assessment(facts: list[Fact], parsed: ParsedQuery, asse
     if assessment.scope_conflict:
         notes.append("Обязательные условия найдены в разных номерах; общего сочетания стороны, этажа и типа номера нет в подтверждённых данных.")
     for criterion, match in zip([*parsed.must, *parsed.nice], assessment.matches, strict=True):
-        if match.risk_facts:
-            airport = match.risk_facts[0]
-            notes.append('Тишина ночью: ' + (_tz_details(airport, criterion) or 'рядом аэропорт; слышимость самолётов неизвестна') + '.')
+        if criterion.characteristic_id == 'quiet_night':
+            notes.extend('Тишина ночью: ' + note for note in context_caveats(match))
         if match.status == "no":
-            notes.append(criterion_label(criterion) + ": условие не выполняется для выбранного номера.")
+            subject = 'для выбранного номера' if criterion.characteristic_id in ROOM_CHARACTERISTICS else 'по имеющимся данным'
+            notes.append(criterion_label(criterion) + ": условие не выполняется " + subject + ".")
     selected = {f.id: f for m in assessment.matches for f in m.facts}
     # Route disadvantages concern the hotel, so they remain useful on detail pages.
     selected.update({f.id: f for f in facts if f.characteristic_id == "beach_walk" and fresh(f)})

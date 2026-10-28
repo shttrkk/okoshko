@@ -22,12 +22,17 @@ INTERNAL = {"soundproofing", "room_orientation", "pets", "quiet_night", "sea_vie
 HOTELIER_VALUE_FIELDS = {
     "soundproofing": {"available", "windows", "blackout", "air_conditioning"},
     "room_orientation": {"available", "facade", "min_floor", "max_floor", "rooms", "balcony", "groups", "absent_floors", "courtyard", "sea_view"},
-    "pets": {"available", "species", "excluded_species", "max_weight_kg", "fee_rub_night"},
+    "pets": {"available", "species", "excluded_species", "max_weight_kg", "fee_rub_night", "permission_period_unknown"},
     "quiet_night": {"available", "facade"},
     "sea_view": {"available", "facade", "min_floor"},
     "sunset_view": {"available", "facade", "min_floor"},
     "mountain_view": {"available", "facade", "min_floor"},
     "beach_walk": {"available", "minutes", "distance_m", "has_steps"},
+    "accessible_route": {"available", "has_steps", "wheelchair_suitable", "entrance_ramp"},
+    "connectivity": {"available", "wifi_reported", "wifi_in_rooms", "fee", "download_mbps", "upload_mbps", "latency_ms"},
+    "morning_sun": {"available"},
+    "evening_heat": {"available"},
+    "railway_noise": {"available"},
     'hotel_parking': {'private_parking', 'fee_rub_per_day', 'reservation_required', 'ev_charging'},
 }
 ROOM_GROUP_FIELDS = {"rooms", "facade", "min_floor", "max_floor", "balcony", "courtyard", "sea_view"}
@@ -212,6 +217,34 @@ def _night_observations(sentence: str) -> list[tuple[str, bool | None]]:
     return observations
 
 
+def _pet_month_permissions(raw: str) -> dict[int, bool]:
+    """One answer may name several months; never ask for twelve manual replies."""
+    periods = {}
+    general_permission = False
+    for sentence in _sentences(raw):
+        for clause in sentence.lower().replace("ё", "е").split(","):
+            if re.search(UNCERTAIN, clause):
+                continue
+            if not re.search(r"питом|животн|собак|кошк|кошек|заселя|размещ|принима", clause):
+                continue
+            mentions = [(match.start(), i + 1) for i, pattern in enumerate(MONTH_PATTERNS)
+                        if (match := re.search(r"\b(?:" + pattern + r")\b", clause))]
+            found = [month for _, month in sorted(mentions)]
+            negative = bool(re.search(NEGATIVE, clause))
+            if not found:
+                if not negative and re.search(r"принима|разреш|можно", clause):
+                    general_permission = True
+                continue
+            if len(found) == 2 and re.search(r"\bс\s+", clause) and re.search(r"\b(?:по|до)\s+", clause):
+                start, end = found
+                found = list(range(start, end + 1)) if start <= end else list(range(start, 13)) + list(range(1, end + 1))
+            for month in found:
+                periods[month] = not negative
+    if periods and general_permission:
+        return {month: periods.get(month, True) for month in range(1, 13)}
+    return periods
+
+
 def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
     updates: list[FieldUpdate] = []
     unknown: set[str] = set()
@@ -234,9 +267,10 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
     grouped_rooms, absent_floors, group_clarifications = _room_groups(raw)
     use_groups = len(grouped_rooms) > 1 or bool(absent_floors) or bool(group_clarifications)
     clarifications.extend(group_clarifications)
-    if pets_partial:
+    pet_permissions = _pet_month_permissions(raw) if pets_partial else {}
+    if pets_partial and not pet_permissions:
         unknown.add("pets.available")
-        clarifications.append("Поняли ограничения по питомцам. Разрешение по сезонам пока не сохранено: в какие месяцы можно заселиться с животным? Укажите один месяц для отдельного ответа.")
+        clarifications.append("Поняли условия для питомцев. Уточните месяцы разрешённого размещения в одном ответе, например: «Собаки разрешены с мая по сентябрь».")
 
     def add(cid: str, value: dict, quote: str, scope: Scope | None = None):
         if pets_partial and cid != "pets":
@@ -272,9 +306,20 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
                       unknown_fields=question.characteristic_ids,
                       needs_clarification="Уточните конкретные номера, условия и ограничения; неизвестное останется неизвестным.")
     if quick in {"да", "нет"}:
+        hypothesis = getattr(question, "hypothesis_update", None)
+        if hypothesis is not None and not question.requested_scopes:
+            value = hypothesis.value
+            # A displayed proposition is a single Boolean fact, never a proxy
+            # measurement or an aggregate of unrelated facades.
+            if (hypothesis.characteristic_id in question.characteristic_ids and isinstance(value, dict)
+                    and len(value) == 1 and type(value.get("available")) is bool):
+                accepted = value["available"] if quick == "да" else not value["available"]
+                return Answer(question_id=question.id, raw_text=raw, synthetic=synthetic,
+                              updates=[FieldUpdate(characteristic_id=hypothesis.characteristic_id,
+                                                   value={"available": accepted}, scope=hypothesis.scope, quote=raw)])
         if question.characteristic_ids == ['hotel_parking'] and quick == 'нет':
             add('hotel_parking', {'private_parking': False}, raw)
-        boolean_ids = {"pets", "sea_view", "sunset_view", "mountain_view", "quiet_night", "soundproofing"}
+        boolean_ids = {"pets", "sea_view", "sunset_view", "mountain_view", "quiet_night", "soundproofing", "accessible_route"}
         if (len(question.characteristic_ids) == 1 and question.characteristic_ids[0] in boolean_ids
                 and not question.requested_scopes and (quick == "нет" or (not question.hypothesis and question.characteristic_ids[0] != "soundproofing"))):
             add(question.characteristic_ids[0], {"available": quick == "да"}, raw)
@@ -314,6 +359,9 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
             else:
                 unknown.add("room_orientation")
                 clarifications.append("Уточните возрастающий диапазон номеров (не более 101 номера за ответ).")
+        if room_match and len(grouped_rooms) == 1:
+            orientation.update({key: item for key, item in grouped_rooms[0].items()
+                                if key in {"courtyard", "sea_view"}})
         if re.search(r"балкон", low):
             balcony = _bool_feature(low, r"балкон")
             if balcony is not None:
@@ -328,7 +376,15 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
             unknown.add("room_orientation")
 
         sound = {}
-        window_clauses = [clause for clause in low.split(",") if re.search(r"окн|стеклопакет", clause)]
+        clauses = low.split(",")
+        window_clauses = []
+        for index, clause in enumerate(clauses):
+            if not re.search(r"окн|стеклопакет", clause):
+                continue
+            # Natural adjective continuation: "окна пластиковые, двойные".
+            if index + 1 < len(clauses) and re.match(r"\s*(?:двойн|двухкамер|двухслойн|одинар|однокамер)", clauses[index + 1]):
+                clause += "," + clauses[index + 1]
+            window_clauses.append(clause)
         for clause in window_clauses:
             if re.search(UNCERTAIN, clause):
                 unknown.add("soundproofing.windows")
@@ -387,7 +443,7 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
 
         animal_pattern = r"питом|животн|собак|кош[екк]|кошк|псов|\bпес\b"
         pet_text = low
-        if pets_partial:
+        if pets_partial and not pet_permissions:
             # Only extract the independent clauses before a seasonal qualifier.
             # Their availability stays null: this is not year-round permission.
             pet_text = re.split(r",?\s*\b(?:в|во|с|до|по|летом|зимой|весной|осенью)\s+(?:" + "|".join(MONTH_PATTERNS) + r")\b", low)[0]
@@ -417,6 +473,8 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
                 pets["excluded_species"] = sorted(set(denied))
             if pets_partial or not re.search(animal_pattern, low):
                 pets["available"] = None
+            if pets_partial:
+                pets["permission_period_unknown"] = True
             weight = re.search(r"до\s*(-?\d+(?:[.,]\d+)?)\s*кг", low)
             if weight:
                 kg = float(weight[1].replace(",", "."))
@@ -468,6 +526,58 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
                     value["min_floor"] = low_floor
                 add(cid, value, sentence, scope)
 
+        if "accessible_route" in question.characteristic_ids:
+            route = {}
+            if re.search(r"лестниц|ступен", low):
+                steps = _bool_feature(low, r"лестниц|ступен")
+                if steps is not None:
+                    route["has_steps"] = steps
+            if re.search(r"коляск", low):
+                if not re.search(UNCERTAIN, low):
+                    if re.search(r"не\s+(?:прой|прохо|подход)|невозможно|нельзя|недоступ", low):
+                        route.update(available=False, wheelchair_suitable=False)
+                    elif re.search(r"проход\w*\s+свобод|свобод\w*\s+проход|доступ\w*|можно\s+пройти|проезжа\w*|подход\w*", low):
+                        route.update(available=True, wheelchair_suitable=True)
+            if re.search(r"пандус", low) and re.search(r"вход", low):
+                ramp = _bool_feature(low, r"пандус")
+                if ramp is not None:
+                    route["entrance_ramp"] = ramp
+            if route:
+                route.setdefault("available", None)
+                add("accessible_route", route, sentence)
+
+        if "connectivity" in question.characteristic_ids:
+            internet = {}
+            wifi = r"wi[ -]?fi|вай[ -]?фай|вайфай|беспроводн\w*\s+интернет"
+            if re.search(wifi, low):
+                wifi_text = re.sub(r"не\s+бесплат\w*", "платный", low)
+                wifi_text = re.sub(r"без\s+доплат\w*|плат[аы]\s+нет|не\s+платн\w*", "бесплатно", wifi_text)
+                present = _bool_feature(wifi_text, wifi)
+                if present is not None:
+                    internet["wifi_reported"] = present
+                    if re.search(r"номер\w*|комнат\w*", low):
+                        internet["wifi_in_rooms"] = present
+            if re.search(r"интернет|сеть|wi[ -]?fi|вай[ -]?фай|вайфай", low):
+                for fee_clause in re.split(r"[,;]|\bи\b", low):
+                    if re.search(UNCERTAIN + r"|парков|завтрак|прожив", fee_clause):
+                        continue
+                    if re.search(r"не\s+бесплат|(?<!бес)платн|за\s+доплат", fee_clause) and not re.search(r"не\s+платн", fee_clause):
+                        internet["fee"] = "paid"
+                    elif re.search(r"бесплат|без\s+доплат|плат[аы]\s+нет|не\s+платн", fee_clause):
+                        internet["fee"] = "free"
+            # Units and direction are mandatory; a claim is not a speed test.
+            for speed_clause in re.split(r"(?<!\d),(?!\d)|;|\bи\b", low):
+                speed = re.search(r"(?<![\d.,-])(\d+(?:[.,]\d+)?)\s*(?:мбит\s*/\s*с|мбит\s+в\s+секунд\w*|mbps)", speed_clause)
+                if speed and not re.search(UNCERTAIN, speed_clause):
+                    key = "upload_mbps" if re.search(r"отдач|upload|исходящ", speed_clause) else "download_mbps"
+                    internet[key] = float(speed[1].replace(",", "."))
+            latency = re.search(r"(?:пинг|задержк\w*|latency)\s*(?:около\s*)?(\d+(?:[.,]\d+)?)\s*(?:мс|ms)", low)
+            if latency and not re.search(UNCERTAIN, low):
+                internet["latency_ms"] = float(latency[1].replace(",", "."))
+            if internet:
+                internet["available"] = None
+                add("connectivity", internet, sentence)
+
         if "beach_walk" in question.characteristic_ids and re.search(r"пляж|мор[еяю]", low):
             route = {}
             minutes = re.search(r"(\d{1,3})\s*мин", low)
@@ -493,10 +603,26 @@ def _offline(question: Question, raw: str, synthetic: bool) -> Answer:
         if absent_floors:
             value["absent_floors"] = absent_floors
         add("room_orientation", value, raw)
+    if pet_permissions:
+        pet_updates = [update for update in updates if update.characteristic_id == "pets"]
+        if pet_updates:
+            # Conditions are supported by the entire answer, including the
+            # explicit exception. The ledger retains a separate monthly scope.
+            values = {key: item for update in pet_updates for key, item in update.value.items()
+                      if key not in {"available", "permission_period_unknown"}}
+            updates = [update for update in updates if update.characteristic_id != "pets"]
+            for pet_month, allowed in sorted(pet_permissions.items()):
+                updates.append(FieldUpdate(characteristic_id="pets", scope=Scope(month=pet_month),
+                                           value={**values, "available": allowed}, quote=raw))
+            unknown.discard("pets.available")
+    # A known subfield and an unknown main condition are complementary.
+    # Do not duplicate both the characteristic and its detailed field label.
+    detailed = {field.split(".", 1)[0] for field in unknown if "." in field}
+    unknown.difference_update(detailed)
     represented = {update.characteristic_id for update in updates}
     unknown.update(set(question.characteristic_ids)-represented)
     if unknown and not clarifications:
-        clarifications.append("Уточните неизвестные свойства и конкретные номера; пропуски не означают отсутствие услуги.")
+        clarifications.append("Известные сведения будут сохранены. Не указанные условия останутся неизвестными; их можно уточнить новым ответом.")
     return Answer(question_id=question.id, raw_text=raw, updates=updates, unknown_fields=sorted(unknown),
                   disposition="parsed" if updates else "clarification",
                   needs_clarification=" ".join(dict.fromkeys(clarifications)) or None, synthetic=synthetic)

@@ -127,7 +127,8 @@ def test_reported_wifi_does_not_cover_download_speed_or_hide_it_from_status(spec
     repo.upsert("facts", fact.model_dump(mode="json"))
     report = status(repo)
     assert report["region_coverage"]["connectivity"]["known_hotels"] == 0
-    assert "connectivity" in report["no_data_characteristics"]
+    assert report["region_coverage"]["connectivity"]["status"] == "awaiting_hotels"
+    assert "connectivity" not in report["no_data_characteristics"]
     # A measured low speed is known coverage even when it fails the default threshold.
     fact.value["download_mbps"] = 10
     coverage = region_coverage([fact.model_dump(mode="json")], specs, 1)

@@ -244,17 +244,18 @@ def test_recheck_observes_changed_fact_even_without_trip_dates_and_preserves_oth
     assert confirm(repo, passport).model_dump() == updated.model_dump()
 
 
-def test_trip_expiry_marks_only_the_affected_room_and_survives_confirmation():
+def test_future_trip_expiry_is_one_neutral_review_and_survives_confirmation():
     repo = MemoryRepo()
     insert_fact(repo, side="W", valid_until=now() + timedelta(days=5))
     insert_fact(repo, side="E", valid_until=now() + timedelta(days=120))
     _, passport = create(repo, [room("A", side="W", must=[criterion()]), room("B", side="E", must=[criterion()])],
                         check_in=(now() + timedelta(days=10)).date(), check_out=(now() + timedelta(days=20)).date())
     updated = confirm(repo, passport)
-    assert updated.status == "at_risk"
-    assert room_items(updated, 0)[0].status == "at_risk" and "перепроверка" in room_items(updated, 0)[0].response
+    assert updated.status == "confirmed"
+    assert room_items(updated, 0)[0].status == "confirmed"
     assert room_items(updated, 1)[0].status == "confirmed"
     assert len([event for event in updated.timeline if event["type"] == "evidence_review"]) == 1
+    assert all("Перепроверим" not in (item.response or "") for item in updated.items)
 
 
 def test_change_notification_uses_each_guests_own_scope_and_stored_duplicate_criterion():

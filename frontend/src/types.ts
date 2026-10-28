@@ -75,6 +75,14 @@ export interface Fact {
   supporting_claim_ids: string[];
   conflicting_claim_ids?: string[];
   evidence: Evidence[];
+  origin_kinds?: (
+    | "hotelier"
+    | "demo_hotelier"
+    | "calculation"
+    | "open_data"
+    | "simulation"
+    | "mock"
+  )[];
   updated_at: string;
   valid_until?: string | null;
   synthetic?: boolean;
@@ -214,6 +222,7 @@ export interface SearchHit {
   disappointments: string[];
   summary: string;
   why_not_higher?: string[];
+  why_higher?: string | null;
   similarity_reasons?: string[];
 }
 export interface SearchResult {
@@ -240,6 +249,7 @@ export interface Question {
   requested_scopes?: Scope[];
   text: string;
   hypothesis: string | null;
+  hypothesis_update?: FieldUpdate | null;
   options: string[];
   priority: number;
   reason: string;
@@ -376,6 +386,8 @@ export interface DryResult {
     claims: Claim[];
     warnings: string[];
     matched?: boolean;
+    match_status?: Verdict["status"];
+    match_reason?: string;
   }[];
   run_id: string;
   valid: boolean;

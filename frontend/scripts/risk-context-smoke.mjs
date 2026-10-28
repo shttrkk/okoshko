@@ -48,8 +48,9 @@ assert(
 );
 assert(
   verdict.context_fact_ids.every(
-    (id) => facts.get(id)?.characteristic_id === "airport_noise",
+    (id) => ["airport_noise", "nightlife"].includes(facts.get(id)?.characteristic_id),
   ),
+  "Requested quietness may have airport and mapped nearby-bar context",
 );
 assert(!verdict.fact_ids.some((id) => verdict.context_fact_ids.includes(id)));
 assert(
@@ -60,6 +61,10 @@ assert(
   ),
 );
 const endpoint = `/api/hotels/${encodeURIComponent(hit.hotel.id)}/facts/${encodeURIComponent(verdict.context_fact_ids[0])}/evidence`;
+const firstContextKind = facts.get(verdict.context_fact_ids[0]).characteristic_id;
+const contextText = firstContextKind === "airport_noise"
+  ? /аэропорт|полос|самол[её]т/i
+  : /бар|кафе|заведени|событи/i;
 const browser = await chromium.launch({ headless: true, executablePath });
 const checks = [];
 try {
@@ -107,7 +112,7 @@ try {
     assert((await proof).ok());
     const modal = page.getByRole("dialog");
     await modal.waitFor();
-    assert.match(await modal.innerText(), /аэропорт|полос|самол[её]т/i);
+    assert.match(await modal.innerText(), contextText);
     assert(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth + 1,
@@ -134,6 +139,7 @@ try {
     hotel_id: hit.hotel.id,
     criterion: verdict.characteristic_id,
     context_fact_ids: verdict.context_fact_ids,
+    context_characteristics: verdict.context_fact_ids.map((id) => facts.get(id).characteristic_id),
     response_bytes: bytes.byteLength,
     checks,
   };

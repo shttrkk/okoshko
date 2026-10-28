@@ -109,7 +109,7 @@ def evaluate(gold: list[dict], traps: list[dict]) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--gold', type=Path, default=ROOT/'data/eval/group_gold.jsonl')
+    parser.add_argument('--gold', type=Path, default=ROOT/'data/eval/group_gold_r3.jsonl')
     parser.add_argument('--traps', type=Path, default=ROOT/'data/eval/group_traps.jsonl')
     parser.add_argument('--output', type=Path)
     parser.add_argument('--independent', action='store_true', help='Label a separately authored holdout without changing its scoring')

@@ -178,7 +178,7 @@ def write_report(path: Path, report: dict) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--gold', type=Path, default=ROOT/'data/eval/queries_gold.jsonl')
+    parser.add_argument('--gold', type=Path, default=ROOT/'data/eval/queries_gold_r3.jsonl')
     parser.add_argument('--negative', type=Path, default=ROOT/'data/eval/queries_negative.jsonl')
     parser.add_argument('--split', choices=('development', 'holdout'))
     parser.add_argument('--output', type=Path)

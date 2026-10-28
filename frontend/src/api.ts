@@ -333,6 +333,25 @@ export const api = {
       undefined,
       true,
     ),
+  reviseAnswer: (answerId: string) =>
+    request<Question>(
+      `/api/answers/${id(answerId)}/revise`,
+      {},
+      undefined,
+      true,
+    ),
+  hotelierQuestion: (
+    hotelId: string,
+    characteristicId: string,
+    scope?: Scope,
+    factId?: string,
+  ) =>
+    request<Question>(
+      `/api/hotelier/${id(hotelId)}/questions/${id(characteristicId)}`,
+      { scope: scope || null, fact_id: factId || null },
+      undefined,
+      true,
+    ),
   confirmAnswer: (answerId: string) =>
     writeData<Answer>(`/api/answers/${id(answerId)}/confirm`, {}, true),
   createPassport: (body: PassportCreate) =>

@@ -92,7 +92,7 @@ def test_wifi_tag_is_partial_but_cannot_satisfy_a_speed_requirement(specs):
     hit = evaluate(item, criterion, specs)
     assert hit.group != "all" and hit.must_satisfied == 0
     v = hit.verdicts[0]
-    assert "Wi-Fi указан, скорость не измерена" in v.text
+    assert v.text == "Wi-Fi есть по карте · скорость неизвестна"
     assert "агрегированные тесты" not in v.caveat and not v.hotelier_confirmed
     assert item.value["download_mbps"] is None
 
@@ -109,7 +109,10 @@ def test_measured_slow_wifi_does_not_hide_behind_a_presence_partial(specs):
 def test_wifi_partial_coverage_requires_current_supporting_provenance(updates, partial, specs):
     item = fact("connectivity", {"wifi_reported": True, "download_mbps": None}, **updates)
     query = ParsedQuery(text="", must=[Criterion(characteristic_id="connectivity", label="Работа", field="download_mbps", op="gte", value=30)])
-    coverage = search_coverage([item.model_dump(mode="json")], specs, 1, query)
+    # Exercise the generic unanswerable-source coverage gate; R4 production
+    # connectivity remains answerable even when its speed is unknown.
+    coverage_specs = [spec.model_copy(update={"hotelier_answerable": False}) if spec.id == "connectivity" else spec for spec in specs]
+    coverage = search_coverage([item.model_dump(mode="json")], coverage_specs, 1, query)
     row = coverage["connectivity"]
     assert row["known_hotels"] == 0
     assert bool(row["fields"]["download_mbps"].get("partial_evidence")) is partial

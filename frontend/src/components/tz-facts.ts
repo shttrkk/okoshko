@@ -204,7 +204,8 @@ export function tzHumanFact(fact: Fact): string | null {
         n(v.sunny_days) !== null &&
           `солнечных дней ≈ ${f(v.sunny_days)} в месяц`,
         n(v.rainy_days) !== null && `дождливых ≈ ${f(v.rainy_days)}`,
-        n(v.water_c) !== null && `вода ≈ ${f(v.water_c)} °C`,
+        n(v.water_c) !== null &&
+          `вода ${Number(v.water_c) >= 22 ? "достаточно тёплая для купания" : Number(v.water_c) >= 18 ? "прохладная" : "холодная"}`,
         safeName(v.water_comfort),
       ]);
     case "construction_nearby":
@@ -225,7 +226,7 @@ export function tzHumanFact(fact: Fact): string | null {
           ]);
     case "landmark_view":
       return join([
-        `${landmarkName(fact)}: ${v.available === true ? "верх объекта виден по расчёту" : v.available === false ? "верх объекта не виден в этом срезе" : "видимость неизвестна"}`,
+        `${landmarkName(fact)}: ${v.available === true ? "верх объекта виден по расчёту" : v.available === false ? "верх объекта не виден с выбранной стороны и этажа" : "видимость неизвестна"}`,
         n(v.distance_m) !== null && distance(v.distance_m),
       ]);
     case "mobile_masts":

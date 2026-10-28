@@ -1,0 +1,66 @@
+{
+  "revision": "28d8631",
+  "test_suite": {
+    "passed": 2300,
+    "subtests_passed": 125,
+    "ruff": "passed",
+    "frontend_lint": "passed",
+    "frontend_build": "passed"
+  },
+  "demo_scenarios": 18,
+  "browser_smokes": {
+    "passed": 20,
+    "method": "single sequential clean-clone run, including full guarded panel-live actions",
+    "report": "docs/checks/panel_r3_clean_clone.json"
+  },
+  "parser": {
+    "strict": 248,
+    "total": 271,
+    "negative_false_criteria": 0,
+    "negative_total": 131,
+    "corpus_version": "r3"
+  },
+  "group_parser": {
+    "strict": 46,
+    "total": 47,
+    "false_splits": 0,
+    "traps": 24,
+    "corpus_version": "r3"
+  },
+  "ranking_ndcg_at_5": 0.9968760695830395,
+  "full_actor_checks": {
+    "hotelier": 190,
+    "guest": 106,
+    "search": 17,
+    "loading": 38
+  },
+  "protected_demo": {
+    "host_port": 8080,
+    "qa_writes": 0,
+    "original_questions": 56,
+    "original_answers": 16,
+    "original_passports": 4
+  },
+  "limitations": [
+    "Authored parser and frozen ranking labels are not independent hotel or guest precision.",
+    "The live studio fixture did not exercise missing-distance input; covered by unit tests.",
+    "P2 features excluded as requested."
+  ],
+  "clean_clone": {
+    "passed": true,
+    "health_seconds": 104.326,
+    "container_start_to_health_seconds": 61.759,
+    "env_file": false,
+    "empty_build_cache": true,
+    "restart_count": 0,
+    "image_arch": "amd64",
+    "image_user": "10001:10001"
+  },
+  "clean_actor_checks": {
+    "base": 1561,
+    "hotelier": 179,
+    "guest": 406,
+    "search": 17,
+    "loading": 38
+  }
+}

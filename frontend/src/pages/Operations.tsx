@@ -43,6 +43,7 @@ import type {
   DryResult,
   Fact,
   PublishResult,
+  Question,
 } from "../types";
 
 const hotelierSides: Record<string, string> = {
@@ -61,7 +62,7 @@ const hotelierFields: Record<string, string> = {
   blackout: "плотные шторы",
   air_conditioning: "кондиционер",
   max_weight_kg: "допустимый вес",
-  fee_rub_night: "доплата за сутки",
+  fee_rub_night: "доплата за ночь",
   species: "виды питомцев",
 };
 function searchDemandText(count: number) {
@@ -94,7 +95,7 @@ function hotelierValue(cid: string, raw: unknown): string[] {
     const species: Record<string, string> = { dog: "собаки", cat: "кошки" };
     if (Array.isArray(v.species))
       parts.push(
-        `${v.available === null ? "В разрешённые месяцы" : "Разрешены"}: ${v.species.map((s) => species[String(s)] || "указанные питомцы").join(", ")}`,
+        `${v.permission_period_unknown === true ? "Разрешены в уточняемый период" : "Разрешены"}: ${v.species.map((s) => species[String(s)] || "указанные питомцы").join(", ")}`,
       );
     else if (v.available === true)
       parts.push("Размещение с питомцами разрешено");
@@ -109,9 +110,9 @@ function hotelierValue(cid: string, raw: unknown): string[] {
       parts.push(
         v.fee_rub_night === 0
           ? "Без доплаты"
-          : `Доплата ${number(v.fee_rub_night)} ₽ за сутки`,
+          : `Доплата ${number(v.fee_rub_night)} ₽ за ночь`,
       );
-    if (v.available === null)
+    if (v.permission_period_unknown === true)
       parts.push("Месяцы разрешённого размещения требуют уточнения");
   } else if (cid === "room_orientation") {
     if (Array.isArray(v.groups))
@@ -150,12 +151,38 @@ function hotelierValue(cid: string, raw: unknown): string[] {
     if (typeof v.air_conditioning === "boolean")
       parts.push(v.air_conditioning ? "Есть кондиционер" : "Кондиционера нет");
     if (v.available === null) parts.push("Шумоизоляция пока не подтверждена");
+  } else if (cid === "connectivity") {
+    if (typeof v.wifi_in_rooms === "boolean")
+      parts.push(
+        v.wifi_in_rooms ? "Wi-Fi есть в номерах" : "Wi-Fi в номерах нет",
+      );
+    else if (typeof v.wifi_reported === "boolean")
+      parts.push(
+        v.wifi_reported
+          ? "Wi-Fi указан; наличие в номерах не уточнено"
+          : "Wi-Fi нет",
+      );
+    if (v.fee === "free") parts.push("Бесплатно");
+    if (v.fee === "paid") parts.push("Платно; стоимость не указана");
+    if (typeof v.download_mbps === "number")
+      parts.push(`Загрузка: ${number(v.download_mbps)} Мбит/с — со слов отеля`);
+    if (typeof v.upload_mbps === "number")
+      parts.push(`Отдача: ${number(v.upload_mbps)} Мбит/с — со слов отеля`);
+    if (typeof v.latency_ms === "number")
+      parts.push(`Задержка: ${number(v.latency_ms)} мс — со слов отеля`);
+    if (v.download_mbps == null && v.upload_mbps == null)
+      parts.push("Скорость не указана");
   } else {
     const feature: Record<string, [string, string]> = {
       quiet_night: ["Ночью тихо", "Ночью шумно"],
       sea_view: ["Море видно", "Море не видно"],
       sunset_view: ["Закат виден", "Закат не виден"],
       mountain_view: ["Горы видны", "Горы не видны"],
+      accessible_route: [
+        "По словам отеля, весь путь доступен с коляской",
+        "По словам отеля, путь не подходит для коляски",
+      ],
+      morning_sun: ["Утром есть прямое солнце", "Утром прямого солнца нет"],
     };
     if (typeof v.available === "boolean")
       parts.push(
@@ -168,15 +195,72 @@ function hotelierValue(cid: string, raw: unknown): string[] {
       parts.push(`Расстояние ${number(v.distance_m)} м`);
     if (typeof v.has_steps === "boolean")
       parts.push(v.has_steps ? "Есть ступени" : "Ступеней нет");
+    if (typeof v.entrance_ramp === "boolean")
+      parts.push(
+        v.entrance_ramp
+          ? "У входа в отель есть пандус"
+          : "У входа в отель пандуса нет",
+      );
   }
   return parts.length
     ? parts
     : ["Частичные сведения: проверьте дословную цитату"];
 }
 
+function previewGroups(updates: Answer["updates"]) {
+  const groups = new Map<
+    string,
+    { update: Answer["updates"][number]; months: number[] }
+  >();
+  for (const update of updates) {
+    const key = JSON.stringify([
+      update.characteristic_id,
+      update.value,
+      { ...update.scope, month: null },
+      update.quote,
+    ]);
+    const group = groups.get(key);
+    if (group && update.scope.month) group.months.push(update.scope.month);
+    else
+      groups.set(key, {
+        update,
+        months: update.scope.month ? [update.scope.month] : [],
+      });
+  }
+  return [...groups.values()];
+}
+const hotelierMonths = [
+  "январь",
+  "февраль",
+  "март",
+  "апрель",
+  "май",
+  "июнь",
+  "июль",
+  "август",
+  "сентябрь",
+  "октябрь",
+  "ноябрь",
+  "декабрь",
+];
+
+function hotelierQuestionText(text: string) {
+  // Old stored questions keep their original context. Only their visible
+  // legacy wording changes; scope, confirmation semantics and IDs do not.
+  return text
+    .replaceAll(
+      "Гость просит уточнить модельный срез:",
+      "Гость просит проверить выбранный номер:",
+    )
+    .replaceAll(
+      "Это запрос на уточнение модели, не подтверждение",
+      "Это пожелание гостя для проверки номера, а не подтверждение",
+    );
+}
+
 export function HotelierPage() {
   const { hotels, specs } = useApp();
-  const questionStack = useRef<HTMLElement | null>(null);
+  const questionStack = useRef<HTMLDivElement | null>(null);
   const [evidence, setEvidence] = useState<Fact | null>(null);
   const [token, setToken] = useState(
       sessionStorage.getItem("okno-token") || "",
@@ -184,8 +268,11 @@ export function HotelierPage() {
     [session, setSession] = useState(readHotelierSession),
     [username, setUsername] = useState("hotelier"),
     [password, setPassword] = useState("hotelier123"),
-    [hotelId, setHotelId] = useState(""),
+    [hotelId, setHotelId] = useState(
+      sessionStorage.getItem("okno-hotelier-hotel") || "",
+    ),
     [questionId, setQuestionId] = useState(""),
+    [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<Error | null>(null),
     [text, setText] = useState(""),
@@ -194,13 +281,15 @@ export function HotelierPage() {
     [preview, setPreview] = useState<Answer | null>(null);
   const characteristicName = (cid: string) => {
     const spec = specs.data?.find((item) => item.id === cid);
-    return spec?.name_ru || "Характеристика отеля";
+    return spec?.display_name || spec?.name_ru || "Характеристика отеля";
   };
   const unknownName = (field: string) => {
     const [cid, key] = field.split(".");
     return (
       characteristicName(cid) +
-      (key ? `: ${hotelierFields[key] || "условия"}` : "")
+      (key
+        ? `: ${key === "available" && cid === "soundproofing" ? "шумоизоляция" : hotelierFields[key] || "условия"}`
+        : "")
     );
   };
   const allowedHotels =
@@ -228,6 +317,10 @@ export function HotelierPage() {
       setHotelId(candidates[0]?.id || "");
     }
   }, [hotels.data, hotelId, session, summaries.data, summaries.loading, token]);
+  useEffect(() => {
+    if (hotelId) sessionStorage.setItem("okno-hotelier-hotel", hotelId);
+    setSelectedQuestion(null);
+  }, [hotelId]);
   useEffect(() => {
     const expired = () => {
       setToken("");
@@ -273,7 +366,16 @@ export function HotelierPage() {
       b.priority - a.priority,
   );
   const question =
-    pendingQuestions.find((q) => q.id === questionId) || pendingQuestions[0];
+    (selectedQuestion?.hotel_id === hotelId ? selectedQuestion : null) ||
+    pendingQuestions.find((q) => q.id === questionId) ||
+    pendingQuestions[0];
+  useEffect(() => {
+    if (selectedQuestion)
+      questionStack.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+  }, [selectedQuestion]);
   const knownCharacteristics = new Set(
     data.data?.facts
       .filter((fact) => fact.status !== "unknown" && fact.value !== null)
@@ -288,7 +390,11 @@ export function HotelierPage() {
         false,
   );
   const selectQuestion = (id: string) => {
+    if (busy) return;
     setQuestionId(id);
+    setSelectedQuestion(
+      pendingQuestions.find((item) => item.id === id) || null,
+    );
     setPreview(null);
     setText("");
     setSimulatedText(null);
@@ -298,19 +404,35 @@ export function HotelierPage() {
       block: "start",
     });
   };
-  const openUnknown = async (cid: string) => {
+  const openUnknown = async (cid: string, fact?: Fact) => {
+    if (busy) return;
     const existing = pendingQuestions.find((item) =>
       item.characteristic_ids.includes(cid),
     );
-    if (existing) {
+    if (existing && !fact) {
       selectQuestion(existing.id);
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      const created = await api.ask(hotelId, cid);
-      selectQuestion(created.id);
+      const created = await api.hotelierQuestion(
+        hotelId,
+        cid,
+        fact?.scope,
+        fact?.id,
+      );
+      setSelectedQuestion(created);
+      setQuestionId(created.id);
+      setText("");
+      setPreview(null);
+      setSimulatedText(null);
+      setConfirmationMessage("");
+      setEvidence(null);
+      questionStack.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
       data.reload();
       summaries.reload();
     } catch (e) {
@@ -408,13 +530,21 @@ export function HotelierPage() {
       const confirmed = await api.confirmAnswer(preview.id);
       setConfirmationMessage(
         confirmed.disposition === "unknown"
-          ? "Спасибо. Ответ «Не знаю» принят; оставим «нет данных»."
-          : "Ответ подтверждён и сохранён с цитатой. Он появится в сведениях об отеле. Паспорта ожиданий согласуются отдельно.",
+          ? confirmed.created_claim_ids.length
+            ? "Прежний ответ отозван. Ответ «Не знаю» сохранён с цитатой."
+            : "Спасибо. Ответ «Не знаю» принят; оставим «нет данных»."
+          : confirmed.unknown_fields.length
+            ? `Частичный ответ принят и сохранён с цитатой. Не указано: ${confirmed.unknown_fields.map(unknownName).join(", ")}.`
+            : "Ответ подтверждён и сохранён с цитатой. Сведения обновлены для гостей. Паспорта ожиданий согласуются отдельно.",
       );
       setPreview(null);
       setText("");
       setSimulatedText(null);
+      setSelectedQuestion(null);
+      setQuestionId("");
       data.reload();
+      const updated = await api.hotelier(hotelId);
+      data.setData(updated);
       summaries.reload();
     } catch (e) {
       setError(e as Error);
@@ -423,20 +553,23 @@ export function HotelierPage() {
     }
   };
   const newAnswer = async (previous: Answer) => {
-    const old = data.data?.answered_questions?.find(
-      (item) => item.id === previous.question_id,
-    );
-    if (!old) return;
     setBusy(true);
     setError(null);
     try {
-      const created = await api.ask(hotelId, old.characteristic_ids[0]);
+      const created = await api.reviseAnswer(previous.id);
       setQuestionId(created.id);
-      setText("");
-      setSimulatedText(null);
+      setSelectedQuestion(created);
+      setText(previous.raw_text);
+      setSimulatedText(previous.synthetic ? previous.raw_text : null);
       setPreview(null);
-      setConfirmationMessage("");
+      setConfirmationMessage(
+        `Исправление ответа: ${created.characteristic_ids.map(characteristicName).join(" · ")}. Предыдущий ответ останется в истории.`,
+      );
       data.reload();
+      questionStack.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     } catch (e) {
       setError(e as Error);
     } finally {
@@ -518,12 +651,14 @@ export function HotelierPage() {
                 value={hotelId}
                 onChange={(e) => {
                   setHotelId(e.target.value);
+                  setSelectedQuestion(null);
                   setQuestionId("");
                   setPreview(null);
                   setText("");
                   setSimulatedText(null);
                   setConfirmationMessage("");
                 }}
+                disabled={busy}
                 data-testid="hotelier-hotel"
               >
                 {allowedHotels?.map((h) => (
@@ -554,7 +689,7 @@ export function HotelierPage() {
           {data.data && (
             <div className="hotelier-grid">
               <div style={{ minWidth: 0 }}>
-                <section className="question-stack" ref={questionStack}>
+                <section className="question-stack">
                   <div className="section-heading">
                     <div>
                       <span className="eyebrow">
@@ -572,7 +707,11 @@ export function HotelierPage() {
                   </p>
                   <div
                     className="run-list"
-                    style={{ display: "block" }}
+                    style={{
+                      display: "block",
+                      maxHeight: 300,
+                      overflowY: "auto",
+                    }}
                     role="group"
                     aria-label="Очередь вопросов по спросу"
                     data-testid="hotelier-question-queue"
@@ -584,9 +723,10 @@ export function HotelierPage() {
                         className={question?.id === item.id ? "selected" : ""}
                         aria-pressed={question?.id === item.id}
                         onClick={() => selectQuestion(item.id)}
+                        disabled={busy}
                         data-testid={`queue-question-${item.characteristic_ids[0]}`}
                       >
-                        <div>
+                        <div style={{ minWidth: 0, whiteSpace: "normal" }}>
                           <strong>
                             {item.characteristic_ids
                               .map(characteristicName)
@@ -615,12 +755,13 @@ export function HotelierPage() {
                       <select
                         value={question?.id || ""}
                         onChange={(e) => {
-                          setQuestionId(e.target.value);
+                          selectQuestion(e.target.value);
                           setPreview(null);
                           setText("");
                           setSimulatedText(null);
                           setConfirmationMessage("");
                         }}
+                        disabled={busy}
                         data-testid="hotelier-question-select"
                       >
                         {pendingQuestions.map((q) => (
@@ -640,14 +781,18 @@ export function HotelierPage() {
                   )}
                   {question ? (
                     <>
-                      <div className="question-hypothesis">
+                      <div className="question-hypothesis" ref={questionStack}>
                         <span className="eyebrow">
                           {question.hypothesis
                             ? "СВЕДЕНИЯ ДЛЯ УТОЧНЕНИЯ"
                             : "НУЖЕН ВАШ ОПЫТ"}
                         </span>
-                        {question.hypothesis && <p>{question.hypothesis}</p>}
-                        <h3 data-testid="hotelier-question">{question.text}</h3>
+                        {question.hypothesis && (
+                          <p>{hotelierQuestionText(question.hypothesis)}</p>
+                        )}
+                        <h3 data-testid="hotelier-question">
+                          {hotelierQuestionText(question.text)}
+                        </h3>
                         {!!question.requested_scopes?.length && (
                           <div data-testid="hotelier-requested-scopes">
                             <p className="muted small">
@@ -671,17 +816,24 @@ export function HotelierPage() {
                         <span>
                           {question.demand_estimate > 0
                             ? `В журнале это условие ${searchDemandText(question.demand_estimate)}`
-                            : "После подтверждения ответ поможет гостям с таким запросом"}
+                            : "Ответ с цитатой уточнит профиль для гостей с таким запросом"}
                         </span>
                         {question.demand_synthetic && (
                           <Synthetic>Спрос · синтетика</Synthetic>
                         )}
                       </div>
+                      <p className="fine-print">
+                        Подтверждённый ответ с цитатой получит значок
+                        «Подтвердил отель». Он учитывается при сопоставлении
+                        условий и может улучшить место в выдаче, когда отвечает
+                        запросу гостя.
+                      </p>
                       <div className="quick-replies">
                         {question.options.map((option) => (
                           <button
                             className="button secondary small"
                             key={option}
+                            disabled={busy}
                             onClick={() => {
                               setText(option);
                               setPreview(null);
@@ -703,6 +855,7 @@ export function HotelierPage() {
                             setSimulatedText(null);
                           }}
                           placeholder="Например: двойные пластиковые окна; на запад — номера 501–512 с балконом. Укажите только то, что знаете."
+                          disabled={busy}
                           data-testid="hotelier-answer"
                         />
                       </label>
@@ -750,35 +903,41 @@ export function HotelierPage() {
                           ? "Спасибо, оставим «нет данных»"
                           : preview.updates.length
                             ? "Поняли из вашего ответа"
-                            : "Не понял, нужно уточнение"}
+                            : "Нужно уточнение ответа"}
                       </h3>
                       {preview.synthetic && (
                         <Synthetic>Ответ отеля · демо</Synthetic>
                       )}
-                      {preview.updates.map((u, i) => (
-                        <div className="field-update" key={i}>
-                          <strong>
-                            {characteristicName(u.characteristic_id)}
-                          </strong>
-                          <span>
-                            {Array.isArray(record(u.value).groups)
-                              ? "Только указанные группы номеров"
-                              : scopeText(u.scope)}
-                          </span>
-                          <ul>
-                            {hotelierValue(u.characteristic_id, u.value).map(
-                              (part, index) => (
-                                <li key={index}>{part}</li>
-                              ),
-                            )}
-                          </ul>
-                          <blockquote>«{u.quote}»</blockquote>
-                          <details>
-                            <summary>Для разработчиков</summary>
-                            <pre>{JSON.stringify(u.value, null, 2)}</pre>
-                          </details>
-                        </div>
-                      ))}
+                      {previewGroups(preview.updates).map(
+                        ({ update: u, months }, i) => (
+                          <div className="field-update" key={i}>
+                            <strong>
+                              {characteristicName(u.characteristic_id)}
+                            </strong>
+                            <span>
+                              {months.length
+                                ? `Месяцы: ${months.map((month) => hotelierMonths[month - 1]).join(", ")}`
+                                : Array.isArray(record(u.value).groups)
+                                  ? "Только указанные группы номеров"
+                                  : Array.isArray(record(u.value).rooms)
+                                    ? "Только указанные номера"
+                                    : scopeText(u.scope)}
+                            </span>
+                            <ul>
+                              {hotelierValue(u.characteristic_id, u.value).map(
+                                (part, index) => (
+                                  <li key={index}>{part}</li>
+                                ),
+                              )}
+                            </ul>
+                            <blockquote>«{u.quote}»</blockquote>
+                            <details>
+                              <summary>Для разработчиков</summary>
+                              <pre>{JSON.stringify(u.value, null, 2)}</pre>
+                            </details>
+                          </div>
+                        ),
+                      )}
                       {!preview.updates.length &&
                         preview.disposition !== "unknown" && (
                           <p>
@@ -789,7 +948,7 @@ export function HotelierPage() {
                       {preview.unknown_fields.length > 0 &&
                         preview.disposition !== "unknown" && (
                           <p className="muted">
-                            Не уточнено:{" "}
+                            Не указано:{" "}
                             {preview.unknown_fields.map(unknownName).join(", ")}
                           </p>
                         )}
@@ -800,7 +959,12 @@ export function HotelierPage() {
                       )}
                       <p className="fine-print">
                         {preview.disposition === "unknown"
-                          ? "После подтверждения вопрос закроется. Новые сведения об отеле не появятся."
+                          ? data.data.answers?.some(
+                              (answer) =>
+                                answer.question_id === preview.question_id,
+                            )
+                            ? "После подтверждения прежние сведения из этого ответа будут отозваны, а вопрос закроется."
+                            : "После подтверждения вопрос закроется. Новые сведения об отеле не появятся."
                           : "Только после этого подтверждения сведения с вашей цитатой появятся у гостей. Паспорт автоматически не изменится: согласуйте его отдельно."}
                       </p>
                       <button
@@ -820,6 +984,12 @@ export function HotelierPage() {
                       </button>
                     </div>
                   )}
+                  {busy && (
+                    <p role="status">
+                      <LoaderCircle className="spin" size={15} /> Сохраняем и
+                      обновляем сведения…
+                    </p>
+                  )}
                   {confirmationMessage && (
                     <p role="status">{confirmationMessage}</p>
                   )}
@@ -835,10 +1005,25 @@ export function HotelierPage() {
                     {[...data.data.answers].reverse().map((item) => (
                       <div className="field-update" key={item.id}>
                         <strong>
+                          {[
+                            ...(data.data?.answered_questions || []),
+                            ...(data.data?.questions || []),
+                          ]
+                            .find((q) => q.id === item.question_id)
+                            ?.characteristic_ids.map(characteristicName)
+                            .join(" · ") || "Ответ отелю"}
+                          {" · "}
                           {dateText(item.created_at)}
-                          {item.disposition === "unknown"
-                            ? " · Нет данных"
-                            : " · Ответ подтверждён"}
+                          {data.data?.answers?.some(
+                            (other) =>
+                              other.question_id === item.question_id &&
+                              (other.created_at || "") >
+                                (item.created_at || ""),
+                          )
+                            ? " · Заменён новым ответом"
+                            : item.disposition === "unknown"
+                              ? " · Нет данных"
+                              : " · Ответ подтверждён"}
                         </strong>
                         {item.synthetic && (
                           <Synthetic>Ответ отеля · демо</Synthetic>
@@ -848,8 +1033,9 @@ export function HotelierPage() {
                           className="text-button"
                           disabled={busy}
                           onClick={() => newAnswer(item)}
+                          data-testid={`revise-answer-${item.id}`}
                         >
-                          Создать новый ответ
+                          Исправить ответ
                         </button>
                       </div>
                     ))}
@@ -997,6 +1183,9 @@ export function HotelierPage() {
                   hotelId={hotelId}
                   month={9}
                   onEvidence={setEvidence}
+                  onCorrect={(fact: Fact) =>
+                    openUnknown(fact.characteristic_id, fact)
+                  }
                 />
                 {currentEvidence && (
                   <EvidenceModal
@@ -1356,7 +1545,9 @@ export function StudioPage() {
                   </Link>
                   <span>
                     {r.matched === true
-                      ? "В пробном расчёте условие выполнено"
+                      ? r.match_status === "partial"
+                        ? "По расчёту подходит примерно — уточните сведения"
+                        : "В пробном расчёте условие выполнено"
                       : r.matched === false
                         ? "Условие не подтверждено в пробном расчёте"
                         : "Результат сопоставления не передан"}

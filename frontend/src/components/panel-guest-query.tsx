@@ -1,8 +1,12 @@
+import { useEffect, useRef } from "react";
+import { api, useResource } from "../api";
 import type {
   Criterion,
   ParsedQuery,
   QuerySuggestion,
   RoomRequest,
+  SearchRequest,
+  Verdict,
 } from "../types";
 import { criterionIdentity } from "./group";
 import { criterionLabel } from "./panel-guest-presentation";
@@ -125,15 +129,62 @@ export function contextualDisappointment(text: string, withMobility: boolean) {
       );
 }
 
-export function roomRequestReason(parsed: ParsedQuery | null | undefined) {
+export function roomRequestReason(
+  parsed: ParsedQuery | null | undefined,
+  verdicts: Verdict[] = [],
+) {
   return [
     ...new Set(
-      requestedRoomCriteria(parsed).map((criterion) =>
-        criterionLabel(criterion)
+      requestedRoomCriteria(parsed).flatMap((criterion) => {
+        const verdict = verdicts.find(
+          (item) =>
+            item.characteristic_id === criterion.characteristic_id &&
+            item.status === "yes" &&
+            !item.disputed,
+        );
+        if (!verdict) return [];
+        const label = criterionLabel(criterion)
           .split(/[≤≥=]/)[0]
           .trim()
-          .replace(/: нет$/, " — нет"),
-      ),
+          .replace(/: нет$/, " — нет");
+        return [label + (verdict.synthetic ? " (ответ отеля · демо)" : "")];
+      }),
     ),
   ].join(", ");
+}
+
+/** Abort old searches and bound visible waiting, including resource refreshes. */
+export function useGuestSearch(body: SearchRequest) {
+  const active = useRef<AbortController | null>(null);
+  const deadline = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const resource = useResource(async () => {
+    active.current?.abort();
+    clearTimeout(deadline.current);
+    const controller = new AbortController();
+    active.current = controller;
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 30000);
+    deadline.current = timer;
+    try {
+      return await api.search(body, controller.signal);
+    } catch (error) {
+      if (timedOut)
+        throw new Error("Поиск занял больше 30 секунд. Попробуйте ещё раз.");
+      throw error;
+    } finally {
+      clearTimeout(timer);
+      if (active.current === controller) active.current = null;
+    }
+  }, [body]);
+  useEffect(
+    () => () => {
+      active.current?.abort();
+      clearTimeout(deadline.current);
+    },
+    [],
+  );
+  return resource;
 }

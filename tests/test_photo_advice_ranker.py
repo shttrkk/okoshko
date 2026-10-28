@@ -49,7 +49,8 @@ def test_unknown_and_optional_yes_do_not_count_as_confirmed_and_score_wording_is
     lower = hit("lower", verdicts=[verdict("unknown"), verdict("yes", required=False)])
     higher = hit("higher", satisfied=5, score=70, verdicts=[verdict("unknown"), verdict("yes", required=False)])
     reason = relative_reason(lower, higher)
-    assert reason == "«higher»: по условиям у него данные надёжнее; оценка 70 против 50. Проверьте оговорки по условиям."
+    assert reason == "«higher»: статусы условий совпадают; порядок учитывает значения относительно порогов и оговорки источников. Подробности — в условиях каждого отеля."
+    assert 'надёжнее' not in reason and '70 против 50' not in reason
     assert "подтвержден" not in reason
 
 

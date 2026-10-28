@@ -343,8 +343,11 @@ def valid_intent_match(cid: str, text: str, match: re.Match) -> bool:
         return False
     quoted = any(m.start() < match.start() and m.end() > match.end()
                  for m in re.finditer(r'«[^»]+»|"[^"]+"|“[^”]+”', text))
-    if quoted and re.search(r'\b(?:названи\w*|называ\w*|марк\w*|бренд\w*|слово|термин\w*)\b', clause):
+    if quoted and re.search(r'\b(?:названи\w*|называ\w*|марк\w*|бренд\w*|слово|термин\w*|пересказ\w*|пересказыва\w*|цитир\w*)\b', clause):
         return False
+    if cid in {'family_nearby', 'accessible_route'} and re.search(r'коляск\w*', match[0]):
+        if re.search(r'\b(?:прокат\w*|аренд\w*|ремонт\w*|продаж\w*|пересказ\w*|пересказыва\w*|цитир\w*)\b', clause):
+            return False
     operative_search = bool(re.search(r'\b(?:ищу|ищем|найди\w*|подбер\w*|хочу|хотим|нужен|нужна)\s+(?:\w+\s+){0,3}(?:отел\w*|номер\w*|гостиниц\w*)\b', text))
     if not operative_search and re.search(r'\b(?:слово|термин\w*|фраз\w*)\b', text) and re.search(
             r'означа\w*|обознача\w*|договор\w*|определени\w*|перевод\w*', text):

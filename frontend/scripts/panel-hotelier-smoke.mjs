@@ -507,7 +507,7 @@ try {
       await page.getByTestId("answer-fields").waitFor();
       const preview = await page.getByTestId("answer-fields").innerText();
       check(
-        preview.includes("Доплата 500 ₽ за сутки") &&
+        preview.includes("Доплата 500 ₽ за ночь") &&
           !preview.includes("Ответ отеля · демо") &&
           !preview.includes('"available"'),
         `${name}: manual partial preview is human and not labelled simulator`,
