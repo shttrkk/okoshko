@@ -56,7 +56,20 @@ value_schema:
       type: boolean
     statement:
       type: string
+    wifi_in_rooms:
+      type:
+      - boolean
+      - 'null'
+      description: Отель прямо сообщил о Wi-Fi в номерах; скорость требует отдельного значения
   additionalProperties: true
+  x-hotelier:
+    substantive_fields:
+    - wifi_in_rooms
+    - wifi_reported
+    - fee
+    - download_mbps
+    - upload_mbps
+    - latency_ms
 methods:
 - tool: connectivity
   params: {}
@@ -74,5 +87,5 @@ search:
   default_value: 30
   explain_ok: Связь для работы — условие выполнено
   explain_bad: Связь для работы — условие не выполняется
-hotelier_answerable: false
+hotelier_answerable: true
 status: active

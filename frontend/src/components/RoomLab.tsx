@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Eye, MapPin } from "lucide-react";
-import { api, dateText, record, useResource } from "../api";
+import { api, record, useResource } from "../api";
 import type {
   Criterion,
   Fact,
@@ -15,6 +15,7 @@ import { MONTHS, MONTHS_IN, pct, SIDE_ORDER, SIDES } from "./facts";
 import { ErrorState, FactValue, scopeText, Synthetic, VerdictList } from "./ui";
 import { RoomProfileList } from "./RoomProfiles";
 import { landmarkLabel, landmarkName } from "./tz-facts";
+import { russianDateRange } from "./panel-guest-presentation";
 
 export interface RoomSlice {
   facade: Side;
@@ -289,16 +290,16 @@ function ModelFact({
                 </details>
               </>
             ) : fact.status === "stale" || expired ? (
-              "Данные устарели; для этого среза нужна перепроверка."
+              "Данные устарели; для выбранной стороны и этажа нужна перепроверка."
             ) : fact.status === "disputed" ? (
-              "Источники расходятся; сведения для этого среза не подтверждены."
+              "Источники расходятся; сведения для выбранной стороны и этажа не подтверждены."
             ) : (
               <FactValue fact={fact} />
             )}
           </div>
           {id === "sea_view" && hasValue && !hasModelProbability && (
             <p className="muted small">
-              Сообщение источника о виде для выбранного среза.
+              Сообщение источника о виде для выбранной стороны и этажа.
             </p>
           )}
           <p className="muted small">
@@ -525,7 +526,7 @@ export function RoomLab({
               <p className="muted small" data-testid="room-lab-floor-note">
                 {boundary.known
                   ? `Известная этажность: ${boundary.known}. Для проверки доступны этажи до ${boundary.maximum}-го; свободные номера уточнит отель.`
-                  : "Этажность отеля неизвестна. Проверяем только условный первый уровень; об остальных этажах данных нет."}
+                  : "Этажность нужно уточнить у отеля. Пока можно проверить только нижний этаж по модели."}
               </p>
               {parsed && (
                 <p
@@ -533,10 +534,8 @@ export function RoomLab({
                   data-testid="room-lab-original-dates"
                 >
                   Исходный месяц запроса: {MONTHS[parsed.month - 1]}. Даты
-                  поездки:{" "}
-                  {parsed.check_in ? dateText(parsed.check_in) : "не указаны"}
-                  {parsed.check_out ? ` — ${dateText(parsed.check_out)}` : ""}.
-                  Они не меняются.
+                  поездки: {russianDateRange(parsed.check_in, parsed.check_out)}
+                  . Они не меняются.
                 </p>
               )}
               {differentSeason && (
@@ -691,7 +690,7 @@ export function RoomLab({
                 open={open}
               />
               <div className="room-lab-query" data-testid="room-lab-query">
-                <h3>Условия исходного запроса в срезе</h3>
+                <h3>Ваши пожелания для выбранного номера</h3>
                 {!parsed ||
                 (!parsed.must.length &&
                   !parsed.nice.length &&
@@ -699,15 +698,14 @@ export function RoomLab({
                   !unavailableMust.length) ? (
                   <p className="muted">
                     Условия поиска не заданы. Выше показаны только доступные
-                    факты выбранного среза; совпадение с запросом не
-                    оценивается.
+                    сведения о выбранной стороне и этаже; совпадение с запросом
+                    не оценивается.
                   </p>
                 ) : (
                   <>
                     <p className="muted small">
-                      Исходные обязательные условия, пороги и ограничения
-                      маршрута сохранены. Срез добавляет выбранную сторону,
-                      точный этаж и месяц для отдельной проверки.
+                      Проверяем ваши пожелания для этой стороны, этажа и месяца.
+                      Условия дороги до пляжа относятся ко всему отелю.
                     </p>
                     {plan.conflicts.length > 0 && (
                       <div
@@ -716,8 +714,8 @@ export function RoomLab({
                       >
                         <strong>
                           {plan.conflicts.some((conflict) => conflict.required)
-                            ? "Срез несовместим с исходными обязательными ограничениями."
-                            : "Срез не входит в область исходных желательных условий."}
+                            ? "Выбранный номер не соответствует обязательным условиям."
+                            : "Выбранный номер не соответствует некоторым пожеланиям."}
                         </strong>
                         <ul>
                           {plan.conflicts.map((conflict, index) => (
@@ -731,7 +729,7 @@ export function RoomLab({
                           ))}
                         </ul>
                         <p>
-                          Условия не заменены выбором среза. Пересчёт запроса не
+                          Пожелания сохранены. Поиск с новыми условиями не
                           отправлен; факты выбранной стороны можно изучать
                           отдельно.
                         </p>

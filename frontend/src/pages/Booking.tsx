@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "../panel-r3-guest.css";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowRight, Bell, Check, ClipboardCheck, Send } from "lucide-react";
 import { api, dateText, record, textValue, useResource } from "../api";
@@ -22,7 +23,10 @@ import {
   criterionLabel,
   DEMO_REPLY,
   guestQuote,
+  MAP_REFERENCE_IDS,
+  russianDateRange,
 } from "../components/panel-guest-presentation";
+import { ROOM_CHARACTERISTICS } from "../components/panel-guest-query";
 const statuses: Record<string, string> = {
   draft: "Черновик",
   sent: "Ожидает ответа отеля",
@@ -47,6 +51,25 @@ export function PassportView({
     [error, setError] = useState<Error | null>(null),
     [room, setRoom] = useState(passport.room_number || ""),
     [alternative, setAlternative] = useState("");
+  const review = passport.timeline.find(
+    (event) => event.type === "evidence_review" && !event.resolved,
+  );
+  const hotelReply = [...passport.timeline]
+    .reverse()
+    .find((event) => event.type === "confirm" || event.type === "alternative");
+  const requestedPositions = [
+    ...new Set(
+      passport.items
+        .filter((item) => ROOM_CHARACTERISTICS.has(item.characteristic_id))
+        .map((item) => {
+          const position = roomScopeText(item.scope, unknownFloors).replace(
+            "условный уровень 1",
+            "этажность нужно уточнить",
+          );
+          return `${item.room_label ? `${item.room_label}: ` : ""}${position}`;
+        }),
+    ),
+  ];
   const act = async (
     action: "confirm" | "alternative" | "feedback",
     matched?: boolean,
@@ -86,13 +109,40 @@ export function PassportView({
       </div>
       <div className="passport-meta">
         <span>{passport.guest_name}</span>
-        <span>
-          {!passport.check_in && !passport.check_out
-            ? "Предварительный выбор · даты ещё не указаны"
-            : `${dateText(passport.check_in)} — ${dateText(passport.check_out)}`}
-        </span>
+        <span>{russianDateRange(passport.check_in, passport.check_out)}</span>
         {passport.room_number && <strong>Номер {passport.room_number}</strong>}
       </div>
+      {requestedPositions.length > 0 && (
+        <p
+          className="passport-recommended-scope"
+          data-testid="passport-saved-scope"
+        >
+          Выбранное пожелание: {requestedPositions.join("; ")}.
+        </p>
+      )}
+      {review && (
+        <p className="fine-print" data-testid="passport-recheck">
+          {textValue(review.text)}
+        </p>
+      )}
+      {hotelReply &&
+        !!(hotelReply.hotel_comment || hotelReply.reported_room_number) && (
+          <div
+            className="passport-hotel-reply"
+            data-testid="passport-hotel-reply"
+          >
+            <strong>{DEMO_REPLY}</strong>
+            {!!hotelReply.reported_room_number && !passport.room_number && (
+              <p>
+                Отель указал номер: {textValue(hotelReply.reported_room_number)}
+                . Условия ещё требуют согласования.
+              </p>
+            )}
+            {!!hotelReply.hotel_comment && (
+              <blockquote>{textValue(hotelReply.hotel_comment)}</blockquote>
+            )}
+          </div>
+        )}
       {!!passport.room_requests?.length && (
         <p
           className="fine-print group-passport-notice"
@@ -140,11 +190,19 @@ export function PassportView({
             )}
             <strong>{item.text}</strong>
             <p>
-              {passport.synthetic_booking && item.status === "confirmed"
-                ? DEMO_REPLY
-                : statuses[item.status] || item.status}
-              {item.critical && " · критично"}
+              {MAP_REFERENCE_IDS.has(item.characteristic_id) &&
+              item.status === "confirmed"
+                ? "Проверено по карте"
+                : passport.synthetic_booking && item.status === "confirmed"
+                  ? DEMO_REPLY
+                  : statuses[item.status] || item.status}
+              {item.critical && " · важно для поездки"}
             </p>
+            {MAP_REFERENCE_IDS.has(item.characteristic_id) && (
+              <p className="fine-print">
+                Сведения о маршруте и местах рядом; отель их не гарантирует.
+              </p>
+            )}
             {item.response && (
               <blockquote>
                 {guestQuote(item.response, passport.synthetic_booking)}
@@ -159,28 +217,32 @@ export function PassportView({
             <Bell size={17} />
             Что изменилось
           </h4>
-          {passport.notifications.map((n, i) => (
-            <p key={i}>{textValue(n.text || n.message || n.title || n)}</p>
-          ))}
+          {passport.notifications
+            .filter((n) => n.type !== "evidence_review")
+            .map((n, i) => (
+              <p key={i}>{textValue(n.text || n.message || n.title || n)}</p>
+            ))}
         </div>
       )}
       <div className="passport-timeline">
         <span className="eyebrow">ИСТОРИЯ ОЖИДАНИЙ</span>
-        {passport.timeline.map((event, i) => (
-          <div key={i}>
-            <span className="timeline-dot" />
-            <div>
-              <p>
-                {textValue(
-                  event.text || event.message || event.action || event,
-                )}
-              </p>
-              <small>
-                {typeof event.at === "string" ? dateText(event.at) : ""}
-              </small>
+        {passport.timeline
+          .filter((event) => event.type !== "evidence_review")
+          .map((event, i) => (
+            <div key={i}>
+              <span className="timeline-dot" />
+              <div>
+                <p>
+                  {textValue(
+                    event.text || event.message || event.action || event,
+                  )}
+                </p>
+                <small>
+                  {typeof event.at === "string" ? dateText(event.at) : ""}
+                </small>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
       {hotelier ? (
         <div className="passport-actions">
@@ -488,9 +550,8 @@ export function BookingPage() {
                       </p>
                     ) : (
                       <p className="fine-print">
-                        Если доказательства устареют до поездки, ожидания
-                        потребуют перепроверки. Подтверждение номера не
-                        продлевает срок данных.
+                        Ближе к поездке перепроверим сведения. Ответ отеля и
+                        выбранные сторона и этаж сохранятся в паспорте.
                       </p>
                     )}
                     {dateError && (
@@ -569,6 +630,9 @@ export function BookingPage() {
                     </div>
                   )}
                   {!parsed?.rooms?.length &&
+                    items.some((item) =>
+                      ROOM_CHARACTERISTICS.has(item.characteristic_id),
+                    ) &&
                     (detail.data.room_profile ||
                       searchResult?.results.find((hit) => hit.hotel.id === id)
                         ?.room_profile) && (
@@ -582,6 +646,9 @@ export function BookingPage() {
                             (hit) => hit.hotel.id === id,
                           )?.room_profile || detail.data.room_profile)!.scope,
                           detail.data.hotel.floors === null,
+                        ).replace(
+                          "условный уровень 1",
+                          "этажность нужно уточнить",
                         )}
                         . Это пожелание; наличие номера уточнит отель.
                       </p>
@@ -604,6 +671,12 @@ export function BookingPage() {
                             )
                           }
                         />
+                        {MAP_REFERENCE_IDS.has(item.characteristic_id) && (
+                          <p className="fine-print">
+                            По карте · справочно. Отель не гарантирует маршрут и
+                            места рядом.
+                          </p>
+                        )}
                         <label className="checkbox-label">
                           <input
                             type="checkbox"
@@ -645,6 +718,23 @@ export function BookingPage() {
                     {busy ? "Отправляем…" : "Отправить отелю"}
                     <Send size={17} />
                   </button>
+                  {!busy &&
+                    (!guest.trim() ||
+                      dateError ||
+                      (!parsed?.rooms?.length &&
+                        (!items.length ||
+                          items.some((item) => !item.text.trim())))) && (
+                      <p
+                        className="fine-print"
+                        data-testid="passport-required-fields"
+                      >
+                        {!guest.trim()
+                          ? "Укажите ваше имя, чтобы отправить пожелания отелю."
+                          : dateError
+                            ? "Выезд должен быть позже заезда."
+                            : "Заполните текст каждого ожидания."}
+                      </p>
+                    )}
                   <ErrorState error={error} />
                 </section>
               )}

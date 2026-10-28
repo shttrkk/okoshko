@@ -232,9 +232,9 @@ export function humanFact(
         month && `В ${MONTHS_IN[month - 1]}`,
         duration !== null &&
           `${id === "morning_sun" ? "утреннее" : "вечернее"} прямое солнце ${duration} мин`,
-        id === "evening_heat" &&
+        duration === null &&
           exposure !== null &&
-          `индекс экспозиции ${exposure} из 1`,
+          "длительность прямого солнца не измерена",
         "по расчёту",
       ]
         .filter(Boolean)
@@ -244,7 +244,7 @@ export function humanFact(
       const night = range(v.night_db_min, v.night_db_max);
       return night === null
         ? null
-        : `Шум поездов ночью, по расчёту: ${night} дБ`;
+        : "Приближённый расчёт шума поездов · уровень внутри номера не измерен";
     }
     case "beach_surface": {
       const raw = typeof v.surface === "string" ? v.surface : null;
@@ -261,7 +261,9 @@ export function humanFact(
           : v.selection_kind
             ? "ближайший пляж на карте"
             : null,
-        num(v.distance_m) !== null && `${meters(v.distance_m)} по прямой`,
+        v.selection_kind !== "beach_walk_destination" &&
+          num(v.distance_m) !== null &&
+          `${meters(v.distance_m)} по прямой`,
       ]
         .filter(Boolean)
         .join(" · ");
@@ -319,17 +321,11 @@ export function humanFact(
     case "quiet_night": {
       const report = reportedQuiet(fact);
       if (report !== null)
-        return `По сообщению источника: ${report ? "тихо" : "не тихо"} · уровень в дБ не указан`;
-      const label = noiseLabel[String(v.index)] || "";
-      const db =
-        num(v.night_db_min) !== null
-          ? `ночью ${fmt(v.night_db_min)}–${fmt(v.night_db_max)} дБ`
-          : "";
-      return (
-        [label && label[0].toUpperCase() + label.slice(1), db]
-          .filter(Boolean)
-          .join(" · ") || null
-      );
+        return `${fact.synthetic ? "По ответу отеля · демо" : fact.status === "confirmed" ? "По словам отеля" : "Есть сообщение"}: ${report ? "ночью тихо" : "ночью не тихо"}. Внутри номера шум не измеряли`;
+      const label = noiseLabel[String(v.index)];
+      return label
+        ? `По расчёту на улице ${label}. Внутри номера шум может отличаться`
+        : null;
     }
     case "climate":
       return [
@@ -433,16 +429,86 @@ export function humanFact(
       if (aqi === null) return null;
       return `${aqiLabel(aqi)[0].toUpperCase()}${aqiLabel(aqi).slice(1)} · индекс AQI ${fmt(aqi)}${num(v.pm2_5) !== null ? ` · PM2,5 ${fmt(v.pm2_5, 1)} мкг/м³` : ""}`;
     }
-    case "room_orientation":
-      return v.balcony === true ? "Есть номера с балконом" : null;
-    case "connectivity":
+    case "room_orientation": {
+      const groups = Array.isArray(v.groups)
+        ? v.groups
+            .map((entry) => {
+              const group = record(entry);
+              const rooms = Array.isArray(group.rooms)
+                ? group.rooms.map(String)
+                : [];
+              const roomNames =
+                rooms.length > 3 &&
+                rooms.every(
+                  (room, index) =>
+                    /^\d+$/.test(room) &&
+                    (index === 0 ||
+                      Number(room) === Number(rooms[index - 1]) + 1),
+                )
+                  ? `${rooms[0]}–${rooms.at(-1)}`
+                  : rooms.join(", ");
+              const traits = [
+                group.balcony === true
+                  ? "с балконом"
+                  : group.balcony === false
+                    ? "без балкона"
+                    : null,
+                group.sea_view === true
+                  ? "вид на море"
+                  : group.sea_view === false
+                    ? "без вида на море"
+                    : null,
+                group.courtyard === true
+                  ? "окна во двор"
+                  : group.courtyard === false
+                    ? "окна не во двор"
+                    : null,
+              ].filter(Boolean);
+              return rooms.length
+                ? `Номера ${roomNames}${traits.length ? `: ${traits.join(", ")}` : ""}`
+                : null;
+            })
+            .filter(Boolean)
+        : [];
+      const absent = Array.isArray(v.absent_floors)
+        ? v.absent_floors.filter(
+            (floor) => typeof floor === "number" && Number.isInteger(floor),
+          )
+        : [];
+      return (
+        [
+          ...groups,
+          absent.length ? `На этажах ${absent.join(", ")} номеров нет` : null,
+          !groups.length && v.balcony === true
+            ? "Есть номера с балконом"
+            : null,
+        ]
+          .filter(Boolean)
+          .join(". ") || null
+      );
+    }
+    case "connectivity": {
+      const regional =
+        !!v.quarter ||
+        (typeof v.kind === "string" && /mobile|area|region|ookla/.test(v.kind));
+      const wifi =
+        v.wifi_in_rooms === true
+          ? "Wi-Fi в номерах есть"
+          : v.wifi_in_rooms === false
+            ? "Wi-Fi в номерах нет"
+            : v.wifi_reported === true
+              ? "Wi-Fi есть по карте"
+              : null;
+      const fee =
+        v.fee === "free" ? "бесплатно" : v.fee === "paid" ? "платно" : null;
       return num(v.download_mbps) !== null
-        ? `Интернет ≈ ${fmt(v.download_mbps)} Мбит/с`
-        : v.wifi_reported === true
-          ? "В OSM указан Wi-Fi · скорость и работа сети не проверены"
+        ? `${regional ? "Мобильный интернет в районе" : "Интернет по словам отеля"} ≈ ${fmt(v.download_mbps)} Мбит/с${regional ? " · скорость Wi-Fi отеля не измерена" : ""}`
+        : wifi
+          ? [wifi, fee, "скорость неизвестна"].filter(Boolean).join(" · ")
           : v.internet_access
-            ? "В OSM указан интернет · тип и скорость не проверены"
+            ? "Интернет указан на карте · тип и скорость неизвестны"
             : null;
+    }
     case "nearby_photos": {
       const n = Array.isArray(v.photos) ? v.photos.length : 0;
       return n

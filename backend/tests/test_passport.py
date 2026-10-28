@@ -457,27 +457,27 @@ class PassportEvidenceDatesTests(unittest.TestCase):
         return passport_action(passport.id, PassportAction(action="confirm", room_number="512"), self.repo, principal=DEMO_ADMIN)
 
     def assert_review(self, passport):
-        self.assertEqual(passport.status, "at_risk")
-        self.assertEqual(passport.items[0].status, "at_risk")
-        self.assertIn("перепроверка до 2027-01-24", passport.items[0].response)
-        self.assertIn("не гарантируют", passport.items[0].response)
+        self.assertIn(passport.status, {"sent", "confirmed"})
+        self.assertIn(passport.items[0].status, {"pending", "confirmed"})
+        self.assertNotIn("Перепроверим", passport.items[0].response or "")
         reviews = [event for event in passport.timeline if event.get("type") == "evidence_review"]
         self.assertEqual(len(reviews), 1)
         self.assertEqual(reviews[0]["review_by"], "2027-01-24")
+        self.assertEqual(reviews[0]["text"], "Перепроверим ближе к поездке, до 24 января.")
         stored = self.repo.get("passport_items", passport.items[0].id)
         self.assertTrue(stored["criteria"][0]["no_stairs"])
         self.assertEqual(passport.items[0].scope.facade, "W")
         self.assertEqual(passport.items[0].scope.floor_min, 5)
 
-    def test_trip_after_evidence_deadline_stays_at_risk_after_room_confirmation(self):
+    def test_trip_after_evidence_deadline_keeps_neutral_review_after_confirmation(self):
         before = self.repo.get("facts", self.fact.id)
         passport = self.create("2027-09-14", "2027-09-21")
         self.assert_review(passport)
-        self.assertIn("2027-09-14–2027-09-21", passport.items[0].response)
+        self.assertEqual(passport.timeline[1]["trip_until"], "2027-09-21")
         confirmed = self.confirm(passport)
         self.assert_review(confirmed)
-        self.assertIsNone(confirmed.room_number)
-        self.assertIn("Назначение номера не гарантирует", confirmed.timeline[-1]["text"])
+        self.assertEqual(confirmed.room_number, "512")
+        self.assertIn("номер 512", confirmed.timeline[-1]["text"])
         self.assertEqual(self.repo.get("facts", self.fact.id), before)
         self.assertEqual(self.repo.all("claims"), [])
         self.assertEqual(self.confirm(passport).model_dump(), confirmed.model_dump())
@@ -504,7 +504,7 @@ class PassportEvidenceDatesTests(unittest.TestCase):
         passport = self.create("2027-09-14")
         self.assert_review(passport)
         self.assertIsNone(passport.check_out)
-        self.assertIn("2027-09-14", passport.items[0].response)
+        self.assertEqual(passport.timeline[1]["trip_until"], "2027-09-14")
 
     def test_no_dates_preserves_behavior_without_assuming_a_year(self):
         passport = self.create()
@@ -518,16 +518,16 @@ class PassportEvidenceDatesTests(unittest.TestCase):
     def test_optional_expiring_property_is_transparent_without_blocking_room(self):
         passport = self.create("2027-09-14", "2027-09-21", critical=False)
         self.assertEqual(passport.status, "sent")
-        self.assertEqual(passport.items[0].status, "at_risk")
+        self.assertEqual(passport.items[0].status, "pending")
         confirmed = self.confirm(passport)
         self.assertEqual(confirmed.status, "confirmed")
         self.assertEqual(confirmed.room_number, "512")
-        self.assertEqual(confirmed.items[0].status, "at_risk")
-        self.assertIn("перепроверка до 2027-01-24", confirmed.items[0].response)
+        self.assertEqual(confirmed.items[0].status, "confirmed")
+        self.assert_review(confirmed)
 
     def test_extended_deadline_can_be_checked_by_same_confirm_without_new_flow(self):
         passport = self.create("2027-09-14", "2027-09-21")
-        self.assertEqual(self.confirm(passport).status, "at_risk")
+        self.assertEqual(self.confirm(passport).status, "confirmed")
         from datetime import UTC, datetime
 
         renewed = self.fact.model_copy(update={"valid_until": datetime(2028, 1, 24, tzinfo=UTC)})

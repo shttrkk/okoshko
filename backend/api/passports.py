@@ -33,6 +33,7 @@ _LOCK = RLock()
 _REPO = Depends(get_repo)
 _AUTH = Depends(require_hotelier)
 _OPTIONAL_AUTH = Depends(optional_principal)
+_MAP_REFERENCES = {"beach_walk", "beach_surface", "night_pharmacy", "family_nearby", "nightlife", "green_nearby"}
 _GROUP_CAVEAT = ("Подтверждаются условия размещения по отдельным запросам, а не распределение реальных номеров. "
                  "Количество свободных номеров, их наличие, вместимость, цена и соседство не подтверждены; "
                  "одинаковое положение двух запросов не означает две свободные комнаты.")
@@ -290,35 +291,33 @@ def _notify(passport: ExpectationPassport, text: str, *, kind="status"):
                                    "at": now().isoformat(), "synthetic": True})
 
 
-def _trip_reviews(passport: ExpectationPassport, facts: list[Fact]) -> list[str]:
-    """Current evidence is not a promise beyond its next review deadline."""
+def _trip_reviews(passport: ExpectationPassport, facts: list[Fact]) -> None:
+    """A future review deadline is neutral; expired evidence stays unusable."""
     trip_end = passport.check_out or passport.check_in
     if trip_end is None:
-        return []
+        return
     by_id = {fact.id: fact for fact in facts}
-    critical = []
-    trip_text = (f"{passport.check_in.isoformat()}–{passport.check_out.isoformat()}"
-                 if passport.check_in and passport.check_out else trip_end.isoformat())
-    for item in passport.items:
-        deadlines = [by_id[fid].valid_until.astimezone(UTC).date() for fid in item.fact_ids
-                     if fid in by_id and by_id[fid].valid_until is not None]
-        expired_for_trip = [deadline for deadline in deadlines if deadline < trip_end]
-        if not expired_for_trip:
-            continue
-        review_by = min(expired_for_trip)
-        text = (f"Нужна перепроверка до {review_by.isoformat()}: срок действия текущих данных заканчивается раньше окончания поездки "
-                f"{trip_text}. Текущие сведения не гарантируют условия на будущие даты.")
-        if item.status in {"pending", "confirmed", "at_risk"}:
-            item.status = "at_risk"
-        item.response = (item.response + " " + text) if item.response and text not in item.response else item.response or text
-        if item.critical:
-            critical.append(item.id)
-        review_key = stable_id("trip_evidence_review", passport.id, item.id, review_by.isoformat(), trip_end.isoformat())
-        if not any(event.get("review_key") == review_key for event in passport.timeline):
-            _event(passport, "evidence_review", text, item_id=item.id, review_by=review_by.isoformat(),
-                   trip_until=trip_end.isoformat(), review_key=review_key)
-            _notify(passport, text, kind="evidence_review")
-    return critical
+    deadlines = [by_id[fid].valid_until.astimezone(UTC).date()
+                 for item in passport.items for fid in item.fact_ids
+                 if fid in by_id and by_id[fid].valid_until is not None
+                 and by_id[fid].valid_until > now()
+                 and by_id[fid].valid_until.astimezone(UTC).date() < trip_end]
+    existing = next((event for event in passport.timeline if event.get("type") == "evidence_review"), None)
+    if not deadlines:
+        if existing:
+            existing["resolved"] = True
+        return
+    review_by = min(deadlines)
+    months = ("января", "февраля", "марта", "апреля", "мая", "июня",
+              "июля", "августа", "сентября", "октября", "ноября", "декабря")
+    text = f"Перепроверим ближе к поездке, до {review_by.day} {months[review_by.month - 1]}."
+    review_key = stable_id("trip_evidence_review", passport.id, review_by.isoformat(), trip_end.isoformat())
+    # One shared deadline, rather than the same alarm on every expectation.
+    if existing is None:
+        _event(passport, "evidence_review", text, review_by=review_by.isoformat(),
+               trip_until=trip_end.isoformat(), review_key=review_key)
+    else:
+        existing.update(text=text, review_by=review_by.isoformat(), trip_until=trip_end.isoformat(), review_key=review_key, resolved=False)
 
 
 def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
@@ -457,11 +456,10 @@ def create_passport(request: PassportCreate, repo) -> ExpectationPassport:
         for item in passport.items:
             if item.critical and (item.room_index if grouped_passport else None) in incompatible_groups:
                 item.status, item.response = "alternative", "Критичные условия относятся к несовместимым сторонам или этажам; требуется альтернатива."
-    _event(passport, "sent", "Паспорт ожиданий передан в локальный демо-кабинет. Бронирование синтетическое.")
+    _event(passport, "sent", "Пожелания отправлены в демо-кабинет отеля. Это пример бронирования без оплаты.")
     if grouped_passport:
         _event(passport, "group_conditions", _GROUP_CAVEAT, room_request_count=len(passport.room_requests))
-    if _trip_reviews(passport, facts) and not incompatible:
-        passport.status = "at_risk"
+    _trip_reviews(passport, facts)
     if incompatible:
         _event(passport, "scope_conflict", "Критичные условия внутри одного запроса комнаты несовместимы; предложите альтернативу."
                if grouped_passport else "Все критичные условия нельзя подтвердить для одного номера; предложите альтернативу.")
@@ -507,23 +505,15 @@ def passport_action(passport_id: str, request: PassportAction, repo, *, principa
         facts = []
         if request.action == "confirm":
             facts = [Fact.model_validate(value) for value in repo.find("facts", hotel_id=passport.hotel_id)]
-            if grouped_passport:
-                # Group reconfirmation must observe current facts without turning
-                # a retry on an unchanged snapshot into another hotel response.
-                characteristics = {item.characteristic_id for item in passport.items}
-                snapshot = [(fact.id, fact.status, fact.scope.model_dump_json(), fact.value,
-                             fact.valid_until.isoformat() if fact.valid_until else None,
-                             fact.valid_until is None or fact.valid_until > now())
-                            for fact in sorted(facts, key=lambda fact: fact.id)
-                            if fact.characteristic_id in characteristics]
-                key = stable_id(key, snapshot)
-            elif passport.check_out or passport.check_in:
-                # Renewed evidence can be checked with the same confirm action;
-                # an unchanged deadline snapshot still returns the saved result.
-                characteristics = {item.characteristic_id for item in passport.items}
-                deadlines = [(fact.id, fact.valid_until.isoformat() if fact.valid_until else None)
-                             for fact in sorted(facts, key=lambda fact: fact.id) if fact.characteristic_id in characteristics]
-                key = stable_id(key, deadlines)
+            # Reconfirm changed values/scopes as well as deadlines. An unchanged
+            # snapshot remains idempotent for both single and grouped passports.
+            characteristics = {item.characteristic_id for item in passport.items}
+            snapshot = [(fact.id, fact.status, fact.scope.model_dump_json(), fact.value,
+                         fact.valid_until.isoformat() if fact.valid_until else None,
+                         fact.valid_until is None or fact.valid_until > now())
+                        for fact in sorted(facts, key=lambda fact: fact.id)
+                        if fact.characteristic_id in characteristics]
+            key = stable_id(key, snapshot)
         if any(event.get("action_key") == key for event in passport.timeline):
             return passport
         if len(request.text) > 4000:
@@ -549,8 +539,7 @@ def passport_action(passport_id: str, request: PassportAction, repo, *, principa
                 unverifiable = grouped_passport and (stored.get("scope_only") or stored.get("unsupported"))
                 if unverifiable:
                     eligible = []
-                if grouped_passport:
-                    item.fact_ids = [max(eligible, key=lambda fact: fact.confidence).id] if eligible else []
+                item.fact_ids = [max(eligible, key=lambda fact: fact.confidence).id] if eligible else []
                 trip_end = passport.check_out or passport.check_in
                 if eligible and trip_end:
                     # Prefer an equally suitable fact reviewed through the stay.
@@ -561,11 +550,12 @@ def passport_action(passport_id: str, request: PassportAction, repo, *, principa
                     any(_comparison(fact, criterion) is False for criterion in item_criteria)
                     if item_criteria else _comparison(fact) is False for fact in related)
                 known_negative = not eligible and negative and not unverifiable
-                conflicting = grouped_passport and not unverifiable and (
+                conflicting = not unverifiable and (
                     any(fact.status == "disputed" for fact in related) or bool(eligible) and negative)
                 targeted = any((criterion.field or "available") != "available" or criterion.no_stairs or criterion.no_crossings
                                for criterion in item_criteria)
-                unresolved = not eligible and (targeted or grouped_passport) and not known_negative
+                expired = any(fact.status == "stale" or fact.valid_until and fact.valid_until <= now() for fact in related)
+                unresolved = not eligible and (targeted or grouped_passport or expired or item.characteristic_id in _MAP_REFERENCES) and not known_negative
                 scope_mismatch = bool(stored.get("scope_conflict")) or not related and any(
                     _all_hold(fact, item_criteria) for fact in all_related)
                 room_mismatch = not grouped_passport and bool(eligible) and all(
@@ -596,8 +586,10 @@ def passport_action(passport_id: str, request: PassportAction, repo, *, principa
                 else:
                     item.status, item.response = "confirmed", ("Условие этого запроса принято отельером в локальном демо; наличие отдельного номера не подтверждено."
                                                                if grouped_passport else "Явно подтверждено отельером в локальном демо; это не реальная бронь.")
-            needs_review = _trip_reviews(passport, facts)
-            passport.status = "alternative" if incompatible or alternatives else "at_risk" if declined or needs_review else "confirmed"
+                    if item.characteristic_id in _MAP_REFERENCES:
+                        item.response = "Проверено по карте. Отель не гарантирует состояние маршрута и мест рядом."
+            _trip_reviews(passport, facts)
+            passport.status = "alternative" if incompatible or alternatives else "at_risk" if declined else "confirmed"
             passport.room_number = request.room_number.strip() if request.room_number and (passport.status == "confirmed" or grouped_passport) else None
             if grouped_passport:
                 message = ("Локальное демо-подтверждение условий размещения. " if passport.status == "confirmed"
@@ -608,9 +600,8 @@ def passport_action(passport_id: str, request: PassportAction, repo, *, principa
                     message += " " + request.text.strip()
             else:
                 message = (f"Локальное демо-подтверждение: номер {passport.room_number}. " + (request.text or "Критичные ожидания приняты отельером.")) if passport.status == "confirmed" else "Требуется альтернатива: критичные условия несовместимы или не выполняются."
-            if not grouped_passport and passport.status == "at_risk" and needs_review:
-                message = (f"Для номера {request.room_number.strip()} в демо нужна перепроверка критичных ожиданий до поездки. "
-                           "Назначение номера не гарантирует условия на будущие даты.")
+            if request.text.strip() and request.text.strip() not in message:
+                message += " Комментарий отеля: " + request.text.strip()
         elif request.action == "alternative":
             if not request.text.strip():
                 raise HTTPException(422, "Опишите предлагаемую альтернативу")
@@ -643,7 +634,8 @@ def passport_action(passport_id: str, request: PassportAction, repo, *, principa
                 adjustments.append({"source_id": sid, "field": field, "delta": 1, "synthetic": True})
             message = "Синтетическая обратная связь: " + ("ожидания совпали" if request.matched else "ожидания не совпали") + (". " + request.text.strip() if request.text.strip() else "")
             _event(passport, "reliability_demo", "Демонстрационное обновление надёжности источников", adjustments=adjustments)
-        _event(passport, request.action, message, action_key=key, room_number=passport.room_number)
+        _event(passport, request.action, message, action_key=key, room_number=passport.room_number,
+               hotel_comment=request.text.strip(), reported_room_number=request.room_number)
         _notify(passport, message)
         repo.upsert("expectation_passports", passport.model_dump(mode="json"))
         for item in passport.items:

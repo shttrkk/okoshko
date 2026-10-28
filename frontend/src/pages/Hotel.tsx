@@ -290,7 +290,7 @@ export function HotelPage() {
     geo = geoResource.data || d?.geo || {};
   const requested = requestedCriteria(parsed);
   const roomCriteria = requestedRoomCriteria(parsed);
-  const roomReason = roomRequestReason(parsed);
+  const roomReason = roomRequestReason(parsed, d?.verdicts);
   const verdicts = d?.verdicts || [];
   const disappointments = d?.disappointments || [];
   const rec = d?.room_recommendation;
@@ -535,8 +535,10 @@ export function HotelPage() {
                 >
                   <p>
                     <strong>Выбранные условия</strong> ·{" "}
-                    {SIDES[activeRoomSlice.facade]} · {activeRoomSlice.floor}-й{" "}
-                    {d.hotel.floors ? "этаж" : "условный уровень"}
+                    {SIDES[activeRoomSlice.facade]} ·{" "}
+                    {d.hotel.floors
+                      ? `${activeRoomSlice.floor}-й этаж`
+                      : "этажность нужно уточнить"}
                   </p>
                   <span className="muted small">
                     Сторону и этаж проверили по данным. Номер и расположение
@@ -707,7 +709,10 @@ export function HotelPage() {
                   items={d.room_plan}
                   requests={parsed?.rooms}
                   onOpen={(index, item) => {
-                    const next = roomLabParams(item.scope, index);
+                    const next = roomLabParams(
+                      item.profile?.scope || item.scope,
+                      index,
+                    );
                     setParams(next, { replace: true });
                     window.setTimeout(
                       () =>

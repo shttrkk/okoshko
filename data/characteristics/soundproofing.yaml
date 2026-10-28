@@ -19,6 +19,11 @@ value_schema:
       - boolean
       - 'null'
   additionalProperties: true
+  x-hotelier:
+    substantive_fields:
+    - windows
+    - blackout
+    - air_conditioning
 methods:
 - tool: hotelier_ask
   params: {}

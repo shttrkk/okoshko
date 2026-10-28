@@ -18,7 +18,44 @@ value_schema:
       type:
       - boolean
       - 'null'
+    species:
+      type: array
+      items:
+        enum:
+        - dog
+        - cat
+    excluded_species:
+      type: array
+      items:
+        enum:
+        - dog
+        - cat
+    max_weight_kg:
+      type:
+      - number
+      - 'null'
+      exclusiveMinimum: 0
+      maximum: 100
+    fee_rub_night:
+      type:
+      - number
+      - 'null'
+      minimum: 0
+      maximum: 100000
+    permission_period_unknown:
+      type: boolean
   additionalProperties: true
+  x-hotelier:
+    substantive_fields:
+    - species
+    - excluded_species
+    - max_weight_kg
+    - fee_rub_night
+    availability_from:
+      field: species
+      value: true
+      unless:
+      - permission_period_unknown
 methods:
 - tool: hotelier_ask
   params: {}

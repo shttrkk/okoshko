@@ -32,6 +32,7 @@ import { humanFact, METHOD_NAMES, MONTHS, SOURCE_NAMES } from "./facts";
 import { landmarkLabel, PLACE_NAMES } from "./tz-facts";
 import {
   DEMO_REPLY,
+  DEMO_CALCULATION,
   DEMO_EXPLANATION,
   developerDisplay,
   factLabel,
@@ -106,15 +107,16 @@ export function scopeText(scope: Scope) {
       .join(" · ") || "Весь отель"
   );
 }
-export function Loading({
-  text = "Загружаем реальные данные…",
-}: {
-  text?: string;
-}) {
+export function Loading({ text = "Загружаем сведения…" }: { text?: string }) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSlow(true), 8000);
+    return () => clearTimeout(timer);
+  }, []);
   return (
     <div className="loading" role="status">
       <LoaderCircle className="spin" size={23} />
-      <span>{text}</span>
+      <span>{slow ? "Ищем дольше обычного. Ещё немного…" : text}</span>
     </div>
   );
 }
@@ -163,22 +165,29 @@ export function ErrorState({
   retry?: () => void;
 }) {
   if (!error) return null;
+  const searchTimeout = error.message.startsWith(
+    "Поиск занял больше 30 секунд",
+  );
   const networkError = /Failed to fetch|Не удалось связаться с сервисом/i.test(
     error.message,
   );
   return (
     <div className="error-state" role="alert">
       <span className="eyebrow">
-        {error instanceof ApiError
-          ? `API · ${error.status}`
-          : networkError
-            ? "Соединение"
-            : "Проверка"}
+        {searchTimeout
+          ? "Поиск"
+          : error instanceof ApiError
+            ? `API · ${error.status}`
+            : networkError
+              ? "Соединение"
+              : "Проверка"}
       </span>
       <h3>
-        {error instanceof ApiError || networkError
-          ? "Не удалось получить данные"
-          : "Проверьте введённые данные"}
+        {searchTimeout
+          ? "Поиск не завершён"
+          : error instanceof ApiError || networkError
+            ? "Не удалось получить данные"
+            : "Проверьте введённые данные"}
       </h3>
       <p>
         {error.message === "Failed to fetch"
@@ -392,11 +401,11 @@ export function AskButton({
     (hotelDetail.data?.hotel.id === hotelId
       ? hotelDetail.data.hotel.name
       : undefined);
+  const spec = specs.data?.find((entry) => entry.id === characteristicId);
   const characteristic =
-    specs.data?.find((spec) => spec.id === characteristicId)?.name_ru ||
-    names[characteristicId] ||
-    "условия номера";
+    spec?.name_ru || names[characteristicId] || "условия номера";
   const ask = async () => {
+    if (spec?.hotelier_answerable !== true) return;
     setRequestState({ key, status: "sending" });
     try {
       const question = await api.ask(hotelId, characteristicId, scope);
@@ -421,6 +430,7 @@ export function AskButton({
       );
     }
   };
+  if (spec?.hotelier_answerable !== true) return null;
   return (
     <span className="ask-wrap">
       <button
@@ -584,7 +594,13 @@ export function VerdictList({
               onClick={() => onEvidence?.(v)}
               disabled={!onEvidence}
             >
-              <strong>{v.label}</strong>
+              <strong>
+                {v.characteristic_id === "connectivity" &&
+                v.status === "partial" &&
+                /скорость (?:неизвестна|не измерена|не проверена)/i.test(v.text)
+                  ? guestText(v.text, v.synthetic)
+                  : v.label}
+              </strong>
               {v.disputed && (
                 <span className="badge disputed-badge">Есть противоречие</span>
               )}
@@ -595,13 +611,20 @@ export function VerdictList({
                   {verdictLabel(v)}
                 </span>
               )}
-              {(!compact || v === concise) && (
-                <span
-                  data-testid={compact ? "compact-number-phrase" : undefined}
-                >
-                  {verdictSummary(v)}
-                </span>
-              )}
+              {(!compact || v === concise) &&
+                !(
+                  v.characteristic_id === "connectivity" &&
+                  v.status === "partial" &&
+                  /скорость (?:неизвестна|не измерена|не проверена)/i.test(
+                    v.text,
+                  )
+                ) && (
+                  <span
+                    data-testid={compact ? "compact-number-phrase" : undefined}
+                  >
+                    {verdictSummary(v)}
+                  </span>
+                )}
             </button>
             {!compact && onFocusFact && (
               <button
@@ -918,7 +941,12 @@ export function EvidenceModal({
     >
       <div className="evidence-summary">
         <FactValue fact={fact} />
-        <span className="muted">{scopeText(fact.scope)}</span>
+        <span className="muted">
+          {fact.characteristic_id === "room_orientation" &&
+          Array.isArray(record(fact.value).groups)
+            ? "Только указанные группы номеров"
+            : scopeText(fact.scope)}
+        </span>
       </div>
       {fact.synthetic && <Synthetic>{factDemoLabel(fact)}</Synthetic>}
       {deferred && full.loading && (
@@ -935,14 +963,19 @@ export function EvidenceModal({
       {fact.evidence.map((e) => (
         <article className="evidence-card" key={e.id}>
           <span className="eyebrow">
-            {fact.synthetic || e.kind === "simulation" || e.kind === "mock"
-              ? factDemoLabel(fact)
-              : {
-                  calculation: "Расчёт",
-                  open_data: "Открытые данные",
-                  quote: "Дословная цитата",
-                  hotelier: "Ответ отеля",
-                }[e.kind]}
+            {e.source_ids.includes("hotelier_simulator") ||
+            (e.kind === "hotelier" && fact.synthetic)
+              ? DEMO_REPLY
+              : e.kind === "simulation"
+                ? DEMO_CALCULATION
+                : e.kind === "mock"
+                  ? "Демо-данные"
+                  : {
+                      calculation: "Расчёт",
+                      open_data: "Открытые данные",
+                      quote: "Дословная цитата",
+                      hotelier: "Ответ отеля",
+                    }[e.kind]}
           </span>
           {e.quote && (
             <blockquote>«{guestQuote(e.quote, !!fact.synthetic)}»</blockquote>

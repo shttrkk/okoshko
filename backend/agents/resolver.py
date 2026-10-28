@@ -8,6 +8,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 
 from backend.agents.dependencies import retirement_sources, unknown_dependencies
+from backend.agents.hotelier_policy import normalize_value, substantive_value
 from backend.contracts import CharacteristicSpec, Claim, Conflict, Fact, Scope
 
 INTERNAL = {"soundproofing", "room_orientation", "pets", 'hotel_parking'}
@@ -74,7 +75,7 @@ def scope_key(scope: Scope) -> str:
 
 def value_key(claim: Claim, spec: CharacteristicSpec | None) -> str:
     if isinstance(claim.value, dict):
-        if "available" in claim.value:
+        if "available" in claim.value and claim.value["available"] is not None:
             return json.dumps(claim.value["available"])
         field = spec.search.field if spec else None
         if field in claim.value:
@@ -354,6 +355,9 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
             continue
         if claim.characteristic_id in spec_by_id and claim.spec_version!=spec_by_id[claim.characteristic_id].version:
             continue
+        spec = spec_by_id.get(claim.characteristic_id)
+        if spec is not None:
+            claim = claim.model_copy(update={"value": normalize_value(claim.value, spec.value_schema)})
         key = (claim.characteristic_id, scope_key(claim.scope), claim.source, claim.method)
         if key not in latest or (claim.observed_at, claim.id) > (latest[key].observed_at, latest[key].id):
             latest[key] = claim
@@ -373,7 +377,8 @@ def resolve_claims(hotel_id: str, claims: list[Claim], specs: list[Characteristi
             continue
         spec = spec_by_id.get(characteristic_id)
         # An explicit null availability is a data gap, not a vote for false.
-        valid = [claim for claim in valid if claim.value is not None and not (isinstance(claim.value, dict) and "available" in claim.value and claim.value["available"] is None)]
+        valid = [claim for claim in valid if claim.value is not None and not (isinstance(claim.value, dict) and "available" in claim.value and claim.value["available"] is None
+                    and not substantive_value(claim.value, spec.value_schema if spec else None))]
         if not valid:
             from backend.coverage import known_search_value
 
