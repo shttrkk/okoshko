@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { isDeepStrictEqual } from "node:util";
 import { chromium } from "playwright";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
@@ -193,6 +194,7 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
     checks: [],
     captures: [],
     cases: {},
+    case_steps: {},
     requests: [],
     blocked_providers: [],
     blocked_navigation: [],
@@ -432,6 +434,12 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
     const beforeCounter = await page
       .getByTestId("hotelier-remaining")
       .innerText();
+    report.case_steps[name] = {
+      question_id: q.id,
+      characteristic_ids: q.characteristic_ids,
+      preview,
+      before_counter: beforeCounter,
+    };
     await capture(
       page,
       `${name}-before-confirm`,
@@ -458,6 +466,7 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
       `${name}: confirmation actually created claims for the same question`,
     );
     const after = await cabinet(hotelId);
+    Object.assign(report.case_steps[name], { accepted, after: compact(after) });
     check(
       !pending(after).some((item) => item.id === q.id) &&
         after.answered_questions.some((item) => item.id === q.id),
@@ -477,6 +486,31 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
         ),
       `${name}: every created claim belongs to the intended hotel/CID and real manual source`,
     );
+    for (const update of preview.updates) {
+      check(
+        typeof update.quote === "string" &&
+          update.quote.trim().length > 0 &&
+          preview.raw_text.includes(update.quote),
+        `${name}: extracted evidence is a nonempty verbatim substring of the full answer`,
+      );
+      const claim = created.find(
+        (claim) =>
+          claim.characteristic_id === update.characteristic_id &&
+          isDeepStrictEqual(claim.scope, update.scope) &&
+          isDeepStrictEqual(claim.value, update.value),
+      );
+      check(
+        !!claim &&
+          claim.evidence.some(
+            (evidence) =>
+              evidence.quote === update.quote &&
+              evidence.message_id === accepted.id &&
+              evidence.output.characteristic_id === update.characteristic_id &&
+              isDeepStrictEqual(evidence.output.value, update.value),
+          ),
+        `${name}: the exact extracted update quote belongs to its created claim/evidence`,
+      );
+    }
     await page.getByTestId(`revise-answer-${accepted.id}`).waitFor();
     await until(
       () => page.getByTestId("hotelier-remaining").innerText(),
@@ -641,20 +675,74 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
       );
       const oldAnswers = before.answers.filter((a) => oldIds.includes(a.id));
       if (oldAnswers.length) {
+        check(
+          oldAnswers.every((answer) => answer.created_claim_ids.length > 0),
+          "Historical parsed test replies have durable created-claim ids",
+        );
         const oldClaims = oldAnswers.flatMap((a) => a.created_claim_ids);
-        const migrated = before.facts.filter((f) =>
-          f.supporting_claim_ids.some((id) => oldClaims.includes(id)),
+        const retained = oldClaims.map((id) =>
+          before.claims.find((claim) => claim.id === id),
         );
         check(
-          migrated.length > 0 &&
-            migrated.every(
-              (f) =>
-                f.status === "confirmed" && f.confidence > 0 && !f.synthetic,
+          retained.every(
+            (claim) =>
+              claim &&
+              claim.source === "hotelier" &&
+              !claim.synthetic &&
+              oldAnswers.some(
+                (answer) =>
+                  answer.created_claim_ids.includes(claim.id) &&
+                  answer.updates.some(
+                    (update) =>
+                      update.characteristic_id === claim.characteristic_id &&
+                      isDeepStrictEqual(update.scope, claim.scope) &&
+                      isDeepStrictEqual(update.value, claim.value),
+                  ),
+              ),
+          ),
+          "Historical test-copy claims remain immutable in the ledger, including after a prior action run",
+        );
+        const archived = oldClaims.filter((id) =>
+          before.claims.some(
+            (claim) =>
+              claim.id !== id &&
+              (claim.supersedes === id || claim.supersedes_ids?.includes(id)),
+          ),
+        );
+        const active = oldClaims.filter((id) => !archived.includes(id));
+        for (const id of archived) {
+          const original = before.claims.find((claim) => claim.id === id);
+          check(
+            before.claims.some(
+              (claim) =>
+                claim.id !== id &&
+                claim.hotel_id === target.id &&
+                claim.characteristic_id === original.characteristic_id &&
+                (claim.supersedes === id || claim.supersedes_ids?.includes(id)),
             ),
-          "Historical real null-available replies become substantive confirmed facts after rebuild",
+            "An archived legacy claim has an explicit replacement in the same hotel/characteristic ledger",
+          );
+        }
+        const migrated = before.facts.filter((fact) =>
+          fact.supporting_claim_ids.some((id) => active.includes(id)),
+        );
+        check(
+          active.every((id) =>
+            migrated.some(
+              (fact) =>
+                fact.supporting_claim_ids.includes(id) &&
+                fact.status === "confirmed" &&
+                fact.confidence > 0 &&
+                !fact.synthetic,
+            ),
+          ),
+          "Every still-active historical null-available reply materializes as a real confirmed fact after rebuild",
         );
         report.cases.legacy = {
           present: true,
+          state: active.length ? "active_confirmed" : "already_superseded",
+          active_claim_ids: active,
+          archived_claim_ids: archived,
           answer_ids: oldAnswers.map((a) => a.id),
           facts: migrated.map((f) =>
             subset(f, [
@@ -688,7 +776,9 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
       "R1 preserves room groups and absent floors without inventing hotel-wide availability",
     );
     await guestFact(target.id, "room_orientation", "r1-room", {
-      quote: roomText,
+      quote: room.preview.updates.find(
+        (u) => u.characteristic_id === "room_orientation",
+      ).quote,
       pattern: /201[\s\S]*211[\s\S]*во двор/i,
     });
     report.cases.r1_room = {
@@ -731,7 +821,8 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
     );
     await guestFact(target.id, "pets", "r1-pets", {
       parsed: query("pets"),
-      quote: petText,
+      quote: pet.preview.updates.find((u) => u.characteristic_id === "pets")
+        .quote,
       pattern: /5 кг[\s\S]*500/i,
     });
     report.cases.r1_pets = {
@@ -885,7 +976,13 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
       target.id,
       "accessible_route",
       "r3-route",
-      { parsed: routeQuery, quote: texts.route, pattern: /коляск/i },
+      {
+        parsed: routeQuery,
+        quote: route.preview.updates.find(
+          (u) => u.characteristic_id === "accessible_route",
+        ).quote,
+        pattern: /коляск/i,
+      },
     );
     check(
       (
@@ -895,6 +992,13 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
           .innerText()
       ).includes("Подтвердил отель"),
       "R3 actual guest criterion displays the hotel confirmation",
+    );
+    const routeHeadline = await routeGuest.card
+      .locator(".fact-headline")
+      .innerText();
+    check(
+      /отел/i.test(routeHeadline) && !/по карте/i.test(routeHeadline),
+      "R3 real hotelier route headline identifies the hotel statement, not a map calculation",
     );
     report.cases.r3 = {
       question_id: routeQuestion.id,
@@ -959,7 +1063,9 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
     );
     const wifiGuest = await guestFact(target.id, "connectivity", "r4-wifi", {
       parsed: wifiQuery,
-      quote: texts.wifi,
+      quote: wifi.preview.updates.find(
+        (u) => u.characteristic_id === "connectivity",
+      ).quote,
       pattern:
         /Wi-Fi.*номер[\s\S]*скорост[\s\S]*(?:неизвест|не измер|не указан)/i,
     });
@@ -1036,6 +1142,7 @@ export async function runPanelR3Actions({ base, artifacts } = {}) {
     report.status = "fail";
     report.failure_phase = phase;
     report.error = clean(error.message);
+    report.error_stack = clean(error.stack || error.message);
     if (currentPage && !currentPage.isClosed()) {
       try {
         await capture(currentPage, "failure");
