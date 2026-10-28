@@ -101,7 +101,8 @@ export async function runPanelR3GuestActions({ base, artifacts } = {}) {
   let browser,
     token = null,
     compiledId = null,
-    stage = "initialization";
+    stage = "initialization",
+    failurePage = null;
   const reportPath = resolve(output, "panel-r3-guest-actions.json");
   const save = () =>
     writeFile(reportPath, JSON.stringify(report, null, 2) + "\n");
@@ -228,6 +229,12 @@ export async function runPanelR3GuestActions({ base, artifacts } = {}) {
     });
   }
   async function bothWidths(page, name, focus) {
+    if (await page.locator(".booking-page").count()) {
+      await page.locator(".booking-hotel-label").waitFor();
+      await page.waitForFunction(
+        () => !document.querySelector(".booking-page .loading"),
+      );
+    }
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
       await capture(page, `${name}-${width}`, focus);
@@ -246,6 +253,7 @@ export async function runPanelR3GuestActions({ base, artifacts } = {}) {
     return response.json();
   }
   async function home(page) {
+    failurePage = page;
     await page.goto(origin.href, { waitUntil: "domcontentloaded" });
     await page.getByTestId("search-input").waitFor();
   }
@@ -501,13 +509,52 @@ export async function runPanelR3GuestActions({ base, artifacts } = {}) {
     const primHit = allStroller.results.find(
       (hit) => hit.hotel.id === primorskaya.id,
     );
-    const accessible = primHit?.verdicts.find(
+    const primExact = await api(
+      `/api/hotels/${encodeURIComponent(primorskaya.id)}/evaluate`,
+      allStroller.parsed,
+    );
+    const accessible = primExact.verdicts.find(
       (verdict) => verdict.characteristic_id === "accessible_route",
     );
+    report.stages.R11 = {
+      status: "running",
+      hotel_id: primorskaya.id,
+      compact_returned: allStroller.results.length,
+      compact_total: allStroller.total,
+      in_compact_prefix: !!primHit,
+      exact_verdict: accessible
+        ? {
+            status: accessible.status,
+            text: accessible.text,
+            fact_ids: accessible.fact_ids,
+            evidence_refs: accessible.evidence_refs,
+          }
+        : null,
+      exact_route_facts: primExact.facts
+        .filter((fact) =>
+          ["accessible_route", "beach_walk"].includes(fact.characteristic_id),
+        )
+        .map((fact) => ({
+          id: fact.id,
+          characteristic_id: fact.characteristic_id,
+          status: fact.status,
+          value: fact.value,
+          supporting_claim_ids: fact.supporting_claim_ids,
+          evidence_refs: fact.evidence.map((evidence) => evidence.id),
+        })),
+    };
+    await save();
     check(
       accessible?.status === "no",
-      "R11: known stairs at Primorskaya produce no, not unknown",
+      "R11: exact evaluation of known stairs at Primorskaya is no, not unknown",
     );
+    if (primHit)
+      check(
+        primHit.verdicts.find(
+          (verdict) => verdict.characteristic_id === "accessible_route",
+        )?.status === accessible.status,
+        "R11: compact search and exact evaluation agree when the hotel is in the prefix",
+      );
     await page.goto(
       new URL(`/hotel/${encodeURIComponent(primorskaya.id)}`, origin).href,
     );
@@ -524,6 +571,7 @@ export async function runPanelR3GuestActions({ base, artifacts } = {}) {
     );
     await bothWidths(page, "r11-stroller", routeVerdict);
     report.stages.R11 = {
+      ...report.stages.R11,
       status: "passed",
       hotel_id: primorskaya.id,
       accessible_route: accessible.status,
@@ -641,18 +689,31 @@ export async function runPanelR3GuestActions({ base, artifacts } = {}) {
             typeof value.distance_m === "number" &&
             value.distance_m <= 300,
         );
-      check(
-        row.matched === expected,
-        "R5: sample matched agrees with its supported claim distance",
-      );
       return {
         hotel_id: row.hotel_id,
         distance_m: distances[0] ?? null,
         expected,
         matched: row.matched,
         unknown: distances.length === 0,
+        claim_ids: row.claims.map((claim) => claim.id),
+        evidence_refs: row.claims
+          .flatMap((claim) => claim.evidence || [])
+          .map((evidence) => evidence.id),
       };
     });
+    report.stages.R5 = {
+      status: "running",
+      characteristic_id: spec.id,
+      threshold_m: 300,
+      sample,
+      matched_count: dry.matched_count,
+    };
+    await save();
+    for (const row of sample)
+      check(
+        row.matched === row.expected,
+        "R5: sample matched agrees with its supported claim distance",
+      );
     check(
       dry.matched_count === sample.filter((row) => row.expected).length,
       "R5: matched_count is the number of actual matching samples",
@@ -701,11 +762,29 @@ export async function runPanelR3GuestActions({ base, artifacts } = {}) {
       const hit = publishedSearch.results.find(
         (item) => item.hotel.id === row.hotel_id,
       );
-      check(!!hit, "R5: published search retains the preview sample hotel");
-      const verdict = allVerdicts(hit).find(
+      // Compact search is a bounded prefix, even when limit=250. A missing
+      // hotel has no search verdict; it is not an unknown characteristic.
+      const detail = await api(
+        `/api/hotels/${encodeURIComponent(row.hotel_id)}/evaluate`,
+        publishedUI.parsed,
+      );
+      const verdict = allVerdicts(detail).find(
         (item) => item.characteristic_id === spec.id,
       );
-      check(!!verdict, "R5: published search includes the compiled condition");
+      row.in_compact_prefix = !!hit;
+      row.exact_status = verdict?.status || null;
+      report.stages.R5.sample = sample;
+      await save();
+      check(
+        detail.hotel.id === row.hotel_id && !!verdict,
+        "R5: exact evaluation retains the requested preview hotel and criterion",
+      );
+      if (hit)
+        check(
+          allVerdicts(hit).find((item) => item.characteristic_id === spec.id)
+            ?.status === verdict.status,
+          "R5: compact search and exact evaluation agree for sample hotels present in the prefix",
+        );
       if (row.unknown)
         check(
           verdict.status === "unknown",
@@ -716,11 +795,8 @@ export async function runPanelR3GuestActions({ base, artifacts } = {}) {
           row.expected
             ? ["yes", "partial"].includes(verdict.status)
             : verdict.status === "no",
-          "R5: published matching agrees with the same preview criterion",
+          "R5: published exact matching agrees with the same preview criterion",
         );
-      const detail = await api(
-        `/api/hotels/${encodeURIComponent(row.hotel_id)}`,
-      );
       const facts = detail.facts.filter(
         (fact) => fact.characteristic_id === spec.id,
       );
@@ -789,6 +865,23 @@ export async function runPanelR3GuestActions({ base, artifacts } = {}) {
   } catch (error) {
     report.status = "failed";
     report.errors.push({ stage, error: safeError(error) });
+    if (failurePage && !failurePage.isClosed()) {
+      try {
+        const file = `panel-r3-guest-failure-${stage.toLowerCase()}.png`;
+        await failurePage.screenshot({
+          path: resolve(output, file),
+          fullPage: false,
+        });
+        report.captures.push({
+          name: `failure-${stage}`,
+          file,
+          width: failurePage.viewportSize().width,
+          failure: true,
+        });
+      } catch {
+        /* Preserve the original assertion even if the browser closed. */
+      }
+    }
     throw new Error(`R3 guest actions failed at ${stage}: ${safeError(error)}`);
   } finally {
     if (token) {

@@ -1600,17 +1600,17 @@ export function SearchPage() {
                 ...(hit.room_plan || []).flatMap((item) => item.verdicts),
               ].some((verdict) => verdict.status === "partial"),
             );
-            const onlyDemo =
+            const hasRequiredDemo =
               group === "all" &&
               hits.length > 0 &&
-              hits.every((hit) => {
+              hits.some((hit) => {
                 const required = [
                   ...hit.verdicts,
                   ...(hit.room_plan || []).flatMap((item) => item.verdicts),
                 ].filter((verdict) => verdict.required);
                 return (
                   required.length > 0 &&
-                  required.every(
+                  required.some(
                     (verdict) =>
                       verdict.status === "yes" && isDemoAnswer(verdict),
                   )
@@ -1634,8 +1634,8 @@ export function SearchPage() {
                       <span className="eyebrow">
                         {
                           {
-                            all: onlyDemo
-                              ? "ДЕМО-ОТВЕТЫ ОТЕЛЕЙ"
+                            all: hasRequiredDemo
+                              ? "СОВПАДЕНИЯ С ДЕМО-ОТВЕТАМИ"
                               : hasPartial
                                 ? "ЕСТЬ ПРЕДВАРИТЕЛЬНЫЕ СОВПАДЕНИЯ"
                                 : "ВАШИ УСЛОВИЯ СОШЛИСЬ",
@@ -1649,8 +1649,8 @@ export function SearchPage() {
                       <h2>
                         {
                           {
-                            all: onlyDemo
-                              ? "Сошлось по демо-ответам отелей — проверьте у отеля"
+                            all: hasRequiredDemo
+                              ? "В совпадениях есть демо-ответы — подтвердите их у отеля"
                               : hasPartial
                                 ? "Совпадения — с уточнениями"
                                 : "Подходят по обязательным",
