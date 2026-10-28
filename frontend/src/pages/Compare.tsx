@@ -8,7 +8,7 @@ import "../tz-facts.css";
 import {
   reliability,
   factDemoLabel,
-  guestText,
+  humanExplanation,
   verdictLabel,
   verdictSymbol,
   verdictTone,
@@ -106,7 +106,7 @@ export function ComparePage() {
           <span />
           Только различия
         </label>
-        <span>{ids.length} из 4 отелей</span>
+        <span>Выбрано {ids.length} · можно до 4 отелей</span>
       </div>
       {ids.length < 2 ? (
         <Empty
@@ -207,7 +207,7 @@ export function ComparePage() {
                                 >
                                   {verdictLabel(verdict)}
                                 </span>
-                                {guestText(
+                                {humanExplanation(
                                   verdict.text.split(";")[0],
                                   verdict.synthetic,
                                 )}
@@ -260,7 +260,7 @@ export function ComparePage() {
                                 {needsQuestion(rep) &&
                                   d.characteristics.find(
                                     (spec) => spec.id === id,
-                                  )?.hotelier_answerable !== false && (
+                                  )?.hotelier_answerable === true && (
                                     <AskButton
                                       compact
                                       hotelId={h.hotel.id}

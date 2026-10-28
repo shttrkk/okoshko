@@ -22,7 +22,7 @@ import {
   roomSymbol,
 } from "./group";
 import { SIDES } from "./facts";
-import { guestText } from "./panel-guest-presentation";
+import { humanExplanation } from "./panel-guest-presentation";
 import { ROOM_CHARACTERISTICS } from "./panel-guest-query";
 
 /** What this person asked for; the matched position is in the recommendation. */
@@ -128,6 +128,7 @@ function PlanRow({
   unknownFloors: boolean;
   onOpen?: (index: number, item: RoomPlanItem) => void;
 }) {
+  const selectedScope = item.profile?.scope || item.scope;
   const showRoomAdvice =
     requestedIds === undefined ||
     requestedIds.some((id) => ROOM_CHARACTERISTICS.has(id));
@@ -178,7 +179,7 @@ function PlanRow({
           (onOpen ? (
             <button
               className="text-button small"
-              onClick={() => onOpen(index, item)}
+              onClick={() => onOpen(index, { ...item, scope: selectedScope })}
               data-testid={`open-group-room-${index}`}
             >
               Проверить окно <ArrowRight size={14} />
@@ -186,7 +187,7 @@ function PlanRow({
           ) : (
             <Link
               className="text-button small"
-              to={`/hotel/${encodeURIComponent(hotelId)}?${roomLabParams(item.scope, index)}#room-lab`}
+              to={`/hotel/${encodeURIComponent(hotelId)}?${roomLabParams(selectedScope, index)}#room-lab`}
               data-testid={`open-group-room-${index}`}
             >
               Проверить окно <ArrowRight size={14} />
@@ -195,7 +196,7 @@ function PlanRow({
       </div>
       <p className="group-recommendation">
         {showRoomAdvice
-          ? guestText(
+          ? humanExplanation(
               item.recommendation,
               item.verdicts.some((v) => v.synthetic),
             )
@@ -204,7 +205,13 @@ function PlanRow({
       {showRoomAdvice && item.profile && (
         <div className="group-profile-preview">
           <RoomHighlights profile={item.profile} requestedIds={requestedIds} />
-          {item.profile.clauses.some((clause) => clause.synthetic) && (
+          {item.profile.clauses.some(
+            (clause) =>
+              clause.synthetic &&
+              (!requestedIds ||
+                (!!clause.characteristic_id &&
+                  requestedIds.includes(clause.characteristic_id))),
+          ) && (
             <>
               {" "}
               <Synthetic />
@@ -223,7 +230,7 @@ function PlanRow({
               <ul className="room-caveats">
                 {item.caveats.map((text, i) => (
                   <li key={i}>
-                    {guestText(
+                    {humanExplanation(
                       text,
                       item.verdicts.some((v) => v.synthetic),
                     )}
