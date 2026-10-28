@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "checked_at": "2026-10-28T16:11:16.867487+00:00",
-  "git_head": "25f88737bff2f65bc656eee3dbacde0e4a3dc337",
+  "checked_at": "2026-10-28T17:58:04.925912+00:00",
+  "git_head": "35f833ad2b9d32385876b4493996e60839cb8f2f",
   "passed": true,
   "checks": {
     "mandatory_root_files": {
@@ -209,8 +209,8 @@
       ]
     }
   },
-  "tracked_files": 1498,
-  "tracked_worktree_total_bytes": 416051035,
+  "tracked_files": 1501,
+  "tracked_worktree_total_bytes": 416749454,
   "largest_tracked_files": [
     {
       "path": "data/geo/terrain_30m.npz",
@@ -242,7 +242,7 @@
     },
     {
       "path": "docs/presentation.pdf",
-      "bytes": 2903979
+      "bytes": 2911203
     },
     {
       "path": "data/geo/osm-node-11843553792.json",
@@ -254,19 +254,19 @@
     }
   ],
   "git_storage": {
-    "directory_bytes": 348903147,
+    "directory_bytes": 479650322,
     "count_objects": {
-      "count": 5278,
-      "size": 172276,
-      "in-pack": 1708,
-      "packs": 2,
-      "size-pack": 182653,
-      "prune-packable": 1,
+      "count": 5299,
+      "size": 172524,
+      "in-pack": 7007,
+      "packs": 3,
+      "size-pack": 310097,
+      "prune-packable": 5299,
       "garbage": 0,
       "size-garbage": 0
     },
-    "pack_bytes": 187036672,
-    "loose_allocated_bytes": 176410624,
+    "pack_bytes": 317539328,
+    "loose_allocated_bytes": 176664576,
     "target_pack_bytes": 150000000,
     "target_pack_met": false,
     "interpretation": "Pack target is advisory; owner decides compaction. No gc, purge or rewrite performed."
