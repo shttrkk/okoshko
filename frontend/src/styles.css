@@ -3333,12 +3333,21 @@ pre {
   margin-top: 20px;
 }
 .change-map-pair > div > span {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
   font-size: 13px;
   margin-bottom: 10px;
 }
 .change-map-pair .travel-map {
-  height: 300px;
+  height: 440px;
+}
+/* Both maps show the same hotel, named above the pair: the focus card and
+   noise legend would only cover the building that changed. */
+.change-map-pair .map-selected,
+.change-map-pair .map-noise-legend {
+  display: none;
 }
 .toast {
   position: fixed;
@@ -4764,6 +4773,9 @@ pre {
   .change-map-pair {
     grid-template-columns: 1fr;
   }
+  .change-map-pair .travel-map {
+    height: 340px;
+  }
   .modal-backdrop {
     padding: 12px;
   }
@@ -6041,7 +6053,9 @@ h3 {
 }
 .scenario-body {
   position: relative;
-  display: block;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   padding: 16px 24px 24px;
 }
 .scenario-icon {
@@ -6841,7 +6855,9 @@ h3 {
 }
 .scenario-cta {
   display: block;
-  margin-top: 15px;
+  /* Same baseline in every card of a row, whatever the description length. */
+  margin-top: auto;
+  padding-top: 15px;
   padding-right: 24px;
   font-size: 14px;
   font-weight: 750;
