@@ -103,6 +103,9 @@ try {
   const groupNotes = await page.locator(".result-group").evaluateAll((groups) =>
     groups.map((group) => ({
       legend: group.querySelectorAll('[data-testid="partial-legend"]').length,
+      partial: !!group.querySelector(
+        '[data-testid="required-status"][data-status="partial"]',
+      ),
       notes: [
         ...group.querySelectorAll(
           ':scope > .result-group-note:not([data-testid="partial-legend"])',
@@ -110,27 +113,41 @@ try {
       ].map((note) => note.textContent.trim()),
     })),
   );
-  assert.equal(groupNotes.length, 3);
+  // R7 keeps a known required rejection in its own final group, below unknown.
+  assert.equal(groupNotes.length, 4);
+  const rejected = page.getByTestId(`hotel-card-${results[3].hotel.id}`);
+  assert.equal(
+    await rejected.locator(".verdict-list .verdict-symbol.no").count(),
+    1,
+  );
+  assert.equal(
+    await page
+      .locator(".result-group")
+      .last()
+      .locator(".result-card")
+      .getAttribute("data-testid"),
+    `hotel-card-${results[3].hotel.id}`,
+  );
   assert.equal(groupNotes.filter((group) => group.legend).length, 1);
   assert(
     groupNotes.every((group) =>
-      group.legend ? group.notes.length === 0 : group.notes.length === 1,
+      group.partial && !group.legend
+        ? group.notes.length === 1
+        : group.notes.length === 0,
     ),
   );
   const notes = groupNotes.flatMap((group) => group.notes);
   assert.equal(new Set(notes).size, notes.length);
   assert(notes.every((note) => !/подтвержден/iu.test(note)));
-  for (const result of results) {
-    const card = page.getByTestId(`hotel-card-${result.hotel.id}`);
+  // R8: partial/no are not affirmative reasons for a "best room" claim.
+  for (const result of results)
     assert.equal(
-      (
-        await card
-          .locator(".room-suggestion > summary > .eyebrow")
-          .textContent()
-      ).trim(),
-      "Лучший вариант",
+      await page
+        .getByTestId(`hotel-card-${result.hotel.id}`)
+        .locator(".room-suggestion")
+        .count(),
+      0,
     );
-  }
   await page.screenshot({
     path: resolve(artifacts, "1440-partial-groups.png"),
     fullPage: true,
@@ -149,6 +166,20 @@ try {
     "Просите номер",
   );
 
+  const reason = await page.locator(".room-request-reason").first().innerText();
+  assert(/вид на море/iu.test(reason));
+  assert(!/тишин/iu.test(reason));
+  assert(
+    /по расчёту/iu.test(
+      await page.locator(".verdict-list").first().innerText(),
+    ),
+  );
+  assert(
+    !/подтвердил отель/iu.test(
+      await page.locator(".verdict-list").first().innerText(),
+    ),
+  );
+
   results = [
     hit(
       0,
@@ -159,11 +190,10 @@ try {
   ];
   await page.reload();
   await page.locator(".result-card").first().waitFor();
+  assert.equal(await page.locator(".room-suggestion").count(), 0);
   assert.equal(
-    (
-      await page.locator(".room-suggestion > summary > .eyebrow").textContent()
-    ).trim(),
-    "Лучший вариант",
+    await page.locator(".verdict-list .verdict-symbol.unknown").count(),
+    1,
   );
   assert.deepEqual(errors, []);
   assert.deepEqual(blocked, []);
@@ -171,8 +201,9 @@ try {
   const report = {
     passed: true,
     checks: [
-      "one partial legend across three groups; no duplicate note in its group; other group notes distinct",
-      "recommendation title follows backend full-match prefix for yes, partial, unknown and no",
+      "one partial legend across four groups; notes only on partial groups; known required no stays last",
+      "room advice requires an affirmative requested verdict; unknown/partial/no do not create a best-room claim",
+      "yes reason names only the supported sea-view condition and retains calculation provenance",
     ],
     errors,
     blocked,
