@@ -1290,6 +1290,22 @@
         "title": "Evidence",
         "type": "array"
       },
+      "origin_kinds": {
+        "items": {
+          "enum": [
+            "hotelier",
+            "demo_hotelier",
+            "calculation",
+            "open_data",
+            "simulation",
+            "mock"
+          ],
+          "type": "string"
+        },
+        "maxItems": 6,
+        "title": "Origin Kinds",
+        "type": "array"
+      },
       "updated_at": {
         "format": "date-time",
         "title": "Updated At",
@@ -10155,6 +10171,22 @@
             "title": "Evidence",
             "type": "array"
           },
+          "origin_kinds": {
+            "items": {
+              "enum": [
+                "hotelier",
+                "demo_hotelier",
+                "calculation",
+                "open_data",
+                "simulation",
+                "mock"
+              ],
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Origin Kinds",
+            "type": "array"
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -11263,6 +11295,22 @@
               "$ref": "#/$defs/Evidence"
             },
             "title": "Evidence",
+            "type": "array"
+          },
+          "origin_kinds": {
+            "items": {
+              "enum": [
+                "hotelier",
+                "demo_hotelier",
+                "calculation",
+                "open_data",
+                "simulation",
+                "mock"
+              ],
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Origin Kinds",
             "type": "array"
           },
           "updated_at": {
@@ -12677,6 +12725,22 @@
               "$ref": "#/$defs/Evidence"
             },
             "title": "Evidence",
+            "type": "array"
+          },
+          "origin_kinds": {
+            "items": {
+              "enum": [
+                "hotelier",
+                "demo_hotelier",
+                "calculation",
+                "open_data",
+                "simulation",
+                "mock"
+              ],
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Origin Kinds",
             "type": "array"
           },
           "updated_at": {

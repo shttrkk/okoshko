@@ -75,6 +75,14 @@ export interface Fact {
   supporting_claim_ids: string[];
   conflicting_claim_ids?: string[];
   evidence: Evidence[];
+  origin_kinds?: (
+    | "hotelier"
+    | "demo_hotelier"
+    | "calculation"
+    | "open_data"
+    | "simulation"
+    | "mock"
+  )[];
   updated_at: string;
   valid_until?: string | null;
   synthetic?: boolean;

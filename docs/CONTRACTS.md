@@ -57,6 +57,8 @@ JSON Schema всех общих моделей: `docs/schemas.json`. Все пу
 Неизвестные POI/часы работы не означают «нет». Характеристики с `null` требуют вопроса/ограничения.
 `Fact.evidence` — копия evidence поддерживающих claims для быстрого UI; первичная цепочка — supporting_claim_ids.
 
+Компактный профиль дополнительно сохраняет `Fact.origin_kinds`: небольшой набор `hotelier`, `demo_hotelier`, `calculation`, `open_data`, `simulation`, `mock`, полученный только из исходного evidence. `demo_hotelier` требует соответствующего типа свидетельства и источника симулятора, общий synthetic-флаг его не доказывает. Полные цитаты и расчёты по-прежнему отложены (`evidence=[]`, `evidence_deferred=true`); origin_kinds не заменяет supporting_claim_ids и полное доказательство. В исходной материализации пустое поле не сериализуется, прежние входные данные и их SHA сохраняются.
+
 ## 3. Seed: CSV.gz + проверяемые артефакты
 
 Каждая таблица загружается из `data/seed/<table>.csv.gz`: UTF-8, CSV RFC4180, ровно две колонки `id,payload`. `payload` — JSON объекта с таким же id. Сжатие gzip, `mtime=0` для воспроизводимости. COPY во временную таблицу, затем INSERT; порядок: sources, hotels, characteristics, agent_runs, claims, facts, прочие.

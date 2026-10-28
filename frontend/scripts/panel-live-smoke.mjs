@@ -754,7 +754,8 @@ try {
   const wifiVerdict = verdict(wifiDetail, "connectivity");
   check(
     wifiVerdict.status === "partial" &&
-      /Wi-Fi указан, скорость не измерена/.test(wifiVerdict.text),
+      /Wi-Fi[^\n]*скорость (?:неизвестна|не измерена)/.test(wifiVerdict.text) &&
+      !/\d+(?:[.,]\d+)?\s*Мбит/.test(wifiVerdict.text),
     "Real Wi-Fi presence is partial and does not invent measured Mbps",
   );
   const wifiRanking = await api("/api/search", {

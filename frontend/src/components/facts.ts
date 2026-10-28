@@ -270,6 +270,9 @@ export function humanFact(
     }
     case "accessible_route": {
       const fromHotel =
+        fact.origin_kinds?.some((kind) =>
+          ["hotelier", "demo_hotelier"].includes(kind),
+        ) ||
         (!fact.synthetic &&
           fact.status === "confirmed" &&
           fact.supporting_claim_ids.length > 0) ||

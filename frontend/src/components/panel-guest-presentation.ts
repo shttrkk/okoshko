@@ -146,13 +146,18 @@ export function isDemoAnswer(verdict: Verdict) {
 }
 export function factDemoLabel(fact: Fact) {
   if (
+    fact.origin_kinds?.includes("demo_hotelier") ||
     fact.evidence.some(
       (e) =>
-        e.kind === "hotelier" || e.source_ids.includes("hotelier_simulator"),
+        ["hotelier", "simulation"].includes(e.kind) &&
+        e.source_ids.includes("hotelier_simulator"),
     )
   )
     return DEMO_REPLY;
   if (
+    fact.origin_kinds?.some((kind) =>
+      ["calculation", "open_data", "simulation"].includes(kind),
+    ) ||
     fact.evidence.some((e) =>
       ["calculation", "open_data", "simulation"].includes(e.kind),
     )

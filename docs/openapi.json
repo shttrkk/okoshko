@@ -3676,6 +3676,22 @@
             "type": "array",
             "title": "Evidence"
           },
+          "origin_kinds": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "hotelier",
+                "demo_hotelier",
+                "calculation",
+                "open_data",
+                "simulation",
+                "mock"
+              ]
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "Origin Kinds"
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",

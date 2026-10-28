@@ -175,9 +175,17 @@ class Fact(Model):
     supporting_claim_ids: list[str] = Field(default_factory=list)
     conflicting_claim_ids: list[str] = Field(default_factory=list)
     evidence: list[Evidence] = Field(default_factory=list)
+    origin_kinds: list[Literal["hotelier", "demo_hotelier", "calculation", "open_data", "simulation", "mock"]] = Field(default_factory=list, max_length=6)
     updated_at: datetime = Field(default_factory=now)
     valid_until: datetime | None = None
     synthetic: bool = False
+
+    @model_serializer(mode="wrap")
+    def preserve_full_fact_shape(self, handler):
+        value = handler(self)
+        if not self.origin_kinds:
+            value.pop("origin_kinds", None)
+        return value
 
 
 class Conflict(Model):

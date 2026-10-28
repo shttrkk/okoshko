@@ -774,7 +774,7 @@
       "backend/agents/query_rules.py": "c56026b893b57da9a9f395e7e532be309977e03dcb1e33fd0cf7e2fd0e29971e",
       "backend/agents/similarity.py": "abd0c5dee58e0e6206ff45b1ce1222892d68b3932ed6490050363f3f3f2b8465",
       "backend/contracts/__init__.py": "c7a5746ac4519ef52c85b62f9346a0537f39db8604ee732237f08cd2055bc8f1",
-      "backend/contracts/models.py": "933ebbda2db736184d11a756996b68c0da853e59b39d002917a379d8fb51cece",
+      "backend/contracts/models.py": "f4b2582c93dc7776661700b711c3e4579ae40239cd559259107642b2290758e5",
       "backend/tools/registry.py": "6e53450d5a2d9abefca367e1ea0dc93ed3b9e1b3ebc3fd1b57639f99895d3fca",
       "backend/parser_quality.py": "eaa884576404b704737583967a9fc0c1ec2450a32200b8daf6688e8fddaad41f",
       "scripts/parser_eval.py": "dd6380192856750cf96bdcb2fe8f0b5309ff97559b2979eadabde628ec7c198d"
